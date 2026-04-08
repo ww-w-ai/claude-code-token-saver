@@ -44,7 +44,7 @@ If the user recently ran `/usage-view`, the cache is already warm and this compl
 
 ## Step 2: Find rate-limited windows from timeline CSVs
 
-Scan all timeline CSVs for rows where `rl=limit_hit` or `rl=extra_exhausted`. Group by the `win` column (5-hour window start timestamp) to identify distinct rate-limited windows.
+Scan all timeline CSVs for rows where `rl` starts with `limit_hit` (catches `limit_hit_5h`, `limit_hit_weekly`, `limit_hit_opus`, `limit_hit_sonnet`, `limit_hit_extra`, `limit_hit_unknown`, with or without `{reset}` suffix). Group by the `win` column (5-hour window start timestamp) to identify distinct rate-limited windows.
 
 ```bash
 node -e "
@@ -70,7 +70,7 @@ for (const ym of yymms) {
       const win = cols[9] !== '' ? cols[9] : prevWin;
       if (cols[9] !== '') prevWin = cols[9];
       const rl = cols[10] || '';
-      if (rl === 'limit_hit' || rl === 'extra_exhausted') {
+      if (rl.startsWith('limit_hit')) {
         if (!windowMap.has(win)) windowMap.set(win, { sessions: new Set() });
         windowMap.get(win).sessions.add(sessionId);
       }
@@ -120,7 +120,7 @@ for (const [winTs, info] of windowMap) {
     sessions: info.sessions.size,
     requests: rows.length,
     cost: Math.round(totalCost * 100) / 100,
-    csvHeader: 'ts,model,input,cc,cc5m,cc1h,cr,out,cost,win,rl,session',
+    csvHeader: 'ts,model,input,cc,cc5m,cc1h,cr,out,cost,win,rl,evt,session',
     csvRows: rows
   });
 }
@@ -164,10 +164,10 @@ The body contains the raw timeline CSV data. No aggregation, no metric calculati
 
 Raw timeline CSV for this 5-hour window. Each row is one API call.
 
-Columns: `ts` (unix), `model`, `input` (tokens), `cc` (cache creation), `cc5m` (5min tier), `cc1h` (1hr tier), `cr` (cache read), `out` (output), `cost` (USD), `win` (window start), `rl` (rate limit status), `session` (id)
+Columns: `ts` (unix), `model`, `input` (tokens), `cc` (cache creation), `cc5m` (5min tier), `cc1h` (1hr tier), `cr` (cache read), `out` (output), `cost` (USD), `win` (window start), `rl` (rate limit status), `evt` (context/cost events, pipe-separated: startup, compact, cost_warn, cost_danger, ctx_warn, ctx_danger, etc.), `session` (id)
 
 ```csv
-ts,model,input,cc,cc5m,cc1h,cr,out,cost,win,rl,session
+ts,model,input,cc,cc5m,cc1h,cr,out,cost,win,rl,evt,session
 {raw CSV rows joined by newline}
 ```
 
@@ -193,61 +193,113 @@ console.log(body);
 " '\$ISSUE_BODY'
 ```
 
-## Step 5: Open GitHub Discussion
+## Step 5: Upload data and open GitHub Discussion
 
 Target repo:
 ```
 REPO="ww-w-ai/cc-token-saver"
 ```
 
-Build the pre-filled Discussion URL:
+### Step 5a: Prepare files
+
+Copy the relevant timeline and ratelimit CSV files to a temp directory:
 
 ```bash
-node -e "
-const title = process.argv[1];
-const body = process.argv[2];
-const labels = 'usage-data,rate-limit';
-const repo = process.argv[3];
-
-const url = 'https://github.com/' + repo + '/discussions/new'
-  + '?category=General'
-  + '&title=' + encodeURIComponent(title)
-  + '&body=' + encodeURIComponent(body);
-
-if (url.length > 7250) {
-  const maxBody = 7250 - ('https://github.com/' + repo + '/discussions/new?category=General&title=' + encodeURIComponent(title) + '&body=').length;
-  const truncBody = body.slice(0, Math.floor(maxBody * 0.9)) + '\n\n---\n*[Truncated — full data exceeded URL limit]*';
-  const shortUrl = 'https://github.com/' + repo + '/discussions/new'
-    + '?category=General'
-    + '&title=' + encodeURIComponent(title)
-    + '&body=' + encodeURIComponent(truncBody);
-  console.log(shortUrl);
-} else {
-  console.log(url);
-}
-" '\$ISSUE_TITLE' '\$SANITIZED_BODY' '\$REPO'
+REPORT_DIR="/tmp/report-limit-$(date +%Y%m%d%H%M%S)"
+mkdir -p "$REPORT_DIR"
 ```
 
-Open in browser:
+For each rate-limited window, copy:
+- All timeline CSVs that have data in that window
+- All ratelimit CSVs from sessions in that window
+
+### Step 5b: Try gist upload
+
+```bash
+# Check if gh is authenticated
+if gh auth status >/dev/null 2>&1; then
+  GIST_URL=$(gh gist create --public "$REPORT_DIR"/*.csv 2>/dev/null)
+fi
+```
+
+### Step 5c: Build Discussion URL
+
+Build the Discussion body depending on whether gist upload succeeded.
+
+If gist succeeded, the Discussion body includes the gist URL:
+
+```markdown
+## Rate Limit Data Point
+
+| Field | Value |
+|-------|-------|
+| Window(s) | {list of windows with dates/times} |
+| Total Cost | ${total_cost} |
+| Sessions | {count} |
+
+## Raw Data
+📎 ${GIST_URL}
+
+## Context
+- Plan: Max ($200/mo)
+- Claude Code version: {version}
+- Date: {YYYY-MM-DD}
+```
+
+If gist failed, include file path info instead:
+
+```markdown
+## Rate Limit Data Point
+
+| Field | Value |
+|-------|-------|
+| Window(s) | {list of windows with dates/times} |
+| Total Cost | ${total_cost} |
+| Sessions | {count} |
+
+## Raw Data
+📎 Please attach CSV files from: ${REPORT_DIR}/
+Files prepared:
+- timeline-xxx.csv
+- ratelimit-xxx.csv
+
+## Context
+- Plan: Max ($200/mo)
+- Claude Code version: {version}
+- Date: {YYYY-MM-DD}
+```
+
+### Step 5d: Open Discussion + Finder
+
+Build the pre-filled Discussion URL using the sanitized body and open in browser:
 
 ```bash
 open "${ISSUE_URL}"  # macOS
 ```
 
-If `open` fails, print the URL as a fallback.
+If gist failed, also open the temp folder so the user can drag files into the Discussion:
+
+```bash
+open "$REPORT_DIR"  # macOS
+```
+
+If `open` fails, print the URL and file path as a fallback.
 
 ## Step 6: Report
 
 Show a brief summary:
 
 ```
-💀 Found {N} rate-limited window(s). Opening GitHub Discussion in browser.
+💀 Found {N} rate-limited window(s).
 
 | Window | Cost | Requests |
 |--------|------|----------|
 | {date} {start}-{end} | ${cost} | {n} |
 
-Review and submit in your browser. Edit anything before clicking "Submit".
+{If gist: "📎 Data uploaded: ${GIST_URL}"}
+{If no gist: "📎 Files ready at: ${REPORT_DIR}/ — drag into the Discussion"}
+
+Discussion opened in browser. Review and submit.
 ```
 
 If multiple windows found, open each one in a separate browser tab.
@@ -256,12 +308,12 @@ If multiple windows found, open each one in a separate browser tab.
 
 - **No timeline CSVs**: Tell user to run `/usage-view` first to generate cached data.
 - **No rate-limited windows**: "No rate-limited windows found. You can still report a non-rate-limited window as a data point by providing a date/time."
-- **URL too long**: The CSV data may exceed browser URL limits. The truncation logic in Step 5 handles this, but warn the user that some rows were cut.
+- **Gist upload fails**: If `gh` is not installed or not authenticated, fall back to opening the temp folder. Instruct the user to drag CSV files into the Discussion manually.
 
 ## Important Notes
 
 - Timeline CSVs live at `~/.claude/cc-token-saver/{YYMM}/timeline-{SESSION_ID}.csv`
-- The `rl` column values: `limit_hit` (hard block), `extra_exhausted` (extra credits used up), empty (normal)
+- The `rl` column values: `limit_hit_5h{reset}` (5h window limit), `limit_hit_weekly` (weekly limit), `limit_hit_opus` (Opus model limit), `limit_hit_sonnet` (Sonnet model limit), `limit_hit_extra` (extra credits exhausted), `limit_hit_unknown` (unknown type), empty (normal)
 - The `win` column is the 5-hour window start as unix timestamp
 - All times displayed in local timezone
 - Session IDs in the CSV are safe to share — they contain no personal data

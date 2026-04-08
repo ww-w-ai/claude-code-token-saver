@@ -7,6 +7,11 @@
  *   --days N        Only analyze last N days (default: all)
  *   --project PATH  Analyze specific project directory (default: all projects)
  *   --force         Force re-analyze, ignore cached results
+ *
+ * Timeline CSV columns: ts,model,input,cc,cc5m,cc1h,cr,out,cost,win,rl,evt
+ *   win: 5h window start (sparse, simple hourFloor+5h per session)
+ *   rl: rate limit event (limit_hit_5h, limit_hit_weekly, limit_hit_opus, limit_hit_sonnet, limit_hit_extra, limit_hit_unknown) + reset info
+ *   evt: context/cost events, pipe-separated (startup, compact, cost_warn, ctx_danger, etc.)
  */
 
 const fs = require("fs");
@@ -15,7 +20,7 @@ const readline = require("readline");
 const os = require("os");
 
 const CACHE_DIR = path.join(os.homedir(), ".claude", "cc-token-saver");
-const CACHE_VERSION = 6; // Bump when cache format changes
+const CACHE_VERSION = 7; // Bump when cache format changes
 const PROJECTS_DIR = path.join(os.homedir(), ".claude", "projects");
 
 // Load model pricing from external file (easy to update when new models launch)
@@ -270,13 +275,13 @@ async function analyzeSession(filePath) {
     continueReads = [];
   }
 
-  // Rate limit message patterns -> status mapping
+  // Rate limit message patterns (prefix matching)
   const RATE_LIMIT_PATTERNS = [
-    { prefix: "You've hit your", status: "limit_hit" },
-    { prefix: "You've used", status: "limit_warning" },
-    { prefix: "You're now using extra usage", status: "extra_start" },
-    { prefix: "You're close to your extra usage", status: "extra_warning" },
-    { prefix: "You're out of extra usage", status: "extra_exhausted" },
+    { prefix: "You've hit your" },
+    { prefix: "You've used" },
+    { prefix: "You're now using extra usage" },
+    { prefix: "You're close to your extra usage" },
+    { prefix: "You're out of extra usage" },
   ];
 
   // Track per-requestId to deduplicate streaming chunks
@@ -366,6 +371,25 @@ async function analyzeSession(filePath) {
       // Detect rate limit messages in assistant text content
       // and /continue Read calls for compact-*.txt files
       const content = obj.message && obj.message.content;
+
+      // Detect rate_limit error on assistant messages
+      if (obj.error === "rate_limit") {
+        let msgText = "";
+        if (Array.isArray(content)) {
+          for (const block of content) {
+            if (block.type === "text" && block.text) msgText += block.text;
+          }
+        }
+        const rateLimitType = detectRateLimitType(msgText);
+        const resetsAt = parseResetsAt(msgText, ts);
+        rateLimitEvents.push({
+          ts,
+          message: msgText,
+          rateLimitType,
+          resetsAt,
+        });
+      }
+
       if (Array.isArray(content)) {
         for (const block of content) {
           if (block.type === "text" && block.text) {
@@ -373,13 +397,15 @@ async function analyzeSession(filePath) {
               if (block.text.startsWith(pat.prefix)) {
                 const rateLimitType = detectRateLimitType(block.text);
                 const resetsAt = parseResetsAt(block.text, ts);
-                rateLimitEvents.push({
-                  ts,
-                  status: pat.status,
-                  message: block.text,
-                  rateLimitType,
-                  resetsAt,
-                });
+                // Only push if not already captured via obj.error
+                if (obj.error !== "rate_limit") {
+                  rateLimitEvents.push({
+                    ts,
+                    message: block.text,
+                    rateLimitType,
+                    resetsAt,
+                  });
+                }
                 break;
               }
             }
@@ -460,7 +486,7 @@ async function analyzeSession(filePath) {
     usageTimeline.push(entry);
   }
 
-  // rl/evt fields — win is assigned globally in assignGlobalWindows()
+  // Initialize rl/evt fields on usage entries
   for (const e of usageTimeline) {
     e.win = null;
     e.rl = "";
@@ -469,8 +495,8 @@ async function analyzeSession(filePath) {
 
   // Insert rate limit events into the timeline
   for (const rle of rateLimitEvents) {
-    const win = null; // assigned globally in assignGlobalWindows()
-
+    // Format: %5{1am@Asia/Seoul} or %% (no reset info)
+    const rlValue = rle.resetsAt ? `${rle.rateLimitType}${rle.resetsAt}` : rle.rateLimitType;
     usageTimeline.push({
       ts: rle.ts,
       model: "",
@@ -481,8 +507,8 @@ async function analyzeSession(filePath) {
       cacheRead: 0,
       output: 0,
       cost: 0,
-      win,
-      rl: rle.rateLimitType ? `${rle.status}:${rle.rateLimitType}` : rle.status,
+      win: null,
+      rl: rlValue,
       evt: "",
     });
   }
@@ -509,6 +535,52 @@ async function analyzeSession(filePath) {
 
   // Re-sort after inserting rate limit and context events
   usageTimeline.sort((a, b) => (a.ts > b.ts ? 1 : -1));
+
+  // Compute per-session 5h windows (simple: hourFloor + 5h)
+  let currentWinStart = null;
+  let currentWinEnd = null;
+  for (const e of usageTimeline) {
+    const ts = Math.floor(new Date(e.ts).getTime() / 1000);
+    if (currentWinStart === null || ts >= currentWinEnd) {
+      currentWinStart = hourFloor(ts);
+      currentWinEnd = currentWinStart + 5 * 3600;
+    }
+    e.win = currentWinStart;
+  }
+
+  // Add cost/context events to evt column
+  // Track current model for contextWindow lookup
+  let curModel = null;
+  for (const e of usageTimeline) {
+    if (e.model && e.model !== "unknown" && e.model !== "") curModel = e.model;
+    if (e.cost <= 0 && e.input <= 0) continue; // skip event-only rows
+
+    const evts = e.evt ? [e.evt] : [];
+
+    // Cost thresholds
+    if (e.cost >= 1.0) {
+      evts.push("cost_danger");
+    } else if (e.cost >= 0.5) {
+      evts.push("cost_warn");
+    }
+
+    // Context % thresholds
+    if (curModel) {
+      const rates = MODEL_PRICING[curModel];
+      const contextWindow = rates ? rates.contextWindow : (DEFAULT_PRICING ? DEFAULT_PRICING.contextWindow : 200000);
+      if (contextWindow > 0) {
+        const contextTokens = e.input + e.cacheCreation + e.cacheRead;
+        const contextPct = contextTokens / contextWindow;
+        if (contextPct >= 0.70) {
+          evts.push("ctx_danger");
+        } else if (contextPct >= 0.35) {
+          evts.push("ctx_warn");
+        }
+      }
+    }
+
+    e.evt = evts.join("|");
+  }
 
   // Determine primary model (most frequent in timeline)
   const modelCounts = {};
@@ -539,450 +611,29 @@ async function analyzeSession(filePath) {
 }
 
 function detectRateLimitType(message) {
-  if (!message) return "unknown";
+  if (!message) return "limit_hit_unknown";
   const lower = message.toLowerCase();
-  if (lower.includes("session limit")) return "five_hour";
-  if (lower.includes("weekly limit")) return "seven_day";
-  if (lower.includes("opus limit")) return "seven_day_opus";
-  if (lower.includes("sonnet limit")) return "seven_day_sonnet";
-  if (lower.includes("usage limit")) return "unknown";
-  if (lower.includes("extra usage")) return "overage";
-  return "unknown";
+  if (lower.includes("session limit")) return "limit_hit_5h";
+  if (lower.includes("weekly limit")) return "limit_hit_weekly";
+  if (lower.includes("opus limit")) return "limit_hit_opus";
+  if (lower.includes("sonnet limit")) return "limit_hit_sonnet";
+  if (lower.includes("you're out of extra usage")) return "limit_hit_extra";
+  if (lower.includes("extra usage")) return "limit_hit_extra";
+  return "limit_hit_unknown";
 }
 
 function parseResetsAt(message, eventTs) {
   if (!message || !eventTs) return null;
-  const m = message.match(/resets\s+(\d{1,2})(am|pm)\s*\(([^)]+)\)/i);
+  const m = message.match(/·\s*resets\s+(\S+?)(?:\s+\(([^)]+)\))?(?:\s|$)/i);
   if (!m) return null;
-  let hour = parseInt(m[1]);
-  if (m[2].toLowerCase() === 'pm' && hour !== 12) hour += 12;
-  if (m[2].toLowerCase() === 'am' && hour === 12) hour = 0;
-  const tz = m[3];
-  try {
-    const evtDate = new Date(eventTs);
-    // Get event time in the specified timezone
-    const evtLocalMs = new Date(evtDate.toLocaleString('en-US', { timeZone: tz })).getTime();
-    const offsetMs = evtLocalMs - evtDate.getTime();
-    // Build reset time in local timezone
-    const resetLocal = new Date(evtLocalMs);
-    resetLocal.setHours(hour, 0, 0, 0);
-    // Reset is always after event time
-    if (resetLocal.getTime() <= evtLocalMs) resetLocal.setDate(resetLocal.getDate() + 1);
-    // Convert back to UTC unix seconds
-    return Math.floor((resetLocal.getTime() - offsetMs) / 1000);
-  } catch {
-    return null;
-  }
+  const timeStr = m[1]; // e.g. "1am", "10:30am"
+  const tz = m[2]; // e.g. "Asia/Seoul" (optional)
+  return tz ? `{${timeStr}@${tz}}` : `{${timeStr}}`;
 }
 
-function assignGlobalWindows(files) {
-  const FIVE_HOURS_S = 5 * 3600;
 
-  function hourFloor(ts) {
-    return ts - (ts % 3600);
-  }
-
-  // ========== Phase 1: Build hourly presence map ==========
-  const CACHE_DIR_BASE = path.join(os.homedir(), '.claude', 'cc-token-saver');
-  const hourMap = new Map(); // hourFloor -> 0|1|2
-
-  function markHour(h, value) {
-    const cur = hourMap.get(h) || 0;
-    if (value > cur) hourMap.set(h, value);
-  }
-
-  // --- 1a. Scan ratelimit CSVs (highest priority) ---
-  let rlYymms;
-  try { rlYymms = fs.readdirSync(CACHE_DIR_BASE).filter(d => /^\d{4}$/.test(d)); } catch { rlYymms = []; }
-  for (const ym of rlYymms) {
-    const rlDir = path.join(CACHE_DIR_BASE, ym);
-    let rlCsvs;
-    try { rlCsvs = fs.readdirSync(rlDir).filter(f => f.startsWith('ratelimit-') && f.endsWith('.csv')); } catch { continue; }
-    for (const csv of rlCsvs) {
-      const lines = fs.readFileSync(path.join(rlDir, csv), 'utf8').trim().split('\n');
-      let lastH5Reset = null;
-      for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i].split(',');
-        if (cols[2]) lastH5Reset = Number(cols[2]);
-        if (lastH5Reset && lastH5Reset > 0) {
-          const winStart = lastH5Reset - FIVE_HOURS_S;
-          for (let h = hourFloor(winStart); h < lastH5Reset; h += 3600) {
-            markHour(h, 2);
-          }
-        }
-      }
-    }
-  }
-
-  // --- 1b. Scan all main-session timeline CSVs ---
-  // Build summary cache for rl enrichment lookups
-  const summaryCache = new Map(); // sessionId:ym -> summary
-  function getSummary(sessionId, ym) {
-    const key = `${sessionId}:${ym}`;
-    if (summaryCache.has(key)) return summaryCache.get(key);
-    const cachePath = getCachePath(sessionId, ym);
-    let summary = null;
-    try { summary = JSON.parse(fs.readFileSync(cachePath, 'utf8')); } catch {}
-    summaryCache.set(key, summary);
-    return summary;
-  }
-
-  const mainFiles = files.filter(f => !f.path.includes('/subagents/'));
-  for (const file of mainFiles) {
-    const sessionId = path.basename(file.path, '.jsonl');
-    const ym = getYearMonth(file.path);
-    const csvPath = getTimelineCsvPath(sessionId, ym);
-    if (!fs.existsSync(csvPath)) continue;
-    const lines = fs.readFileSync(csvPath, 'utf8').trim().split('\n');
-
-    // Collect rl events from this CSV
-    let lastRl = '';
-    for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split(',');
-      const ts = Number(cols[0]);
-      if (ts <= 0) continue;
-
-      // Mark hour as having activity
-      markHour(hourFloor(ts), 1);
-
-      // Delta-decode rl column
-      let rl = cols.length >= 11 ? (cols[10] || '') : '';
-      if (!rl && lastRl) rl = lastRl;
-      if (rl) lastRl = rl;
-      if (!rl) continue;
-
-      // Check for limit_hit or limit_warning (with or without :type suffix)
-      const rlBase = rl.split(':')[0];
-      if (rlBase !== 'limit_hit' && rlBase !== 'limit_warning') continue;
-
-      const rlParts = rl.split(':');
-      const rlType = rlParts.length > 1 ? rlParts.slice(1).join(':') : null;
-
-      let is5h = false;
-      let windowResetTs = null;
-
-      if (rlType === 'five_hour') {
-        is5h = true;
-      } else if (rlType === 'seven_day' || rlType === 'seven_day_opus' || rlType === 'seven_day_sonnet') {
-        continue; // skip weekly events
-      } else {
-        // Old format (no type suffix) or :unknown — look up summary JSON
-        const summary = getSummary(sessionId, ym);
-        if (summary && Array.isArray(summary.rateLimitEvents)) {
-          // Find closest event by timestamp
-          let bestEvt = null;
-          let bestDist = Infinity;
-          for (const evt of summary.rateLimitEvents) {
-            const evtUnix = Math.floor(new Date(evt.ts).getTime() / 1000);
-            const dist = Math.abs(evtUnix - ts);
-            if (dist < bestDist) { bestDist = dist; bestEvt = evt; }
-          }
-          if (bestEvt && bestDist < 60) {
-            const resetsAt = parseResetsAt(bestEvt.message, bestEvt.ts);
-            if (resetsAt != null) {
-              const gap = resetsAt - ts;
-              if (gap > 0 && gap <= FIVE_HOURS_S) {
-                is5h = true;
-                windowResetTs = resetsAt;
-              }
-            }
-          }
-        }
-      }
-
-      if (is5h) {
-        // Determine the 5h window and mark all hour slots as 2
-        let resetTs = windowResetTs;
-        if (!resetTs) {
-          // For confirmed :five_hour, try to get exact reset from summary
-          const summary = getSummary(sessionId, ym);
-          if (summary && Array.isArray(summary.rateLimitEvents)) {
-            let bestEvt = null;
-            let bestDist = Infinity;
-            for (const evt of summary.rateLimitEvents) {
-              const evtUnix = Math.floor(new Date(evt.ts).getTime() / 1000);
-              const dist = Math.abs(evtUnix - ts);
-              if (dist < bestDist) { bestDist = dist; bestEvt = evt; }
-            }
-            if (bestEvt && bestDist < 60) {
-              resetTs = parseResetsAt(bestEvt.message, bestEvt.ts);
-            }
-          }
-          // Fallback: round up ts to next 5h boundary
-          if (!resetTs) resetTs = ts + FIVE_HOURS_S;
-        }
-        const wStart = resetTs - FIVE_HOURS_S;
-        for (let h = hourFloor(wStart); h < resetTs; h += 3600) {
-          markHour(h, 2);
-        }
-      }
-    }
-  }
-
-  // ========== Phase 2: Compute windows from the presence map ==========
-
-  const sortedHours = [...hourMap.keys()].sort((a, b) => a - b);
-  if (sortedHours.length === 0) return;
-
-  // --- 2a. Anchor windows from `2` slots ---
-  // Group contiguous `2` slots
-  const anchorWins = []; // [{start, end}]
-  let curAnchorStart = null;
-  let curAnchorEnd = null;
-  for (const h of sortedHours) {
-    if (hourMap.get(h) !== 2) continue;
-    if (curAnchorStart === null) {
-      curAnchorStart = h;
-      curAnchorEnd = h + 3600;
-    } else if (h <= curAnchorEnd) {
-      curAnchorEnd = h + 3600;
-    } else {
-      anchorWins.push({ start: curAnchorStart, end: curAnchorEnd });
-      curAnchorStart = h;
-      curAnchorEnd = h + 3600;
-    }
-  }
-  if (curAnchorStart !== null) {
-    anchorWins.push({ start: curAnchorStart, end: curAnchorEnd });
-  }
-
-  // Collect all windows (start -> end)
-  const allWindows = new Map();
-  for (const aw of anchorWins) {
-    allWindows.set(aw.start, aw.end);
-  }
-
-  // --- 2b. Extend anchors backward ---
-  for (const anchor of anchorWins) {
-    let curStart = anchor.start;
-    while (true) {
-      const candStart = curStart - FIVE_HOURS_S;
-      const candEnd = curStart;
-
-      // Check if another anchor already covers this range
-      let inOtherAnchor = false;
-      for (const aw of anchorWins) {
-        if (aw === anchor) continue;
-        if (candStart < aw.end && candEnd > aw.start) {
-          inOtherAnchor = true;
-          break;
-        }
-      }
-      if (inOtherAnchor) break;
-
-      // Check if any hour in [candStart, candEnd) has real activity (value=1),
-      // not just anchor-derived marks (value=2) from other anchors
-      let found = false;
-      for (let h = candStart; h < candEnd; h += 3600) {
-        if (hourMap.get(h) >= 1) { found = true; break; }
-      }
-      if (found) {
-        allWindows.set(candStart, candEnd);
-        curStart = candStart;
-      } else {
-        break;
-      }
-    }
-  }
-
-  // --- 2c. Extend anchors forward ---
-  for (const anchor of anchorWins) {
-    let curEnd = anchor.end;
-    while (true) {
-      // Find first hour >= curEnd with any activity
-      let nextHour = null;
-      for (const h of sortedHours) {
-        if (h >= curEnd && hourMap.get(h) >= 1) {
-          nextHour = h;
-          break;
-        }
-      }
-      if (nextHour == null) break;
-
-      // Check if this hour is already in another anchor's territory
-      let inAnchorTerritory = false;
-      for (const aw of anchorWins) {
-        if (aw === anchor) continue;
-        if (nextHour >= aw.start && nextHour < aw.end) {
-          inAnchorTerritory = true;
-          break;
-        }
-      }
-      if (inAnchorTerritory) break;
-
-      // Check if this hour is already covered by a window we added
-      if (allWindows.has(nextHour) && nextHour !== curEnd) {
-        // Already handled by another extension
-        break;
-      }
-
-      const newStart = nextHour;
-      const newEnd = newStart + FIVE_HOURS_S;
-
-      // Check we're not overlapping an existing anchor
-      let hitsAnchor = false;
-      for (const aw of anchorWins) {
-        if (aw === anchor) continue;
-        if (newStart < aw.end && newEnd > aw.start) {
-          hitsAnchor = true;
-          break;
-        }
-      }
-      if (hitsAnchor) break;
-
-      allWindows.set(newStart, newEnd);
-      curEnd = newEnd;
-    }
-  }
-
-  // --- 2d. Fill remaining: from first `1` to earliest anchor-derived window ---
-  const derivedStarts = [...allWindows.keys()].sort((a, b) => a - b);
-  const earliestDerived = derivedStarts.length > 0 ? derivedStarts[0] : Infinity;
-
-  // Chain windows for all activity before earliest derived window
-  let chainEnd = 0;
-  for (const h of sortedHours) {
-    if (h >= earliestDerived) break;
-    if (hourMap.get(h) < 1) continue;
-    if (chainEnd > 0 && h < chainEnd) continue; // inside existing window
-    const winStart = h;
-    const winEnd = h + FIVE_HOURS_S;
-    if (winEnd > earliestDerived) break; // would overlap anchor territory
-    allWindows.set(winStart, winEnd);
-    chainEnd = winEnd;
-  }
-
-  // Also fill after the last anchor-derived window
-  const latestDerivedEnd = derivedStarts.length > 0
-    ? Math.max(...[...allWindows.entries()].map(([s, e]) => e))
-    : 0;
-  chainEnd = latestDerivedEnd;
-  for (const h of sortedHours) {
-    if (h < latestDerivedEnd) continue;
-    if (hourMap.get(h) < 1) continue;
-    if (chainEnd > 0 && h < chainEnd) continue;
-    const winStart = h;
-    const winEnd = h + FIVE_HOURS_S;
-    allWindows.set(winStart, winEnd);
-    chainEnd = winEnd;
-  }
-
-  // ========== Final: Collect, sort, deduplicate, assign ==========
-  let windows = [...allWindows.entries()].map(([s, e]) => ({ start: s, end: e }));
-  windows.sort((a, b) => a.start - b.start);
-
-  // Merge overlapping windows
-  const merged = [];
-  for (const w of windows) {
-    if (merged.length > 0 && w.start < merged[merged.length - 1].end) {
-      // Overlapping — keep the earlier start, extend end if needed
-      merged[merged.length - 1].end = Math.max(merged[merged.length - 1].end, w.end);
-    } else {
-      merged.push({ ...w });
-    }
-  }
-
-  // Split merged ranges back into non-overlapping 5h windows
-  const finalWindows = [];
-  for (const m of merged) {
-    let s = m.start;
-    while (s < m.end) {
-      // Ensure no overlap with previous window
-      if (finalWindows.length > 0) {
-        const prevEnd = finalWindows[finalWindows.length - 1] + FIVE_HOURS_S;
-        if (s < prevEnd) s = prevEnd;
-        if (s >= m.end) break;
-      }
-      finalWindows.push(s);
-      s += FIVE_HOURS_S;
-    }
-  }
-
-  const windowStarts = finalWindows;
-
-
-
-  // Find window for any timestamp (binary search)
-  function findWindow(ts) {
-    let lo = 0, hi = windowStarts.length - 1;
-    while (lo <= hi) {
-      const mid = (lo + hi) >> 1;
-      if (windowStarts[mid] <= ts) lo = mid + 1;
-      else hi = mid - 1;
-    }
-    return hi >= 0 ? windowStarts[hi] : hourFloor(ts);
-  }
-
-  // Build rateLimitEvent lookup by timestamp for rl column enrichment
-  const rlByTs = new Map(); // unix_seconds -> { status, type }
-  for (const file of files) {
-    const sessionId = path.basename(file.path, '.jsonl');
-    const ym = getYearMonth(file.path);
-    const summary = getSummary(sessionId, ym);
-    if (!summary) continue;
-    const events = summary.rateLimitEvents;
-    if (!Array.isArray(events)) continue;
-    for (const evt of events) {
-      const evtTs = Math.floor(new Date(evt.ts).getTime() / 1000);
-      const type = detectRateLimitType(evt.message);
-      rlByTs.set(evtTs, { status: evt.status, type });
-    }
-  }
-
-  // Rewrite a single timeline CSV with correct win and enriched rl
-  function rewriteCsv(csvPath) {
-    if (!fs.existsSync(csvPath)) return;
-    const content = fs.readFileSync(csvPath, 'utf8').trim();
-    const lines = content.split('\n');
-    if (lines.length < 2) return;
-    const header = lines[0];
-    const newLines = [header];
-    let prevWin = null;
-    for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split(',');
-      if (cols.length < 11) { newLines.push(lines[i]); continue; }
-      const ts = Number(cols[0]);
-      const win = findWindow(ts);
-      cols[9] = (win !== prevWin) ? String(win) : '';
-      prevWin = win;
-      // Enrich rl column: if old format (no colon), try to add type
-      let rl = cols[10] || '';
-      if (rl && !rl.includes(':')) {
-        const match = rlByTs.get(ts);
-        if (match && match.type) {
-          rl = `${match.status}:${match.type}`;
-        }
-      }
-      cols[10] = rl;
-      newLines.push(cols.join(','));
-    }
-    fs.writeFileSync(csvPath, newLines.join('\n') + '\n');
-  }
-
-  // Update CSVs from transcript files
-  const rewrittenPaths = new Set();
-  for (const file of files) {
-    const sessionId = path.basename(file.path, '.jsonl');
-    const ym = getYearMonth(file.path);
-    const csvPath = getTimelineCsvPath(sessionId, ym);
-    rewriteCsv(csvPath);
-    rewrittenPaths.add(csvPath);
-  }
-
-  // Also rewrite any orphaned timeline CSVs not covered by files list
-  let allYymms;
-  try { allYymms = fs.readdirSync(CACHE_DIR_BASE).filter(d => /^\d{4}$/.test(d)); } catch { allYymms = []; }
-  for (const ym of allYymms) {
-    const dir = path.join(CACHE_DIR_BASE, ym);
-    let csvFiles;
-    try { csvFiles = fs.readdirSync(dir).filter(f => f.startsWith('timeline-') && f.endsWith('.csv')); } catch { continue; }
-    for (const csv of csvFiles) {
-      const csvPath = path.join(dir, csv);
-      if (!rewrittenPaths.has(csvPath)) {
-        rewriteCsv(csvPath);
-      }
-    }
-  }
+function hourFloor(ts) {
+  return ts - (ts % 3600);
 }
 
 async function main() {
@@ -1047,9 +698,6 @@ async function main() {
     const { usageTimeline, ...metadata } = result;
     sessions.push(metadata);
   }
-
-  // Assign global 5h windows across all sessions (main sessions define boundaries)
-  assignGlobalWindows(files);
 
   // Filter sessions that have timestamps and are within cutoff, sort by firstTs descending
   // Also exclude /continue skill invocation sessions (their first user message

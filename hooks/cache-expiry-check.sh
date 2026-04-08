@@ -1,8 +1,32 @@
 #!/bin/bash
-# Cache expiry block hook
-# - 3590s+ (3600s TTL - 10s buffer): cache expired block (one-time gate, re-send to bypass)
-# - Main sessions use 1-hour cache tier (ephemeral_1h), not 5-minute
-# - i18n: 23 languages based on OS locale
+# cache-expiry-check.sh — Prompt cache expiry warning hook
+#
+# Registered as UserPromptSubmit hook (hooks.json). Runs before every user message.
+# Blocks the message if the 1-hour prompt cache has likely expired, giving the user
+# a chance to /clear → /continue instead of paying full re-cache cost.
+#
+# How it works:
+#   1. Reads last assistant timestamp from transcript tail
+#   2. If elapsed ≥ 3590s (3600s TTL - 10s buffer): block with warning
+#   3. One-time gate: first block sets flag, re-sending the same message approves
+#   4. If elapsed < 3590s: approve silently
+#
+# Input:  JSON via stdin (CC UserPromptSubmitInput)
+#   Fields used: transcript_path, session_id
+#
+# Output: JSON to stdout
+#   { "decision": "approve" }  — allow message through
+#   { "decision": "block", "reason": "..." }  — block with localized warning
+#
+# Gate flag: $TMPDIR/claude-cache-warn-{SESSION_ID}
+#   Created on first block, removed on second attempt (bypass)
+#
+# i18n: 23 languages detected from OS $LANG locale
+#   en ko ja zh es fr de pt it ru ar hi bn id ms th vi tr pl nl he sv no
+#
+# Why 3590s, not 3600s:
+#   CC's ephemeral_1h cache tier has a 3600s TTL. The 10s buffer accounts for
+#   network latency and timestamp drift between client and server.
 
 INPUT=$(cat)
 # Extract JSON fields without jq — input is a single-line flat JSON object

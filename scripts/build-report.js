@@ -1,11 +1,41 @@
 #!/usr/bin/env node
 /**
- * Build an HTML usage report from analyze-usage.js output.
+ * build-report.js — HTML dashboard builder
  *
- * Usage: node build-report.js --data <results.json> --output <report.html>
+ * Reads analyze-usage.js output (JSON) + timeline CSVs + ratelimit CSVs,
+ * constructs REPORT_DATA, and injects it into the template.html dashboard.
+ * Also generates an AI analysis prompt for LLM-powered insights.
  *
- * Reads timeline CSVs from ~/.claude/cc-token-saver/{YYMM}/timeline-{sessionId}.csv
- * and injects real data into the template.html dashboard template.
+ * Win correction: Uses actual 5h window boundaries from ratelimit CSVs
+ * (5h_reset column) to correct hourFloor-based wins in timeline CSVs.
+ *
+ * ALERT_LINE_RE: Simplified regex — all markers captured as one group,
+ * then parsed individually via string matching.
+ *
+ * Usage: node build-report.js [options]
+ *   --data <path>           analyze-usage.js JSON output (required)
+ *   --output <path>         Output HTML file path (required)
+ *   --current               Current 5-hour window mode (session detail pre-opened)
+ *   --ai-data <path>        AI analysis JSON to inject into report
+ *   --export-prompt <path>  Export AI analysis prompt to file (for agent consumption)
+ *   --export-data <path>    Export REPORT_DATA as JSON (for --import-data)
+ *   --import-data <path>    Import pre-built REPORT_DATA instead of building from CSVs
+ *   --locale <code>         Force locale (default: system language → en fallback)
+ *
+ * Input:
+ *   - analyze-usage.js JSON output (--data)
+ *   - ~/.claude/cc-token-saver/{YYMM}/timeline-{SESSION_ID}.csv   (per-API-call data)
+ *   - ~/.claude/cc-token-saver/{YYMM}/ratelimit-{SESSION_ID}.csv  (statusline rate limit logs)
+ *   - skills/usage-view/template.html                              (dashboard template)
+ *   - locales/{code}.json                                          (i18n strings)
+ *
+ * Output:
+ *   - Self-contained HTML file with inline CSS/JS, Chart.js CDN
+ *   - REPORT_DATA object: windows (5h buckets), calendar, cost/token aggregates
+ *     - windows[].rlHours: hours within window where limit_hit occurred (renders as skulls on calendar)
+ *     - windows[].alertMessages: from ratelimit CSVs (5h threshold crossings)
+ *
+ * Supported locales (23): en ko ja zh es fr de pt it ru ar hi bn id ms th vi tr pl nl he sv no
  */
 
 const fs = require('fs');
@@ -238,10 +268,12 @@ for (const [, rows] of allTimelines) {
 }
 
 // ── Scan compact caches for alert messages ─────────────────────
-// Pattern: [L{n} User HH:MM]{markers} where markers: @{1,2} *{1,2} #{1,2} ${1,2} ^{1,2}
-// Marker order: @ (startup/clear) * (cost) # (context) + (resume/compact) ~ (reload-plugins) ! (model-change) ? (resume-heuristic) ^ (/continue skill)
-// At least one marker must be present
-const ALERT_LINE_RE = /^\[L(\d+) User ((?:\d{2}-\d{2}T)?\d+:\d+)\](@{1,2})?(\*{1,2})?(#{1,2})?(\+{1,2})?(~)?(!)?(\?)?(\^{1,2})?\s*(.*)/;
+// Simplified format: [L{n} User HH:MM]{allMarkers} {text}
+// Groups: 1=lineNum, 2=time, 3=allMarkers (entire marker string), 4=text
+// Individual markers are parsed from group 3 via string matching.
+// Marker chars: @ (startup/clear) * (cost) # (context) + (resume/compact) ~ (reload-plugins)
+//   ! (model-change) ? (resume-heuristic) ^ (/continue skill) % (rate-limit)
+const ALERT_LINE_RE = /^\[L(\d+) User ((?:\d{2}-\d{2}T)?\d+:\d+)\]([^\s]*)\s*(.*)/;
 
 const { execFile } = require('child_process');
 const PREPROCESS_PATH = path.join(__dirname, 'preprocess.js');
@@ -300,19 +332,21 @@ function readCompactAlerts(sessionId) {
   for (const line of lines) {
     const m = ALERT_LINE_RE.exec(line);
     if (!m) continue;
-    // Groups: 1=lineNum, 2=time, 3=@markers, 4=*markers, 5=#markers, 6=+markers, 7=~marker, 8=!marker, 9=?marker, 10=^markers, 11=text
-    const sessionMark = m[3] || '';
-    const costMark = m[4] || '';
-    const ctxMark = m[5] || '';
-    const resumeMark = m[6] || '';
-    const reloadMark = m[7] || '';
-    const modelMark = m[8] || '';
-    const heuristicMark = m[9] || '';
-    const contMark = m[10] || '';
-    const allMarkers = sessionMark + costMark + ctxMark + resumeMark + reloadMark + modelMark + heuristicMark + contMark;
-    if (!allMarkers) continue;
-    // Session markers alone (no cost/ctx/continue) are not alerts — skip
-    if (!costMark && !ctxMark && !contMark) continue;
+    // Groups: 1=lineNum, 2=time, 3=allMarkers, 4=text
+    const markers = m[3] || '';
+    const sessionMark = (markers.match(/@{1,2}/) || [''])[0];
+    const costMark = (markers.match(/\*{1,2}/) || [''])[0];
+    const ctxMark = (markers.match(/#{1,2}/) || [''])[0];
+    const resumeMark = (markers.match(/\+{1,2}/) || [''])[0];
+    const reloadMark = markers.includes('~') ? '~' : '';
+    const modelMark = markers.includes('!') ? '!' : '';
+    const heuristicMark = markers.includes('?') ? '?' : '';
+    const contMark = (markers.match(/\^{1,2}/) || [''])[0];
+    const rlMark = (markers.match(/%[%5WOSX](?:\{[^}]+\})?/) || [''])[0];
+    const text = m[4] || '';
+    if (!markers) continue;
+    // Session markers alone (no cost/ctx/continue/ratelimit) are not alerts — skip
+    if (!costMark && !ctxMark && !contMark && !rlMark) continue;
 
     const alertTypes = [];
     if (costMark === '**') alertTypes.push('cost-danger');
@@ -328,13 +362,21 @@ function readCompactAlerts(sessionId) {
     else if (contMark === '^^') alertTypes.push('continue-n');
     if (sessionMark === '@') alertTypes.push('startup');
     else if (sessionMark === '@@') alertTypes.push('clear');
+    if (rlMark) {
+      if (rlMark.startsWith('%%')) alertTypes.push('rate-limit-unknown');
+      else if (rlMark.startsWith('%5')) alertTypes.push('rate-limit-5h');
+      else if (rlMark.startsWith('%W')) alertTypes.push('rate-limit-weekly');
+      else if (rlMark.startsWith('%O')) alertTypes.push('rate-limit-opus');
+      else if (rlMark.startsWith('%S')) alertTypes.push('rate-limit-sonnet');
+      else if (rlMark.startsWith('%X')) alertTypes.push('rate-limit-extra');
+    }
 
     alerts.push({
       sessionId,
       lineNum: Number(m[1]),
       time: m[2],
-      markers: allMarkers,
-      text: m[11].slice(0, 120),
+      markers: markers,
+      text: text.slice(0, 120),
       alertType: alertTypes.join('+') || 'unknown',
       tokens: null
     });
@@ -443,6 +485,102 @@ const allSessionIds = [...sessionMap.keys()];
 await generateMissingCompacts(allSessionIds);
 
 // 3. windows
+
+// ── Win correction: adjust timeline wins using ratelimit CSV data ──
+// Ratelimit CSVs have the actual 5h window boundaries from Anthropic (5h_reset column).
+// Timeline CSVs have simple hourFloor-based wins. Correct them where ratelimit data exists.
+
+const FIVE_HOURS_S = 5 * 3600;
+
+// Step 1: Collect actual windows from ratelimit CSVs
+const actualWindows = []; // [{start, end}]
+try {
+  const rlYymms = fs.readdirSync(CACHE_DIR).filter(d => /^\d{4}$/.test(d));
+  for (const ym of rlYymms) {
+    const rlDir = path.join(CACHE_DIR, ym);
+    for (const f of fs.readdirSync(rlDir).filter(f => f.startsWith('ratelimit-') && f.endsWith('.csv'))) {
+      const lines = fs.readFileSync(path.join(rlDir, f), 'utf8').trim().split('\n');
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(',');
+        const resetTs = cols[2] ? Number(cols[2]) : 0;
+        if (resetTs > 0) {
+          const winStart = resetTs - FIVE_HOURS_S;
+          // Avoid duplicates
+          if (!actualWindows.some(w => w.start === winStart)) {
+            actualWindows.push({ start: winStart, end: resetTs });
+          }
+        }
+      }
+    }
+  }
+  actualWindows.sort((a, b) => a.start - b.start);
+} catch {}
+
+// Step 2: Expand actual windows as anchors — chain forward/backward where activity exists
+if (actualWindows.length > 0) {
+  // Collect all activity timestamps from all timelines
+  const allTimestamps = new Set();
+  for (const [, rows] of allTimelines) {
+    for (const row of rows) {
+      const ts = typeof row.ts === 'number' ? row.ts : Math.floor(new Date(row.ts).getTime() / 1000);
+      if (ts > 0) allTimestamps.add(Math.floor(ts / 3600) * 3600); // hourFloor
+    }
+  }
+
+  // Expand anchors backward
+  for (const anchor of [...actualWindows]) {
+    let curStart = anchor.start;
+    while (true) {
+      const candStart = curStart - FIVE_HOURS_S;
+      const candEnd = curStart;
+      // Check overlap with existing windows
+      if (actualWindows.some(w => w !== anchor && candStart < w.end && candEnd > w.start)) break;
+      // Check if any activity in candidate range
+      let found = false;
+      for (let h = candStart; h < candEnd; h += 3600) {
+        if (allTimestamps.has(h)) { found = true; break; }
+      }
+      if (found) {
+        actualWindows.push({ start: candStart, end: candEnd });
+        curStart = candStart;
+      } else break;
+    }
+  }
+
+  // Expand anchors forward
+  for (const anchor of [...actualWindows]) {
+    let curEnd = anchor.end;
+    while (true) {
+      const candStart = curEnd;
+      const candEnd = curEnd + FIVE_HOURS_S;
+      if (actualWindows.some(w => w !== anchor && candStart < w.end && candEnd > w.start)) break;
+      let found = false;
+      for (let h = candStart; h < candEnd; h += 3600) {
+        if (allTimestamps.has(h)) { found = true; break; }
+      }
+      if (found) {
+        actualWindows.push({ start: candStart, end: candEnd });
+        curEnd = candEnd;
+      } else break;
+    }
+  }
+
+  actualWindows.sort((a, b) => a.start - b.start);
+
+  // Step 3: Correct timeline row wins where they overlap with actual windows
+  for (const [, rows] of allTimelines) {
+    for (const row of rows) {
+      const ts = typeof row.ts === 'number' ? row.ts : Math.floor(new Date(row.ts).getTime() / 1000);
+      for (const w of actualWindows) {
+        if (ts >= w.start && ts < w.end) {
+          row.win = w.start;
+          break;
+        }
+      }
+    }
+  }
+}
+
 // Group timeline rows by win column
 const winRowsMap = new Map(); // winStart -> [{row, sessionId}]
 for (const [sessionId, rows] of allTimelines) {

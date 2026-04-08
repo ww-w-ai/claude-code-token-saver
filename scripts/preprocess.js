@@ -8,6 +8,21 @@
  * Aggressive filtering: boilerplate, system tags, short confirmations, consecutive tools merged.
  * Truncation: user/assistant HEAD+TAIL (default 200+100).
  *
+ * Usage: node preprocess.js <transcript.jsonl> [HEAD] [TAIL]
+ *   HEAD  Max chars from start of each message (default: 200)
+ *   TAIL  Max chars from end of each message (default: 100)
+ *
+ * Input:
+ *   ~/.claude/projects/{PROJECT_HASH}/{SESSION_ID}.jsonl   (CC transcript file)
+ *
+ * Output (stdout):
+ *   Compact text transcript with [L{n}] line references and markers.
+ *   First line: "# {lines} lines, {bytes} bytes" (meta header for chunked reading)
+ *
+ * Cache (managed by /continue skill, not by this script):
+ *   ~/.claude/cc-token-saver/{YYMM}/compact-{SESSION_ID}.txt           (default truncation)
+ *   ~/.claude/cc-token-saver/{YYMM}/compact-{SESSION_ID}.aggressive.txt (50/20 truncation)
+ *
  * Marker Reference (v2.0)
  * ─────────────────────────────────────────────
  * Generated here (preprocess.js), parsed in build-report.js (ALERT_LINE_RE),
@@ -19,7 +34,7 @@
  *   [Tools: {tool1}, {tool2}, ...]
  *
  * Regex (build-report.js ALERT_LINE_RE):
- *   /^\[L(\d+) User ((?:\d{2}-\d{2}T)?\d+:\d+)\](@{1,2})?(\*{1,2})?(#{1,2})?(\+{1,2})?(~)?(!)?(\?)?\s*(.*)/
+ *   /^\[L(\d+) User ((?:\d{2}-\d{2}T)?\d+:\d+)\]([^\s]*)\s*(.*)/
  *
  * Session markers (position: after [L# User HH:MM])
  *   @   New session start (first non-meta user message)
@@ -29,6 +44,8 @@
  *   ~   /reload-plugins (system prompt change)
  *   !   /model change (cache invalidation)
  *   ?   --continue/--resume heuristic (cc>=10K, cc>=input*2, <1h gap, no session marker)
+ *   ^   /continue skill (single session restore)
+ *   ^^  /continue skill (multi-session restore)
  *
  * Cost markers (retroactive, on previous user line)
  *   *   Cost ≥ $0.50
@@ -38,7 +55,16 @@
  *   #   Context window ≥ 35%
  *   ##  Context window ≥ 70%
  *
- * Marker order: @ * # + ~ ! ?
+ * Rate limit markers (from obj.error === "rate_limit" assistant messages)
+ *   %%              Unknown/generic rate limit ("You've hit your limit")
+ *   %5              5-hour session limit ("You've hit your session limit")
+ *   %W              Weekly limit ("You've hit your weekly limit")
+ *   %O              Opus limit ("You've hit your Opus limit")
+ *   %S              Sonnet limit ("You've hit your Sonnet limit")
+ *   %X              Extra usage exhausted ("You're out of extra usage")
+ *   {time@timezone}  Optional reset info appended (e.g. %5{1am@Asia/Seoul})
+ *
+ * Marker order: @ * # + ~ ! ? ^ %
  * ─────────────────────────────────────────────
  */
 
@@ -184,6 +210,8 @@ async function main() {
   let inContinueSkill = false; // track /continue skill execution for compact file detection
   const continueCompactFiles = new Set();
   let pendingContinueMark = ""; // ^ or ^^ — applied separately to maintain regex order
+  // Rate limit markers are applied immediately (not deferred) since they are
+  // independent blocking events with no usage data. See rate limit detection below.
   function flushContinueMarker() {
     if (inContinueSkill) {
       // ^ for single session restore, ^^ for multi-session
@@ -258,6 +286,36 @@ async function main() {
         lastUserIdx = output.length - 1;
       }
     } else if (type === "assistant") {
+      // Detect rate limit synthetic messages (obj.error === "rate_limit")
+      if (obj.error === "rate_limit") {
+        const rlText = extractText(obj.message?.content ?? obj.content ?? "");
+        let rlType = "%%"; // fallback unknown
+        if (/session limit/i.test(rlText)) rlType = "%5";
+        else if (/weekly limit/i.test(rlText)) rlType = "%W";
+        else if (/Opus limit/i.test(rlText)) rlType = "%O";
+        else if (/Sonnet limit/i.test(rlText)) rlType = "%S";
+        else if (/You're out of extra usage/i.test(rlText)) rlType = "%X";
+        else if (/limit/i.test(rlText)) rlType = "%%";
+
+        // Extract optional reset time: "· resets {time} ({timezone})" or "· resets {time}"
+        const resetMatch = rlText.match(/·\s*resets\s+(\S+?)(?:\s+\(([^)]+)\))?(?:\s|$)/i);
+        if (resetMatch) {
+          const resetTime = resetMatch[1];
+          const resetTz = resetMatch[2];
+          rlType += resetTz ? `{${resetTime}@${resetTz}}` : `{${resetTime}}`;
+        }
+        // Apply immediately to the user message that triggered this rate limit.
+        // Unlike cost markers (deferred until usage data arrives), rate limit is a
+        // blocking event with no usage data — must apply now before lastUserIdx moves.
+        if (lastUserIdx >= 0) {
+          output[lastUserIdx] = output[lastUserIdx].replace(
+            /^(\[L\d+ User[^\]]*\])/,
+            `$1${rlType}`,
+          );
+        }
+        continue; // skip normal assistant processing for synthetic rate limit messages
+      }
+
       // Calculate cost from usage data and retroactively mark the previous user message
       const usage = obj.usage || (obj.message && obj.message.usage);
       const reqId = obj.requestId || (obj.message && obj.message.id) || null;
@@ -308,7 +366,7 @@ async function main() {
           hMark = "?";
         }
 
-        // Apply all markers in one shot: order must match ALERT_LINE_RE: @ * # + ~ ! ? ^
+        // Apply all markers in one shot: order must match ALERT_LINE_RE: @ * # + ~ ! ? ^ %
         const contMark = pendingContinueMark;
         if (contMark) pendingContinueMark = "";
         const allMarks = sMark + cMark + xMarkApply + hMark + contMark;
@@ -363,6 +421,7 @@ async function main() {
     );
     pendingContinueMark = "";
   }
+  // Note: rate limit markers are applied immediately when detected (no pending cleanup needed)
 
   // Post-process: merge consecutive [Tools:] lines
   const merged = [];

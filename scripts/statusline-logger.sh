@@ -1,12 +1,37 @@
 #!/bin/bash
-# Statusline script that logs rate limit utilization and outputs a compact status line.
+# statusline-logger.sh — Real-time status bar + rate limit logger
 #
-# Input: JSON via stdin (StatusLineCommandInput from CC)
-# Output: status line text to stdout
+# Called by Claude Code on every API response (configured via settings.json statusLine).
+# Two responsibilities:
+#   1. stdout → CC status bar display (shown after each interaction)
+#   2. ratelimit CSV append (persistent rate limit history)
 #
-# Rate limit log: ~/.claude/cc-token-saver/YYMM/rate-{SESSION_ID}.csv
-#   Header: ts,5h,5h_reset,7d,7d_reset
-# Delta state: ~/.claude/cc-token-saver/last-state.json
+# Input:  JSON via stdin (CC StatusLineCommandInput)
+#   Fields used: rate_limits.{five_hour,seven_day}, cost.total_cost_usd,
+#                session_id, context_window.used_percentage
+#
+# Output (stdout): compact status line
+#   Subscriber: [RUN🟢] $0.10/$12.23 | [5H🟢] 9% ⏳1h32m | [CTX🟢] 22%
+#   API key:    [RUN🟢] $0.10/$12.23 | [CTX🟢] 22%
+#
+#   Color thresholds:
+#     RUN: 🟢 <$0.30, 🟡 ≥$0.30, 🔴 ≥$1.00 (per-call delta)
+#     5H:  🟢 <70%,   🟡 ≥70%,   🔴 ≥90%
+#     CTX: 🟢 <35%,   🟡 ≥35%,   🔴 ≥70%
+#
+#   Hints: 5H🔴 → /report-limit, other warnings → /usage-view current
+#
+# Cache (side-effects):
+#   ~/.claude/cc-token-saver/{YYMM}/ratelimit-{SESSION_ID}.csv
+#     Header: ts,5h,5h_reset,7d,7d_reset,alert
+#     - ts: unix timestamp
+#     - 5h/7d: usage percentage (0-100, two decimals)
+#     - 5h_reset/7d_reset: unix timestamp when window resets (sparse — only on change)
+#     - alert: threshold crossing event ("warn" at ≥70%, "danger" at ≥90%, "" otherwise)
+#     - Rows appended only when 5h or 7d percentage changes (delta dedup)
+#
+#   $TMPDIR/cc-token-saver-state-{SESSION_ID}.csv
+#     Per-session cost delta state (cost,lastDelta). Used to calculate per-call cost.
 
 LOG_DIR="$HOME/.claude/cc-token-saver"
 

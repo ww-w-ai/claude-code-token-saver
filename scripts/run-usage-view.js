@@ -1,11 +1,32 @@
 #!/usr/bin/env node
 /**
- * Deterministic pipeline runner for usage-view skill.
- * Consolidates all non-LLM steps so the agent only needs 4 tool calls.
+ * run-usage-view.js — Orchestrator for /usage-view skill
+ *
+ * Consolidates the deterministic pipeline (analyze → build → open) so the
+ * LLM agent needs minimal tool calls. The agent should NEVER call
+ * analyze-usage.js or build-report.js directly — always go through this runner.
  *
  * Modes:
- *   --prepare [--days N] [--current]  → analyze + build REPORT_DATA + export prompt
- *   --finalize --report-data <path> --ai-data <path> --output <path>  → build HTML + open browser
+ *   --gen-agent-prompt [--days N] [--current] [--locale XX]
+ *     → Run full pipeline: analyze → build REPORT_DATA → export AI prompt → write agent instructions
+ *     → Outputs JSON: { agentPromptFile: "/tmp/..." }
+ *     → Agent reads that file and follows instructions (AI analysis → finalize)
+ *
+ *   --prepare [--days N] [--current] [--locale XX]
+ *     → analyze-usage.js + build-report.js --export-data + --export-prompt
+ *     → Outputs JSON: { reportDataFile, promptFile, outputFile }
+ *
+ *   --finalize --report-data <path> --ai-data <path> --output <path> [--locale XX]
+ *     → build-report.js --import-data + --ai-data → final HTML + open browser
+ *
+ * Pipeline:
+ *   /usage-view skill
+ *     → Agent calls: run-usage-view.js --gen-agent-prompt
+ *       → analyze-usage.js (transcript → JSON + timeline CSVs)
+ *       → build-report.js --export-data --export-prompt (REPORT_DATA + AI prompt)
+ *       → writes agent prompt file
+ *     → Agent reads prompt, generates AI analysis
+ *     → Agent calls: run-usage-view.js --finalize (inject AI → HTML → open browser)
  */
 
 const { execFileSync } = require('child_process');
