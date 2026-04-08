@@ -1,0 +1,118 @@
+{
+  "meta": {
+    "locale": "bn",
+    "direction": "ltr",
+    "name": "বাংলা"
+  },
+  "header": {
+    "title": "Claude Code ব্যবহার রিপোর্ট",
+    "period": "বিশ্লেষণ সময়কাল",
+    "totalCost": "মোট খরচ",
+    "sessions": "সেশন",
+    "periodTotal": "সম্পূর্ণ সময়কালের মোট",
+    "currentWindow": "বর্তমান ৫-ঘণ্টা উইন্ডো",
+    "subtaskCount": "{count}টি সাব-টাস্ক সহ",
+    "daysDuration": "{days} দিন"
+  },
+  "token": {
+    "detail": "টোকেন বিবরণ",
+    "type": "ধরন",
+    "tokens": "টোকেন",
+    "cost": "খরচ",
+    "input": "ইনপুট",
+    "output": "আউটপুট",
+    "cacheWrite": "Cache Write",
+    "cacheRead": "Cache Read",
+    "cache1hTier": "└ 1h tier",
+    "cache5mTier": "└ 5m tier",
+    "total": "মোট",
+    "costRatio": "খরচের বিশ্লেষণ"
+  },
+  "chart": {
+    "dailyCost": "দৈনিক খরচের প্রবণতা",
+    "hourlyCost": "ঘণ্টাভিত্তিক খরচের ধরন",
+    "dowCost": "সাপ্তাহিক দিন অনুযায়ী খরচের ধরন",
+    "efficiency": "দক্ষতার প্রবণতা",
+    "avgCost": "গড় খরচ",
+    "maxCost": "সর্বোচ্চ খরচ",
+    "avg": "গড়",
+    "max": "সর্বোচ্চ",
+    "hourSuffix": "h",
+    "pluginInstalled": "প্লাগইন ইনস্টল করা হয়েছে",
+    "legendAverage": "┄ গড়",
+    "effTotalPerOutput": "(Total / Output) ↓ কম হলে ভালো",
+    "effCachePerOutput": "(Cache Creation / Output) ↓ কম হলে ভালো",
+    "effNote": "* ১,০০০-এর কম আউটপুট টোকেনের দিনগুলি বাদ দেওয়া হয়েছে (অর্থবহ অনুপাত গণনার জন্য খুব কম আউটপুট)।",
+    "days": [
+      "রবি",
+      "সোম",
+      "মঙ্গল",
+      "বুধ",
+      "বৃহ",
+      "শুক্র",
+      "শনি"
+    ]
+  },
+  "calendar": {
+    "title": "ঘণ্টাভিত্তিক ব্যবহার ক্যালেন্ডার",
+    "fiveHourWindow": "৫-ঘণ্টা উইন্ডো",
+    "oneHourBlock": "১-ঘণ্টা ব্লক",
+    "legendLow": "~$15/h",
+    "legendMid": "$15-30/h",
+    "legendHigh": "$30+/h",
+    "legendBlocked": "ব্লক করা",
+    "legendPlugin": "প্লাগইন ইনস্টল করা হয়েছে",
+    "note": "সেশনের বিবরণ দেখতে যেকোনো সেলে ক্লিক করুন। ডিফল্ট ভিউ ৫-ঘণ্টা উইন্ডো — উপরের বোতাম দিয়ে ১-ঘণ্টা ব্লকে স্যুইচ করুন।",
+    "noData": "কোনো ডেটা নেই"
+  },
+  "session": {
+    "detailExpand": "▶ সেশন বিবরণ",
+    "detailCollapse": "▼ সংকুচিত করুন",
+    "alertExpand": "▶ সবচেয়ে বেশি টোকেন ব্যবহারকারী কথোপকথন ({count})",
+    "alertCollapse": "▼ সবচেয়ে বেশি টোকেন ব্যবহারকারী কথোপকথন ({count})",
+    "windowDetailTitle": "📋 {date} {start}~{end} সেশন বিবরণ (${cost})",
+    "programmaticExec": "📦 প্রোগ্রামেটিক এক্সিকিউশন ({count})",
+    "batchExec": "🔄 ব্যাচ এক্সিকিউশন ({count})",
+    "continueRestore": "💚 /continue {n}টি সেশন পুনরুদ্ধার করেছে (০ LLM কল)",
+    "continueContext": "   পুনরুদ্ধারকৃত কনটেক্সট: {tokens} টোকেন",
+    "continueCompactCost": "   /compact আনুমানিক খরচ: ${min} ~ ${max}",
+    "continueSaved": "   → ${min} ~ ${max} সাশ্রয়!",
+    "tableHeaders": [
+      "ID",
+      "Type",
+      "Msgs",
+      "Input",
+      "Output",
+      "Cache",
+      "Read",
+      "Cost"
+    ]
+  },
+  "alert": {
+    "ctxWarn": "⚠️ Context window ৩৫% অতিক্রম করেছে — প্রতিটি কলে cache read খরচ বাড়ছে।",
+    "ctxDanger": "🔴 Context window ৭০% অতিক্রম করেছে — cache read খরচ অত্যন্ত বেশি।",
+    "fiveHWarn": "⚠️ 5H সেশন উইন্ডো ৭০%-এ — সাবস্ক্রিপশন ব্যবহারের সীমার কাছে।",
+    "fiveHDanger": "🔴 5H সেশন উইন্ডো ৯০%-এ — সাবস্ক্রিপশন ব্যবহার শীঘ্রই শেষ হতে পারে।",
+    "resume": "🔄 সেশন পুনরায় শুরু — cache পুনরায় তৈরি, খরচ হয়েছে",
+    "compact": "📦 /compact পুনরায় চালু — cache পুনরায় তৈরি, খরচ হয়েছে",
+    "continue1": "💚 /continue skill ১টি সেশন পুনরুদ্ধার করেছে",
+    "continueN": "💚 /continue skill ২+ সেশন পুনরুদ্ধার করেছে",
+    "continueSkillTip": " 💡 নতুন সেশনের পরে /continue skill ব্যবহারের সুপারিশ করি।\n",
+    "cacheWritePrefix": "{icon} এই কলে, cache write {tokens} টোকেন নতুন করে ক্যাশ করা হয়েছে — ",
+    "resumeReason": "claude --continue বা /resume দিয়ে সেশন পুনরায় শুরু করলে অনেক টোকেন খরচ হয়। প্রয়োজন না হলে নতুন সেশনের পরে /continue skill সুপারিশ করি।",
+    "compactReason": "/compact পুনরায় চালু cache পুনরায় তৈরি করেছে — উচ্চ খরচ!",
+    "clearReason": "{reason} cache তৈরি করেছে (${cost})",
+    "clearReasonClear": "/clear পুনরায় চালু",
+    "clearReasonStartup": "নতুন সেশন শুরু",
+    "pluginOverload": " — অনেক বেশি প্লাগইন, MCP বা skills লোড হতে পারে। শুধু প্রয়োজনীয়গুলো রাখুন।",
+    "reloadReason": "/reload-plugins সিস্টেম প্রম্পট পরিবর্তন করেছে, cache পুনরায় তৈরি (${cost})",
+    "modelReason": "/model পরিবর্তন আগের cache বাতিল করেছে, পুনরায় তৈরি (${cost})",
+    "resumeHeuristicReason": "claude --continue বা /resume দিয়ে সেশন পুনরায় শুরু করলে অনেক টোকেন খরচ হয়। প্রয়োজন না হলে নতুন সেশনের পরে /continue skill সুপারিশ করি।",
+    "cacheExpiredReason": "কনটেক্সট বড় হলে এবং ১ ঘণ্টার বেশি সময় পার হলে নতুন cache তৈরি হয় — উচ্চ খরচ!",
+    "costTopLabel": "{icon} {label} (${cost})"
+  },
+  "ai": {
+    "analysis": "✨ AI বিশ্লেষণ",
+    "tips": "💡 পরামর্শ — cc-token-saver ব্যবহার গাইড"
+  }
+}

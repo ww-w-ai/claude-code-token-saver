@@ -1,0 +1,121 @@
+Execute EXACTLY these 4 tool calls in order. No extra reads, no exploration, no status updates between steps. Just execute them sequentially and output ONLY the final summary at the very end.
+
+### Tool Call 1: Prepare (Bash)
+
+Run the deterministic pipeline — analyze sessions, build report data, extract AI prompt:
+
+node {{PLUGIN_ROOT}}/scripts/run-usage-view.js --prepare {{FLAGS}} 2>/dev/null
+
+The script outputs a JSON object to stdout with `promptFile`, `reportDataFile`, and `locale` (resolved 2-letter code). Parse these for use in subsequent steps.
+
+### Tool Call 2: Read AI Prompt
+
+Read the `promptFile` path from Tool Call 1's output. This contains the usage data summary that the AI analysis will be based on.
+
+### Tool Call 3: Generate AI Analysis (Write)
+
+This is the ONLY step that requires LLM intelligence. Using the data from Tool Call 2, generate the analysis JSON and write it to file.
+
+Write to: AI_DATA_FILE = `{{TMPDIR}}/cc-ai-data-{{LOCALE}}-{timestamp}.json` (use current timestamp)
+
+AI analysis instructions (apply after reading the prompt data):
+
+## CRITICAL RULES
+1. NEVER invent or modify numbers. Use ONLY the exact values from the data file. Copy-paste numbers directly.
+2. Every 3-4 sentences, insert a blank line (\n\n) to form a new paragraph for readability.
+3. Write in the language matching the `locale` field from Tool Call 1's JSON output (e.g. "ko" → Korean, "ja" → Japanese, "en" → English). Tone: warm, empathetic counselor/advisor who genuinely cares about the user's wellbeing and productivity. NOT a formal report.
+4. Output a valid JSON object. If the flags contain "--current", output ONLY key "section1" (current 5-hour window = cost analysis only, skip work patterns and session analysis). Otherwise output keys section1, section2, section3. Nothing else — no markdown fences, no explanation.
+5. RANDOMNESS: First understand ALL the data holistically, then for sections 1 and 3, WRITE focusing on a random subset of topics. Vary opening, structure, word choice each time.
+6. AUDIENCE: Non-technical general users. Do not use raw code names for technical terms (cache_write, cache_read, MTok, tier, surcharge, etc.). However, key concepts like "cache", "context", and "tokens" should include a brief parenthetical explanation on first use. E.g.: "cache (temporarily storing and reusing conversation data)", "context (the conversation history the AI remembers)", "tokens (usage units)". On subsequent mentions, just use "cache", "context", "tokens" without the explanation.
+
+## Cache Pricing Guide (use this knowledge when interpreting cache data)
+- Cache Read: 90% cheaper than regular input (e.g. $0.50/MTok vs $5/MTok for Opus)
+- Cache Write 1h tier: 100% surcharge over input (e.g. $10/MTok vs $5/MTok). 1h tier = main sessions + pipe mode (claude -p)
+- Cache Write 5m tier: 25% surcharge over input (e.g. $6.25/MTok vs $5/MTok). 5m tier = subtask/subagent sessions
+- High cache read = conversations are being cached and reused at discount = GOOD for cost
+- BUT high cache read also means context is growing large = needs management
+- The key insight: caching saves money, but context growing too large wastes it. Balance is everything.
+
+## Natural Token Pattern for Complex Work (MUST understand before writing)
+- For users doing complex coding work (not simple chat), the natural cost hierarchy is: input < output << cache_write << cache_read
+- This is NORMAL and EXPECTED. Do NOT treat this as a problem or anomaly.
+- Why: each turn sends the full conversation history → cache_read dominates. Output is just the AI's response per turn → much smaller.
+- IMPORTANT: Cache read token COUNT ratio (e.g. "95% of tokens") is MEANINGLESS to report — it's always very high by nature. Do NOT mention cache read token count ratios.
+- Instead, focus on cache read COST ratio (% of total cost). This is the meaningful metric:
+  - If cache read cost ratio is 70%+ → large continuous conversation, context is growing, suggest context management
+  - If cache read cost ratio is 50-60% → efficient pattern, likely using SubTasks well to keep main context small
+  - If cache read cost ratio is below 50% → very efficient, or mostly SubTask-driven work
+- When SubTask usage is high and cache read cost ratio is moderate (50-60%), this means the user is efficiently delegating heavy work to SubTasks, keeping main context small and saving cache costs. Frame this positively.
+- The educational takeaway: since cache_read grows with context size, "context engineering" (managing what stays in context) is the key cost lever.
+- When mentioning this pattern, frame it as education, not as a warning.
+
+## Cross-Section Deduplication Rule
+- Each section MUST cover distinct topics. Do NOT repeat the same insight across sections.
+- If section1 covers cache cost breakdown, section3 should NOT re-explain cache pricing.
+- If section2 covers plugin before/after comparison, section3 should NOT repeat those numbers.
+- Before writing each section, mentally check: "Did I already say this in a previous section?"
+
+## section1 (8-9 sentences): Cost Analysis
+
+First understand ALL the data, then write focusing on 5-6 of these topics (random selection each time).
+Use the Cache Pricing Guide above to interpret cache data correctly:
+1. Total cost over entire period, daily average cost. Monthly extrapolation rules: (a) In current mode (5-hour window), extrapolate monthly cost assuming 6 working hours per day × 22 working days. Never simply multiply the window cost × 30 days. (b) If the data already covers 20+ days, do NOT extrapolate to monthly — the data itself IS the monthly figure. Just state the total and daily average.
+2. Savings vs Max plan — these savings are thanks to Max subscription ($200/month), NOT cc-token-saver! Express as "Max plan subscription value is Nx". cc-token-saver's contribution is efficiency improvement (covered in section2)
+3. High cache ratio = large context complex work = "hard worker"
+4. LLM conversation accumulation → caching discount structure
+5. Context management = core cost optimization
+6. cc-token-saver's value: cost visibility + auto cache expiry detection + context management guide. Savings themselves are Max plan's credit
+7. Token pattern education: input < output << cache_write << cache_read is the natural pattern for complex work. Context engineering is the key to cost optimization
+8. Cache read COST ratio analysis (NOT token count ratio — that's always high and meaningless). If moderate (50-60%) with many SubTasks, praise efficient delegation
+9. Per-session average cost as work unit measure
+10. Main vs subtask cost distribution characteristics
+
+## section2 (10-11 sentences): Work Pattern Analysis
+
+- Time-of-day: focus on most active hours only. Don't mention low-activity hours
+  - If late night/early morning focus: warm advice ("take care of yourself", "you're the type to pull all-nighters with AI")
+  - Empathetic counselor tone
+- Day-of-week: empathize with specific busy days
+- Weekly: use Weekly Costs data. Empathize with cost-heavy weeks
+- cc-token-saver plugin before/after comparison (in this order, only metrics with 20%+ improvement). Say "before/after cc-token-saver installation":
+  1. Cost comparison first: pre-install daily avg vs post-install daily avg. Mention improvement rate
+  2. Efficiency Trend (Total/Output ratio): Before vs After values. Add "averages may vary by task but X% improvement"
+  3. If pre-install shows high variability, mention possible cache utilization inefficiency
+- If <20% improvement or insufficient data, skip that metric and say "not enough data yet to draw conclusions"
+
+## section3 (10 sentences): Window & Session Analysis
+
+- Focus on data analysis
+- Top token-consuming conversations: analyze project/work characteristics
+- [Request interrupted] should be IGNORED in analysis — user just cancelled a bad prompt, not waste
+- Usage limit hits (skull marks in calendar = "You've hit your limit"): express as N "times" not "hours". Distinguish before/after installation, advise proactive context management (/clear then /continue to restore)
+- Session Activity Summary data (don't mention marker symbols — they're internal):
+  - Skip session start counts. Only mention clear counts if meaningful
+  - Cost markers: individual messages costing $0.50+. Two levels: * = "cost warning" (≥$0.50), ** = "cost danger" (≥$1.00). Explain most are due to growing context, frame as "each one signaled a good time to clean up context". Guide: "click that time point in the hourly usage calendar for details". Never say "alert" — say "warning" or "danger"
+  - Context size markers: two levels: # = "context size warning" (context window ≥35%), ## = "context size danger" (≥70%). If many, advise context cleanup needed. Never say "alert" or "conversation size" — say "context size"
+  - resume/continue and compact are separate events:
+    - resume/continue: continues previous session. Not LLM summary but re-caches entire context, so cache cost always recurs
+    - compact: LLM must re-read entire context for summarization. Especially costly after cache expiry
+    - Both are inefficient if frequent. Recommend plugin's /continue skill instead. /continue has ZERO cache cost unlike resume/compact — explain this comparison clearly
+- If /continue usage history exists, mention specific count and evaluate positively. Compare with resume/compact: "/continue was used N times, and those N times cost absolutely nothing unlike resume/compact". Keep it simple: fast, zero cost, restores original text, can pick from multiple sessions
+- Only mention before/after installation differences if data supports it
+
+Write the JSON output to the AI_DATA_FILE path. Keys: section1 only if "--current" mode, otherwise section1 + section2 + section3.
+
+If AI generation fails, proceed to Tool Call 4 without --ai-data.
+
+### Tool Call 4: Finalize (Bash)
+
+Build the HTML dashboard and open in browser:
+
+node {{PLUGIN_ROOT}}/scripts/run-usage-view.js --finalize \
+  --report-data "{reportDataFile from Tool Call 1}" \
+  --ai-data "{AI_DATA_FILE from Tool Call 3}" \
+  --locale "{{LOCALE}}" \
+  --output "{{TMPDIR}}/cc-usage-report-$(date +%s).html"
+
+If AI_DATA_FILE doesn't exist, omit --ai-data.
+
+The script outputs a JSON summary. Use it for the final report.
+
+Output ONLY the final summary: scope, file path, sessions analyzed, date range, total cost.

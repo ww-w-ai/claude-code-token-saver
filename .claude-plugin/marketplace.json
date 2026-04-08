@@ -1,0 +1,22 @@
+{
+  "name": "cc-token-saver",
+  "owner": {
+    "name": "taehyoungkim"
+  },
+  "metadata": {
+    "description": "Plugins for optimizing Claude Code token usage and session longevity"
+  },
+  "plugins": [
+    {
+      "name": "cc-token-saver",
+      "source": "./",
+      "description": "Your Claude Code sessions expire too fast. This fixes that.",
+      "version": "1.0.0",
+      "author": {
+        "name": "taehyoungkim"
+      },
+      "license": "Apache-2.0",
+      "keywords": ["token", "cache", "optimization", "session", "cost"]
+    }
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "meta": {
+    "locale": "hi",
+    "direction": "ltr",
+    "name": "हिन्दी"
+  },
+  "header": {
+    "title": "Claude Code उपयोग रिपोर्ट",
+    "period": "विश्लेषण अवधि",
+    "totalCost": "कुल लागत",
+    "sessions": "सत्र",
+    "periodTotal": "पूरी अवधि का कुल",
+    "currentWindow": "वर्तमान 5-घंटा विंडो",
+    "subtaskCount": "{count} उप-कार्य सहित",
+    "daysDuration": "{days} दिन"
+  },
+  "token": {
+    "detail": "टोकन विवरण",
+    "type": "प्रकार",
+    "tokens": "टोकन",
+    "cost": "लागत",
+    "input": "इनपुट",
+    "output": "आउटपुट",
+    "cacheWrite": "Cache Write",
+    "cacheRead": "Cache Read",
+    "cache1hTier": "└ 1h tier",
+    "cache5mTier": "└ 5m tier",
+    "total": "कुल",
+    "costRatio": "लागत विवरण"
+  },
+  "chart": {
+    "dailyCost": "दैनिक लागत रुझान",
+    "hourlyCost": "प्रति घंटा लागत पैटर्न",
+    "dowCost": "सप्ताह के दिन लागत पैटर्न",
+    "efficiency": "दक्षता रुझान",
+    "avgCost": "औसत लागत",
+    "maxCost": "अधिकतम लागत",
+    "avg": "औसत",
+    "max": "अधिकतम",
+    "hourSuffix": "h",
+    "pluginInstalled": "प्लगइन स्थापित",
+    "legendAverage": "┄ औसत",
+    "effTotalPerOutput": "(Total / Output) ↓ कम बेहतर है",
+    "effCachePerOutput": "(Cache Creation / Output) ↓ कम बेहतर है",
+    "effNote": "* 1,000 से कम आउटपुट टोकन वाले दिन छोड़ दिए गए हैं (सार्थक अनुपात गणना के लिए बहुत कम आउटपुट)।",
+    "days": [
+      "रवि",
+      "सोम",
+      "मंगल",
+      "बुध",
+      "गुरु",
+      "शुक्र",
+      "शनि"
+    ]
+  },
+  "calendar": {
+    "title": "प्रति घंटा उपयोग कैलेंडर",
+    "fiveHourWindow": "5-घंटा विंडो",
+    "oneHourBlock": "1-घंटा ब्लॉक",
+    "legendLow": "~$15/h",
+    "legendMid": "$15-30/h",
+    "legendHigh": "$30+/h",
+    "legendBlocked": "अवरुद्ध",
+    "legendPlugin": "प्लगइन स्थापित",
+    "note": "सत्र विवरण देखने के लिए किसी भी सेल पर क्लिक करें। डिफ़ॉल्ट दृश्य 5-घंटा विंडो है — ऊपर के बटन से 1-घंटा ब्लॉक पर स्विच करें।",
+    "noData": "कोई डेटा नहीं"
+  },
+  "session": {
+    "detailExpand": "▶ सत्र विवरण",
+    "detailCollapse": "▼ संक्षिप्त करें",
+    "alertExpand": "▶ सबसे अधिक टोकन वाली बातचीत ({count})",
+    "alertCollapse": "▼ सबसे अधिक टोकन वाली बातचीत ({count})",
+    "windowDetailTitle": "📋 {date} {start}~{end} सत्र विवरण (${cost})",
+    "programmaticExec": "📦 प्रोग्रामैटिक निष्पादन ({count})",
+    "batchExec": "🔄 बैच निष्पादन ({count})",
+    "continueRestore": "💚 /continue ने {n} सत्र पुनर्स्थापित किए (0 LLM कॉल)",
+    "continueContext": "   पुनर्स्थापित संदर्भ: {tokens} टोकन",
+    "continueCompactCost": "   /compact अनुमानित लागत: ${min} ~ ${max}",
+    "continueSaved": "   → ${min} ~ ${max} बचाए!",
+    "tableHeaders": [
+      "ID",
+      "Type",
+      "Msgs",
+      "Input",
+      "Output",
+      "Cache",
+      "Read",
+      "Cost"
+    ]
+  },
+  "alert": {
+    "ctxWarn": "⚠️ Context window 35% से अधिक हो गया — हर कॉल के साथ cache read लागत बढ़ रही है।",
+    "ctxDanger": "🔴 Context window 70% से अधिक हो गया — cache read लागत बहुत अधिक है।",
+    "fiveHWarn": "⚠️ 5H सत्र विंडो 70% पर — सदस्यता उपयोग सीमा के करीब।",
+    "fiveHDanger": "🔴 5H सत्र विंडो 90% पर — सदस्यता उपयोग जल्द समाप्त हो सकता है।",
+    "resume": "🔄 सत्र फिर से शुरू — cache पुनः उत्पन्न, लागत लगी",
+    "compact": "📦 /compact पुनः आरंभ — cache पुनः उत्पन्न, लागत लगी",
+    "continue1": "💚 /continue skill ने 1 सत्र पुनर्स्थापित किया",
+    "continueN": "💚 /continue skill ने 2+ सत्र पुनर्स्थापित किए",
+    "continueSkillTip": " 💡 नए सत्र के बाद /continue skill की सिफारिश करते हैं।\n",
+    "cacheWritePrefix": "{icon} इस कॉल में, cache write {tokens} टोकन नए कैश किए गए — ",
+    "resumeReason": "claude --continue या /resume से सत्र फिर से शुरू करने में बहुत सारे टोकन लगते हैं। आवश्यक न हो तो नए सत्र के बाद /continue skill की सिफारिश करते हैं।",
+    "compactReason": "/compact पुनः आरंभ ने cache पुनर्जनन किया — उच्च लागत!",
+    "clearReason": "{reason} ने cache निर्माण किया (${cost})",
+    "clearReasonClear": "/clear पुनः आरंभ",
+    "clearReasonStartup": "नया सत्र आरंभ",
+    "pluginOverload": " — बहुत अधिक प्लगइन, MCP या skills लोड हो सकते हैं। केवल आवश्यक रखें।",
+    "reloadReason": "/reload-plugins ने सिस्टम प्रॉम्प्ट बदला, cache पुनः उत्पन्न (${cost})",
+    "modelReason": "/model परिवर्तन ने पिछला cache अमान्य किया, पुनः उत्पन्न (${cost})",
+    "resumeHeuristicReason": "claude --continue या /resume से सत्र फिर से शुरू करने में बहुत सारे टोकन लगते हैं। आवश्यक न हो तो नए सत्र के बाद /continue skill की सिफारिश करते हैं।",
+    "cacheExpiredReason": "जब संदर्भ बड़ा हो और 1 घंटे से अधिक बीत चुका हो, तो नया cache उत्पन्न होता है — उच्च लागत!",
+    "costTopLabel": "{icon} {label} (${cost})"
+  },
+  "ai": {
+    "analysis": "✨ AI विश्लेषण",
+    "tips": "💡 सुझाव — cc-token-saver उपयोग गाइड"
+  }
+}

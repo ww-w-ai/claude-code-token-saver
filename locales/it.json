@@ -1,0 +1,118 @@
+{
+  "meta": {
+    "locale": "it",
+    "direction": "ltr",
+    "name": "Italiano"
+  },
+  "header": {
+    "title": "Report di utilizzo di Claude Code",
+    "period": "Periodo di analisi",
+    "totalCost": "Costo totale",
+    "sessions": "Sessioni",
+    "periodTotal": "Totale per l'intero periodo",
+    "currentWindow": "Finestra attuale di 5 ore",
+    "subtaskCount": "incl. {count} sottoattività",
+    "daysDuration": "{days} giorni"
+  },
+  "token": {
+    "detail": "Dettagli token",
+    "type": "Tipo",
+    "tokens": "Token",
+    "cost": "Costo",
+    "input": "Input",
+    "output": "Output",
+    "cacheWrite": "Cache Write",
+    "cacheRead": "Cache Read",
+    "cache1hTier": "└ 1h tier",
+    "cache5mTier": "└ 5m tier",
+    "total": "Totale",
+    "costRatio": "Ripartizione dei costi"
+  },
+  "chart": {
+    "dailyCost": "Tendenza del costo giornaliero",
+    "hourlyCost": "Modello di costo orario",
+    "dowCost": "Modello di costo per giorno della settimana",
+    "efficiency": "Tendenza dell'efficienza",
+    "avgCost": "Costo medio",
+    "maxCost": "Costo massimo",
+    "avg": "Media",
+    "max": "Massimo",
+    "hourSuffix": "h",
+    "pluginInstalled": "Plugin installato",
+    "legendAverage": "┄ Media",
+    "effTotalPerOutput": "(Total / Output) ↓ Più basso è meglio",
+    "effCachePerOutput": "(Cache Creation / Output) ↓ Più basso è meglio",
+    "effNote": "* I giorni con meno di 1.000 token di output sono omessi (output insufficiente per calcolare un rapporto significativo).",
+    "days": [
+      "Dom",
+      "Lun",
+      "Mar",
+      "Mer",
+      "Gio",
+      "Ven",
+      "Sab"
+    ]
+  },
+  "calendar": {
+    "title": "Calendario di utilizzo orario",
+    "fiveHourWindow": "Finestra di 5 ore",
+    "oneHourBlock": "Blocco di 1 ora",
+    "legendLow": "~$15/h",
+    "legendMid": "$15-30/h",
+    "legendHigh": "$30+/h",
+    "legendBlocked": "bloccato",
+    "legendPlugin": "Plugin installato",
+    "note": "Clicca su una cella per vedere i dettagli della sessione. La vista predefinita è la finestra di 5 ore — passa ai blocchi di 1 ora con il pulsante sopra.",
+    "noData": "Nessun dato"
+  },
+  "session": {
+    "detailExpand": "▶ Dettagli sessione",
+    "detailCollapse": "▼ Comprimi",
+    "alertExpand": "▶ Conversazioni con più token ({count})",
+    "alertCollapse": "▼ Conversazioni con più token ({count})",
+    "windowDetailTitle": "📋 {date} {start}~{end} Dettagli sessione (${cost})",
+    "programmaticExec": "📦 Esecuzione programmatica ({count})",
+    "batchExec": "🔄 Esecuzione batch ({count})",
+    "continueRestore": "💚 /continue ha ripristinato {n} sessioni (0 chiamate LLM)",
+    "continueContext": "   Contesto ripristinato: {tokens} token",
+    "continueCompactCost": "   /compact costo stimato: ${min} ~ ${max}",
+    "continueSaved": "   → ${min} ~ ${max} risparmiati!",
+    "tableHeaders": [
+      "ID",
+      "Type",
+      "Msgs",
+      "Input",
+      "Output",
+      "Cache",
+      "Read",
+      "Cost"
+    ]
+  },
+  "alert": {
+    "ctxWarn": "⚠️ Context window ha superato il 35% — il costo di cache read aumenta ad ogni chiamata.",
+    "ctxDanger": "🔴 Context window ha superato il 70% — il costo di cache read è molto alto.",
+    "fiveHWarn": "⚠️ Finestra sessione 5H al 70% — avvicinamento al limite di utilizzo dell'abbonamento.",
+    "fiveHDanger": "🔴 Finestra sessione 5H al 90% — l'utilizzo dell'abbonamento potrebbe esaurirsi presto.",
+    "resume": "🔄 Sessione ripresa — cache rigenerata, costo sostenuto",
+    "compact": "📦 /compact riavvio — cache rigenerata, costo sostenuto",
+    "continue1": "💚 /continue skill ha ripristinato 1 sessione",
+    "continueN": "💚 /continue skill ha ripristinato 2+ sessioni",
+    "continueSkillTip": " 💡 Raccomandiamo /continue skill dopo una nuova sessione.\n",
+    "cacheWritePrefix": "{icon} In questa chiamata, cache write {tokens} token sono stati memorizzati — ",
+    "resumeReason": "Riprendere una sessione con claude --continue o /resume usa molti token. Se non necessario, raccomandiamo /continue skill dopo una nuova sessione.",
+    "compactReason": "/compact riavvio ha causato la rigenerazione della cache — costo elevato!",
+    "clearReason": "{reason} ha causato la creazione della cache (${cost})",
+    "clearReasonClear": "/clear riavvio",
+    "clearReasonStartup": "avvio di una nuova sessione",
+    "pluginOverload": " — potrebbero esserci troppi plugin, MCP o skill caricati. Mantieni solo il necessario.",
+    "reloadReason": "/reload-plugins ha causato un cambio del prompt di sistema, cache rigenerata (${cost})",
+    "modelReason": "/model cambio ha invalidato la cache precedente, rigenerata (${cost})",
+    "resumeHeuristicReason": "Riprendere una sessione con claude --continue o /resume usa molti token. Se non necessario, raccomandiamo /continue skill dopo una nuova sessione.",
+    "cacheExpiredReason": "Quando il contesto è grande e è passata più di 1 ora, viene generata una nuova cache — costo elevato!",
+    "costTopLabel": "{icon} {label} (${cost})"
+  },
+  "ai": {
+    "analysis": "✨ Analisi IA",
+    "tips": "💡 Suggerimenti — Guida all'uso di cc-token-saver"
+  }
+}

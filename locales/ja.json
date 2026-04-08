@@ -1,0 +1,118 @@
+{
+  "meta": {
+    "locale": "ja",
+    "direction": "ltr",
+    "name": "日本語"
+  },
+  "header": {
+    "title": "Claude Code 使用状況レポート",
+    "period": "分析期間",
+    "totalCost": "合計コスト",
+    "sessions": "セッション",
+    "periodTotal": "期間全体の合計",
+    "currentWindow": "現在の5時間ウィンドウ",
+    "subtaskCount": "サブタスク {count}件を含む",
+    "daysDuration": "{days}日間"
+  },
+  "token": {
+    "detail": "トークン詳細",
+    "type": "タイプ",
+    "tokens": "トークン",
+    "cost": "コスト",
+    "input": "入力",
+    "output": "出力",
+    "cacheWrite": "Cache Write",
+    "cacheRead": "Cache Read",
+    "cache1hTier": "└ 1h tier",
+    "cache5mTier": "└ 5m tier",
+    "total": "合計",
+    "costRatio": "コスト内訳"
+  },
+  "chart": {
+    "dailyCost": "日別コスト推移",
+    "hourlyCost": "時間帯別コストパターン",
+    "dowCost": "曜日別コストパターン",
+    "efficiency": "効率性推移",
+    "avgCost": "平均コスト",
+    "maxCost": "最大コスト",
+    "avg": "平均",
+    "max": "最大",
+    "hourSuffix": "時",
+    "pluginInstalled": "プラグインインストール済み",
+    "legendAverage": "┄ 平均",
+    "effTotalPerOutput": "(Total / Output) ↓ 低いほど良い",
+    "effCachePerOutput": "(Cache Creation / Output) ↓ 低いほど良い",
+    "effNote": "* 出力トークンが1,000未満の日は省略されています（有意な比率を算出するには出力が少なすぎます）。",
+    "days": [
+      "日",
+      "月",
+      "火",
+      "水",
+      "木",
+      "金",
+      "土"
+    ]
+  },
+  "calendar": {
+    "title": "時間帯別使用カレンダー",
+    "fiveHourWindow": "5時間ウィンドウ",
+    "oneHourBlock": "1時間ブロック",
+    "legendLow": "~$15/h",
+    "legendMid": "$15-30/h",
+    "legendHigh": "$30+/h",
+    "legendBlocked": "ブロック中",
+    "legendPlugin": "プラグインインストール済み",
+    "note": "セルをクリックするとセッション詳細が表示されます。デフォルトは5時間ウィンドウ表示です — 上のボタンで1時間ブロックに切り替えられます。",
+    "noData": "データなし"
+  },
+  "session": {
+    "detailExpand": "▶ セッション詳細",
+    "detailCollapse": "▼ 折りたたむ",
+    "alertExpand": "▶ トークン消費量の多い会話 ({count})",
+    "alertCollapse": "▼ トークン消費量の多い会話 ({count})",
+    "windowDetailTitle": "📋 {date} {start}~{end} セッション詳細 (${cost})",
+    "programmaticExec": "📦 プログラマティック実行 ({count}件)",
+    "batchExec": "🔄 バッチ実行 ({count}件)",
+    "continueRestore": "💚 /continueで{n}セッションを復元 (LLM呼び出し0回)",
+    "continueContext": "   復元されたコンテキスト: {tokens} トークン",
+    "continueCompactCost": "   /compact 推定コスト: ${min} ~ ${max}",
+    "continueSaved": "   → ${min} ~ ${max} 節約!",
+    "tableHeaders": [
+      "ID",
+      "Type",
+      "Msgs",
+      "Input",
+      "Output",
+      "Cache",
+      "Read",
+      "Cost"
+    ]
+  },
+  "alert": {
+    "ctxWarn": "⚠️ Context windowが35%を超えました — 呼び出しごとにcache readコストが増加します。",
+    "ctxDanger": "🔴 Context windowが70%を超えました — cache readコストが非常に高くなっています。",
+    "fiveHWarn": "⚠️ 5Hセッションウィンドウが70% — サブスクリプション使用量の上限に近づいています。",
+    "fiveHDanger": "🔴 5Hセッションウィンドウが90% — サブスクリプション使用量がまもなく上限に達します。",
+    "resume": "🔄 セッション再開 — cacheが再生成され、コストが発生しました",
+    "compact": "📦 /compact 再起動 — cacheが再生成され、コストが発生しました",
+    "continue1": "💚 /continue スキルが1セッションを復元しました",
+    "continueN": "💚 /continue スキルが2つ以上のセッションを復元しました",
+    "continueSkillTip": " 💡 新しいセッション開始後は /continue スキルの使用を推奨します。\n",
+    "cacheWritePrefix": "{icon} この呼び出しで、cache write {tokens} トークンが新たにキャッシュされました — ",
+    "resumeReason": "claude --continue または /resume でのセッション再開は大量のトークンを使用します。必要でなければ、新しいセッション開始後に /continue スキルを推奨します。",
+    "compactReason": "/compact 再起動によりcacheが再生成されました — 大きなコスト！",
+    "clearReason": "{reason} によりcacheが作成されました (${cost})",
+    "clearReasonClear": "/clear 再起動",
+    "clearReasonStartup": "新規セッション開始",
+    "pluginOverload": " — プラグイン、MCP、またはスキルが多すぎる可能性があります。必要なものだけに絞ってください。",
+    "reloadReason": "/reload-plugins によりシステムプロンプトが変更され、cacheが再生成されました (${cost})",
+    "modelReason": "/model 変更により以前のcacheが無効化され、再生成されました (${cost})",
+    "resumeHeuristicReason": "claude --continue または /resume でのセッション再開は大量のトークンを使用します。必要でなければ、新しいセッション開始後に /continue スキルを推奨します。",
+    "cacheExpiredReason": "コンテキストが大きく1時間以上経過すると、新しいcacheが生成されます — 大きなコスト！",
+    "costTopLabel": "{icon} {label} (${cost})"
+  },
+  "ai": {
+    "analysis": "✨ AI分析",
+    "tips": "💡 ヒント — cc-token-saver 使い方ガイド"
+  }
+}

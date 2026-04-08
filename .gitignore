@@ -1,0 +1,10 @@
+node_modules/
+.bkit/
+.claude/
+docs/
+*.log
+.DS_Store
+*.swp
+*.swo
+.vscode/
+.idea/

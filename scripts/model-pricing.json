@@ -1,0 +1,26 @@
+{
+  "_unit": "USD per million tokens",
+  "_source": "https://platform.claude.com/docs/en/about-claude/pricing",
+  "_updated": "2026-04-05",
+  "_note": "cacheCreate5m = 1.25x input, cacheCreate1h = 2x input, cacheRead = 0.1x input",
+  "models": {
+    "claude-opus-4-6":            { "input": 5,     "cacheCreate5m": 6.25,  "cacheCreate1h": 10,    "cacheRead": 0.50,  "output": 25,    "contextWindow": 1000000 },
+    "claude-opus-4-5":            { "input": 5,     "cacheCreate5m": 6.25,  "cacheCreate1h": 10,    "cacheRead": 0.50,  "output": 25,    "contextWindow": 1000000 },
+    "claude-opus-4-1":            { "input": 15,    "cacheCreate5m": 18.75, "cacheCreate1h": 30,    "cacheRead": 1.50,  "output": 75,    "contextWindow": 200000 },
+    "claude-opus-4-20250514":     { "input": 15,    "cacheCreate5m": 18.75, "cacheCreate1h": 30,    "cacheRead": 1.50,  "output": 75,    "contextWindow": 200000 },
+    "claude-sonnet-4-6":          { "input": 3,     "cacheCreate5m": 3.75,  "cacheCreate1h": 6,     "cacheRead": 0.30,  "output": 15,    "contextWindow": 1000000 },
+    "claude-sonnet-4-5-20250929": { "input": 3,     "cacheCreate5m": 3.75,  "cacheCreate1h": 6,     "cacheRead": 0.30,  "output": 15,    "contextWindow": 200000 },
+    "claude-sonnet-4-20250514":   { "input": 3,     "cacheCreate5m": 3.75,  "cacheCreate1h": 6,     "cacheRead": 0.30,  "output": 15,    "contextWindow": 200000 },
+    "claude-sonnet-3-7":          { "input": 3,     "cacheCreate5m": 3.75,  "cacheCreate1h": 6,     "cacheRead": 0.30,  "output": 15,    "contextWindow": 200000 },
+    "claude-haiku-4-5-20251001":  { "input": 1,     "cacheCreate5m": 1.25,  "cacheCreate1h": 2,     "cacheRead": 0.10,  "output": 5,     "contextWindow": 200000 },
+    "claude-haiku-3-5-20241022":  { "input": 0.80,  "cacheCreate5m": 1,     "cacheCreate1h": 1.60,  "cacheRead": 0.08,  "output": 4,     "contextWindow": 200000 },
+    "claude-opus-3":              { "input": 15,    "cacheCreate5m": 18.75, "cacheCreate1h": 30,    "cacheRead": 1.50,  "output": 75,    "contextWindow": 200000 },
+    "claude-haiku-3":             { "_note": "Cache prices ($0.30, $0.03) match Anthropic's published prices. Apparent multiplier deviation (1.2x/0.12x vs standard 1.25x/0.1x) is due to Anthropic rounding at low price point ($0.25 base).", "input": 0.25,  "cacheCreate5m": 0.30,  "cacheCreate1h": 0.50,  "cacheRead": 0.03,  "output": 1.25,  "contextWindow": 200000 }
+  },
+  "aliases": {
+    "opus": "claude-opus-4-6",
+    "sonnet": "claude-sonnet-4-6",
+    "haiku": "claude-haiku-4-5-20251001"
+  },
+  "default": "claude-opus-4-6"
+}

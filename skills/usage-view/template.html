@@ -1,0 +1,2561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code Usage Report</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg-primary: #0d1117;
+    --bg-secondary: #161b22;
+    --bg-tertiary: #21262d;
+    --bg-hover: #30363d;
+    --border: #30363d;
+    --text-primary: #e6edf3;
+    --text-secondary: #8b949e;
+    --text-muted: #6e7681;
+    --accent-blue: #58a6ff;
+    --accent-green: #3fb950;
+    --accent-orange: #d29922;
+    --accent-red: #f85149;
+    --accent-purple: #bc8cff;
+    --accent-pink: #f778ba;
+    --accent: #58a6ff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+
+  header {
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  header h1 {
+    font-size: 24px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  header h1 .logo {
+    width: 28px;
+    height: 28px;
+    background: var(--accent-blue);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--bg-primary);
+  }
+
+  .summary-bar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .summary-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .summary-card .label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+  }
+
+  .summary-card .value {
+    font-size: 28px;
+    font-weight: 700;
+  }
+
+  .summary-card .sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  .summary-card .value.cost { color: var(--accent-orange); }
+  .summary-card .value.sessions { color: var(--accent-green); }
+  .summary-card .value.range { color: var(--accent-purple); font-size: 18px; }
+
+  .section {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 24px;
+  }
+
+  .section-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-title .badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    font-weight: 400;
+  }
+
+  /* Token Breakdown + Donut Grid */
+  .breakdown-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+
+  .breakdown-table-wrap {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .breakdown-table-wrap h3,
+  .breakdown-donut-wrap h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--text-secondary);
+  }
+
+  .breakdown-donut-wrap {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .token-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .token-table th {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-weight: 500;
+    font-size: 12px;
+  }
+
+  .token-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--bg-tertiary);
+  }
+
+  .token-table td.num {
+    text-align: right;
+    font-family: 'SF Mono', monospace;
+    font-size: 12px;
+  }
+
+  .token-table th.num { text-align: right; }
+
+  .token-table .type-input { color: var(--accent-blue); }
+  .token-table .type-output { color: var(--accent-pink); }
+  .token-table .type-cache1h { color: var(--accent-orange); }
+  .token-table .type-cache5m { color: var(--accent-purple); }
+  .token-table .type-cacheread { color: var(--accent-green); }
+
+  .token-table tfoot td {
+    border-top: 2px solid var(--border);
+    font-weight: 600;
+    padding-top: 10px;
+  }
+
+  /* Calendar */
+  .calendar-grid {
+    display: grid;
+    gap: 1px;
+    background: var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 12px;
+    grid-template-columns: minmax(56px, 80px) repeat(24, minmax(0, 1fr));
+  }
+
+  .calendar-header-cell {
+    background: var(--bg-secondary);
+    color: var(--text-muted);
+    font-size: 11px;
+    text-align: center;
+    padding: 4px 0;
+  }
+
+  .calendar-date-label {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-size: 11px;
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+  }
+
+  .calendar-cell {
+    position: relative;
+    aspect-ratio: 1;
+    min-height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    transition: opacity 0.15s;
+    cursor: pointer;
+  }
+
+  .calendar-cell:hover {
+    opacity: 0.8;
+  }
+
+  .calendar-cell .skull {
+    font-size: 12px;
+    filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));
+  }
+
+  .calendar-cell.window-selected {
+    box-shadow: inset 0 0 0 2px white;
+  }
+
+  .calendar-cell.plugin-install-cell {
+    box-shadow: inset 0 0 0 2px #ffd700;
+  }
+
+  .calendar-cell.plugin-install-cell.window-selected {
+    box-shadow: inset 0 0 0 2px #ffd700, inset 0 0 0 4px white;
+  }
+
+  .calendar-date-label.plugin-install-row {
+    color: #ffd700;
+    font-weight: 600;
+  }
+
+  .calendar-legend {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 4px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .legend-color {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    display: inline-block;
+  }
+
+  .calendar-tooltip {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 11px;
+    color: var(--text-primary);
+    white-space: nowrap;
+    z-index: 100;
+    pointer-events: none;
+    line-height: 1.4;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  }
+
+  .calendar-scroll-wrapper {
+    overflow-x: hidden;
+    width: 100%;
+  }
+
+  .calendar-note {
+    margin-top: 12px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  /* Window Detail Panel */
+  .window-detail-panel {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 16px;
+    position: relative;
+    display: none;
+  }
+
+  .window-detail-panel.visible {
+    display: block;
+  }
+
+  .window-detail-panel .panel-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+
+  .window-detail-panel .close-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+  }
+
+  .window-detail-panel .close-btn:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+  }
+
+  .detail-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .detail-table th {
+    text-align: left;
+    padding: 8px 8px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-weight: 500;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .detail-table th.num { text-align: right; }
+
+  .detail-table td {
+    padding: 8px 8px;
+    border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+    white-space: nowrap;
+  }
+
+  .detail-table td.num {
+    text-align: right;
+    font-family: 'SF Mono', monospace;
+    font-size: 12px;
+  }
+
+  .detail-table .session-id {
+    color: var(--accent-blue);
+    font-family: 'SF Mono', monospace;
+    font-size: 12px;
+  }
+
+  /* Charts */
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+
+  .chart-container {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .chart-container h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--text-secondary);
+  }
+
+  .chart-wrapper {
+    position: relative;
+    width: 100%;
+  }
+
+  .donut-wrapper {
+    max-width: 280px;
+    margin: 0 auto;
+  }
+
+  @media (max-width: 900px) {
+    .summary-bar { grid-template-columns: repeat(3, 1fr); }
+    .charts-grid { grid-template-columns: 1fr; }
+    .calendar-grid { grid-template-columns: minmax(40px, 56px) repeat(24, minmax(0, 1fr)); }
+    .calendar-header-cell { font-size: 9px; padding: 2px 0; }
+    .calendar-cell .skull { font-size: 9px; }
+    .calendar-date-label { font-size: 10px; padding: 4px 4px; }
+  }
+
+  @media (max-width: 600px) {
+    .summary-bar { grid-template-columns: 1fr; }
+    .breakdown-grid { grid-template-columns: 1fr; }
+    .container { padding: 12px; }
+    header { flex-direction: column; align-items: flex-start; gap: 12px; }
+  }
+
+  /* RTL support for Hebrew, Arabic */
+  [dir="rtl"] { text-align: right; }
+  [dir="rtl"] .summary-bar { direction: rtl; }
+  [dir="rtl"] .ai-analysis-box { direction: rtl; text-align: right; }
+  [dir="rtl"] .session-detail-row { padding: 2px 8px 2px 0; }
+  [dir="rtl"] header { direction: rtl; }
+  [dir="rtl"] .calendar-note { text-align: right; }
+  [dir="rtl"] .num { text-align: left; }
+
+  .session-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin-bottom: 8px; }
+  .session-msg { color: var(--text-muted); font-size: 12px; margin: 4px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .session-stats { color: var(--text-secondary); font-size: 12px; }
+  .detail-toggle { cursor: pointer; color: var(--accent-blue); font-size: 11px; margin-top: 6px; }
+  .session-details { margin-top: 6px; font-size: 11px; font-family: monospace; color: var(--text-secondary); }
+  .session-detail-row { padding: 2px 0 2px 8px; }
+
+  /* Alert message items */
+  .alert-item {
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 12px;
+  }
+
+  .alert-item .alert-header {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .alert-item .alert-markers {
+    font-weight: 700;
+    font-family: 'SF Mono', monospace;
+    font-size: 13px;
+  }
+
+  .alert-item .alert-time {
+    color: var(--text-secondary);
+    font-family: 'SF Mono', monospace;
+  }
+
+  .alert-item .alert-text {
+    color: var(--text-muted);
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .alert-item .alert-tokens {
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-family: 'SF Mono', monospace;
+    margin-top: 4px;
+  }
+
+  .alert-empty {
+    color: var(--text-muted);
+    font-size: 13px;
+    padding: 16px 0;
+    text-align: center;
+  }
+
+  .marker-cost-warn { color: #d29922; }
+  .marker-cost-danger { color: #f85149; }
+  .marker-ctx-warn { color: #fb923c; }
+  .marker-ctx-danger { color: #f85149; }
+  .marker-5h-warn { color: #d29922; }
+  .marker-5h-danger { color: #f85149; }
+
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: var(--bg-primary); }
+  ::-webkit-scrollbar-thumb { background: var(--bg-tertiary); border-radius: 4px; }
+  .ai-analysis-box {
+    background: linear-gradient(135deg, rgba(88,166,255,0.08), rgba(63,185,80,0.08));
+    border: 1px solid rgba(88,166,255,0.2);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 12px 0 20px 0;
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text-primary);
+    white-space: pre-line;
+    display: none;
+  }
+  .ai-analysis-box .ai-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    white-space: normal;
+  }
+  /* RTL override: charts, tables, and data grids stay LTR */
+  [dir="rtl"] .chart-container,
+  [dir="rtl"] canvas,
+  [dir="rtl"] table,
+  [dir="rtl"] .calendar-grid,
+  [dir="rtl"] .token-detail-table,
+  [dir="rtl"] .session-stats,
+  [dir="rtl"] .detail-table,
+  [dir="rtl"] .breakdown-grid {
+    direction: ltr;
+    text-align: left;
+  }
+  [dir="rtl"] .session-card {
+    direction: ltr;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Section 1: Title + Summary -->
+  <header>
+    <h1><span class="logo">CC</span> Claude Code Usage Report</h1>
+  </header>
+
+  <div class="summary-bar">
+    <div class="summary-card">
+      <div class="label">Analysis Period</div>
+      <div class="value range" id="summaryDateRange">3/29 ~ 4/4</div>
+      <div class="sub" id="summaryDateSub"></div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Total Cost</div>
+      <div class="value cost" id="summaryTotalCost">$498.75</div>
+      <div class="sub">Period Total</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Sessions</div>
+      <div class="value sessions" id="summarySessionCount">18</div>
+      <div class="sub" id="summarySessionSub"></div>
+    </div>
+  </div>
+
+  <!-- Section 2: Token Breakdown + Cost Composition -->
+  <div class="breakdown-grid">
+    <div class="breakdown-table-wrap">
+      <h3>Token Details</h3>
+      <table class="token-table">
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th class="num">Tokens</th>
+            <th class="num">Cost</th>
+          </tr>
+        </thead>
+        <tbody id="tokenTableBody"></tbody>
+        <tfoot id="tokenTableFoot"></tfoot>
+      </table>
+    </div>
+    <div class="breakdown-donut-wrap">
+      <h3>Cost Breakdown</h3>
+      <div class="chart-wrapper donut-wrapper">
+        <canvas id="donutChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div id="aiSection1" class="ai-analysis-box"><div class="ai-label">✨ AI Analysis</div><span id="aiText1"></span></div>
+
+  <!-- Section 3: Daily Cost Trend -->
+  <div class="charts-grid">
+    <div class="chart-container">
+      <h3>Daily Cost Trend</h3>
+      <div class="chart-wrapper">
+        <canvas id="barChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 4: Hourly Cost Pattern -->
+  <div class="charts-grid">
+    <div class="chart-container">
+      <h3 style="display:flex;align-items:center;gap:12px">Hourly Cost Pattern
+        <span id="hourlyToggle" style="display:inline-flex;gap:4px;font-size:12px;cursor:pointer">
+          <span id="btnHourAvg" style="padding:2px 8px;border-radius:4px;background:#58a6ff;color:#0d1117">Avg</span>
+          <span id="btnHourMax" style="padding:2px 8px;border-radius:4px;background:var(--bg-tertiary);color:var(--text-secondary)">Max</span>
+        </span>
+      </h3>
+      <div class="chart-wrapper">
+        <canvas id="hourlyChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-container">
+      <h3 style="display:flex;align-items:center;gap:12px">Day-of-Week Cost Pattern
+        <span id="dowToggle" style="display:inline-flex;gap:4px;font-size:12px;cursor:pointer">
+          <span id="btnDowAvg" style="padding:2px 8px;border-radius:4px;background:#58a6ff;color:#0d1117">Avg</span>
+          <span id="btnDowMax" style="padding:2px 8px;border-radius:4px;background:var(--bg-tertiary);color:var(--text-secondary)">Max</span>
+        </span>
+      </h3>
+      <div class="chart-wrapper">
+        <canvas id="dowChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 5: Efficiency Trend -->
+  <div class="charts-grid">
+    <div class="chart-container">
+      <h3 style="display:flex;align-items:center;gap:12px">Efficiency Trend
+        <select id="efficiencyMetricSelect" style="font-size:12px;padding:2px 8px;border-radius:4px;background:var(--bg-tertiary);color:var(--text-secondary);border:1px solid var(--border);cursor:pointer;outline:none">
+          <option value="totalPerOutput">(Total / Output) ↓ Lower is better</option>
+          <option value="cachePerOutput">(Cache Creation / Output) ↓ Lower is better</option>
+        </select>
+      </h3>
+      <div class="chart-wrapper">
+        <canvas id="efficiencyChart"></canvas>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:6px;padding-left:4px">* Days with &lt;1,000 output tokens are omitted (too little output to compute a meaningful ratio).</div>
+    </div>
+  </div>
+
+  <div id="aiSection2" class="ai-analysis-box"><div class="ai-label">✨ AI Analysis</div><span id="aiText2"></span></div>
+
+  <!-- Section 6: Calendar Heatmap -->
+  <section class="section">
+    <div class="section-title" style="display:flex;justify-content:space-between;align-items:center">
+      📅 Hourly Usage Calendar
+      <div id="calendarClickMode" style="display:inline-flex;gap:2px;font-size:12px">
+        <button class="click-mode-btn active" data-mode="window" style="padding:2px 10px;border-radius:4px 0 0 4px;border:1px solid var(--border);background:var(--accent);color:#fff;cursor:pointer;font-size:12px">5-Hour Window</button>
+        <button class="click-mode-btn" data-mode="block" style="padding:2px 10px;border-radius:0 4px 4px 0;border:1px solid var(--border);background:var(--bg-tertiary);color:var(--text-secondary);cursor:pointer;font-size:12px">1-Hour Block</button>
+      </div>
+    </div>
+    <div class="calendar-legend">
+      <span class="legend-item"><span class="legend-color" style="background:#006d32"></span>~$15/h</span>
+      <span class="legend-item"><span class="legend-color" style="background:#fb923c"></span>$15-30/h</span>
+      <span class="legend-item"><span class="legend-color" style="background:#ff0000"></span>$30+/h</span>
+      <span class="legend-item">💀 = blocked</span>
+      <span class="legend-item"><span style="font-size:14px">⭐</span> Plugin installed</span>
+    </div>
+    <div class="calendar-scroll-wrapper">
+      <div id="calendarGrid" class="calendar-grid"></div>
+    </div>
+    <div class="calendar-note">💡 Click any cell to see session details. Default view is 5-hour window — toggle to 1-hour blocks with the button above.</div>
+
+    <!-- Section 7: Window Session Detail Panel -->
+    <div id="windowDetailPanel" class="window-detail-panel">
+      <button class="close-btn" id="closeDetailBtn">&times;</button>
+      <div class="panel-title" id="detailTitle"></div>
+      <div id="detailCardContainer"></div>
+    </div>
+
+    <div id="aiSection3" class="ai-analysis-box"><div class="ai-label">✨ AI Analysis</div><span id="aiText3"></span></div>
+  </section>
+
+  <!-- Section 8: AI Tips -->
+  <div id="aiSection4" class="ai-analysis-box" style="border-color:rgba(63,185,80,0.3);background:linear-gradient(135deg, rgba(63,185,80,0.08), rgba(210,153,34,0.06))"><div class="ai-label">💡 Tips — cc-token-saver Usage Guide</div><span id="aiText4"></span></div>
+
+</div>
+
+<script>
+/*<!-- I18N_START -->*/
+const I18N = {};
+/*<!-- I18N_END -->*/
+
+// English fallback defaults for standalone mockup viewing
+if (!I18N.meta) {
+  I18N.meta = { locale: 'en', direction: 'ltr', name: 'English' };
+  I18N.header = { title: 'Claude Code Usage Report', period: 'Analysis Period', totalCost: 'Total Cost', sessions: 'Sessions', periodTotal: 'Total for entire period', currentWindow: 'Current 5-Hour Window', subtaskCount: 'incl. {count} subtasks', daysDuration: '{days} days' };
+  I18N.token = { detail: 'Token Details', type: 'Type', tokens: 'Tokens', cost: 'Cost', input: 'Input', output: 'Output', cacheWrite: 'Cache Write', cacheRead: 'Cache Read', cache1hTier: '└ 1h tier', cache5mTier: '└ 5m tier', total: 'Total', costRatio: 'Cost Breakdown' };
+  I18N.chart = { dailyCost: 'Daily Cost Trend', hourlyCost: 'Hourly Cost Pattern', dowCost: 'Day-of-Week Cost Pattern', efficiency: 'Efficiency Trend', avgCost: 'Avg Cost', maxCost: 'Max Cost', avg: 'Average', max: 'Maximum', hourSuffix: 'h', pluginInstalled: 'Plugin installed', legendAverage: '┄ Average', effTotalPerOutput: '(Total / Output) ↓ Lower is better', effCachePerOutput: '(Cache Creation / Output) ↓ Lower is better', effNote: '* Days with <1,000 output tokens are omitted (too little output to compute a meaningful ratio).', days: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] };
+  I18N.calendar = { title: 'Hourly Usage Calendar', fiveHourWindow: '5-Hour Window', oneHourBlock: '1-Hour Block', legendLow: '~$15/h', legendMid: '$15-30/h', legendHigh: '$30+/h', legendBlocked: 'blocked', legendPlugin: 'Plugin installed', note: 'Click any cell to see session details. Default view is 5-hour window — toggle to 1-hour blocks with the button above.', noData: 'No Data' };
+  I18N.session = { detailExpand: '▶ Session Details', detailCollapse: '▼ Collapse', alertExpand: '▶ Top Token Conversations ({count})', alertCollapse: '▼ Top Token Conversations ({count})', windowDetailTitle: '📋 {date} {start}~{end} Session Details (${cost})', programmaticExec: '📦 Programmatic Execution ({count})', batchExec: '🔄 Batch Execution ({count})', continueRestore: '💚 /continue restored {n} sessions (0 LLM calls)', continueContext: '   Restored context: {tokens} tokens', continueCompactCost: '   /compact estimated cost: ${min} ~ ${max}', continueSaved: '   → ${min} ~ ${max} saved!', tableHeaders: ['ID', 'Type', 'Msgs', 'Input', 'Output', 'Cache', 'Read', 'Cost'] };
+  I18N.alert = { ctxWarn: '⚠️ Context window exceeded 35% — cache read cost increases with each call.', ctxDanger: '🔴 Context window exceeded 70% — cache read cost is very high.', fiveHWarn: '⚠️ 5H session window at 70% — approaching subscription usage limit.', fiveHDanger: '🔴 5H session window at 90% — subscription usage may expire soon.', resume: '🔄 Session resumed — cache regenerated, cost incurred', compact: '📦 /compact restart — cache regenerated, cost incurred', continue1: '💚 /continue skill restored 1 session', continueN: '💚 /continue skill restored 2+ sessions', continueSkillTip: ' 💡 We recommend /continue skill after a new session.\n', cacheWritePrefix: '{icon} In this call, cache write {tokens} tokens were newly cached — ', resumeReason: 'Resuming a session with claude --continue or /resume uses a lot of tokens. Unless necessary, we recommend /continue skill after a new session.', compactReason: '/compact restart caused cache regeneration — large cost!', clearReason: '{reason} caused cache creation (${cost})', clearReasonClear: '/clear restart', clearReasonStartup: 'new session start', pluginOverload: ' — too many plugins, MCP, or skills may be loaded. Keep only what you need.', reloadReason: '/reload-plugins caused system prompt change, cache regenerated (${cost})', modelReason: '/model change invalidated previous cache, regenerated (${cost})', resumeHeuristicReason: 'Resuming a session with claude --continue or /resume uses a lot of tokens. Unless necessary, we recommend /continue skill after a new session.', cacheExpiredReason: 'When context is large and over 1 hour has passed, new cache is generated — large cost!', costTopLabel: '{icon} {label} (${cost})' };
+  I18N.ai = { analysis: '✨ AI Analysis', tips: '💡 Tips — cc-token-saver Usage Guide' };
+}
+
+/*<!-- REPORT_DATA_START -->*/
+const REPORT_DATA = {
+  summary: { totalCost: 498.75, sessionCount: 18, subtaskCount: 12, dateFrom: '3/29', dateTo: '4/4', days: 7 },
+  tokenBreakdown: {
+    input: { tokens: 50000000, cost: 75.00 },
+    output: { tokens: 5000000, cost: 75.00 },
+    cacheCreate1h: { tokens: 200000000, cost: 300.00 },
+    cacheCreate5m: { tokens: 10000000, cost: 18.75 },
+    cacheRead: { tokens: 800000000, cost: 30.00 }
+  },
+  windows: [
+    { date: '3/29', start: '05:00', end: '10:00', usage: 35, cost: 78.50, eventCount: 12,
+      rlHours: [], hourlyCosts: {"5":15,"6":18,"7":20,"8":15,"9":10}, activeHours: [5,6,7,8,9],
+      windowSessions: [
+        { id: 'a1b2c3d4', type: 'main', firstMsg: 'Start skill improvement work', lastMsg: 'OK commit it',
+          messages: 42, input: 1200000, output: 120000, cache1h: 5300000, cache5m: 0, cacheRead: 45200000, cost: 12.50,
+          details: [
+            { id: 'a1b2c3d4', type: 'main', messages: 30, input: 800000, output: 80000, cache1h: 3000000, cache5m: 0, cacheRead: 30000000, cost: 8.50 },
+            { id: 'agent-a1', type: 'sub', messages: 6, input: 200000, output: 20000, cache1h: 1150000, cache5m: 0, cacheRead: 7600000, cost: 2.00 }
+          ]
+        },
+        { id: 'programmatic', type: 'programmatic', firstMsg: '', lastMsg: '',
+          messages: 5, input: 400000, output: 40000, cache1h: 1000000, cache5m: 0, cacheRead: 2000000, cost: 3.20,
+          details: [
+            { id: '8d02130b', type: 'claude-p', messages: 1, input: 80000, output: 8000, cache1h: 200000, cache5m: 0, cacheRead: 400000, cost: 0.64 }
+          ]
+        }
+      ]
+    },
+    { date: '3/29', start: '10:00', end: '15:00', usage: 62, cost: 185.20, eventCount: 28,
+      windowSessions: [
+        {
+          id: 'b2c3d4e5', type: 'main', firstMsg: 'API integration work', lastMsg: 'Deploy ready',
+          messages: 28, input: 1500000, output: 150000, cache1h: 6800000, cache5m: 1200000, cacheRead: 52000000, cost: 95.20,
+          details: [
+            { id: 'b2c3d4e5', type: 'main', messages: 20, input: 1000000, output: 100000, cache1h: 5000000, cache5m: 800000, cacheRead: 35000000, cost: 65.20 },
+            { id: 'agent-b2', type: 'sub', messages: 8, input: 500000, output: 50000, cache1h: 1800000, cache5m: 400000, cacheRead: 17000000, cost: 30.00 },
+          ]
+        },
+        {
+          id: 'f6a1b2c3', type: 'main', firstMsg: 'Start refactoring', lastMsg: 'Done',
+          messages: 18, input: 1100000, output: 110000, cache1h: 4500000, cache5m: 0, cacheRead: 38000000, cost: 90.00,
+          details: [
+            { id: 'f6a1b2c3', type: 'main', messages: 18, input: 1100000, output: 110000, cache1h: 4500000, cache5m: 0, cacheRead: 38000000, cost: 90.00 },
+          ]
+        },
+      ]},
+    { date: '3/29', start: '15:00', end: '20:00', usage: 88, cost: 420.10, eventCount: 45,
+      alertMessages: [
+        { sessionId: 'c3d4e5f6', lineNum: 42, time: '16:30', markers: '*', text: 'Refactor the entire dashboard chart component. Current structure is too complex to maintain', alertType: 'cost-warn', tokens: { input: 45000, cc: 50000, cc5m: 0, cc1h: 50000, cr: 200000, out: 12000, cost: 0.85 } },
+        { sessionId: 'c3d4e5f6', lineNum: 78, time: '17:15', markers: '**#', text: 'Analyze the entire project and remove all unused code', alertType: 'cost-danger+ctx-warn', tokens: { input: 120000, cc: 80000, cc5m: 2000, cc1h: 78000, cr: 350000, out: 25000, cost: 1.45 } },
+        { sessionId: 'a2b3c4d5', lineNum: 15, time: '18:00', markers: '#', text: 'Raise test coverage above 90%. Include all edge cases', alertType: 'ctx-warn', tokens: { input: 30000, cc: 40000, cc5m: 0, cc1h: 40000, cr: 180000, out: 8000, cost: 0.52 } },
+        { sessionId: 'a2b3c4d5', lineNum: 55, time: '19:30', markers: '**##', text: 'Write integration tests for the entire codebase', alertType: 'cost-danger+ctx-danger', tokens: { input: 200000, cc: 150000, cc5m: 5000, cc1h: 145000, cr: 500000, out: 45000, cost: 2.10 } },
+        { sessionId: '', lineNum: 0, time: '19:45', markers: '', text: '5H 90%', alertType: '5h-danger', tokens: null }
+      ],
+      windowSessions: [
+        {
+          id: 'c3d4e5f6', type: 'main', firstMsg: 'Dashboard implementation', lastMsg: 'Chart rendering complete',
+          messages: 42, input: 1200000, output: 120000, cache1h: 5300000, cache5m: 0, cacheRead: 45200000, cost: 220.10,
+          details: [
+            { id: 'c3d4e5f6', type: 'main', messages: 30, input: 800000, output: 80000, cache1h: 3500000, cache5m: 0, cacheRead: 30000000, cost: 150.10 },
+            { id: 'agent-c3', type: 'sub', messages: 12, input: 400000, output: 40000, cache1h: 1800000, cache5m: 0, cacheRead: 15200000, cost: 70.00 },
+          ]
+        },
+        {
+          id: 'a2b3c4d5', type: 'main', firstMsg: 'Writing test code', lastMsg: 'Coverage 90%',
+          messages: 35, input: 1000000, output: 95000, cache1h: 4800000, cache5m: 800000, cacheRead: 40000000, cost: 200.00,
+          details: [
+            { id: 'a2b3c4d5', type: 'main', messages: 35, input: 1000000, output: 95000, cache1h: 4800000, cache5m: 800000, cacheRead: 40000000, cost: 200.00 },
+          ]
+        },
+      ]},
+    { date: '3/29', start: '20:00', end: '01:00', usage: 100, cost: 890.30, eventCount: 62,
+      windowSessions: [
+        { id: 'd4e5f6g7', type: 'main', messages: 62, input: 2400000, output: 240000, cache1h: 12000000, cache5m: 2000000, cacheRead: 95000000, cost: 490.30 },
+        { id: 'b3c4d5e6', type: 'main', messages: 48, input: 1800000, output: 180000, cache1h: 8500000, cache5m: 0, cacheRead: 72000000, cost: 400.00 },
+      ]},
+    { date: '3/30', start: '01:00', end: '06:00', usage: 100, cost: 612.40, eventCount: 48,
+      windowSessions: [
+        { id: 'e5f6g7h8', type: 'main', messages: 48, input: 1900000, output: 190000, cache1h: 9200000, cache5m: 1500000, cacheRead: 78000000, cost: 312.40 },
+        { id: 'c4d5e6f7', type: 'main', messages: 38, input: 1400000, output: 140000, cache1h: 7000000, cache5m: 0, cacheRead: 60000000, cost: 300.00 },
+      ]},
+    { date: '3/30', start: '06:00', end: '11:00', usage: 12, cost: 28.90, eventCount: 5,
+      windowSessions: [
+        { id: 'f6g7h8i9', type: 'main', messages: 5, input: 400000, output: 35000, cache1h: 1200000, cache5m: 0, cacheRead: 10000000, cost: 28.90 },
+      ]},
+    { date: '3/30', start: '11:00', end: '16:00', usage: 45, cost: 112.60, eventCount: 18,
+      windowSessions: [
+        { id: 'g7h8i9j0', type: 'main', messages: 18, input: 950000, output: 90000, cache1h: 3800000, cache5m: 600000, cacheRead: 32000000, cost: 62.60 },
+        { id: 'd5e6f7g8', type: 'main', messages: 12, input: 700000, output: 65000, cache1h: 2500000, cache5m: 0, cacheRead: 22000000, cost: 50.00 },
+      ]},
+    { date: '3/30', start: '16:00', end: '21:00', usage: 73, cost: 305.80, eventCount: 35,
+      windowSessions: [
+        { id: 'h8i9j0k1', type: 'main', messages: 35, input: 1300000, output: 130000, cache1h: 5500000, cache5m: 900000, cacheRead: 45000000, cost: 155.80 },
+        { id: 'e6f7g8h9', type: 'main', messages: 28, input: 1100000, output: 105000, cache1h: 4200000, cache5m: 0, cacheRead: 36000000, cost: 150.00 },
+      ]},
+    { date: '3/31', start: '09:00', end: '14:00', usage: 22, cost: 55.10, eventCount: 8,
+      windowSessions: [
+        { id: 'i9j0k1l2', type: 'main', messages: 8, input: 500000, output: 45000, cache1h: 1800000, cache5m: 0, cacheRead: 15000000, cost: 55.10 },
+      ]},
+    { date: '3/31', start: '14:00', end: '19:00', usage: 100, cost: 780.50, eventCount: 58,
+      windowSessions: [
+        { id: 'j0k1l2m3', type: 'main', messages: 58, input: 2200000, output: 220000, cache1h: 11000000, cache5m: 1800000, cacheRead: 88000000, cost: 420.50 },
+        { id: 'f7g8h9i0', type: 'main', messages: 42, input: 1600000, output: 160000, cache1h: 7800000, cache5m: 0, cacheRead: 65000000, cost: 360.00 },
+      ]},
+    { date: '3/31', start: '19:00', end: '00:00', usage: 67, cost: 210.30, eventCount: 25,
+      windowSessions: [
+        { id: 'k1l2m3n4', type: 'main', messages: 25, input: 1000000, output: 100000, cache1h: 4200000, cache5m: 700000, cacheRead: 35000000, cost: 110.30 },
+        { id: 'g8h9i0j1', type: 'main', messages: 18, input: 750000, output: 72000, cache1h: 3000000, cache5m: 0, cacheRead: 25000000, cost: 100.00 },
+      ]},
+    { date: '4/1',  start: '08:00', end: '13:00', usage: 30, cost: 72.40, eventCount: 10,
+      windowSessions: [
+        { id: 'l2m3n4o5', type: 'main', messages: 10, input: 600000, output: 55000, cache1h: 2400000, cache5m: 0, cacheRead: 20000000, cost: 72.40 },
+      ]},
+    { date: '4/1',  start: '13:00', end: '18:00', usage: 55, cost: 165.90, eventCount: 22,
+      windowSessions: [
+        { id: 'm3n4o5p6', type: 'main', messages: 22, input: 1100000, output: 105000, cache1h: 4500000, cache5m: 800000, cacheRead: 38000000, cost: 85.90 },
+        { id: 'h9i0j1k2', type: 'main', messages: 15, input: 800000, output: 75000, cache1h: 3200000, cache5m: 0, cacheRead: 27000000, cost: 80.00 },
+      ]},
+    { date: '4/1',  start: '18:00', end: '23:00', usage: 100, cost: 720.60, eventCount: 55,
+      windowSessions: [
+        { id: 'n4o5p6q7', type: 'main', messages: 55, input: 2100000, output: 210000, cache1h: 10500000, cache5m: 1700000, cacheRead: 85000000, cost: 380.60 },
+        { id: 'i0j1k2l3', type: 'main', messages: 40, input: 1500000, output: 150000, cache1h: 7200000, cache5m: 0, cacheRead: 62000000, cost: 340.00 },
+      ]},
+    { date: '4/2',  start: '10:00', end: '15:00', usage: 40, cost: 95.30, eventCount: 15,
+      windowSessions: [
+        { id: 'o5p6q7r8', type: 'main', messages: 15, input: 750000, output: 70000, cache1h: 3000000, cache5m: 500000, cacheRead: 25000000, cost: 95.30 },
+      ]},
+    { date: '4/2',  start: '15:00', end: '20:00', usage: 58, cost: 178.40, eventCount: 22,
+      windowSessions: [
+        { id: 'p6q7r8s9', type: 'main', messages: 22, input: 1100000, output: 105000, cache1h: 4500000, cache5m: 0, cacheRead: 38000000, cost: 98.40 },
+        { id: 'j1k2l3m4', type: 'main', messages: 16, input: 800000, output: 78000, cache1h: 3200000, cache5m: 600000, cacheRead: 28000000, cost: 80.00 },
+      ]},
+    { date: '4/3',  start: '07:00', end: '12:00', usage: 18, cost: 42.10, eventCount: 6,
+      windowSessions: [
+        { id: 'q7r8s9t0', type: 'main', messages: 6, input: 350000, output: 32000, cache1h: 1400000, cache5m: 0, cacheRead: 12000000, cost: 42.10 },
+      ]},
+    { date: '4/3',  start: '12:00', end: '17:00', usage: 48, cost: 138.70, eventCount: 20,
+      windowSessions: [
+        { id: 'r8s9t0u1', type: 'main', messages: 20, input: 1000000, output: 95000, cache1h: 4000000, cache5m: 700000, cacheRead: 34000000, cost: 78.70 },
+        { id: 'k2l3m4n5', type: 'main', messages: 14, input: 700000, output: 65000, cache1h: 2800000, cache5m: 0, cacheRead: 24000000, cost: 60.00 },
+      ]},
+    { date: '4/3',  start: '17:00', end: '22:00', usage: 72, cost: 285.60, eventCount: 32,
+      windowSessions: [
+        { id: 's9t0u1v2', type: 'main', messages: 32, input: 1200000, output: 120000, cache1h: 5200000, cache5m: 900000, cacheRead: 42000000, cost: 145.60 },
+        { id: 'l3m4n5o6', type: 'main', messages: 22, input: 900000, output: 88000, cache1h: 3800000, cache5m: 0, cacheRead: 32000000, cost: 140.00 },
+      ]},
+    { date: '4/4',  start: '09:00', end: '14:00', usage: 25, cost: 58.20, eventCount: 9,
+      windowSessions: [
+        { id: 't0u1v2w3', type: 'main', messages: 9, input: 500000, output: 48000, cache1h: 2000000, cache5m: 0, cacheRead: 17000000, cost: 58.20 },
+      ]},
+  ],
+  dailyCosts: [
+    { date: '3/29', input: 363.30, cacheCreate: 177.20, cacheRead: 53.10, output: 160.00 },
+    { date: '3/30', input: 306.50, cacheCreate: 152.60, cacheRead: 45.70, output: 140.00 },
+    { date: '3/31', input: 309.10, cacheCreate: 152.30, cacheRead: 47.60, output: 141.50 },
+    { date: '4/1',  input: 285.40, cacheCreate: 142.40, cacheRead: 44.90, output: 133.00 },
+    { date: '4/2',  input: 86.30,  cacheCreate: 42.80,  cacheRead: 15.70, output: 39.60 },
+    { date: '4/3',  input: 144.50, cacheCreate: 71.60,  cacheRead: 22.80, output: 66.10 },
+    { date: '4/4',  input: 27.30,  cacheCreate: 13.60,  cacheRead: 6.70,  output: 12.50 },
+  ],
+  dailyTokens: [
+    { date: '3/29', total: 48000000, cc: 12000000, out: 3200000 },
+    { date: '3/30', total: 42000000, cc: 10500000, out: 2800000 },
+    { date: '3/31', total: 43000000, cc: 10600000, out: 2900000 },
+    { date: '4/1',  total: 39000000, cc: 9800000,  out: 2700000 },
+    { date: '4/2',  total: 12000000, cc: 3000000,  out: 800000 },
+    { date: '4/3',  total: 20000000, cc: 5000000,  out: 1300000 },
+    { date: '4/4',  total: 3800000,  cc: 950000,   out: 250000 },
+  ],
+  hourlyStats: [
+    { hour: 0, avg: 1.8, max: 6.5 }, { hour: 1, avg: 2.5, max: 8.2 },
+    { hour: 2, avg: 1.2, max: 4.8 }, { hour: 3, avg: 0.5, max: 2.1 },
+    { hour: 4, avg: 0.3, max: 1.5 }, { hour: 5, avg: 0.8, max: 3.0 },
+    { hour: 6, avg: 1.5, max: 5.2 }, { hour: 7, avg: 2.8, max: 9.0 },
+    { hour: 8, avg: 4.2, max: 12.5 }, { hour: 9, avg: 6.5, max: 18.0 },
+    { hour: 10, avg: 9.8, max: 28.5 }, { hour: 11, avg: 12.5, max: 35.2 },
+    { hour: 12, avg: 11.2, max: 32.0 }, { hour: 13, avg: 10.8, max: 30.5 },
+    { hour: 14, avg: 8.5, max: 25.0 }, { hour: 15, avg: 6.2, max: 18.5 },
+    { hour: 16, avg: 5.0, max: 15.0 }, { hour: 17, avg: 5.8, max: 17.2 },
+    { hour: 18, avg: 7.5, max: 22.0 }, { hour: 19, avg: 8.2, max: 24.5 },
+    { hour: 20, avg: 10.5, max: 31.0 }, { hour: 21, avg: 11.8, max: 34.0 },
+    { hour: 22, avg: 9.2, max: 27.5 }, { hour: 23, avg: 5.5, max: 16.0 }
+  ],
+  dowStats: [
+    { dow: 0, label: 'Sun', avg: 5.0, max: 15.0 },
+    { dow: 1, label: 'Mon', avg: 10.0, max: 30.0 },
+    { dow: 2, label: 'Tue', avg: 12.0, max: 35.0 },
+    { dow: 3, label: 'Wed', avg: 11.0, max: 32.0 },
+    { dow: 4, label: 'Thu', avg: 9.0, max: 28.0 },
+    { dow: 5, label: 'Fri', avg: 8.0, max: 25.0 },
+    { dow: 6, label: 'Sat', avg: 6.0, max: 18.0 }
+  ],
+  pluginInstalledAt: '2026-03-31T10:00:00.000Z'
+};
+/*<!-- REPORT_DATA_END -->*/
+
+// ─── i18n helper ─────────────────────────────────────────────
+function i18nT(template, vars) {
+  if (!template) return '';
+  return template.replace(/\{(\w+)\}/g, function(_, k) { return vars[k] !== undefined ? vars[k] : '{' + k + '}'; });
+}
+
+// ─── Apply I18N to static HTML ───────────────────────────────
+(function applyI18N() {
+  if (!I18N.meta) return; // no locale loaded
+  document.documentElement.lang = I18N.meta.locale || 'en';
+  document.title = I18N.header.title || 'Claude Code Usage Report';
+
+  // Header
+  var h1Logo = document.querySelector('header h1');
+  if (h1Logo) {
+    h1Logo.textContent = '';
+    var logoSpan = document.createElement('span');
+    logoSpan.className = 'logo';
+    logoSpan.textContent = 'CC';
+    h1Logo.appendChild(logoSpan);
+    h1Logo.appendChild(document.createTextNode(' ' + (I18N.header.title || 'Claude Code Usage Report')));
+  }
+
+  // Summary cards
+  var labels = document.querySelectorAll('.summary-card .label');
+  if (labels[0]) labels[0].textContent = I18N.header.period || 'Analysis Period';
+  if (labels[1]) labels[1].textContent = I18N.header.totalCost || 'Total Cost';
+  if (labels[2]) labels[2].textContent = I18N.header.sessions || 'Sessions';
+
+  // Period total sub
+  var subs = document.querySelectorAll('.summary-card .sub');
+  if (subs[1]) subs[1].textContent = I18N.header.periodTotal || '';
+
+  // Section headings
+  var h3s = document.querySelectorAll('h3');
+  for (var i = 0; i < h3s.length; i++) {
+    var txt = h3s[i].textContent.trim();
+    if (txt === '\uD1A0\uD070 \uC0C1\uC138' || txt === 'Token Details') h3s[i].textContent = I18N.token.detail;
+    else if (txt === '\uBE44\uC6A9 \uAD6C\uC131 \uBE44\uC728' || txt === 'Cost Breakdown') h3s[i].textContent = I18N.token.costRatio;
+  }
+
+  // Token table headers
+  var ths = document.querySelectorAll('.token-table th');
+  if (ths[0]) ths[0].textContent = I18N.token.type || 'Type';
+  if (ths[1]) ths[1].textContent = I18N.token.tokens || 'Tokens';
+  if (ths[2]) ths[2].textContent = I18N.token.cost || 'Cost';
+
+  // Chart section titles with toggle buttons
+  // Daily cost
+  var dailyCostH3 = document.querySelector('#barChart').closest('.chart-container').querySelector('h3');
+  if (dailyCostH3) dailyCostH3.textContent = I18N.chart.dailyCost;
+
+  // Hourly cost - has toggle buttons inside
+  var hourlyH3 = document.querySelector('#hourlyChart').closest('.chart-container').querySelector('h3');
+  if (hourlyH3) {
+    var toggle = document.getElementById('hourlyToggle');
+    while (hourlyH3.firstChild) hourlyH3.removeChild(hourlyH3.firstChild);
+    hourlyH3.appendChild(document.createTextNode(I18N.chart.hourlyCost));
+    if (toggle) hourlyH3.appendChild(toggle);
+  }
+
+  // DOW cost - has toggle buttons inside
+  var dowH3 = document.querySelector('#dowChart').closest('.chart-container').querySelector('h3');
+  if (dowH3) {
+    var dowToggle = document.getElementById('dowToggle');
+    while (dowH3.firstChild) dowH3.removeChild(dowH3.firstChild);
+    dowH3.appendChild(document.createTextNode(I18N.chart.dowCost));
+    if (dowToggle) dowH3.appendChild(dowToggle);
+  }
+
+  // Efficiency - has select inside
+  var effH3 = document.querySelector('#efficiencyChart').closest('.chart-container').querySelector('h3');
+  if (effH3) {
+    var sel = document.getElementById('efficiencyMetricSelect');
+    while (effH3.firstChild) effH3.removeChild(effH3.firstChild);
+    effH3.appendChild(document.createTextNode(I18N.chart.efficiency + ' '));
+    if (sel) effH3.appendChild(sel);
+  }
+
+  // Toggle button text
+  document.getElementById('btnHourAvg').textContent = I18N.chart.avg;
+  document.getElementById('btnHourMax').textContent = I18N.chart.max;
+  document.getElementById('btnDowAvg').textContent = I18N.chart.avg;
+  document.getElementById('btnDowMax').textContent = I18N.chart.max;
+
+  // Efficiency select options
+  var effSelect = document.getElementById('efficiencyMetricSelect');
+  if (effSelect && effSelect.options.length >= 2) {
+    effSelect.options[0].text = I18N.chart.effTotalPerOutput;
+    effSelect.options[1].text = I18N.chart.effCachePerOutput;
+  }
+
+  // Efficiency note
+  var effNote = document.querySelector('#efficiencyChart').closest('.chart-container').querySelector('div[style*="font-size:11px"]');
+  if (effNote) effNote.textContent = I18N.chart.effNote;
+
+  // Calendar section title
+  var calTitle = document.querySelector('.section-title');
+  if (calTitle) {
+    var calToggle = document.getElementById('calendarClickMode');
+    var titleText = '\uD83D\uDCC5 ' + I18N.calendar.title;
+    while (calTitle.firstChild) calTitle.removeChild(calTitle.firstChild);
+    calTitle.appendChild(document.createTextNode(titleText));
+    if (calToggle) calTitle.appendChild(calToggle);
+  }
+
+  // Calendar toggle buttons
+  var windowBtn = document.querySelector('[data-mode="window"]');
+  var blockBtn = document.querySelector('[data-mode="block"]');
+  if (windowBtn) windowBtn.textContent = I18N.calendar.fiveHourWindow;
+  if (blockBtn) blockBtn.textContent = I18N.calendar.oneHourBlock;
+
+  // Calendar legend — cost tier labels
+  var legendItems = document.querySelectorAll('.calendar-legend .legend-item');
+  if (legendItems[0]) {
+    var colorSpan0 = legendItems[0].querySelector('.legend-color');
+    legendItems[0].textContent = '';
+    if (colorSpan0) legendItems[0].appendChild(colorSpan0);
+    legendItems[0].appendChild(document.createTextNode(I18N.calendar.legendLow));
+  }
+  if (legendItems[1]) {
+    var colorSpan1 = legendItems[1].querySelector('.legend-color');
+    legendItems[1].textContent = '';
+    if (colorSpan1) legendItems[1].appendChild(colorSpan1);
+    legendItems[1].appendChild(document.createTextNode(I18N.calendar.legendMid));
+  }
+  if (legendItems[2]) {
+    var colorSpan2 = legendItems[2].querySelector('.legend-color');
+    legendItems[2].textContent = '';
+    if (colorSpan2) legendItems[2].appendChild(colorSpan2);
+    legendItems[2].appendChild(document.createTextNode(I18N.calendar.legendHigh));
+  }
+  if (legendItems[3]) {
+    while (legendItems[3].firstChild) legendItems[3].removeChild(legendItems[3].firstChild);
+    legendItems[3].appendChild(document.createTextNode('\uD83D\uDC80 = ' + I18N.calendar.legendBlocked));
+  }
+  if (legendItems[4]) {
+    while (legendItems[4].firstChild) legendItems[4].removeChild(legendItems[4].firstChild);
+    var starSpan = document.createElement('span');
+    starSpan.style.fontSize = '14px';
+    starSpan.textContent = '\u2B50';
+    legendItems[4].appendChild(starSpan);
+    legendItems[4].appendChild(document.createTextNode(' ' + I18N.calendar.legendPlugin));
+  }
+
+  // Calendar note
+  var calNote = document.querySelector('.calendar-note');
+  if (calNote) calNote.textContent = '\uD83D\uDCA1 ' + I18N.calendar.note;
+
+  // AI section labels
+  var aiLabels = document.querySelectorAll('.ai-label');
+  for (var a = 0; a < aiLabels.length; a++) {
+    var labelText = aiLabels[a].textContent.trim();
+    if (labelText.indexOf('AI Analysis') >= 0) aiLabels[a].textContent = I18N.ai.analysis;
+    else if (labelText.indexOf('Tips') >= 0) aiLabels[a].textContent = I18N.ai.tips;
+  }
+})();
+
+// ─── Helpers ──────────────────────────────────────────────────
+
+function createEl(tag, attrs, children) {
+  const el = document.createElement(tag);
+  if (attrs) {
+    for (const [k, v] of Object.entries(attrs)) {
+      if (k === 'style' && typeof v === 'object') {
+        Object.assign(el.style, v);
+      } else if (k === 'className') {
+        el.className = v;
+      } else if (k === 'textContent') {
+        el.textContent = v;
+      } else {
+        el.setAttribute(k, v);
+      }
+    }
+  }
+  if (children) {
+    for (const c of children) {
+      if (typeof c === 'string') {
+        el.appendChild(document.createTextNode(c));
+      } else if (c) {
+        el.appendChild(c);
+      }
+    }
+  }
+  return el;
+}
+
+function formatTokens(n) {
+  if (n >= 1e6) return (n / 1e6).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+  return String(n);
+}
+
+// ─── Render: Token Breakdown Table ──────────────────────────
+
+function renderTokenBreakdown() {
+  var tbody = document.getElementById('tokenTableBody');
+  var tfoot = document.getElementById('tokenTableFoot');
+  tbody.textContent = '';
+  tfoot.textContent = '';
+
+  var b = REPORT_DATA.tokenBreakdown;
+  var cacheCreateTokens = b.cacheCreate1h.tokens + b.cacheCreate5m.tokens;
+  var cacheCreateCost = b.cacheCreate1h.cost + b.cacheCreate5m.cost;
+
+  var rows = [
+    { label: I18N.token.input, tokens: b.input.tokens, cost: b.input.cost, cls: 'type-input' },
+    { label: I18N.token.output, tokens: b.output.tokens, cost: b.output.cost, cls: 'type-output' },
+    { label: I18N.token.cacheWrite, tokens: cacheCreateTokens, cost: cacheCreateCost, cls: 'type-cache1h' },
+    { label: I18N.token.cacheRead, tokens: b.cacheRead.tokens, cost: b.cacheRead.cost, cls: 'type-cacheread' },
+  ];
+
+  var subRows = [
+    { label: I18N.token.cache1hTier, tokens: b.cacheCreate1h.tokens, cost: b.cacheCreate1h.cost },
+    { label: I18N.token.cache5mTier, tokens: b.cacheCreate5m.tokens, cost: b.cacheCreate5m.cost },
+  ];
+
+  var totalTokens = 0;
+  var totalCost = 0;
+
+  for (var i = 0; i < rows.length; i++) {
+    var r = rows[i];
+    totalTokens += r.tokens;
+    totalCost += r.cost;
+
+    var tr = createEl('tr');
+    tr.appendChild(createEl('td', { className: r.cls, textContent: r.label }));
+    tr.appendChild(createEl('td', { className: 'num', textContent: formatTokens(r.tokens) }));
+    tr.appendChild(createEl('td', { className: 'num', textContent: '$' + r.cost.toFixed(2) }));
+    tbody.appendChild(tr);
+
+    // Insert sub-rows after Cache Create
+    if (r.label === I18N.token.cacheWrite) {
+      for (var j = 0; j < subRows.length; j++) {
+        var sr = subRows[j];
+        var subTr = createEl('tr');
+        var labelTd = createEl('td', { textContent: sr.label });
+        labelTd.style.paddingLeft = '20px';
+        labelTd.style.color = 'var(--text-muted)';
+        labelTd.style.fontSize = '11px';
+        subTr.appendChild(labelTd);
+        var tokenTd = createEl('td', { className: 'num', textContent: formatTokens(sr.tokens) });
+        tokenTd.style.color = 'var(--text-muted)';
+        tokenTd.style.fontSize = '11px';
+        subTr.appendChild(tokenTd);
+        var costTd = createEl('td', { className: 'num', textContent: '$' + sr.cost.toFixed(2) });
+        costTd.style.color = 'var(--text-muted)';
+        costTd.style.fontSize = '11px';
+        subTr.appendChild(costTd);
+        tbody.appendChild(subTr);
+      }
+    }
+  }
+
+  var footTr = createEl('tr');
+  footTr.appendChild(createEl('td', { textContent: I18N.token.total }));
+  footTr.appendChild(createEl('td', { className: 'num', textContent: formatTokens(totalTokens) }));
+  footTr.appendChild(createEl('td', { className: 'num', textContent: '$' + totalCost.toFixed(2) }));
+  tfoot.appendChild(footTr);
+}
+
+// ─── Render: Donut Chart (4 segments) ───────────────────────
+
+function renderDonutChart() {
+  var b = REPORT_DATA.tokenBreakdown;
+  var rawData = [b.input.cost, b.output.cost, b.cacheCreate1h.cost + b.cacheCreate5m.cost, b.cacheRead.cost];
+  var total = rawData.reduce(function(a, b) { return a + b; }, 0);
+  // Ensure minimum 2% visibility for tiny slices
+  var minSlice = total * 0.02;
+  var displayData = rawData.map(function(v) { return v > 0 ? Math.max(v, minSlice) : 0; });
+  new Chart(document.getElementById('donutChart'), {
+    type: 'doughnut',
+    data: {
+      labels: [I18N.token.input, I18N.token.output, I18N.token.cacheWrite, I18N.token.cacheRead],
+      datasets: [{
+        data: displayData,
+        backgroundColor: ['#58a6ff', '#f778ba', '#d29922', '#3fb950'],
+        borderColor: '#161b22',
+        borderWidth: 3,
+      }]
+    },
+    options: {
+      responsive: true,
+      cutout: '65%',
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            color: '#8b949e',
+            padding: 16,
+            font: { size: 11 },
+            usePointStyle: true,
+            pointStyleWidth: 10,
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              var realVal = rawData[ctx.dataIndex];
+              var realTotal = total;
+              var pct = realTotal > 0 ? ((realVal / realTotal) * 100).toFixed(1) : '0.0';
+              return ' ' + ctx.label + ': $' + realVal.toFixed(1) + ' (' + pct + '%)';
+            }
+          }
+        }
+      }
+    },
+    plugins: [{
+      id: 'doughnutLabels',
+      afterDraw: function(chart) {
+        var ctx = chart.ctx;
+        var meta = chart.getDatasetMeta(0);
+        if (!meta.data.length) return;
+        ctx.save();
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        for (var i = 0; i < meta.data.length; i++) {
+          var pct = total > 0 ? ((rawData[i] / total) * 100) : 0;
+          if (pct < 1) continue; // skip near-zero slices
+          var arc = meta.data[i];
+          var angle = (arc.startAngle + arc.endAngle) / 2;
+          var midRadius = (arc.innerRadius + arc.outerRadius) / 2;
+          var x = arc.x + Math.cos(angle) * midRadius;
+          var y = arc.y + Math.sin(angle) * midRadius;
+          ctx.fillStyle = '#fff';
+          ctx.fillText(pct.toFixed(0) + '%', x, y);
+        }
+        ctx.restore();
+      }
+    }]
+  });
+}
+
+// ─── Render: Daily Cost Bar Chart ───────────────────────────
+
+function renderBarChart() {
+  var labels = REPORT_DATA.dailyCosts.map(function(d) { return d.date; });
+
+  // Find plugin install date label
+  var piLabel = null;
+  if (REPORT_DATA.pluginInstalledAt) {
+    var piDate = new Date(REPORT_DATA.pluginInstalledAt);
+    piLabel = (piDate.getMonth() + 1) + '/' + piDate.getDate();
+  }
+
+  // Compute before/after daily cost averages
+  var piIdx = piLabel ? labels.indexOf(piLabel) : -1;
+  var barBeforeAvg = null, barAfterAvg = null;
+  if (piIdx > 0) {
+    var bSum = 0, bCnt = 0, aSum = 0, aCnt = 0;
+    for (var di = 0; di < REPORT_DATA.dailyCosts.length; di++) {
+      var dc = REPORT_DATA.dailyCosts[di];
+      var dayTotal = dc.input + dc.cacheCreate + dc.cacheRead + dc.output;
+      if (dayTotal <= 0) continue;
+      if (di <= piIdx) { bSum += dayTotal; bCnt++; }
+      if (di >= piIdx) { aSum += dayTotal; aCnt++; }
+    }
+    if (bCnt > 0) barBeforeAvg = Math.round(bSum / bCnt * 100) / 100;
+    if (aCnt > 0) barAfterAvg = Math.round(aSum / aCnt * 100) / 100;
+  }
+  // Average lines drawn via plugin (not as datasets) to avoid overlap issues
+
+  var barChart = new Chart(document.getElementById('barChart'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        { label: I18N.token.input, data: REPORT_DATA.dailyCosts.map(function(d) { return d.input; }), backgroundColor: '#58a6ff', borderRadius: 3 },
+        { label: I18N.token.cacheWrite, data: REPORT_DATA.dailyCosts.map(function(d) { return d.cacheCreate; }), backgroundColor: '#d29922', borderRadius: 3 },
+        { label: I18N.token.cacheRead, data: REPORT_DATA.dailyCosts.map(function(d) { return d.cacheRead; }), backgroundColor: '#3fb950', borderRadius: 3 },
+        { label: I18N.token.output, data: REPORT_DATA.dailyCosts.map(function(d) { return d.output; }), backgroundColor: '#f778ba', borderRadius: 3 },
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        x: {
+          stacked: true,
+          grid: { color: '#21262d' },
+          ticks: {
+            color: function(ctx) { return labels[ctx.index] === piLabel && ctx.index > 0 ? '#ffd700' : '#8b949e'; },
+            font: function(ctx) { return labels[ctx.index] === piLabel && ctx.index > 0 ? { size: 12, weight: 'bold' } : { size: 12 }; }
+          },
+        },
+        y: {
+          stacked: true,
+          grid: { color: '#21262d' },
+          ticks: { color: '#8b949e', font: { size: 12 }, callback: function(v) { return '$' + v; } }
+        }
+      },
+      plugins: {
+        legend: {
+          labels: {
+            color: '#8b949e', padding: 16, font: { size: 12 }, usePointStyle: false, boxWidth: 12, boxHeight: 12,
+            generateLabels: function(chart) {
+              var items = Chart.defaults.plugins.legend.labels.generateLabels(chart);
+              items.push({ text: I18N.chart.legendAverage, fillStyle: 'transparent', strokeStyle: 'transparent', lineWidth: 0, boxWidth: 0, boxHeight: 0, hidden: !chart._showAvgLines, datasetIndex: -1 });
+              return items;
+            }
+          },
+          onClick: function(e, item, legend) {
+            var ci = legend.chart;
+            if (item.datasetIndex === -1) {
+              ci._showAvgLines = !ci._showAvgLines;
+              ci.update();
+            } else {
+              var meta = ci.getDatasetMeta(item.datasetIndex);
+              meta.hidden = !meta.hidden;
+              ci.update();
+            }
+          }
+        },
+        tooltip: {
+          callbacks: { label: function(ctx) { return ' ' + ctx.dataset.label + ': $' + ctx.parsed.y.toFixed(1); } }
+        }
+      },
+      layout: { padding: { top: 20 } }
+    },
+    plugins: [{
+      id: 'barAnnotations',
+      beforeInit: function(chart) { chart._showAvgLines = true; },
+      afterDraw: function(chart) {
+        var xAxis = chart.scales.x;
+        var yAxis = chart.scales.y;
+        var ctx2 = chart.ctx;
+
+        // Plugin installed vertical line
+        if (piLabel) {
+          var idx = chart.data.labels.indexOf(piLabel);
+          if (idx > 0) {
+            var x = xAxis.getPixelForValue(idx);
+            if (x !== undefined && !isNaN(x)) {
+              ctx2.save();
+              ctx2.beginPath();
+              ctx2.setLineDash([6, 4]);
+              ctx2.strokeStyle = '#d29922';
+              ctx2.lineWidth = 1.5;
+              ctx2.moveTo(x, yAxis.top);
+              ctx2.lineTo(x, yAxis.bottom);
+              ctx2.stroke();
+              ctx2.setLineDash([]);
+              ctx2.font = '11px sans-serif';
+              ctx2.fillStyle = '#d29922';
+              ctx2.textAlign = 'center';
+              ctx2.fillText(I18N.chart.pluginInstalled, x, yAxis.top - 6);
+              ctx2.restore();
+            }
+          }
+        }
+
+        // Average horizontal lines (canvas-drawn, no dataset overlap issues)
+        if (!chart._showAvgLines) return;
+        if (barBeforeAvg !== null && piIdx > 0) {
+          var x0 = xAxis.getPixelForValue(0);
+          var x1 = xAxis.getPixelForValue(piIdx);
+          var y = yAxis.getPixelForValue(barBeforeAvg);
+          ctx2.save();
+          ctx2.beginPath();
+          ctx2.setLineDash([6, 3]);
+          ctx2.strokeStyle = '#8b949e';
+          ctx2.lineWidth = 2;
+          ctx2.moveTo(x0, y);
+          ctx2.lineTo(x1, y);
+          ctx2.stroke();
+          ctx2.restore();
+        }
+        if (barAfterAvg !== null && piIdx >= 0) {
+          var x0 = xAxis.getPixelForValue(piIdx);
+          var x1 = xAxis.getPixelForValue(chart.data.labels.length - 1);
+          var y = yAxis.getPixelForValue(barAfterAvg);
+          ctx2.save();
+          ctx2.beginPath();
+          ctx2.setLineDash([6, 3]);
+          ctx2.strokeStyle = '#3fb950';
+          ctx2.lineWidth = 2;
+          ctx2.moveTo(x0, y);
+          ctx2.lineTo(x1, y);
+          ctx2.stroke();
+          ctx2.restore();
+        }
+      }
+    }]
+  });
+}
+
+// ─── Render: Hourly Cost Pattern Chart ──────────────────────
+
+var hourlyChart = null;
+var hourlyMode = 'avg'; // 'avg' or 'max'
+
+function renderHourlyChart() {
+  if (hourlyChart) { hourlyChart.destroy(); hourlyChart = null; }
+
+  var dataKey = hourlyMode === 'avg' ? 'avg' : 'max';
+  var label = hourlyMode === 'avg' ? I18N.chart.avgCost : I18N.chart.maxCost;
+  var sorted = REPORT_DATA.hourlyStats.filter(function(d) { return d[dataKey] > 0; }).sort(function(a, b) { return b[dataKey] - a[dataKey]; });
+  var topN = REPORT_DATA.currentMode ? 1 : 3;
+  var top3Hours = new Set(sorted.slice(0, topN).map(function(d) { return d.hour; }));
+
+  hourlyChart = new Chart(document.getElementById('hourlyChart'), {
+    type: 'bar',
+    data: {
+      labels: REPORT_DATA.hourlyStats.map(function(d) { return d.hour + I18N.chart.hourSuffix; }),
+      datasets: [{
+        label: label,
+        data: REPORT_DATA.hourlyStats.map(function(d) { return d[dataKey]; }),
+        backgroundColor: '#58a6ff',
+        borderRadius: 3,
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        x: {
+          grid: { color: '#21262d' },
+          ticks: { color: '#8b949e', font: { size: 11 }, maxRotation: 0 },
+        },
+        y: {
+          grid: { color: '#21262d' },
+          ticks: { color: '#8b949e', font: { size: 12 }, callback: function(v) { return '$' + v; } }
+        }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: { label: function(ctx) { return ' ' + label + ': $' + ctx.parsed.y.toFixed(1); } }
+        }
+      },
+      animation: {
+        onComplete: function() {
+          var ctx2 = hourlyChart.ctx;
+          var meta = hourlyChart.getDatasetMeta(0);
+          ctx2.save();
+          ctx2.font = '14px sans-serif';
+          ctx2.textAlign = 'center';
+          for (var i = 0; i < meta.data.length; i++) {
+            if (top3Hours.has(REPORT_DATA.hourlyStats[i].hour)) {
+              ctx2.fillText('\uD83D\uDD25', meta.data[i].x, meta.data[i].y - 8);
+            }
+          }
+          ctx2.restore();
+        }
+      }
+    }
+  });
+
+  // Update toggle buttons
+  var btnAvg = document.getElementById('btnHourAvg');
+  var btnMax = document.getElementById('btnHourMax');
+  btnAvg.style.background = hourlyMode === 'avg' ? '#58a6ff' : 'var(--bg-tertiary)';
+  btnAvg.style.color = hourlyMode === 'avg' ? '#0d1117' : 'var(--text-secondary)';
+  btnMax.style.background = hourlyMode === 'max' ? '#58a6ff' : 'var(--bg-tertiary)';
+  btnMax.style.color = hourlyMode === 'max' ? '#0d1117' : 'var(--text-secondary)';
+}
+
+document.getElementById('btnHourAvg').addEventListener('click', function() { hourlyMode = 'avg'; renderHourlyChart(); });
+document.getElementById('btnHourMax').addEventListener('click', function() { hourlyMode = 'max'; renderHourlyChart(); });
+
+// ─── Render: Day-of-Week Chart ─────────────────────────────
+
+var dowChart = null;
+var dowMode = 'avg';
+
+function renderDowChart() {
+  if (dowChart) { dowChart.destroy(); dowChart = null; }
+  var dataKey = dowMode === 'avg' ? 'avg' : 'max';
+  var label = dowMode === 'avg' ? I18N.chart.avgCost : I18N.chart.maxCost;
+  var sorted = REPORT_DATA.dowStats.filter(function(d) { return d[dataKey] > 0; }).sort(function(a, b) { return b[dataKey] - a[dataKey]; });
+  var top1Dow = sorted.length > 0 ? sorted[0].dow : -1;
+
+  dowChart = new Chart(document.getElementById('dowChart'), {
+    type: 'bar',
+    data: {
+      labels: REPORT_DATA.dowStats.map(function(d) { return I18N.chart.days[d.dow]; }),
+      datasets: [{
+        label: label,
+        data: REPORT_DATA.dowStats.map(function(d) { return d[dataKey]; }),
+        backgroundColor: REPORT_DATA.dowStats.map(function(d) { return d.dow === 0 || d.dow === 6 ? '#f778ba' : '#58a6ff'; }),
+        borderRadius: 3,
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        x: { grid: { color: '#21262d' }, ticks: { color: '#8b949e', font: { size: 12 } } },
+        y: { grid: { color: '#21262d' }, ticks: { color: '#8b949e', font: { size: 12 }, callback: function(v) { return '$' + v; } } }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: function(ctx) { return ' ' + label + ': $' + ctx.parsed.y.toFixed(1); } } }
+      },
+      animation: {
+        onComplete: function() {
+          var ctx2 = dowChart.ctx;
+          var meta = dowChart.getDatasetMeta(0);
+          ctx2.save();
+          ctx2.font = '14px sans-serif';
+          ctx2.textAlign = 'center';
+          for (var i = 0; i < meta.data.length; i++) {
+            if (REPORT_DATA.dowStats[i].dow === top1Dow) {
+              ctx2.fillText('\uD83D\uDD25', meta.data[i].x, meta.data[i].y - 8);
+            }
+          }
+          ctx2.restore();
+        }
+      }
+    }
+  });
+
+  var btnA = document.getElementById('btnDowAvg');
+  var btnM = document.getElementById('btnDowMax');
+  btnA.style.background = dowMode === 'avg' ? '#58a6ff' : 'var(--bg-tertiary)';
+  btnA.style.color = dowMode === 'avg' ? '#0d1117' : 'var(--text-secondary)';
+  btnM.style.background = dowMode === 'max' ? '#58a6ff' : 'var(--bg-tertiary)';
+  btnM.style.color = dowMode === 'max' ? '#0d1117' : 'var(--text-secondary)';
+}
+
+document.getElementById('btnDowAvg').addEventListener('click', function() { dowMode = 'avg'; renderDowChart(); });
+document.getElementById('btnDowMax').addEventListener('click', function() { dowMode = 'max'; renderDowChart(); });
+
+// ─── Render: Efficiency Trend Chart ───────────────────────────
+
+var efficiencyChart = null;
+
+function aggregateEfficiencyByDay() {
+  // Use dailyTokens from build-report.js (same allRows source as dailyCosts)
+  var dt = REPORT_DATA.dailyTokens || [];
+  var dayMap = {};
+  var dates = [];
+  for (var i = 0; i < dt.length; i++) {
+    dayMap[dt[i].date] = { total: dt[i].total, cc: dt[i].cc, out: dt[i].out };
+    dates.push(dt[i].date);
+  }
+  return { dayMap: dayMap, dates: dates };
+}
+
+function renderEfficiencyChart() {
+  if (efficiencyChart) { efficiencyChart.destroy(); efficiencyChart = null; }
+
+  var metric = document.getElementById('efficiencyMetricSelect').value;
+  var agg = aggregateEfficiencyByDay();
+  var labels = [];
+  var allData = [];
+
+  // Find plugin install date key
+  var instKey = null;
+  if (REPORT_DATA.pluginInstalledAt) {
+    var instDate = new Date(REPORT_DATA.pluginInstalledAt);
+    instKey = (instDate.getMonth() + 1) + '/' + instDate.getDate();
+  }
+
+  var pluginInstalledIdx = -1;
+  for (var i = 0; i < agg.dates.length; i++) {
+    var d = agg.dayMap[agg.dates[i]];
+    // Skip days with daily output < 1000 tokens — too little output to compute meaningful efficiency ratio
+    if (d.out < 1000) continue;
+    labels.push(agg.dates[i]);
+    var val;
+    if (metric === 'totalPerOutput') {
+      val = Math.round((d.total / d.out) * 100) / 100;
+    } else {
+      val = d.cc > 0 ? Math.round((d.cc / d.out) * 100) / 100 : 0;
+    }
+    allData.push(val);
+    if (instKey && agg.dates[i] === instKey) pluginInstalledIdx = labels.length - 1;
+  }
+
+  // splitIdx: first index AFTER install date (install day itself = before)
+  var splitIdx = (pluginInstalledIdx > 0) ? pluginInstalledIdx + 1 : labels.length;
+
+  var chartLabel = metric === 'totalPerOutput' ? 'Total / Output' : 'Cache / Output';
+  var piLabelStr = instKey;
+
+  // Compute before/after averages for horizontal lines
+  var effBeforeAvg = null, effAfterAvg = null;
+  if (splitIdx > 0 && splitIdx < labels.length) {
+    var ebSum = 0, ebCnt = 0, eaSum = 0, eaCnt = 0;
+    for (var m = 0; m < allData.length; m++) {
+      if (m < splitIdx) { ebSum += allData[m]; ebCnt++; }
+      if (m >= splitIdx - 1) { eaSum += allData[m]; eaCnt++; }
+    }
+    if (ebCnt > 0) effBeforeAvg = Math.round(ebSum / ebCnt * 100) / 100;
+    if (eaCnt > 0) effAfterAvg = Math.round(eaSum / eaCnt * 100) / 100;
+  }
+  // Average lines drawn via plugin (canvas-drawn, not datasets)
+
+  // Use segment styling for single dataset with color change at splitIdx
+  var capSplit = splitIdx; // capture for closures
+
+  efficiencyChart = new Chart(document.getElementById('efficiencyChart'), {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: chartLabel,
+          data: allData,
+          segment: {
+            borderColor: function(ctx) { return ctx.p0DataIndex < capSplit ? '#8b949e' : '#3fb950'; },
+            backgroundColor: function(ctx) { return ctx.p0DataIndex < capSplit ? 'rgba(139, 148, 158, 0.1)' : 'rgba(63, 185, 80, 0.1)'; },
+          },
+          borderColor: '#8b949e',
+          backgroundColor: 'rgba(139, 148, 158, 0.1)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 4,
+          pointBackgroundColor: function(ctx) { return ctx.dataIndex < capSplit ? '#8b949e' : '#3fb950'; },
+          pointBorderColor: '#161b22',
+          pointBorderWidth: 2,
+        },
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        x: {
+          grid: { color: '#21262d' },
+          ticks: { color: '#8b949e', font: { size: 12 } }
+        },
+        y: {
+          grid: { color: '#21262d' },
+          ticks: { color: '#8b949e', font: { size: 12 }, callback: function(v) { return v.toFixed(1) + 'x'; } },
+          beginAtZero: true
+        }
+      },
+      plugins: {
+        legend: {
+          labels: {
+            color: '#8b949e', padding: 16, font: { size: 12 }, usePointStyle: true, pointStyleWidth: 10,
+            generateLabels: function(chart) {
+              var items = Chart.defaults.plugins.legend.labels.generateLabels(chart);
+              items.push({ text: I18N.chart.legendAverage, pointStyle: false, fillStyle: 'transparent', strokeStyle: 'transparent', lineWidth: 0, hidden: !chart._showAvgLines, datasetIndex: -1 });
+              return items;
+            }
+          },
+          onClick: function(e, item, legend) {
+            var ci = legend.chart;
+            if (item.datasetIndex === -1) {
+              ci._showAvgLines = !ci._showAvgLines;
+              ci.update();
+            } else {
+              var meta = ci.getDatasetMeta(item.datasetIndex);
+              meta.hidden = !meta.hidden;
+              ci.update();
+            }
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) { return ' ' + ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(2) + 'x'; }
+          }
+        }
+      },
+      layout: { padding: { top: 20 } }
+    },
+    plugins: [{
+      id: 'efficiencyAnnotation',
+      beforeInit: function(chart) { chart._showAvgLines = true; },
+      afterDraw: function(chart) {
+        var xAxis = chart.scales.x;
+        var yAxis = chart.scales.y;
+        var ctx2 = chart.ctx;
+
+        // Plugin installed vertical line
+        if (piLabelStr) {
+          var idx = chart.data.labels.indexOf(piLabelStr);
+          if (idx > 0) {
+            var x = xAxis.getPixelForValue(idx);
+            if (x !== undefined && !isNaN(x)) {
+              ctx2.save();
+              ctx2.beginPath();
+              ctx2.setLineDash([6, 4]);
+              ctx2.strokeStyle = '#d29922';
+              ctx2.lineWidth = 1.5;
+              ctx2.moveTo(x, yAxis.top);
+              ctx2.lineTo(x, yAxis.bottom);
+              ctx2.stroke();
+              ctx2.setLineDash([]);
+              ctx2.font = '11px sans-serif';
+              ctx2.fillStyle = '#d29922';
+              ctx2.textAlign = 'center';
+              ctx2.fillText(I18N.chart.pluginInstalled, x, yAxis.top - 6);
+              ctx2.restore();
+            }
+          }
+        }
+
+        // Average horizontal lines
+        if (!chart._showAvgLines) return;
+        var piIdx = piLabelStr ? chart.data.labels.indexOf(piLabelStr) : -1;
+        if (effBeforeAvg !== null && piIdx > 0) {
+          var x0 = xAxis.getPixelForValue(0);
+          var x1 = xAxis.getPixelForValue(piIdx);
+          var y = yAxis.getPixelForValue(effBeforeAvg);
+          ctx2.save();
+          ctx2.beginPath();
+          ctx2.setLineDash([6, 3]);
+          ctx2.strokeStyle = '#8b949e';
+          ctx2.lineWidth = 2;
+          ctx2.moveTo(x0, y);
+          ctx2.lineTo(x1, y);
+          ctx2.stroke();
+          ctx2.restore();
+        }
+        if (effAfterAvg !== null && piIdx >= 0) {
+          var x0 = xAxis.getPixelForValue(piIdx);
+          var x1 = xAxis.getPixelForValue(chart.data.labels.length - 1);
+          var y = yAxis.getPixelForValue(effAfterAvg);
+          ctx2.save();
+          ctx2.beginPath();
+          ctx2.setLineDash([6, 3]);
+          ctx2.strokeStyle = '#3fb950';
+          ctx2.lineWidth = 2;
+          ctx2.moveTo(x0, y);
+          ctx2.lineTo(x1, y);
+          ctx2.stroke();
+          ctx2.restore();
+        }
+      }
+    }]
+  });
+}
+
+document.getElementById('efficiencyMetricSelect').addEventListener('change', function() { renderEfficiencyChart(); });
+
+// ─── Render: Calendar Heatmap ───────────────────────────────
+
+var selectedWindowKey = null;
+var calendarClickMode = 'window'; // 'window' = 5h window, 'block' = 1h block
+
+function getCellColor(cost, isRateLimit, isActive, hasSkull) {
+  if (!isActive) return '#161b22';
+  if (hasSkull || isRateLimit) return '#ff0000';
+  if (cost >= 30) return '#ff0000';
+  if (cost >= 15) return '#fb923c';
+  if (cost > 0) return '#006d32';
+  return '#161b22';
+}
+
+function parseDateKey(dateStr) {
+  var parts = dateStr.split('/');
+  return { month: parseInt(parts[0], 10), day: parseInt(parts[1], 10) };
+}
+
+function dateKeyToDate(dateStr) {
+  var p = parseDateKey(dateStr);
+  return new Date(2026, p.month - 1, p.day);
+}
+
+function formatDateLabel(d) {
+  var dayNames = I18N.chart.days;
+  var m = d.getMonth() + 1;
+  var day = d.getDate();
+  var dow = dayNames[d.getDay()];
+  return m + '/' + day + ' (' + dow + ')';
+}
+
+function dateToKey(d) {
+  return (d.getMonth() + 1) + '/' + d.getDate();
+}
+
+function getWindowKey(slot) {
+  if (!slot.windowDate || !slot.windowStart) return null;
+  return slot.windowDate + '|' + slot.windowStart;
+}
+
+function findWindowByKey(key) {
+  if (!key) return null;
+  var parts = key.split('|');
+  var wDate = parts[0];
+  var wStart = parts[1];
+  for (var i = 0; i < REPORT_DATA.windows.length; i++) {
+    if (REPORT_DATA.windows[i].date === wDate && REPORT_DATA.windows[i].start === wStart) return REPORT_DATA.windows[i];
+  }
+  return null;
+}
+
+function fmtTokens(n) {
+  if (n >= 1e6) return (n/1e6).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + 'M';
+  if (n >= 1e3) return (n/1e3).toFixed(1) + 'K';
+  return String(n);
+}
+
+function buildDetailTable(details) {
+  var tbl = createEl('table', { className: 'detail-table', style: { width: '100%', borderCollapse: 'collapse', fontSize: '11px', marginTop: '6px' } });
+  var thead = createEl('thead');
+  var hRow = createEl('tr');
+  I18N.session.tableHeaders.forEach(function(h) {
+    var th = createEl('th', { textContent: h, style: { padding: '4px 6px', textAlign: h === I18N.session.tableHeaders[0] || h === I18N.session.tableHeaders[1] ? 'left' : 'right', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)', fontWeight: '500', fontSize: '10px' } });
+    hRow.appendChild(th);
+  });
+  thead.appendChild(hRow);
+  tbl.appendChild(thead);
+  var tbody = createEl('tbody');
+  for (var j = 0; j < details.length; j++) {
+    var d = details[j];
+    var tr = createEl('tr', { style: { borderBottom: '1px solid var(--bg-tertiary)' } });
+    var idLabel = d.id.slice(0, 8) + (d.startTime ? ' (' + d.startTime + '~)' : '');
+    var cells = [
+      { text: idLabel, align: 'left' },
+      { text: d.type, align: 'left' },
+      { text: String(d.messages), align: 'right' },
+      { text: fmtTokens(d.input), align: 'right' },
+      { text: fmtTokens(d.output), align: 'right' },
+      { text: fmtTokens((d.cache1h||0)+(d.cache5m||0)), align: 'right' },
+      { text: fmtTokens(d.cacheRead||0), align: 'right' },
+      { text: '$' + d.cost.toFixed(2), align: 'right' }
+    ];
+    for (var c = 0; c < cells.length; c++) {
+      var td = createEl('td', { textContent: cells[c].text, style: { padding: '3px 6px', textAlign: cells[c].align, color: 'var(--text-secondary)', fontFamily: 'monospace' } });
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  }
+  tbl.appendChild(tbody);
+  return tbl;
+}
+
+function toggleDetails(el) {
+  var details = el.nextElementSibling;
+  if (details.style.display === 'none') {
+    details.style.display = 'block';
+    el.textContent = I18N.session.detailCollapse;
+  } else {
+    details.style.display = 'none';
+    el.textContent = I18N.session.detailExpand;
+  }
+}
+
+function getAlertMarkerClass(alertType) {
+  if (alertType.includes('cost-danger')) return 'marker-cost-danger';
+  if (alertType.includes('cost-warn')) return 'marker-cost-warn';
+  if (alertType.includes('ctx-danger')) return 'marker-ctx-danger';
+  if (alertType.includes('ctx-warn')) return 'marker-ctx-warn';
+  if (alertType.includes('5h-danger')) return 'marker-5h-danger';
+  if (alertType.includes('5h-warn')) return 'marker-5h-warn';
+  if (alertType.includes('resume')) return 'marker-resume';
+  if (alertType.includes('compact')) return 'marker-compact';
+  if (alertType.includes('continue')) return 'marker-continue';
+  return '';
+}
+
+function renderAlertItems(alerts, container, sessionType) {
+  container.textContent = '';
+  if (alerts.length === 0) {
+    container.appendChild(createEl('div', { className: 'alert-empty', textContent: I18N.calendar.noData }));
+    return;
+  }
+  for (var i = 0; i < alerts.length; i++) {
+    var a = alerts[i];
+    // Skip alerts with /continue skill (^ or ^^) — /continue saves tokens vs compact, not a cost event
+    var aTypes = (a.alertType || '').split('+');
+    var hasContinueMarker = aTypes.indexOf('continue-1') >= 0 || aTypes.indexOf('continue-n') >= 0;
+    if (hasContinueMarker) continue;
+    var item = createEl('div', { className: 'alert-item' });
+
+    var header = createEl('div', { className: 'alert-header' });
+    var markerClass = getAlertMarkerClass(a.alertType);
+    var markerDisplay = a.markers || a.alertType.replace(/-/g, ' ').toUpperCase();
+    header.appendChild(createEl('span', { className: 'alert-markers ' + markerClass, textContent: '[' + markerDisplay + ']' }));
+    header.appendChild(createEl('span', { className: 'alert-time', textContent: a.time }));
+    if (a.sessionId) {
+      header.appendChild(createEl('span', { style: { color: 'var(--accent-blue)', fontFamily: 'monospace', fontSize: '11px' }, textContent: a.sessionId.slice(0, 8) }));
+    }
+    item.appendChild(header);
+
+    if (a.text) {
+      item.appendChild(createEl('div', { className: 'alert-text', textContent: '"' + a.text + '"' }));
+    }
+
+    // Token/cost summary line
+    if (a.tokens) {
+      var t = a.tokens;
+      var parts = [];
+      parts.push('$' + (t.cost || 0).toFixed(2));
+      if (t.input) parts.push('Input ' + fmtTokens(t.input));
+      if (t.out) parts.push('Output ' + fmtTokens(t.out));
+      if ((t.cc1h || 0) + (t.cc5m || 0) > 0) parts.push('Cache ' + fmtTokens((t.cc1h || 0) + (t.cc5m || 0)));
+      if (t.cr) parts.push('Read ' + fmtTokens(t.cr));
+      item.appendChild(createEl('div', { className: 'session-stats', textContent: parts.join(' · ') }));
+    }
+
+    // Diagnostic message based on alert type
+    var diagMsg = '';
+    var continueSkillTip = ' ' + I18N.alert.continueSkillTip + '\n';
+    var types = (a.alertType || '').split('+');
+    for (var ti = 0; ti < types.length; ti++) {
+      var typ = types[ti];
+      if (typ === 'ctx-warn') {
+        diagMsg += I18N.alert.ctxWarn + continueSkillTip;
+      } else if (typ === 'ctx-danger') {
+        diagMsg += I18N.alert.ctxDanger + continueSkillTip;
+      } else if (typ === '5h-warn') {
+        diagMsg += I18N.alert.fiveHWarn + '\n';
+      } else if (typ === '5h-danger') {
+        diagMsg += I18N.alert.fiveHDanger + '\n';
+      } else if (typ === 'resume') {
+        diagMsg += I18N.alert.resume + '\n';
+      } else if (typ === 'compact') {
+        diagMsg += I18N.alert.compact + '\n';
+      } else if (typ === 'continue-1') {
+        diagMsg += I18N.alert.continue1 + '\n';
+      } else if (typ === 'continue-n') {
+        diagMsg += I18N.alert.continueN + '\n';
+      } else if ((typ === 'cost-warn' || typ === 'cost-danger') && a.tokens) {
+        var t = a.tokens;
+        var pricing = REPORT_DATA.tokenBreakdown || {};
+        // Find the dominant cost component
+        var costs = [
+          { name: 'cache write', val: (t.cc1h || 0) + (t.cc5m || 0), label: 'cache write ' + fmtTokens((t.cc1h||0)+(t.cc5m||0)) },
+          { name: 'cache read', val: t.cr || 0, label: 'cache read ' + fmtTokens(t.cr||0) },
+          { name: 'output', val: t.out || 0, label: 'output ' + fmtTokens(t.out||0) },
+          { name: 'input', val: t.input || 0, label: 'input ' + fmtTokens(t.input||0) }
+        ];
+        costs.sort(function(a, b) { return b.val - a.val; });
+        var top = costs[0];
+        var icon = typ === 'cost-danger' ? '\uD83D\uDD34' : '\u26A0\uFE0F';
+        if (top.name === 'cache write' && top.val > 0) {
+          // Common prefix for all cache write cases
+          var cwPrefix = i18nT(I18N.alert.cacheWritePrefix, { icon: icon, tokens: fmtTokens(top.val) });
+          // Determine reason based on session markers
+          var hasResume = false, hasCompact = false, hasContinue = false, hasStartup = false, hasClear = false;
+          var hasReload = false, hasModel = false, hasResumeHeuristic = false;
+          for (var si = 0; si < types.length; si++) {
+            var st = types[si];
+            if (st === 'resume') hasResume = true;
+            else if (st === 'compact') hasCompact = true;
+            else if (st === 'continue-1' || st === 'continue-n') hasContinue = true;
+            else if (st === 'startup') hasStartup = true;
+            else if (st === 'clear') hasClear = true;
+            else if (st === 'reload-plugins') hasReload = true;
+            else if (st === 'model-change') hasModel = true;
+            else if (st === 'resume-heuristic') hasResumeHeuristic = true;
+          }
+          if (hasResume) {
+            diagMsg += cwPrefix + I18N.alert.resumeReason + '\n';
+          } else if (hasCompact) {
+            diagMsg += cwPrefix + I18N.alert.compactReason + continueSkillTip;
+          } else if (hasClear || hasStartup) {
+            var startupTip = top.val >= 30000 ? I18N.alert.pluginOverload : '';
+            var reason = hasClear ? I18N.alert.clearReasonClear : I18N.alert.clearReasonStartup;
+            diagMsg += cwPrefix + i18nT(I18N.alert.clearReason, { reason: reason, cost: t.cost.toFixed(2) }) + startupTip + '\n';
+          } else if (hasContinue) {
+            diagMsg += cwPrefix + '/continue ($' + t.cost.toFixed(2) + ')\n';
+          } else if (hasReload) {
+            diagMsg += cwPrefix + i18nT(I18N.alert.reloadReason, { cost: t.cost.toFixed(2) }) + '\n';
+          } else if (hasModel) {
+            diagMsg += cwPrefix + i18nT(I18N.alert.modelReason, { cost: t.cost.toFixed(2) }) + '\n';
+          } else if (hasResumeHeuristic) {
+            diagMsg += cwPrefix + I18N.alert.resumeHeuristicReason + '\n';
+          } else {
+            diagMsg += cwPrefix + I18N.alert.cacheExpiredReason + continueSkillTip;
+          }
+        } else {
+          diagMsg += i18nT(I18N.alert.costTopLabel, { icon: icon, label: top.label, cost: t.cost.toFixed(2) }) + '\n';
+        }
+      }
+    }
+    if (diagMsg) {
+      var lines = diagMsg.trim().split('\n');
+      for (var li = 0; li < lines.length; li++) {
+        item.appendChild(createEl('div', { className: 'alert-tokens', textContent: lines[li] }));
+      }
+    }
+
+    container.appendChild(item);
+  }
+}
+
+function getSessionAlerts(win, sessionIds) {
+  var allAlerts = win.alertMessages || [];
+  var idSet = {};
+  for (var i = 0; i < sessionIds.length; i++) { idSet[sessionIds[i]] = true; }
+  var filtered = [];
+  for (var i = 0; i < allAlerts.length; i++) {
+    if (allAlerts[i].sessionId && idSet[allAlerts[i].sessionId]) {
+      // Exclude alerts with /continue skill — /continue saves tokens vs compact, not a cost event
+      var at = (allAlerts[i].alertType || '').split('+');
+      if (at.indexOf('continue-1') >= 0 || at.indexOf('continue-n') >= 0) continue;
+      filtered.push(allAlerts[i]);
+    }
+  }
+  return filtered;
+}
+
+function toggleAlerts(el) {
+  var details = el.nextElementSibling;
+  var count = el.dataset.alertCount || '0';
+  if (details.style.display === 'none') {
+    details.style.display = 'block';
+    el.textContent = I18N.session.alertCollapse.replace('{count}', count);
+  } else {
+    details.style.display = 'none';
+    el.textContent = I18N.session.alertExpand.replace('{count}', count);
+  }
+}
+
+function showWindowDetail(win) {
+  var panel = document.getElementById('windowDetailPanel');
+  var title = document.getElementById('detailTitle');
+  var container = document.getElementById('detailCardContainer');
+
+  title.textContent = I18N.session.windowDetailTitle.replace('{date}', win.date).replace('{start}', win.start).replace('{end}', win.end).replace('{cost}', win.cost.toFixed(2));
+
+  container.textContent = '';
+
+  // Render continue events (free context restoration)
+  var continueEvents = win.continueEvents || [];
+  for (var ci = 0; ci < continueEvents.length; ci++) {
+    var ce = continueEvents[ci];
+    var ceCard = createEl('div', { className: 'session-card', style: { borderLeft: '3px solid var(--accent-green)' } });
+    var ceHeader = createEl('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } });
+    ceHeader.appendChild(createEl('span', { style: { fontWeight: '600' }, textContent: '\uD83D\uDC9A /continue ' + ce.time }));
+    ceHeader.appendChild(createEl('span', { style: { fontWeight: '600', color: 'var(--accent-green)' }, textContent: '$0.00' }));
+    ceCard.appendChild(ceHeader);
+
+    var ceLines = [];
+    ceLines.push(I18N.session.continueRestore.replace('{n}', ce.sessionCount));
+    ceLines.push(I18N.session.continueContext.replace('{tokens}', fmtTokens(ce.restoredContextTokens)));
+    ceLines.push(I18N.session.continueCompactCost.replace('{min}', ce.compactCostMin.toFixed(2)).replace('{max}', ce.compactCostMax.toFixed(2)));
+    ceLines.push(I18N.session.continueSaved.replace('{min}', ce.compactCostMin.toFixed(2)).replace('{max}', ce.compactCostMax.toFixed(2)));
+
+    for (var cli = 0; cli < ceLines.length; cli++) {
+      ceCard.appendChild(createEl('div', { className: 'alert-tokens', textContent: ceLines[cli] }));
+    }
+    container.appendChild(ceCard);
+  }
+
+  var sessions = (win.windowSessions || []).slice().sort(function(a, b) { return (b.cost || 0) - (a.cost || 0); });
+  for (var i = 0; i < sessions.length; i++) {
+    var s = sessions[i];
+    var card = createEl('div', { className: 'session-card' });
+
+    if (s.type === 'programmatic') {
+      // Programmatic session grouping
+      var detailCount = (s.details && s.details.length) || 0;
+      var header = createEl('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } });
+      var progText = I18N.session.programmaticExec.replace('{count}', detailCount) + (s.startTime ? ' (' + s.startTime + '~)' : '');
+      header.appendChild(createEl('span', { style: { fontWeight: '600' }, textContent: progText }));
+      header.appendChild(createEl('span', { style: { fontWeight: '600', color: 'var(--accent-green)' }, textContent: '$' + s.cost.toFixed(2) }));
+      card.appendChild(header);
+
+      // Stats
+      var statsText = s.messages + ' msgs \u00B7 Input ' + fmtTokens(s.input) + ' \u00B7 Output ' + fmtTokens(s.output) + ' \u00B7 Cache ' + fmtTokens(s.cache1h + (s.cache5m || 0)) + ' \u00B7 Read ' + fmtTokens(s.cacheRead);
+      card.appendChild(createEl('div', { className: 'session-stats', textContent: statsText }));
+
+      // Detail toggle + table (individual claude -p sessions)
+      if (s.details && s.details.length > 0) {
+        var toggle = createEl('div', { className: 'detail-toggle', textContent: I18N.session.detailExpand });
+        toggle.setAttribute('onclick', 'toggleDetails(this)');
+        card.appendChild(toggle);
+        var detailsDiv = createEl('div', { className: 'session-details', style: { display: 'none', overflowX: 'auto' } });
+        detailsDiv.appendChild(buildDetailTable(s.details));
+        card.appendChild(detailsDiv);
+      }
+
+      // Alert toggle for programmatic sessions
+      var progIds = (s.details || []).map(function(d) { return d.id; });
+      var progAlerts = getSessionAlerts(win, progIds);
+      var progAlertOpen = progAlerts.length > 0;
+      var progAlertToggle = createEl('div', { className: 'detail-toggle', textContent: (progAlertOpen ? I18N.session.alertCollapse : I18N.session.alertExpand).replace('{count}', progAlerts.length) });
+      progAlertToggle.dataset.alertCount = String(progAlerts.length);
+      progAlertToggle.setAttribute('onclick', 'toggleAlerts(this)');
+      card.appendChild(progAlertToggle);
+      var progAlertDiv = createEl('div', { className: 'session-details', style: { display: progAlertOpen ? 'block' : 'none' } });
+      renderAlertItems(progAlerts, progAlertDiv, 'programmatic');
+      card.appendChild(progAlertDiv);
+    } else if (s.type === 'batch') {
+      // Batch session grouping (same firstMsg)
+      var detailCount = (s.details && s.details.length) || 0;
+      var header = createEl('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } });
+      var batchText = I18N.session.batchExec.replace('{count}', detailCount) + (s.startTime ? ' (' + s.startTime + '~)' : '');
+      header.appendChild(createEl('span', { style: { fontWeight: '600' }, textContent: batchText }));
+      header.appendChild(createEl('span', { style: { fontWeight: '600', color: 'var(--accent-green)' }, textContent: '$' + s.cost.toFixed(2) }));
+      card.appendChild(header);
+      if (s.firstMsg) card.appendChild(createEl('div', { className: 'session-msg', textContent: '"' + s.firstMsg + '"' }));
+      var statsText = s.messages + ' msgs \u00B7 Input ' + fmtTokens(s.input) + ' \u00B7 Output ' + fmtTokens(s.output) + ' \u00B7 Cache ' + fmtTokens(s.cache1h + (s.cache5m || 0)) + ' \u00B7 Read ' + fmtTokens(s.cacheRead);
+      card.appendChild(createEl('div', { className: 'session-stats', textContent: statsText }));
+      if (s.details && s.details.length > 0) {
+        var toggle = createEl('div', { className: 'detail-toggle', textContent: I18N.session.detailExpand });
+        toggle.setAttribute('onclick', 'toggleDetails(this)');
+        card.appendChild(toggle);
+        var detailsDiv = createEl('div', { className: 'session-details', style: { display: 'none', overflowX: 'auto' } });
+        detailsDiv.appendChild(buildDetailTable(s.details));
+        card.appendChild(detailsDiv);
+      }
+
+      // Alert toggle for batch sessions
+      var batchIds = (s.details || []).map(function(d) { return d.id; });
+      var batchAlerts = getSessionAlerts(win, batchIds);
+      var batchAlertOpen = batchAlerts.length > 0;
+      var batchAlertToggle = createEl('div', { className: 'detail-toggle', textContent: (batchAlertOpen ? I18N.session.alertCollapse : I18N.session.alertExpand).replace('{count}', batchAlerts.length) });
+      batchAlertToggle.dataset.alertCount = String(batchAlerts.length);
+      batchAlertToggle.setAttribute('onclick', 'toggleAlerts(this)');
+      card.appendChild(batchAlertToggle);
+      var batchAlertDiv = createEl('div', { className: 'session-details', style: { display: batchAlertOpen ? 'block' : 'none' } });
+      renderAlertItems(batchAlerts, batchAlertDiv, 'batch');
+      card.appendChild(batchAlertDiv);
+    } else {
+      // Main session (default rendering)
+      var header = createEl('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } });
+      var idText = s.id + (s.startTime ? ' (' + s.startTime + '~)' : '');
+      var idSpan = createEl('span', { className: 'session-id', style: { fontWeight: '600' }, textContent: idText });
+      header.appendChild(idSpan);
+      header.appendChild(createEl('span', { style: { fontWeight: '600', color: 'var(--accent-green)' }, textContent: '$' + s.cost.toFixed(2) }));
+      card.appendChild(header);
+
+      // Message preview
+      if (s.firstMsg) {
+        var msgDiv = createEl('div', { className: 'session-msg' });
+        msgDiv.appendChild(createEl('div', { textContent: '"' + s.firstMsg + '"' }));
+        if (s.lastMsg && s.lastMsg !== s.firstMsg) {
+          msgDiv.appendChild(createEl('div', { textContent: '~ "' + s.lastMsg + '"' }));
+        }
+        card.appendChild(msgDiv);
+      }
+
+      // Stats
+      var statsText = s.messages + ' msgs \u00B7 Input ' + fmtTokens(s.input) + ' \u00B7 Output ' + fmtTokens(s.output) + ' \u00B7 Cache ' + fmtTokens(s.cache1h + (s.cache5m || 0)) + ' \u00B7 Read ' + fmtTokens(s.cacheRead);
+      card.appendChild(createEl('div', { className: 'session-stats', textContent: statsText }));
+
+      // Detail toggle + table
+      if (s.details && s.details.length > 0) {
+        var toggle = createEl('div', { className: 'detail-toggle', textContent: I18N.session.detailExpand });
+        toggle.setAttribute('onclick', 'toggleDetails(this)');
+        card.appendChild(toggle);
+        var detailsDiv = createEl('div', { className: 'session-details', style: { display: 'none', overflowX: 'auto' } });
+        detailsDiv.appendChild(buildDetailTable(s.details));
+        card.appendChild(detailsDiv);
+      }
+
+      // Alert toggle for main session
+      var mainAlerts = getSessionAlerts(win, [s.id]);
+      var mainAlertOpen = mainAlerts.length > 0;
+      var mainAlertToggle = createEl('div', { className: 'detail-toggle', textContent: (mainAlertOpen ? I18N.session.alertCollapse : I18N.session.alertExpand).replace('{count}', mainAlerts.length) });
+      mainAlertToggle.dataset.alertCount = String(mainAlerts.length);
+      mainAlertToggle.setAttribute('onclick', 'toggleAlerts(this)');
+      card.appendChild(mainAlertToggle);
+      var mainAlertDiv = createEl('div', { className: 'session-details', style: { display: mainAlertOpen ? 'block' : 'none' } });
+      renderAlertItems(mainAlerts, mainAlertDiv, 'main');
+      card.appendChild(mainAlertDiv);
+    }
+
+    container.appendChild(card);
+  }
+
+  panel.classList.add('visible');
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function hideWindowDetail() {
+  document.getElementById('windowDetailPanel').classList.remove('visible');
+  selectedWindowKey = null;
+  updateWindowHighlights();
+}
+
+function updateWindowHighlights() {
+  var cells = document.querySelectorAll('.calendar-cell');
+  cells.forEach(function(cell) {
+    var cellKey = cell.dataset.windowKey || null;
+    if (selectedWindowKey && cellKey === selectedWindowKey) {
+      cell.classList.add('window-selected');
+    } else {
+      cell.classList.remove('window-selected');
+    }
+  });
+}
+
+document.getElementById('closeDetailBtn').addEventListener('click', hideWindowDetail);
+
+document.getElementById('calendarClickMode').addEventListener('click', function(e) {
+  var btn = e.target.closest('.click-mode-btn');
+  if (!btn) return;
+  var mode = btn.dataset.mode;
+  if (mode === calendarClickMode) return;
+  calendarClickMode = mode;
+  var btns = document.querySelectorAll('.click-mode-btn');
+  btns.forEach(function(b) {
+    if (b.dataset.mode === mode) {
+      b.style.background = 'var(--accent)';
+      b.style.color = '#fff';
+      b.classList.add('active');
+    } else {
+      b.style.background = 'var(--bg-tertiary)';
+      b.style.color = 'var(--text-secondary)';
+      b.classList.remove('active');
+    }
+  });
+  hideWindowDetail();
+});
+
+function updateBlockHighlight(dateKey, hour) {
+  var cells = document.querySelectorAll('.calendar-cell');
+  cells.forEach(function(cell) {
+    if (cell.dataset.dateKey === dateKey && parseInt(cell.dataset.hour) === hour) {
+      cell.classList.add('window-selected');
+    } else {
+      cell.classList.remove('window-selected');
+    }
+  });
+}
+
+function showBlockDetail(win, dateKey, hour) {
+  var hourStr = String(hour);
+  var hourCost = win.hourlyCosts && win.hourlyCosts[hourStr] != null ? win.hourlyCosts[hourStr] : 0;
+
+  // Filter and slice sessions to this 1-hour block
+  var filteredSessions = (win.windowSessions || []).filter(function(s) {
+    return s.activeHours && s.activeHours.indexOf(hour) !== -1;
+  }).map(function(s) {
+    // Use hourly stats for this hour instead of full-window totals
+    var h = s.hourly && s.hourly[hourStr];
+    if (!h) return s;
+    // Filter details to those active in this hour, with hourly values
+    var hourDetails = (s.details || []).filter(function(d) {
+      return d.activeHours && d.activeHours.indexOf(hour) !== -1;
+    }).map(function(d) {
+      var dh = d.hourly && d.hourly[hourStr];
+      if (!dh) return d;
+      return {
+        id: d.id, type: d.type, startTime: d.startTime,
+        messages: dh.messages, input: dh.input, output: dh.output,
+        cache1h: dh.cache1h, cache5m: dh.cache5m, cacheRead: dh.cacheRead,
+        cost: dh.cost
+      };
+    });
+    return {
+      id: s.id, type: s.type, firstMsg: s.firstMsg, lastMsg: s.lastMsg,
+      startTime: s.startTime, activeHours: s.activeHours, hourly: s.hourly,
+      details: hourDetails,
+      messages: h.messages, input: h.input, output: h.output,
+      cache1h: h.cache1h, cache5m: h.cache5m, cacheRead: h.cacheRead,
+      cost: h.cost
+    };
+  });
+
+  var filteredContinue = (win.continueEvents || []).filter(function(ce) {
+    return parseInt(ce.time.split(':')[0], 10) === hour;
+  });
+
+  var filteredAlerts = (win.alertMessages || []).filter(function(a) {
+    return a.time && parseInt(a.time.split(':')[0], 10) === hour;
+  });
+
+  showWindowDetail({
+    date: dateKey,
+    start: hour + ':00',
+    end: (hour + 1) + ':00',
+    cost: hourCost,
+    windowSessions: filteredSessions,
+    continueEvents: filteredContinue,
+    alertMessages: filteredAlerts
+  });
+}
+
+function renderCalendar() {
+  var grid = document.getElementById('calendarGrid');
+  grid.textContent = '';
+
+  var dateMap = {};
+
+  function ensureDate(key) {
+    if (!dateMap[key]) {
+      dateMap[key] = [];
+      for (var i = 0; i < 24; i++) {
+        dateMap[key].push({ cost: 0, isRateLimit: false, isActive: false, hasSkull: false, windowStart: null, windowEnd: null, windowDate: null, inWindow: false });
+      }
+    }
+  }
+
+  for (var wi = 0; wi < REPORT_DATA.windows.length; wi++) {
+    var w = REPORT_DATA.windows[wi];
+    var startHour = parseInt(w.start.split(':')[0], 10);
+    var endHour = parseInt(w.end.split(':')[0], 10);
+    var isRateLimit = w.usage === 100;
+    var rlHours = w.rlHours || [];
+    var hourlyCosts = w.hourlyCosts || {};
+    var activeHours = w.activeHours || null;
+
+    var wDate = dateKeyToDate(w.date);
+
+    // WARNING: setSlot is defined inside the loop and closes over loop variables.
+    // Do NOT call this asynchronously — it relies on synchronous execution within the current iteration.
+    function setSlot(dateKey, h, hourInWindow) {
+      ensureDate(dateKey);
+      var isActive = activeHours ? activeHours.indexOf(hourInWindow) !== -1 : true;
+      var hourCost = isActive && hourlyCosts[String(hourInWindow)] != null ? hourlyCosts[String(hourInWindow)] : 0;
+      dateMap[dateKey][h] = {
+        cost: isActive ? hourCost : 0,
+        isRateLimit: isActive ? isRateLimit : false,
+        isActive: isActive,
+        hasSkull: false,
+        windowStart: w.start,
+        windowEnd: w.end,
+        windowDate: w.date,
+        inWindow: true,
+        windowIsRateLimit: isRateLimit
+      };
+    }
+
+    if (endHour > startHour) {
+      for (var h = startHour; h < endHour; h++) {
+        setSlot(w.date, h, h);
+      }
+    } else {
+      for (var h = startHour; h < 24; h++) {
+        setSlot(w.date, h, h);
+      }
+      var nextDay = new Date(wDate.getTime() + 86400000);
+      var nextKey = dateToKey(nextDay);
+      for (var h = 0; h < endHour; h++) {
+        setSlot(nextKey, h, h);
+      }
+    }
+
+    if (rlHours.length > 0) {
+      rlHours.sort(function(a, b) { return a - b; });
+      var firstRl = [rlHours[0]];
+      for (var ri = 0; ri < firstRl.length; ri++) {
+        var rh = firstRl[ri];
+        if (rh >= startHour && (endHour > startHour || rh < 24)) {
+          if (dateMap[w.date] && dateMap[w.date][rh] && dateMap[w.date][rh].isActive) {
+            dateMap[w.date][rh].hasSkull = true;
+          }
+        } else if (endHour <= startHour && rh < endHour) {
+          var nd = new Date(wDate.getTime() + 86400000);
+          var nk = dateToKey(nd);
+          if (dateMap[nk] && dateMap[nk][rh] && dateMap[nk][rh].isActive) {
+            dateMap[nk][rh].hasSkull = true;
+          }
+        }
+      }
+    } else if (isRateLimit) {
+      var lastActiveDate = null, lastActiveH = -1;
+      if (endHour > startHour) {
+        for (var h = endHour - 1; h >= startHour; h--) {
+          if (dateMap[w.date] && dateMap[w.date][h] && dateMap[w.date][h].isActive) {
+            lastActiveDate = w.date; lastActiveH = h; break;
+          }
+        }
+      } else {
+        var nxd = new Date(wDate.getTime() + 86400000);
+        var nxk = dateToKey(nxd);
+        for (var h = endHour - 1; h >= 0; h--) {
+          if (dateMap[nxk] && dateMap[nxk][h] && dateMap[nxk][h].isActive) {
+            lastActiveDate = nxk; lastActiveH = h; break;
+          }
+        }
+        if (lastActiveH < 0) {
+          for (var h = 23; h >= startHour; h--) {
+            if (dateMap[w.date] && dateMap[w.date][h] && dateMap[w.date][h].isActive) {
+              lastActiveDate = w.date; lastActiveH = h; break;
+            }
+          }
+        }
+      }
+      if (lastActiveDate && lastActiveH >= 0) {
+        dateMap[lastActiveDate][lastActiveH].hasSkull = true;
+      }
+    }
+  }
+
+  var allDates = Object.keys(dateMap).map(dateKeyToDate);
+  allDates.sort(function(a, b) { return a - b; });
+  var minDate = allDates[0];
+  var maxDate = allDates[allDates.length - 1];
+
+  var dateList = [];
+  var cur = new Date(minDate);
+  while (cur <= maxDate) {
+    var key = dateToKey(cur);
+    ensureDate(key);
+    dateList.push({ key: key, date: new Date(cur) });
+    cur = new Date(cur.getTime() + 86400000);
+  }
+
+  // Header row
+  var cornerCell = createEl('div', { className: 'calendar-header-cell' });
+  grid.appendChild(cornerCell);
+  for (var h = 0; h < 24; h++) {
+    grid.appendChild(createEl('div', { className: 'calendar-header-cell', textContent: String(h) }));
+  }
+
+  // Determine plugin install date key + hour
+  var pluginInstallKey = null;
+  var pluginInstallHour = -1;
+  if (REPORT_DATA.pluginInstalledAt) {
+    var instD = new Date(REPORT_DATA.pluginInstalledAt);
+    pluginInstallKey = dateToKey(instD);
+    pluginInstallHour = instD.getHours();
+  }
+
+  // Date rows
+  for (var di = 0; di < dateList.length; di++) {
+    var entry = dateList[di];
+    var label = formatDateLabel(entry.date);
+    var isPluginInstall = pluginInstallKey && entry.key === pluginInstallKey;
+    var labelPrefix = isPluginInstall ? '\u2B50 ' : '';
+    var labelEl = createEl('div', { className: 'calendar-date-label' + (isPluginInstall ? ' plugin-install-row' : ''), textContent: labelPrefix + label });
+    grid.appendChild(labelEl);
+
+    var slots = dateMap[entry.key];
+    for (var h = 0; h < 24; h++) {
+      var slot = slots[h];
+      var color = getCellColor(slot.cost, slot.isRateLimit, slot.isActive, slot.hasSkull);
+      var showSkull = slot.hasSkull || (slot.inWindow && !slot.isActive && slot.windowIsRateLimit);
+      var isInstallCell = isPluginInstall && h === pluginInstallHour;
+      var cell = createEl('div', {
+        className: 'calendar-cell' + (isInstallCell ? ' plugin-install-cell' : ''),
+        style: { background: color }
+      });
+
+      // Store window key for click selection
+      var wk = getWindowKey(slot);
+      if (wk) cell.dataset.windowKey = wk;
+      cell.dataset.hour = h;
+      cell.dataset.dateKey = entry.key;
+
+      if (showSkull) {
+        cell.appendChild(createEl('span', { className: 'skull', textContent: '\uD83D\uDC80' }));
+      }
+
+      // Click handler for window selection
+      if (slot.inWindow) {
+        (function(cell, slot, entry, h) {
+          cell.addEventListener('click', function() {
+            if (calendarClickMode === 'block') {
+              var blockKey = entry.key + '|' + h;
+              if (selectedWindowKey === blockKey) {
+                hideWindowDetail();
+              } else {
+                selectedWindowKey = blockKey;
+                updateBlockHighlight(entry.key, h);
+                var win = findWindowByKey(getWindowKey(slot));
+                if (win) showBlockDetail(win, entry.key, h);
+              }
+            } else {
+              var wk = getWindowKey(slot);
+              if (!wk) return;
+              if (selectedWindowKey === wk) {
+                hideWindowDetail();
+              } else {
+                selectedWindowKey = wk;
+                updateWindowHighlights();
+                var win = findWindowByKey(wk);
+                if (win) showWindowDetail(win);
+              }
+            }
+          });
+        })(cell, slot, entry, h);
+      }
+
+      // Tooltip on hover
+      if (slot.isActive) {
+        (function(cell, slot, entry, h) {
+          cell.addEventListener('mouseenter', function() {
+            var tip = createEl('div', { className: 'calendar-tooltip' });
+            var lines = [];
+            lines.push(entry.key + ' ' + h + ':00~' + (h + 1) + ':00');
+            if (slot.windowStart) {
+              lines.push('Window: ' + slot.windowStart + '~' + slot.windowEnd);
+            }
+            lines.push('Cost: $' + slot.cost.toFixed(2));
+            if (slot.isRateLimit) {
+              lines.push('Status: Rate limited \uD83D\uDC80');
+            }
+            tip.textContent = lines.join('\n');
+            tip.style.whiteSpace = 'pre';
+            cell.appendChild(tip);
+          });
+          cell.addEventListener('mouseleave', function() {
+            var tip = cell.querySelector('.calendar-tooltip');
+            if (tip) cell.removeChild(tip);
+          });
+        })(cell, slot, entry, h);
+      }
+
+      grid.appendChild(cell);
+    }
+  }
+}
+
+// ─── Init ──────────────────────────────────────────────────────
+
+// Render summary
+document.getElementById('summaryTotalCost').textContent = '$' + REPORT_DATA.summary.totalCost.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+document.getElementById('summarySessionCount').textContent = REPORT_DATA.summary.sessionCount.toLocaleString();
+document.getElementById('summarySessionSub').textContent = REPORT_DATA.summary.subtaskCount ? i18nT(I18N.header.subtaskCount, { count: REPORT_DATA.summary.subtaskCount.toLocaleString() }) : '';
+document.getElementById('summaryDateRange').textContent = REPORT_DATA.summary.dateFrom + ' ~ ' + REPORT_DATA.summary.dateTo;
+document.getElementById('summaryDateSub').textContent = i18nT(I18N.header.daysDuration, { days: REPORT_DATA.summary.days });
+
+renderTokenBreakdown();
+renderDonutChart();
+renderCalendar();
+
+// Current mode: hide daily/efficiency charts, auto-open session detail
+if (REPORT_DATA.currentMode) {
+  // Hide charts that need 3+ days
+  var barSection = document.getElementById('barChart').closest('.chart-container');
+  var effSection = document.getElementById('efficiencyChart').closest('.chart-container');
+  if (barSection) barSection.style.display = 'none';
+  if (effSection) effSection.style.display = 'none';
+  renderHourlyChart();
+  renderDowChart();
+  // Auto-click the latest calendar cell to open detail
+  var allCells = document.querySelectorAll('.calendar-cell[data-window-key]');
+  if (allCells.length > 0) allCells[allCells.length - 1].click();
+} else if (REPORT_DATA.summary && REPORT_DATA.summary.days >= 3) {
+  renderBarChart();
+  renderHourlyChart();
+  renderDowChart();
+  renderEfficiencyChart();
+} else {
+  // Less than 3 days: hide daily/efficiency trend charts
+  var barSection = document.getElementById('barChart').closest('.chart-container');
+  var effSection = document.getElementById('efficiencyChart').closest('.chart-container');
+  if (barSection) barSection.style.display = 'none';
+  if (effSection) effSection.style.display = 'none';
+  renderHourlyChart();
+  renderDowChart();
+}
+
+// ─── Render: AI Analysis Sections ──────────────────────────
+if (REPORT_DATA.aiAnalysis) {
+  var aiSections = [
+    { id: 'aiText1', key: 'section1' },
+    { id: 'aiText2', key: 'section2' },
+    { id: 'aiText3', key: 'section3' },
+    { id: 'aiText4', key: 'section4' }
+  ];
+  for (var ai = 0; ai < aiSections.length; ai++) {
+    var el = document.getElementById(aiSections[ai].id);
+    var box = document.getElementById(aiSections[ai].id.replace('Text', 'Section'));
+    var text = REPORT_DATA.aiAnalysis[aiSections[ai].key];
+    if (el && box && text) {
+      el.textContent = text;
+      box.style.display = 'block';
+    }
+  }
+}
+</script>
+</body>
+</html>

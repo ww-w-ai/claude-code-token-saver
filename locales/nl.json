@@ -1,0 +1,118 @@
+{
+  "meta": {
+    "locale": "nl",
+    "direction": "ltr",
+    "name": "Nederlands"
+  },
+  "header": {
+    "title": "Claude Code Gebruiksrapport",
+    "period": "Analyseperiode",
+    "totalCost": "Totale kosten",
+    "sessions": "Sessies",
+    "periodTotal": "Totaal voor de gehele periode",
+    "currentWindow": "Huidig 5-uursvenster",
+    "subtaskCount": "incl. {count} subtaken",
+    "daysDuration": "{days} dagen"
+  },
+  "token": {
+    "detail": "Token details",
+    "type": "Type",
+    "tokens": "Tokens",
+    "cost": "Kosten",
+    "input": "Invoer",
+    "output": "Uitvoer",
+    "cacheWrite": "Cache Write",
+    "cacheRead": "Cache Read",
+    "cache1hTier": "└ 1h tier",
+    "cache5mTier": "└ 5m tier",
+    "total": "Totaal",
+    "costRatio": "Kostenverdeling"
+  },
+  "chart": {
+    "dailyCost": "Dagelijkse kostentrend",
+    "hourlyCost": "Uurlijks kostenpatroon",
+    "dowCost": "Weekdag kostenpatroon",
+    "efficiency": "Efficiëntietrend",
+    "avgCost": "Gem. kosten",
+    "maxCost": "Max. kosten",
+    "avg": "Gemiddeld",
+    "max": "Maximum",
+    "hourSuffix": "h",
+    "pluginInstalled": "Plugin geïnstalleerd",
+    "legendAverage": "┄ Gemiddelde",
+    "effTotalPerOutput": "(Total / Output) ↓ Lager is beter",
+    "effCachePerOutput": "(Cache Creation / Output) ↓ Lager is beter",
+    "effNote": "* Dagen met minder dan 1.000 uitvoertokens zijn weggelaten (te weinig uitvoer om een betekenisvolle verhouding te berekenen).",
+    "days": [
+      "Zo",
+      "Ma",
+      "Di",
+      "Wo",
+      "Do",
+      "Vr",
+      "Za"
+    ]
+  },
+  "calendar": {
+    "title": "Uurlijkse gebruikskalender",
+    "fiveHourWindow": "5-uursvenster",
+    "oneHourBlock": "1-uursblok",
+    "legendLow": "~$15/h",
+    "legendMid": "$15-30/h",
+    "legendHigh": "$30+/h",
+    "legendBlocked": "geblokkeerd",
+    "legendPlugin": "Plugin geïnstalleerd",
+    "note": "Klik op een cel om sessiedetails te bekijken. De standaardweergave is het 5-uursvenster — schakel naar 1-uursblokken met de knop hierboven.",
+    "noData": "Geen gegevens"
+  },
+  "session": {
+    "detailExpand": "▶ Sessiedetails",
+    "detailCollapse": "▼ Inklappen",
+    "alertExpand": "▶ Gesprekken met meeste tokens ({count})",
+    "alertCollapse": "▼ Gesprekken met meeste tokens ({count})",
+    "windowDetailTitle": "📋 {date} {start}~{end} Sessiedetails (${cost})",
+    "programmaticExec": "📦 Programmatische uitvoering ({count})",
+    "batchExec": "🔄 Batch-uitvoering ({count})",
+    "continueRestore": "💚 /continue heeft {n} sessies hersteld (0 LLM-aanroepen)",
+    "continueContext": "   Herstelde context: {tokens} tokens",
+    "continueCompactCost": "   /compact geschatte kosten: ${min} ~ ${max}",
+    "continueSaved": "   → ${min} ~ ${max} bespaard!",
+    "tableHeaders": [
+      "ID",
+      "Type",
+      "Msgs",
+      "Input",
+      "Output",
+      "Cache",
+      "Read",
+      "Cost"
+    ]
+  },
+  "alert": {
+    "ctxWarn": "⚠️ Context window heeft 35% overschreden — cache read kosten stijgen bij elke aanroep.",
+    "ctxDanger": "🔴 Context window heeft 70% overschreden — cache read kosten zijn zeer hoog.",
+    "fiveHWarn": "⚠️ 5H-sessievenster op 70% — nadert de gebruikslimiet van het abonnement.",
+    "fiveHDanger": "🔴 5H-sessievenster op 90% — abonnementsgebruik kan binnenkort verlopen.",
+    "resume": "🔄 Sessie hervat — cache opnieuw gegenereerd, kosten gemaakt",
+    "compact": "📦 /compact herstart — cache opnieuw gegenereerd, kosten gemaakt",
+    "continue1": "💚 /continue skill heeft 1 sessie hersteld",
+    "continueN": "💚 /continue skill heeft 2+ sessies hersteld",
+    "continueSkillTip": " 💡 Wij raden /continue skill aan na een nieuwe sessie.\n",
+    "cacheWritePrefix": "{icon} In deze aanroep zijn cache write {tokens} tokens nieuw gecacht — ",
+    "resumeReason": "Een sessie hervatten met claude --continue of /resume verbruikt veel tokens. Tenzij noodzakelijk, raden wij /continue skill aan na een nieuwe sessie.",
+    "compactReason": "/compact herstart veroorzaakte cache-regeneratie — hoge kosten!",
+    "clearReason": "{reason} veroorzaakte cache-aanmaak (${cost})",
+    "clearReasonClear": "/clear herstart",
+    "clearReasonStartup": "start nieuwe sessie",
+    "pluginOverload": " — mogelijk te veel plugins, MCP of skills geladen. Bewaar alleen wat nodig is.",
+    "reloadReason": "/reload-plugins veroorzaakte wijziging systeemprompt, cache opnieuw gegenereerd (${cost})",
+    "modelReason": "/model wijziging maakte vorige cache ongeldig, opnieuw gegenereerd (${cost})",
+    "resumeHeuristicReason": "Een sessie hervatten met claude --continue of /resume verbruikt veel tokens. Tenzij noodzakelijk, raden wij /continue skill aan na een nieuwe sessie.",
+    "cacheExpiredReason": "Bij grote context en meer dan 1 uur inactiviteit wordt nieuwe cache gegenereerd — hoge kosten!",
+    "costTopLabel": "{icon} {label} (${cost})"
+  },
+  "ai": {
+    "analysis": "✨ AI-analyse",
+    "tips": "💡 Tips — cc-token-saver Gebruiksgids"
+  }
+}

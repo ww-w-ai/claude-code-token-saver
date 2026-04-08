@@ -1,0 +1,118 @@
+{
+  "meta": {
+    "locale": "zh",
+    "direction": "ltr",
+    "name": "中文"
+  },
+  "header": {
+    "title": "Claude Code 使用报告",
+    "period": "分析周期",
+    "totalCost": "总费用",
+    "sessions": "会话",
+    "periodTotal": "整个周期总计",
+    "currentWindow": "当前5小时窗口",
+    "subtaskCount": "含 {count} 个子任务",
+    "daysDuration": "{days}天"
+  },
+  "token": {
+    "detail": "Token 详情",
+    "type": "类型",
+    "tokens": "Tokens",
+    "cost": "费用",
+    "input": "输入",
+    "output": "输出",
+    "cacheWrite": "Cache Write",
+    "cacheRead": "Cache Read",
+    "cache1hTier": "└ 1h tier",
+    "cache5mTier": "└ 5m tier",
+    "total": "总计",
+    "costRatio": "费用明细"
+  },
+  "chart": {
+    "dailyCost": "每日费用趋势",
+    "hourlyCost": "每小时费用模式",
+    "dowCost": "每周费用模式",
+    "efficiency": "效率趋势",
+    "avgCost": "平均费用",
+    "maxCost": "最大费用",
+    "avg": "平均",
+    "max": "最大",
+    "hourSuffix": "时",
+    "pluginInstalled": "插件已安装",
+    "legendAverage": "┄ 平均",
+    "effTotalPerOutput": "(Total / Output) ↓ 越低越好",
+    "effCachePerOutput": "(Cache Creation / Output) ↓ 越低越好",
+    "effNote": "* 输出 token 少于1,000的日期已省略（输出过少，无法计算有意义的比率）。",
+    "days": [
+      "日",
+      "一",
+      "二",
+      "三",
+      "四",
+      "五",
+      "六"
+    ]
+  },
+  "calendar": {
+    "title": "每小时使用日历",
+    "fiveHourWindow": "5小时窗口",
+    "oneHourBlock": "1小时区块",
+    "legendLow": "~$15/h",
+    "legendMid": "$15-30/h",
+    "legendHigh": "$30+/h",
+    "legendBlocked": "已阻止",
+    "legendPlugin": "插件已安装",
+    "note": "点击任意单元格查看会话详情。默认显示5小时窗口 — 使用上方按钮切换到1小时块视图。",
+    "noData": "无数据"
+  },
+  "session": {
+    "detailExpand": "▶ 会话详情",
+    "detailCollapse": "▼ 收起",
+    "alertExpand": "▶ 高Token消耗对话 ({count})",
+    "alertCollapse": "▼ 高Token消耗对话 ({count})",
+    "windowDetailTitle": "📋 {date} {start}~{end} 会话详情 (${cost})",
+    "programmaticExec": "📦 程序化执行 ({count}个)",
+    "batchExec": "🔄 批量执行 ({count}个)",
+    "continueRestore": "💚 /continue 恢复了 {n} 个会话 (0次LLM调用)",
+    "continueContext": "   恢复的上下文: {tokens} 个token",
+    "continueCompactCost": "   /compact 预估费用: ${min} ~ ${max}",
+    "continueSaved": "   → ${min} ~ ${max} 已节省!",
+    "tableHeaders": [
+      "ID",
+      "Type",
+      "Msgs",
+      "Input",
+      "Output",
+      "Cache",
+      "Read",
+      "Cost"
+    ]
+  },
+  "alert": {
+    "ctxWarn": "⚠️ Context window 超过35% — 每次调用的 cache read 费用都在增加。",
+    "ctxDanger": "🔴 Context window 超过70% — cache read 费用非常高。",
+    "fiveHWarn": "⚠️ 5H 会话窗口已达70% — 接近订阅使用上限。",
+    "fiveHDanger": "🔴 5H 会话窗口已达90% — 订阅使用量即将耗尽。",
+    "resume": "🔄 会话已恢复 — cache 已重新生成，产生了费用",
+    "compact": "📦 /compact 重启 — cache 已重新生成，产生了费用",
+    "continue1": "💚 /continue 技能恢复了1个会话",
+    "continueN": "💚 /continue 技能恢复了2个以上会话",
+    "continueSkillTip": " 💡 建议在新会话开始后使用 /continue 技能。\n",
+    "cacheWritePrefix": "{icon} 本次调用中，cache write {tokens} 个 token 被新缓存 — ",
+    "resumeReason": "使用 claude --continue 或 /resume 恢复会话会消耗大量 token。如非必要，建议在新会话开始后使用 /continue 技能。",
+    "compactReason": "/compact 重启导致 cache 重新生成 — 费用很高！",
+    "clearReason": "{reason} 导致 cache 创建 (${cost})",
+    "clearReasonClear": "/clear 重启",
+    "clearReasonStartup": "新会话启动",
+    "pluginOverload": " — 可能加载了过多插件、MCP 或技能。请仅保留必要的。",
+    "reloadReason": "/reload-plugins 导致系统提示变更，cache 已重新生成 (${cost})",
+    "modelReason": "/model 切换使之前的 cache 失效，已重新生成 (${cost})",
+    "resumeHeuristicReason": "使用 claude --continue 或 /resume 恢复会话会消耗大量 token。如非必要，建议在新会话开始后使用 /continue 技能。",
+    "cacheExpiredReason": "上下文较大且超过1小时未使用时，会生成新的 cache — 费用很高！",
+    "costTopLabel": "{icon} {label} (${cost})"
+  },
+  "ai": {
+    "analysis": "✨ AI 分析",
+    "tips": "💡 提示 — cc-token-saver 使用指南"
+  }
+}

@@ -1,0 +1,118 @@
+{
+  "meta": {
+    "locale": "sv",
+    "direction": "ltr",
+    "name": "Svenska"
+  },
+  "header": {
+    "title": "Claude Code Användningsrapport",
+    "period": "Analysperiod",
+    "totalCost": "Total kostnad",
+    "sessions": "Sessioner",
+    "periodTotal": "Totalt för hela perioden",
+    "currentWindow": "Aktuellt 5-timmarsfönster",
+    "subtaskCount": "inkl. {count} deluppgifter",
+    "daysDuration": "{days} dagar"
+  },
+  "token": {
+    "detail": "Tokendetaljer",
+    "type": "Typ",
+    "tokens": "Tokens",
+    "cost": "Kostnad",
+    "input": "Indata",
+    "output": "Utdata",
+    "cacheWrite": "Cache Write",
+    "cacheRead": "Cache Read",
+    "cache1hTier": "└ 1h tier",
+    "cache5mTier": "└ 5m tier",
+    "total": "Totalt",
+    "costRatio": "Kostnadsfördelning"
+  },
+  "chart": {
+    "dailyCost": "Daglig kostnadstrend",
+    "hourlyCost": "Timvis kostnadsmönster",
+    "dowCost": "Kostnadsmönster per veckodag",
+    "efficiency": "Effektivitetstrend",
+    "avgCost": "Snittskostnad",
+    "maxCost": "Max kostnad",
+    "avg": "Genomsnitt",
+    "max": "Maximum",
+    "hourSuffix": "h",
+    "pluginInstalled": "Plugin installerat",
+    "legendAverage": "┄ Genomsnitt",
+    "effTotalPerOutput": "(Total / Output) ↓ Lägre är bättre",
+    "effCachePerOutput": "(Cache Creation / Output) ↓ Lägre är bättre",
+    "effNote": "* Dagar med färre än 1 000 utdatatokens utelämnas (för lite utdata för att beräkna ett meningsfullt förhållande).",
+    "days": [
+      "Sön",
+      "Mån",
+      "Tis",
+      "Ons",
+      "Tor",
+      "Fre",
+      "Lör"
+    ]
+  },
+  "calendar": {
+    "title": "Timvis användningskalender",
+    "fiveHourWindow": "5-timmarsfönster",
+    "oneHourBlock": "1-timmarsblock",
+    "legendLow": "~$15/h",
+    "legendMid": "$15-30/h",
+    "legendHigh": "$30+/h",
+    "legendBlocked": "blockerad",
+    "legendPlugin": "Plugin installerat",
+    "note": "Klicka på valfri cell för att se sessionsdetaljer. Standardvyn är 5-timmarsfönstret — växla till 1-timmarsblock med knappen ovan.",
+    "noData": "Ingen data"
+  },
+  "session": {
+    "detailExpand": "▶ Sessionsdetaljer",
+    "detailCollapse": "▼ Dölj",
+    "alertExpand": "▶ Konversationer med mest tokens ({count})",
+    "alertCollapse": "▼ Konversationer med mest tokens ({count})",
+    "windowDetailTitle": "📋 {date} {start}~{end} Sessionsdetaljer (${cost})",
+    "programmaticExec": "📦 Programmatisk körning ({count})",
+    "batchExec": "🔄 Batchkörning ({count})",
+    "continueRestore": "💚 /continue återställde {n} sessioner (0 LLM-anrop)",
+    "continueContext": "   Återställd kontext: {tokens} tokens",
+    "continueCompactCost": "   /compact uppskattad kostnad: ${min} ~ ${max}",
+    "continueSaved": "   → ${min} ~ ${max} sparade!",
+    "tableHeaders": [
+      "ID",
+      "Type",
+      "Msgs",
+      "Input",
+      "Output",
+      "Cache",
+      "Read",
+      "Cost"
+    ]
+  },
+  "alert": {
+    "ctxWarn": "⚠️ Context window översteg 35% — cache read-kostnaden ökar vid varje anrop.",
+    "ctxDanger": "🔴 Context window översteg 70% — cache read-kostnaden är mycket hög.",
+    "fiveHWarn": "⚠️ 5H-sessionsfönster på 70% — närmar sig prenumerationens användningsgräns.",
+    "fiveHDanger": "🔴 5H-sessionsfönster på 90% — prenumerationsanvändningen kan snart ta slut.",
+    "resume": "🔄 Session återupptagen — cache återskapad, kostnad uppstod",
+    "compact": "📦 /compact omstart — cache återskapad, kostnad uppstod",
+    "continue1": "💚 /continue skill återställde 1 session",
+    "continueN": "💚 /continue skill återställde 2+ sessioner",
+    "continueSkillTip": " 💡 Vi rekommenderar /continue skill efter en ny session.\n",
+    "cacheWritePrefix": "{icon} I detta anrop cachades cache write {tokens} tokens — ",
+    "resumeReason": "Att återuppta en session med claude --continue eller /resume förbrukar många tokens. Om det inte är nödvändigt rekommenderar vi /continue skill efter en ny session.",
+    "compactReason": "/compact omstart orsakade cache-regenerering — hög kostnad!",
+    "clearReason": "{reason} orsakade cache-skapande (${cost})",
+    "clearReasonClear": "/clear omstart",
+    "clearReasonStartup": "start av ny session",
+    "pluginOverload": " — kanske för många plugins, MCP eller skills laddade. Behåll bara det nödvändiga.",
+    "reloadReason": "/reload-plugins orsakade ändring av systemprompt, cache återskapad (${cost})",
+    "modelReason": "/model ändring ogiltigförklarade tidigare cache, återskapad (${cost})",
+    "resumeHeuristicReason": "Att återuppta en session med claude --continue eller /resume förbrukar många tokens. Om det inte är nödvändigt rekommenderar vi /continue skill efter en ny session.",
+    "cacheExpiredReason": "När kontexten är stor och mer än 1 timme har passerat genereras ny cache — hög kostnad!",
+    "costTopLabel": "{icon} {label} (${cost})"
+  },
+  "ai": {
+    "analysis": "✨ AI-analys",
+    "tips": "💡 Tips — cc-token-saver Användarguide"
+  }
+}

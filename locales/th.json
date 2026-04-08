@@ -1,0 +1,118 @@
+{
+  "meta": {
+    "locale": "th",
+    "direction": "ltr",
+    "name": "ไทย"
+  },
+  "header": {
+    "title": "รายงานการใช้งาน Claude Code",
+    "period": "ช่วงเวลาวิเคราะห์",
+    "totalCost": "ค่าใช้จ่ายรวม",
+    "sessions": "เซสชัน",
+    "periodTotal": "รวมทั้งช่วงเวลา",
+    "currentWindow": "หน้าต่าง 5 ชั่วโมงปัจจุบัน",
+    "subtaskCount": "รวม {count} งานย่อย",
+    "daysDuration": "{days} วัน"
+  },
+  "token": {
+    "detail": "รายละเอียดโทเค็น",
+    "type": "ประเภท",
+    "tokens": "โทเค็น",
+    "cost": "ค่าใช้จ่าย",
+    "input": "อินพุต",
+    "output": "เอาต์พุต",
+    "cacheWrite": "Cache Write",
+    "cacheRead": "Cache Read",
+    "cache1hTier": "└ 1h tier",
+    "cache5mTier": "└ 5m tier",
+    "total": "รวม",
+    "costRatio": "สัดส่วนค่าใช้จ่าย"
+  },
+  "chart": {
+    "dailyCost": "แนวโน้มค่าใช้จ่ายรายวัน",
+    "hourlyCost": "รูปแบบค่าใช้จ่ายรายชั่วโมง",
+    "dowCost": "รูปแบบค่าใช้จ่ายตามวันในสัปดาห์",
+    "efficiency": "แนวโน้มประสิทธิภาพ",
+    "avgCost": "ค่าใช้จ่ายเฉลี่ย",
+    "maxCost": "ค่าใช้จ่ายสูงสุด",
+    "avg": "เฉลี่ย",
+    "max": "สูงสุด",
+    "hourSuffix": "น.",
+    "pluginInstalled": "ติดตั้งปลั๊กอินแล้ว",
+    "legendAverage": "┄ เฉลี่ย",
+    "effTotalPerOutput": "(Total / Output) ↓ ยิ่งต่ำยิ่งดี",
+    "effCachePerOutput": "(Cache Creation / Output) ↓ ยิ่งต่ำยิ่งดี",
+    "effNote": "* วันที่มีโทเค็นเอาต์พุตน้อยกว่า 1,000 ถูกละไว้ (เอาต์พุตน้อยเกินไปสำหรับการคำนวณอัตราส่วนที่มีความหมาย)",
+    "days": [
+      "อา",
+      "จ",
+      "อ",
+      "พ",
+      "พฤ",
+      "ศ",
+      "ส"
+    ]
+  },
+  "calendar": {
+    "title": "ปฏิทินการใช้งานรายชั่วโมง",
+    "fiveHourWindow": "หน้าต่าง 5 ชั่วโมง",
+    "oneHourBlock": "บล็อก 1 ชั่วโมง",
+    "legendLow": "~$15/h",
+    "legendMid": "$15-30/h",
+    "legendHigh": "$30+/h",
+    "legendBlocked": "ถูกบล็อก",
+    "legendPlugin": "ติดตั้งปลั๊กอินแล้ว",
+    "note": "คลิกเซลล์ใดก็ได้เพื่อดูรายละเอียดเซสชัน มุมมองเริ่มต้นคือหน้าต่าง 5 ชั่วโมง — สลับเป็นบล็อก 1 ชั่วโมงด้วยปุ่มด้านบน",
+    "noData": "ไม่มีข้อมูล"
+  },
+  "session": {
+    "detailExpand": "▶ รายละเอียดเซสชัน",
+    "detailCollapse": "▼ ย่อ",
+    "alertExpand": "▶ บทสนทนาที่ใช้โทเค็นมากที่สุด ({count})",
+    "alertCollapse": "▼ บทสนทนาที่ใช้โทเค็นมากที่สุด ({count})",
+    "windowDetailTitle": "📋 {date} {start}~{end} รายละเอียดเซสชัน (${cost})",
+    "programmaticExec": "📦 การดำเนินการแบบโปรแกรม ({count})",
+    "batchExec": "🔄 การดำเนินการแบบแบตช์ ({count})",
+    "continueRestore": "💚 /continue กู้คืน {n} เซสชัน (0 การเรียก LLM)",
+    "continueContext": "   บริบทที่กู้คืน: {tokens} โทเค็น",
+    "continueCompactCost": "   /compact ค่าใช้จ่ายโดยประมาณ: ${min} ~ ${max}",
+    "continueSaved": "   → ${min} ~ ${max} ประหยัดได้!",
+    "tableHeaders": [
+      "ID",
+      "Type",
+      "Msgs",
+      "Input",
+      "Output",
+      "Cache",
+      "Read",
+      "Cost"
+    ]
+  },
+  "alert": {
+    "ctxWarn": "⚠️ Context window เกิน 35% — ค่าใช้จ่าย cache read เพิ่มขึ้นทุกการเรียก",
+    "ctxDanger": "🔴 Context window เกิน 70% — ค่าใช้จ่าย cache read สูงมาก",
+    "fiveHWarn": "⚠️ หน้าต่างเซสชัน 5H อยู่ที่ 70% — ใกล้ถึงขีดจำกัดการใช้งานสมาชิก",
+    "fiveHDanger": "🔴 หน้าต่างเซสชัน 5H อยู่ที่ 90% — การใช้งานสมาชิกอาจหมดเร็วๆ นี้",
+    "resume": "🔄 เซสชันกลับมาทำงาน — cache สร้างใหม่ มีค่าใช้จ่าย",
+    "compact": "📦 /compact รีสตาร์ท — cache สร้างใหม่ มีค่าใช้จ่าย",
+    "continue1": "💚 /continue skill กู้คืน 1 เซสชัน",
+    "continueN": "💚 /continue skill กู้คืน 2+ เซสชัน",
+    "continueSkillTip": " 💡 แนะนำให้ใช้ /continue skill หลังเซสชันใหม่\n",
+    "cacheWritePrefix": "{icon} ในการเรียกนี้ cache write {tokens} โทเค็นถูกแคชใหม่ — ",
+    "resumeReason": "การกลับมาเซสชันด้วย claude --continue หรือ /resume ใช้โทเค็นจำนวนมาก หากไม่จำเป็น แนะนำ /continue skill หลังเซสชันใหม่",
+    "compactReason": "/compact รีสตาร์ททำให้ cache สร้างใหม่ — ค่าใช้จ่ายสูง!",
+    "clearReason": "{reason} ทำให้เกิดการสร้าง cache (${cost})",
+    "clearReasonClear": "/clear รีสตาร์ท",
+    "clearReasonStartup": "เริ่มเซสชันใหม่",
+    "pluginOverload": " — อาจโหลดปลั๊กอิน MCP หรือ skills มากเกินไป เก็บเฉพาะที่จำเป็น",
+    "reloadReason": "/reload-plugins ทำให้พรอมต์ระบบเปลี่ยน cache สร้างใหม่ (${cost})",
+    "modelReason": "/model เปลี่ยนทำให้ cache ก่อนหน้าใช้ไม่ได้ สร้างใหม่ (${cost})",
+    "resumeHeuristicReason": "การกลับมาเซสชันด้วย claude --continue หรือ /resume ใช้โทเค็นจำนวนมาก หากไม่จำเป็น แนะนำ /continue skill หลังเซสชันใหม่",
+    "cacheExpiredReason": "เมื่อบริบทใหญ่และผ่านไปมากกว่า 1 ชั่วโมง cache ใหม่จะถูกสร้าง — ค่าใช้จ่ายสูง!",
+    "costTopLabel": "{icon} {label} (${cost})"
+  },
+  "ai": {
+    "analysis": "✨ การวิเคราะห์ AI",
+    "tips": "💡 เคล็ดลับ — คู่มือการใช้งาน cc-token-saver"
+  }
+}

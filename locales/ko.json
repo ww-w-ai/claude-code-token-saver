@@ -1,0 +1,118 @@
+{
+  "meta": {
+    "locale": "ko",
+    "direction": "ltr",
+    "name": "한국어"
+  },
+  "header": {
+    "title": "Claude Code Usage Report",
+    "period": "분석 기간",
+    "totalCost": "총 비용",
+    "sessions": "세션 수",
+    "periodTotal": "전체 기간 합계",
+    "currentWindow": "현재 5시간 구간",
+    "subtaskCount": "서브태스크 {count}개 포함",
+    "daysDuration": "{days}일간"
+  },
+  "token": {
+    "detail": "토큰 상세",
+    "type": "유형",
+    "tokens": "토큰",
+    "cost": "비용",
+    "input": "입력",
+    "output": "출력",
+    "cacheWrite": "캐시 생성",
+    "cacheRead": "캐시 읽기",
+    "cache1hTier": "└ 1h tier",
+    "cache5mTier": "└ 5m tier",
+    "total": "합계",
+    "costRatio": "비용 구성 비율"
+  },
+  "chart": {
+    "dailyCost": "일별 비용 추이",
+    "hourlyCost": "시간대별 비용 패턴",
+    "dowCost": "요일별 비용 패턴",
+    "efficiency": "Efficiency Trend",
+    "avgCost": "평균 비용",
+    "maxCost": "최대 비용",
+    "avg": "평균",
+    "max": "최대",
+    "hourSuffix": "시",
+    "pluginInstalled": "Plugin installed",
+    "legendAverage": "┄ Average",
+    "effTotalPerOutput": "(Total / Output) ↓ Lower is better",
+    "effCachePerOutput": "(Cache Creation / Output) ↓ Lower is better",
+    "effNote": "* Days with <1,000 output tokens are omitted (too little output to compute a meaningful ratio).",
+    "days": [
+      "일",
+      "월",
+      "화",
+      "수",
+      "목",
+      "금",
+      "토"
+    ]
+  },
+  "calendar": {
+    "title": "시간대별 사용량 캘린더",
+    "fiveHourWindow": "5시간 윈도우",
+    "oneHourBlock": "1시간 블록",
+    "legendLow": "~$15/h",
+    "legendMid": "$15-30/h",
+    "legendHigh": "$30+/h",
+    "legendBlocked": "blocked",
+    "legendPlugin": "플러그인 설치됨",
+    "note": "각 셀을 클릭하면 세션 상세를 확인할 수 있습니다. 기본값은 5시간 윈도우 단위이며, 우측 상단 토글로 1시간 블록 단위로 전환할 수 있습니다.",
+    "noData": "데이터 없음"
+  },
+  "session": {
+    "detailExpand": "▶ 세션 상세 보기",
+    "detailCollapse": "▼ 상세 접기",
+    "alertExpand": "▶ 토큰 많이 쓴 대화 ({count})",
+    "alertCollapse": "▼ 토큰 많이 쓴 대화 ({count})",
+    "windowDetailTitle": "📋 {date} {start}~{end} 세션 상세 (${cost})",
+    "programmaticExec": "📦 프로그래매틱 실행 ({count}개)",
+    "batchExec": "🔄 배치 실행 ({count}개)",
+    "continueRestore": "💚 /continue로 {n}개 세션 복원 (LLM 호출 0회)",
+    "continueContext": "   복원된 컨텍스트: {tokens} 토큰",
+    "continueCompactCost": "   /compact 추정 비용: ${min} ~ ${max}",
+    "continueSaved": "   → ${min} ~ ${max} 절감!",
+    "tableHeaders": [
+      "ID",
+      "Type",
+      "Msgs",
+      "Input",
+      "Output",
+      "Cache",
+      "Read",
+      "Cost"
+    ]
+  },
+  "alert": {
+    "ctxWarn": "⚠️ Context window 35% 초과 지점 — 콘텍스트가 커지기 시작해서 매 호출마다 cache read 비용이 많이 발생합니다.",
+    "ctxDanger": "🔴 Context window 70% 초과 — cache read 비용이 매우 높습니다.",
+    "fiveHWarn": "⚠️ 5H 세션 윈도우 70% 도달 — 구독 사용량 만료에 가까워지고 있습니다.",
+    "fiveHDanger": "🔴 5H 세션 윈도우 90% 도달 — 곧 구독 사용량이 만료될 수 있습니다.",
+    "resume": "🔄 resume/continue로 세션 재시작 — cache가 다시 생성되어 비용 발생",
+    "compact": "📦 /compact 후 재시작 — cache가 다시 생성되어 비용 발생",
+    "continue1": "💚 /continue 스킬로 1개 세션 복원",
+    "continueN": "💚 /continue 스킬로 2개 이상 세션 복원",
+    "continueSkillTip": " 💡 새 세션 후 /continue 스킬을 권장합니다.\n",
+    "cacheWritePrefix": "{icon} 이 호출에서 cache write {tokens} 토큰이 새로 캐싱됨 — ",
+    "resumeReason": "claude --continue 또는 /resume으로 세션을 이어 나가는 건 토큰을 많이 사용합니다. 꼭 필요한 경우가 아니라면 새 세션 후 /continue 스킬을 권장합니다.",
+    "compactReason": "/compact 후 재시작으로 cache가 다시 생성되어 큰 비용 발생!",
+    "clearReason": "{reason}으로 cache 생성 (${cost})",
+    "clearReasonClear": "/clear 후 재시작",
+    "clearReasonStartup": "새 세션 시작",
+    "pluginOverload": " — plugin, MCP, skill 등이 너무 많이 로드되어 있을 수 있습니다. 꼭 필요한 것만 남기고 줄여보세요.",
+    "reloadReason": "/reload-plugins로 시스템 프롬프트가 변경되어 cache가 다시 생성됨 (${cost})",
+    "modelReason": "/model 변경으로 이전 cache가 무효화되어 다시 생성됨 (${cost})",
+    "resumeHeuristicReason": "claude --continue 또는 /resume으로 세션을 이어 나가는 건 토큰을 많이 사용합니다. 꼭 필요한 경우가 아니라면 새 세션 후 /continue 스킬을 권장합니다.",
+    "cacheExpiredReason": "콘텍스트 크기가 클 때 1시간이 지난 후 실행하면 새로운 캐시가 발생하면서 큰 비용 발생!",
+    "costTopLabel": "{icon} {label} (${cost})"
+  },
+  "ai": {
+    "analysis": "✨ AI Analysis",
+    "tips": "💡 Tips — cc-token-saver 활용 가이드"
+  }
+}
