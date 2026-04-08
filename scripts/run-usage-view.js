@@ -42,7 +42,7 @@ const pid = process.pid;
 // ── Parse args ─────────────────────────────────────────────────
 const args = process.argv.slice(2);
 let mode = null;
-let days = null, current = false, locale = null;
+let days = null, current = false, locale = null, plan = null;
 let reportDataPath = null, aiDataPath = null, outputPath = null;
 
 for (let i = 0; i < args.length; i++) {
@@ -55,6 +55,7 @@ for (let i = 0; i < args.length; i++) {
   else if (args[i] === '--report-data' && args[i + 1]) reportDataPath = args[++i];
   else if (args[i] === '--ai-data' && args[i + 1]) aiDataPath = args[++i];
   else if (args[i] === '--output' && args[i + 1]) outputPath = args[++i];
+  else if (args[i] === '--plan' && args[i + 1]) plan = args[++i];
 }
 
 if (!mode) {
@@ -72,6 +73,7 @@ if (mode === 'gen-agent-prompt') {
   if (days) flags.push('--days', days);
   if (current) flags.push('--current');
   if (locale) flags.push('--locale', locale);
+  if (plan) flags.push('--plan', plan);
 
   // Resolve locale
   const SUPPORTED_LOCALES = ['en','ko','ja','zh','es','fr','de','pt','it','ru','ar','hi','bn','id','ms','th','vi','tr','pl','nl','he','sv','no'];
@@ -115,6 +117,7 @@ if (mode === 'prepare') {
   ];
   if (current) buildArgs.push('--current');
   if (locale) buildArgs.push('--locale', locale);
+  if (plan) buildArgs.push('--plan', plan);
 
   execFileSync('node', buildArgs, {
     stdio: ['pipe', 'pipe', 'pipe'],
@@ -153,6 +156,7 @@ if (mode === 'finalize') {
     buildArgs.push('--ai-data', aiDataPath);
   }
   if (locale) buildArgs.push('--locale', locale);
+  if (plan) buildArgs.push('--plan', plan);
 
   execFileSync('node', buildArgs, {
     stdio: ['pipe', 'pipe', 'pipe'],

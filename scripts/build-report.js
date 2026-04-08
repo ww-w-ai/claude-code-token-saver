@@ -57,7 +57,7 @@ function resolveLocale(requested) {
 
 // ── Args ────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
-let dataPath = null, outputPath = null, currentMode = false, aiDataPath = null, exportPromptPath = null, exportDataPath = null, importDataPath = null, localeArg = null;
+let dataPath = null, outputPath = null, currentMode = false, aiDataPath = null, exportPromptPath = null, exportDataPath = null, importDataPath = null, localeArg = null, planArg = null;
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--data' && args[i + 1]) { dataPath = args[++i]; }
   else if (args[i] === '--output' && args[i + 1]) { outputPath = args[++i]; }
@@ -67,6 +67,7 @@ for (let i = 0; i < args.length; i++) {
   else if (args[i] === '--export-data' && args[i + 1]) { exportDataPath = args[++i]; }
   else if (args[i] === '--import-data' && args[i + 1]) { importDataPath = args[++i]; }
   else if (args[i] === '--locale' && args[i + 1]) { localeArg = args[++i]; }
+  else if (args[i] === '--plan' && args[i + 1]) { planArg = args[++i]; }
 }
 const resolvedLocale = resolveLocale(localeArg);
 let localeData;
@@ -1272,8 +1273,44 @@ if (exportPromptPath) {
   const top10 = topSessions.slice(0, 15).map(t => '$' + t.cost.toFixed(1) + ' [' + t.type + '] (' + t.date + ') ' + t.msg).join('\n');
   // Rate limit & continue events
   const rlCount = reportData.fiveHAlerts ? reportData.fiveHAlerts.length : 0;
-  const maxMultiple = ((s.totalCost / (s.days || 1)) * 30 / 200).toFixed(1);
-  const savings = round2((s.totalCost / (s.days || 1)) * 30 - 200);
+  const PLAN_INFO = {
+    pro:          { label: 'Pro ($20/mo)',                 price: 20,  type: 'flat' },
+    max100:       { label: 'Max 5x ($100/mo)',             price: 100, type: 'flat' },
+    max200:       { label: 'Max 20x ($200/mo)',            price: 200, type: 'flat' },
+    team:         { label: 'Team Standard ($20/seat/mo)',  price: 20,  type: 'flat' },
+    team_premium: { label: 'Team Premium ($100/seat/mo)',  price: 100, type: 'flat' },
+    enterprise:   { label: 'Enterprise (usage-based)',     price: null, type: 'usage' },
+    bedrock:      { label: 'Amazon Bedrock (usage-based)', price: null, type: 'usage' },
+    foundry:      { label: 'Microsoft Foundry (usage-based)', price: null, type: 'usage' },
+    vertex:       { label: 'Google Vertex AI (usage-based)',   price: null, type: 'usage' },
+  };
+  const pi = planArg && PLAN_INFO[planArg] ? PLAN_INFO[planArg] : { label: 'unknown', price: null, type: 'unknown' };
+  const projectedMonthly = round2((s.totalCost / (s.days || 1)) * 30);
+  let planLine;
+  if (pi.type === 'flat') {
+    const multiple = (projectedMonthly / pi.price).toFixed(1);
+    planLine = `- Projected monthly API value: $${projectedMonthly} (${multiple}x of $${pi.price} subscription)
+- Billing: flat-rate. User pays $${pi.price}/mo regardless of usage. Higher multiple = more value extracted.
+- Rate limit management is key: spread usage across 5h windows, avoid bursts, use cache efficiently, use /continue instead of /compact.
+- If frequently hitting limits, suggest upgrading plan OR optimizing usage patterns to stay within the ceiling.`;
+  } else if (pi.type === 'usage') {
+    planLine = `- Projected monthly cost: $${projectedMonthly} — this is the actual projected bill.
+- Billing: usage-based (pay per token). Every token costs real money.
+- Prioritize cost optimization: cache reuse, /continue over /compact, shorter prompts, model selection (Haiku for simple tasks).`;
+  } else {
+    planLine = `- Projected monthly API value: $${projectedMonthly}
+- Billing: unknown plan.`;
+  }
+  planLine += '\n\n## Plan Comparison (for upgrade/downgrade advice)\n'
+    + '| Plan | Monthly | Rate Limit | Type |\n'
+    + '|------|---------|------------|------|\n'
+    + '| Pro | $20/mo | 1x (baseline) | flat |\n'
+    + '| Max 5x | $100/mo | 5x of Pro | flat |\n'
+    + '| Max 20x | $200/mo | 20x of Pro | flat |\n'
+    + '| Team Standard | $20/seat/mo | >1x of Pro (exact unknown) | flat |\n'
+    + '| Team Premium | $100/seat/mo | 5x of Team Standard | flat |\n'
+    + '| Enterprise | $20/seat + API | usage-based pooled | usage |\n'
+    + '| Bedrock/Foundry/Vertex | API pricing | no rate limit ceiling | usage |';
 
   // Continue events: from marker counts (preprocess detects <command-message>cc-token-saver:continue)
   // markerCounts.continue is populated from alertMessages which come from compact caches
@@ -1345,7 +1382,8 @@ if (exportPromptPath) {
   const prompt = `## Usage Data (THESE ARE THE ONLY NUMBERS YOU MAY USE)
 - Period: ${s.dateFrom} ~ ${s.dateTo} (${s.days} days)
 - Total cost: $${s.totalCost}, Sessions: ${s.sessionCount} main + ${s.subtaskCount || 0} subtasks
-- Projected monthly: $${round2((s.totalCost / (s.days || 1)) * 30)} (${maxMultiple}x of $200 Max plan, savings: $${savings})
+- Plan: ${pi.label}
+${planLine}
 - Plugin installed: ${reportData.pluginInstalledAt ? new Date(reportData.pluginInstalledAt).toISOString().slice(0, 10) : 'not detected'}
 
 ## Token Breakdown

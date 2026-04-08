@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - 2026-04-09
+
+### Added
+
+- `--plan` parameter for report-limit.js and run-usage-view.js (pro/max100/max200/team/team_premium/enterprise/bedrock/foundry/vertex)
+- Plan-aware AI analysis: flat-rate plans get rate limit management advice, usage-based plans get cost optimization guidance
+- Plan comparison table in AI prompt for upgrade/downgrade recommendations
+- Weekly rate limit display in statusline: `[W🟡] 65% ⏳1d3h30m` (shown at ≥60%, danger at ≥90%)
+
+### Changed
+
+- report-limit.js: standalone Node script replacing inline SKILL.md code (zero LLM involvement)
+- report-limit: filter to `limit_hit_5h` + `limit_hit_unknown` only (skip weekly)
+- Discussion category target: `rate-limits`
+- SKILL.md for report-limit and usage-view: ask user's plan before execution
+
 ## [1.0.2] - 2026-04-09
 
 ### Fixed

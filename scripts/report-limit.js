@@ -8,7 +8,8 @@
  * 4. Uploads to GitHub gist + opens pre-filled Discussion URL
  * 5. Prints JSON summary to stdout
  *
- * Usage: node report-limit.js
+ * Usage: node report-limit.js [--plan <plan>]
+ *   --plan  pro|max100|max200|team|team_premium|enterprise|bedrock|foundry|vertex
  */
 
 const { execFileSync } = require('child_process');
@@ -23,6 +24,32 @@ const WINDOW_SECS = 5 * 3600; // 18000
 
 function log(msg) {
   process.stderr.write(msg + '\n');
+}
+
+const VALID_PLANS = ['pro', 'max100', 'max200', 'team', 'team_premium', 'enterprise', 'bedrock', 'foundry', 'vertex'];
+const PLAN_LABELS = {
+  pro: 'Pro ($20/mo)',
+  max100: 'Max 5x ($100/mo)',
+  max200: 'Max 20x ($200/mo)',
+  team: 'Team Standard ($20/seat/mo)',
+  team_premium: 'Team Premium ($100/seat/mo)',
+  enterprise: 'Enterprise',
+  bedrock: 'Amazon Bedrock',
+  foundry: 'Microsoft Foundry',
+  vertex: 'Google Vertex AI',
+};
+
+// Parse --plan argument
+let plan = null;
+const planIdx = process.argv.indexOf('--plan');
+if (planIdx !== -1 && process.argv[planIdx + 1]) {
+  const val = process.argv[planIdx + 1];
+  if (VALID_PLANS.includes(val)) {
+    plan = val;
+  } else {
+    log('Invalid plan: ' + val + '. Valid: ' + VALID_PLANS.join(', '));
+    process.exit(1);
+  }
 }
 
 // ── Step 1: Run analyze-usage.js to ensure timeline CSVs exist ──
@@ -225,7 +252,7 @@ if (gistUrl) {
     + '## Raw Data\n'
     + '\u{1F4CE} ' + gistUrl + '\n\n'
     + '## Context\n'
-    + '- Plan: Max ($200/mo)\n'
+    + '- Plan: ' + (plan ? PLAN_LABELS[plan] : 'unknown') + '\n'
     + '- Claude Code version: ' + ccVersion + '\n'
     + '- Date: ' + dateStr;
 } else {
@@ -242,7 +269,7 @@ if (gistUrl) {
     + 'Files prepared:\n'
     + fileList + '\n\n'
     + '## Context\n'
-    + '- Plan: Max ($200/mo)\n'
+    + '- Plan: ' + (plan ? PLAN_LABELS[plan] : 'unknown') + '\n'
     + '- Claude Code version: ' + ccVersion + '\n'
     + '- Date: ' + dateStr;
 }

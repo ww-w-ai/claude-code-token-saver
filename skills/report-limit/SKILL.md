@@ -30,11 +30,18 @@ Do not run any analysis. Just display the help text and stop.
 
 ## Execution
 
-Run the standalone script. It handles everything: CSV scan, gist upload, Discussion URL, browser open.
+Before running, ask the user's plan if not already known:
+
+> What's your Claude subscription plan?
+> `pro` / `max100` / `max200` / `team` / `team_premium` / `enterprise` / `bedrock` / `foundry` / `vertex`
+
+Run the standalone script with `--plan`:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/report-limit.js
+node ${CLAUDE_PLUGIN_ROOT}/scripts/report-limit.js --plan <plan>
 ```
+
+If the user doesn't know or skips, run without `--plan` (reports as "unknown").
 
 The script outputs JSON to stdout. Parse the result and show the user a brief summary:
 

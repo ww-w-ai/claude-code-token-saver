@@ -12,12 +12,14 @@
 #
 # Output (stdout): compact status line
 #   Subscriber: [RUN🟢] $0.10/$12.23 | [5H🟢] 9% ⏳1h32m | [CTX🟢] 22%
+#              (weekly ≥60%): ... | [W🟡] 65% ⏳1d3h30m | ...
 #   API key:    [RUN🟢] $0.10/$12.23 | [CTX🟢] 22%
 #
 #   Color thresholds:
-#     RUN: 🟢 <$0.30, 🟡 ≥$0.30, 🔴 ≥$1.00 (per-call delta)
-#     5H:  🟢 <70%,   🟡 ≥70%,   🔴 ≥90%
-#     CTX: 🟢 <35%,   🟡 ≥35%,   🔴 ≥70%
+#     RUN: 🟢 <$0.30, 🟡 ≥$0.30,  🔴 ≥$1.00 (per-call delta)
+#     5H:  🟢 <70%,   🟡 ≥70%,    🔴 ≥90%
+#     W:              🟡 ≥60%,    🔴 ≥90%  (hidden below 60%)
+#     CTX: 🟢 <35%,   🟡 ≥35%,    🔴 ≥70%
 #
 #   Hints: 5H🔴 → /report-limit, other warnings → /usage-view current
 #
@@ -159,6 +161,22 @@ if (isSubscriber) {
     }
   }
   parts.push('[5H' + icon + '] ' + Math.round(fiveH) + '%' + (remaining ? ' ⏳' + remaining : ''));
+}
+
+// 7-day weekly window (subscribers only, show when ≥60%)
+if (sevenD !== null && sevenD >= 60) {
+  const wIcon = sevenD >= 90 ? '🔴' : '🟡';
+  let wRemaining = '';
+  if (sevenDReset) {
+    const ms = sevenDReset * 1000 - Date.now();
+    if (ms > 0) {
+      const d = Math.floor(ms / 86400000);
+      const h = Math.floor((ms % 86400000) / 3600000);
+      const m = Math.floor((ms % 3600000) / 60000);
+      wRemaining = (d > 0 ? d + 'd' : '') + (h > 0 ? h + 'h' : '') + (m > 0 ? m + 'm' : '');
+    }
+  }
+  parts.push('[W' + wIcon + '] ' + Math.round(sevenD) + '%' + (wRemaining ? ' ⏳' + wRemaining : ''));
 }
 
 // Context

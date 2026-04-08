@@ -47,6 +47,18 @@ Users may provide these in natural language. Parse and map to script flags.
 | a number of days | `--days N`            | "last 7 days" → `--days 7` |
 | "current"        | `--days 1 --current`  | current 5H window only     |
 | "locale XX"      | `--locale XX`         | "locale ja" → `--locale ja` |
+| plan name        | `--plan XX`           | "max200" → `--plan max200` |
+
+### Plan parameter
+
+If the user does NOT provide a plan, ask before launching:
+
+> What's your Claude subscription plan?
+> `pro` / `max100` / `max200` / `team` / `team_premium` / `enterprise` / `bedrock` / `foundry` / `vertex`
+
+Valid values: `pro`, `max100`, `max200`, `team`, `team_premium`, `enterprise`, `bedrock`, `foundry`, `vertex`
+
+If the user doesn't know or skips, run without `--plan`.
 
 ## Launch: Background Agent
 
