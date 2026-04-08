@@ -1,0 +1,118 @@
+{
+  "meta": {
+    "locale": "ms",
+    "direction": "ltr",
+    "name": "Bahasa Melayu"
+  },
+  "header": {
+    "title": "Laporan Penggunaan Claude Code",
+    "period": "Tempoh Analisis",
+    "totalCost": "Jumlah Kos",
+    "sessions": "Sesi",
+    "periodTotal": "Jumlah untuk keseluruhan tempoh",
+    "currentWindow": "Tetingkap 5 Jam Semasa",
+    "subtaskCount": "termasuk {count} subtask",
+    "daysDuration": "{days} hari"
+  },
+  "token": {
+    "detail": "Butiran Token",
+    "type": "Jenis",
+    "tokens": "Token",
+    "cost": "Kos",
+    "input": "Input",
+    "output": "Output",
+    "cacheWrite": "Cache Write",
+    "cacheRead": "Cache Read",
+    "cache1hTier": "└ 1h tier",
+    "cache5mTier": "└ 5m tier",
+    "total": "Jumlah",
+    "costRatio": "Pecahan Kos"
+  },
+  "chart": {
+    "dailyCost": "Trend Kos Harian",
+    "hourlyCost": "Corak Kos Setiap Jam",
+    "dowCost": "Corak Kos Mengikut Hari",
+    "efficiency": "Trend Kecekapan",
+    "avgCost": "Kos Purata",
+    "maxCost": "Kos Maksimum",
+    "avg": "Purata",
+    "max": "Maksimum",
+    "hourSuffix": "h",
+    "pluginInstalled": "Plugin dipasang",
+    "legendAverage": "┄ Purata",
+    "effTotalPerOutput": "(Total / Output) ↓ Lebih rendah lebih baik",
+    "effCachePerOutput": "(Cache Creation / Output) ↓ Lebih rendah lebih baik",
+    "effNote": "* Hari dengan kurang daripada 1,000 token output ditinggalkan (output terlalu sedikit untuk mengira nisbah yang bermakna).",
+    "days": [
+      "Ahd",
+      "Isn",
+      "Sel",
+      "Rab",
+      "Kha",
+      "Jum",
+      "Sab"
+    ]
+  },
+  "calendar": {
+    "title": "Kalendar Penggunaan Setiap Jam",
+    "fiveHourWindow": "Tetingkap 5 Jam",
+    "oneHourBlock": "Blok 1 Jam",
+    "legendLow": "~$15/h",
+    "legendMid": "$15-30/h",
+    "legendHigh": "$30+/h",
+    "legendBlocked": "disekat",
+    "legendPlugin": "Plugin dipasang",
+    "note": "Klik mana-mana sel untuk melihat butiran sesi. Paparan lalai ialah tetingkap 5 jam — tukar ke blok 1 jam dengan butang di atas.",
+    "noData": "Tiada Data"
+  },
+  "session": {
+    "detailExpand": "▶ Butiran Sesi",
+    "detailCollapse": "▼ Runtuhkan",
+    "alertExpand": "▶ Perbualan Token Tertinggi ({count})",
+    "alertCollapse": "▼ Perbualan Token Tertinggi ({count})",
+    "windowDetailTitle": "📋 {date} {start}~{end} Butiran Sesi (${cost})",
+    "programmaticExec": "📦 Pelaksanaan Programatik ({count})",
+    "batchExec": "🔄 Pelaksanaan Kelompok ({count})",
+    "continueRestore": "💚 /continue memulihkan {n} sesi (0 panggilan LLM)",
+    "continueContext": "   Konteks dipulihkan: {tokens} token",
+    "continueCompactCost": "   /compact anggaran kos: ${min} ~ ${max}",
+    "continueSaved": "   → ${min} ~ ${max} dijimatkan!",
+    "tableHeaders": [
+      "ID",
+      "Type",
+      "Msgs",
+      "Input",
+      "Output",
+      "Cache",
+      "Read",
+      "Cost"
+    ]
+  },
+  "alert": {
+    "ctxWarn": "⚠️ Context window melebihi 35% — kos cache read meningkat setiap panggilan.",
+    "ctxDanger": "🔴 Context window melebihi 70% — kos cache read sangat tinggi.",
+    "fiveHWarn": "⚠️ Tetingkap sesi 5H pada 70% — menghampiri had penggunaan langganan.",
+    "fiveHDanger": "🔴 Tetingkap sesi 5H pada 90% — penggunaan langganan mungkin habis tidak lama lagi.",
+    "resume": "🔄 Sesi disambung semula — cache dijana semula, kos ditanggung",
+    "compact": "📦 /compact mulakan semula — cache dijana semula, kos ditanggung",
+    "continue1": "💚 /continue skill memulihkan 1 sesi",
+    "continueN": "💚 /continue skill memulihkan 2+ sesi",
+    "continueSkillTip": " 💡 Kami mengesyorkan /continue skill selepas sesi baru.\n",
+    "cacheWritePrefix": "{icon} Dalam panggilan ini, cache write {tokens} token telah di-cache — ",
+    "resumeReason": "Menyambung sesi dengan claude --continue atau /resume menggunakan banyak token. Melainkan perlu, kami mengesyorkan /continue skill selepas sesi baru.",
+    "compactReason": "/compact mulakan semula menyebabkan penjanaan semula cache — kos besar!",
+    "clearReason": "{reason} menyebabkan penciptaan cache (${cost})",
+    "clearReasonClear": "/clear mulakan semula",
+    "clearReasonStartup": "mula sesi baru",
+    "pluginOverload": " — mungkin terlalu banyak plugin, MCP, atau skills dimuatkan. Simpan hanya yang diperlukan.",
+    "reloadReason": "/reload-plugins menyebabkan perubahan prompt sistem, cache dijana semula (${cost})",
+    "modelReason": "/model perubahan membatalkan cache sebelumnya, dijana semula (${cost})",
+    "resumeHeuristicReason": "Menyambung sesi dengan claude --continue atau /resume menggunakan banyak token. Melainkan perlu, kami mengesyorkan /continue skill selepas sesi baru.",
+    "cacheExpiredReason": "Apabila konteks besar dan lebih 1 jam berlalu, cache baru dijana — kos besar!",
+    "costTopLabel": "{icon} {label} (${cost})"
+  },
+  "ai": {
+    "analysis": "✨ Analisis AI",
+    "tips": "💡 Petua — Panduan Penggunaan cc-token-saver"
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "meta": {
+    "locale": "en",
+    "direction": "ltr",
+    "name": "English"
+  },
+  "header": {
+    "title": "Claude Code Usage Report",
+    "period": "Analysis Period",
+    "totalCost": "Total Cost",
+    "sessions": "Sessions",
+    "periodTotal": "Total for entire period",
+    "currentWindow": "Current 5-Hour Window",
+    "subtaskCount": "incl. {count} subtasks",
+    "daysDuration": "{days} days"
+  },
+  "token": {
+    "detail": "Token Details",
+    "type": "Type",
+    "tokens": "Tokens",
+    "cost": "Cost",
+    "input": "Input",
+    "output": "Output",
+    "cacheWrite": "Cache Write",
+    "cacheRead": "Cache Read",
+    "cache1hTier": "└ 1h tier",
+    "cache5mTier": "└ 5m tier",
+    "total": "Total",
+    "costRatio": "Cost Breakdown"
+  },
+  "chart": {
+    "dailyCost": "Daily Cost Trend",
+    "hourlyCost": "Hourly Cost Pattern",
+    "dowCost": "Day-of-Week Cost Pattern",
+    "efficiency": "Efficiency Trend",
+    "avgCost": "Avg Cost",
+    "maxCost": "Max Cost",
+    "avg": "Average",
+    "max": "Maximum",
+    "hourSuffix": "h",
+    "pluginInstalled": "Plugin installed",
+    "legendAverage": "┄ Average",
+    "effTotalPerOutput": "(Total / Output) ↓ Lower is better",
+    "effCachePerOutput": "(Cache Creation / Output) ↓ Lower is better",
+    "effNote": "* Days with <1,000 output tokens are omitted (too little output to compute a meaningful ratio).",
+    "days": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+  },
+  "calendar": {
+    "title": "Hourly Usage Calendar",
+    "fiveHourWindow": "5-Hour Window",
+    "oneHourBlock": "1-Hour Block",
+    "legendLow": "~$15/h",
+    "legendMid": "$15-30/h",
+    "legendHigh": "$30+/h",
+    "legendBlocked": "blocked",
+    "legendPlugin": "Plugin installed",
+    "note": "Click any cell to see session details. Default view is 5-hour window — toggle to 1-hour blocks with the button above.",
+    "noData": "No Data"
+  },
+  "session": {
+    "detailExpand": "▶ Session Details",
+    "detailCollapse": "▼ Collapse",
+    "alertExpand": "▶ Top Token Conversations ({count})",
+    "alertCollapse": "▼ Top Token Conversations ({count})",
+    "windowDetailTitle": "📋 {date} {start}~{end} Session Details (${cost})",
+    "programmaticExec": "📦 Programmatic Execution ({count})",
+    "batchExec": "🔄 Batch Execution ({count})",
+    "continueRestore": "💚 /continue restored {n} sessions (0 LLM calls)",
+    "continueContext": "   Restored context: {tokens} tokens",
+    "continueCompactCost": "   /compact estimated cost: ${min} ~ ${max}",
+    "continueSaved": "   → ${min} ~ ${max} saved!",
+    "tableHeaders": ["ID", "Type", "Msgs", "Input", "Output", "Cache", "Read", "Cost"]
+  },
+  "alert": {
+    "ctxWarn": "⚠️ Context window exceeded 35% — cache read cost increases with each call.",
+    "ctxDanger": "🔴 Context window exceeded 70% — cache read cost is very high.",
+    "fiveHWarn": "⚠️ 5H session window at 70% — approaching subscription usage limit.",
+    "fiveHDanger": "🔴 5H session window at 90% — subscription usage may expire soon.",
+    "resume": "🔄 Session resumed — cache regenerated, cost incurred",
+    "compact": "📦 /compact restart — cache regenerated, cost incurred",
+    "continue1": "💚 /continue skill restored 1 session",
+    "continueN": "💚 /continue skill restored 2+ sessions",
+    "continueSkillTip": " 💡 We recommend /continue skill after a new session.\n",
+    "cacheWritePrefix": "{icon} In this call, cache write {tokens} tokens were newly cached — ",
+    "resumeReason": "Resuming a session with claude --continue or /resume uses a lot of tokens. Unless necessary, we recommend /continue skill after a new session.",
+    "compactReason": "/compact restart caused cache regeneration — large cost!",
+    "clearReason": "{reason} caused cache creation (${cost})",
+    "clearReasonClear": "/clear restart",
+    "clearReasonStartup": "new session start",
+    "pluginOverload": " — too many plugins, MCP, or skills may be loaded. Keep only what you need.",
+    "reloadReason": "/reload-plugins caused system prompt change, cache regenerated (${cost})",
+    "modelReason": "/model change invalidated previous cache, regenerated (${cost})",
+    "resumeHeuristicReason": "Resuming a session with claude --continue or /resume uses a lot of tokens. Unless necessary, we recommend /continue skill after a new session.",
+    "cacheExpiredReason": "When context is large and over 1 hour has passed, new cache is generated — large cost!",
+    "costTopLabel": "{icon} {label} (${cost})"
+  },
+  "ai": {
+    "analysis": "✨ AI Analysis",
+    "tips": "💡 Tips — cc-token-saver Usage Guide"
+  }
+}

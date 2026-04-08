@@ -1,0 +1,118 @@
+{
+  "meta": {
+    "locale": "he",
+    "direction": "rtl",
+    "name": "עברית"
+  },
+  "header": {
+    "title": "דוח שימוש ב-‎Claude Code‏",
+    "period": "תקופת ניתוח",
+    "totalCost": "עלות כוללת",
+    "sessions": "הפעלות",
+    "periodTotal": "סה\"כ לכל התקופה",
+    "currentWindow": "חלון 5 שעות נוכחי",
+    "subtaskCount": "כולל {count} תתי-משימות",
+    "daysDuration": "{days} ימים"
+  },
+  "token": {
+    "detail": "פרטי טוקנים",
+    "type": "סוג",
+    "tokens": "טוקנים",
+    "cost": "עלות",
+    "input": "קלט",
+    "output": "פלט",
+    "cacheWrite": "Cache Write",
+    "cacheRead": "Cache Read",
+    "cache1hTier": "└ 1h tier",
+    "cache5mTier": "└ 5m tier",
+    "total": "סה\"כ",
+    "costRatio": "פירוט עלויות"
+  },
+  "chart": {
+    "dailyCost": "מגמת עלות יומית",
+    "hourlyCost": "דפוס עלות שעתי",
+    "dowCost": "דפוס עלות לפי יום בשבוע",
+    "efficiency": "מגמת יעילות",
+    "avgCost": "עלות ממוצעת",
+    "maxCost": "עלות מקסימלית",
+    "avg": "ממוצע",
+    "max": "מקסימום",
+    "hourSuffix": "h",
+    "pluginInstalled": "תוסף מותקן",
+    "legendAverage": "┄ ממוצע",
+    "effTotalPerOutput": "(Total / Output) ↓ נמוך יותר עדיף",
+    "effCachePerOutput": "(Cache Creation / Output) ↓ נמוך יותר עדיף",
+    "effNote": "* ימים עם פחות מ-1,000 טוקני פלט הושמטו (פלט מועט מדי לחישוב יחס משמעותי).",
+    "days": [
+      "א'",
+      "ב'",
+      "ג'",
+      "ד'",
+      "ה'",
+      "ו'",
+      "ש'"
+    ]
+  },
+  "calendar": {
+    "title": "לוח שנה של שימוש שעתי",
+    "fiveHourWindow": "חלון 5 שעות",
+    "oneHourBlock": "בלוק שעה אחת",
+    "legendLow": "~$15/h",
+    "legendMid": "$15-30/h",
+    "legendHigh": "$30+/h",
+    "legendBlocked": "חסום",
+    "legendPlugin": "תוסף מותקן",
+    "note": "לחץ על תא כלשהו כדי לראות פרטי הפעלה. תצוגת ברירת המחדל היא חלון 5 שעות — עבור לבלוקים של שעה עם הכפתור למעלה.",
+    "noData": "אין נתונים"
+  },
+  "session": {
+    "detailExpand": "▶ פרטי הפעלה",
+    "detailCollapse": "▼ צמצם",
+    "alertExpand": "▶ שיחות עם צריכת טוקנים גבוהה ({count})",
+    "alertCollapse": "▼ שיחות עם צריכת טוקנים גבוהה ({count})",
+    "windowDetailTitle": "📋 {date} {start}~{end} פרטי הפעלה (${cost})",
+    "programmaticExec": "📦 הרצה תכנותית ({count})",
+    "batchExec": "🔄 הרצה קבוצתית ({count})",
+    "continueRestore": "💚 ‎/continue‏ שחזר {n} הפעלות (0 קריאות ‎LLM‏)",
+    "continueContext": "   הקשר שוחזר: {tokens} טוקנים",
+    "continueCompactCost": "   ‎/compact‏ עלות משוערת: ${min} ~ ${max}",
+    "continueSaved": "   → ${min} ~ ${max} נחסכו!",
+    "tableHeaders": [
+      "ID",
+      "Type",
+      "Msgs",
+      "Input",
+      "Output",
+      "Cache",
+      "Read",
+      "Cost"
+    ]
+  },
+  "alert": {
+    "ctxWarn": "⚠️ ‎Context window‏ חרג מ-35% — עלות ‎cache read‏ עולה עם כל קריאה.",
+    "ctxDanger": "🔴 ‎Context window‏ חרג מ-70% — עלות ‎cache read‏ גבוהה מאוד.",
+    "fiveHWarn": "⚠️ חלון הפעלה ‎5H‏ ב-70% — מתקרב למגבלת השימוש במנוי.",
+    "fiveHDanger": "🔴 חלון הפעלה ‎5H‏ ב-90% — השימוש במנוי עלול להסתיים בקרוב.",
+    "resume": "🔄 הפעלה חודשה — ‎cache‏ נוצר מחדש, נוצרה עלות",
+    "compact": "📦 ‎/compact‏ הפעלה מחדש — ‎cache‏ נוצר מחדש, נוצרה עלות",
+    "continue1": "💚 ‎/continue skill‏ שחזר הפעלה אחת",
+    "continueN": "💚 ‎/continue skill‏ שחזר 2+ הפעלות",
+    "continueSkillTip": " 💡 אנו ממליצים על ‎/continue skill‏ לאחר הפעלה חדשה.\n",
+    "cacheWritePrefix": "{icon} בקריאה זו, ‎cache write‏ {tokens} טוקנים נשמרו במטמון — ",
+    "resumeReason": "חידוש הפעלה עם ‎claude --continue‏ או ‎/resume‏ צורך הרבה טוקנים. אלא אם כן הכרחי, אנו ממליצים על ‎/continue skill‏ לאחר הפעלה חדשה.",
+    "compactReason": "‎/compact‏ הפעלה מחדש גרמה ליצירה מחדש של ‎cache‏ — עלות גבוהה!",
+    "clearReason": "{reason} גרם ליצירת ‎cache‏ (${cost})",
+    "clearReasonClear": "‎/clear‏ הפעלה מחדש",
+    "clearReasonStartup": "התחלת הפעלה חדשה",
+    "pluginOverload": " — ייתכן שנטענו יותר מדי תוספים, ‎MCP‏ או ‎skills‏. שמור רק את הנחוץ.",
+    "reloadReason": "‎/reload-plugins‏ גרם לשינוי בהנחיית המערכת, ‎cache‏ נוצר מחדש (${cost})",
+    "modelReason": "‎/model‏ שינוי ביטל ‎cache‏ קודם, נוצר מחדש (${cost})",
+    "resumeHeuristicReason": "חידוש הפעלה עם ‎claude --continue‏ או ‎/resume‏ צורך הרבה טוקנים. אלא אם כן הכרחי, אנו ממליצים על ‎/continue skill‏ לאחר הפעלה חדשה.",
+    "cacheExpiredReason": "כאשר ההקשר גדול ועברה יותר משעה, נוצר ‎cache‏ חדש — עלות גבוהה!",
+    "costTopLabel": "{icon} {label} (${cost})"
+  },
+  "ai": {
+    "analysis": "✨ ניתוח ‎AI‏",
+    "tips": "💡 טיפים — מדריך שימוש ב-‎cc-token-saver‏"
+  }
+}

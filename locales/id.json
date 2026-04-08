@@ -1,0 +1,118 @@
+{
+  "meta": {
+    "locale": "id",
+    "direction": "ltr",
+    "name": "Bahasa Indonesia"
+  },
+  "header": {
+    "title": "Laporan Penggunaan Claude Code",
+    "period": "Periode Analisis",
+    "totalCost": "Total Biaya",
+    "sessions": "Sesi",
+    "periodTotal": "Total seluruh periode",
+    "currentWindow": "Jendela 5 Jam Saat Ini",
+    "subtaskCount": "termasuk {count} subtask",
+    "daysDuration": "{days} hari"
+  },
+  "token": {
+    "detail": "Detail Token",
+    "type": "Tipe",
+    "tokens": "Token",
+    "cost": "Biaya",
+    "input": "Input",
+    "output": "Output",
+    "cacheWrite": "Cache Write",
+    "cacheRead": "Cache Read",
+    "cache1hTier": "└ 1h tier",
+    "cache5mTier": "└ 5m tier",
+    "total": "Total",
+    "costRatio": "Rincian Biaya"
+  },
+  "chart": {
+    "dailyCost": "Tren Biaya Harian",
+    "hourlyCost": "Pola Biaya Per Jam",
+    "dowCost": "Pola Biaya Per Hari dalam Seminggu",
+    "efficiency": "Tren Efisiensi",
+    "avgCost": "Biaya Rata-rata",
+    "maxCost": "Biaya Maksimum",
+    "avg": "Rata-rata",
+    "max": "Maksimum",
+    "hourSuffix": "h",
+    "pluginInstalled": "Plugin terpasang",
+    "legendAverage": "┄ Rata-rata",
+    "effTotalPerOutput": "(Total / Output) ↓ Lebih rendah lebih baik",
+    "effCachePerOutput": "(Cache Creation / Output) ↓ Lebih rendah lebih baik",
+    "effNote": "* Hari dengan kurang dari 1.000 token output dihilangkan (output terlalu sedikit untuk menghitung rasio yang bermakna).",
+    "days": [
+      "Min",
+      "Sen",
+      "Sel",
+      "Rab",
+      "Kam",
+      "Jum",
+      "Sab"
+    ]
+  },
+  "calendar": {
+    "title": "Kalender Penggunaan Per Jam",
+    "fiveHourWindow": "Jendela 5 Jam",
+    "oneHourBlock": "Blok 1 Jam",
+    "legendLow": "~$15/h",
+    "legendMid": "$15-30/h",
+    "legendHigh": "$30+/h",
+    "legendBlocked": "diblokir",
+    "legendPlugin": "Plugin terpasang",
+    "note": "Klik sel mana saja untuk melihat detail sesi. Tampilan default adalah jendela 5 jam — alihkan ke blok 1 jam dengan tombol di atas.",
+    "noData": "Tidak Ada Data"
+  },
+  "session": {
+    "detailExpand": "▶ Detail Sesi",
+    "detailCollapse": "▼ Tutup",
+    "alertExpand": "▶ Percakapan Token Terbanyak ({count})",
+    "alertCollapse": "▼ Percakapan Token Terbanyak ({count})",
+    "windowDetailTitle": "📋 {date} {start}~{end} Detail Sesi (${cost})",
+    "programmaticExec": "📦 Eksekusi Programatis ({count})",
+    "batchExec": "🔄 Eksekusi Batch ({count})",
+    "continueRestore": "💚 /continue memulihkan {n} sesi (0 panggilan LLM)",
+    "continueContext": "   Konteks dipulihkan: {tokens} token",
+    "continueCompactCost": "   /compact perkiraan biaya: ${min} ~ ${max}",
+    "continueSaved": "   → ${min} ~ ${max} dihemat!",
+    "tableHeaders": [
+      "ID",
+      "Type",
+      "Msgs",
+      "Input",
+      "Output",
+      "Cache",
+      "Read",
+      "Cost"
+    ]
+  },
+  "alert": {
+    "ctxWarn": "⚠️ Context window melebihi 35% — biaya cache read meningkat setiap panggilan.",
+    "ctxDanger": "🔴 Context window melebihi 70% — biaya cache read sangat tinggi.",
+    "fiveHWarn": "⚠️ Jendela sesi 5H di 70% — mendekati batas penggunaan langganan.",
+    "fiveHDanger": "🔴 Jendela sesi 5H di 90% — penggunaan langganan mungkin segera habis.",
+    "resume": "🔄 Sesi dilanjutkan — cache diregenerasi, biaya terjadi",
+    "compact": "📦 /compact restart — cache diregenerasi, biaya terjadi",
+    "continue1": "💚 /continue skill memulihkan 1 sesi",
+    "continueN": "💚 /continue skill memulihkan 2+ sesi",
+    "continueSkillTip": " 💡 Kami merekomendasikan /continue skill setelah sesi baru.\n",
+    "cacheWritePrefix": "{icon} Dalam panggilan ini, cache write {tokens} token baru di-cache — ",
+    "resumeReason": "Melanjutkan sesi dengan claude --continue atau /resume menggunakan banyak token. Kecuali diperlukan, kami merekomendasikan /continue skill setelah sesi baru.",
+    "compactReason": "/compact restart menyebabkan regenerasi cache — biaya besar!",
+    "clearReason": "{reason} menyebabkan pembuatan cache (${cost})",
+    "clearReasonClear": "/clear restart",
+    "clearReasonStartup": "mulai sesi baru",
+    "pluginOverload": " — mungkin terlalu banyak plugin, MCP, atau skills yang dimuat. Simpan hanya yang diperlukan.",
+    "reloadReason": "/reload-plugins menyebabkan perubahan prompt sistem, cache diregenerasi (${cost})",
+    "modelReason": "/model perubahan membatalkan cache sebelumnya, diregenerasi (${cost})",
+    "resumeHeuristicReason": "Melanjutkan sesi dengan claude --continue atau /resume menggunakan banyak token. Kecuali diperlukan, kami merekomendasikan /continue skill setelah sesi baru.",
+    "cacheExpiredReason": "Saat konteks besar dan lebih dari 1 jam berlalu, cache baru dihasilkan — biaya besar!",
+    "costTopLabel": "{icon} {label} (${cost})"
+  },
+  "ai": {
+    "analysis": "✨ Analisis AI",
+    "tips": "💡 Tips — Panduan Penggunaan cc-token-saver"
+  }
+}

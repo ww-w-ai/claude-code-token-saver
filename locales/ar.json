@@ -1,0 +1,118 @@
+{
+  "meta": {
+    "locale": "ar",
+    "direction": "rtl",
+    "name": "العربية"
+  },
+  "header": {
+    "title": "تقرير استخدام ‎Claude Code‏",
+    "period": "فترة التحليل",
+    "totalCost": "التكلفة الإجمالية",
+    "sessions": "الجلسات",
+    "periodTotal": "الإجمالي للفترة كاملة",
+    "currentWindow": "نافذة الـ 5 ساعات الحالية",
+    "subtaskCount": "شامل {count} مهام فرعية",
+    "daysDuration": "{days} أيام"
+  },
+  "token": {
+    "detail": "تفاصيل التوكنات",
+    "type": "النوع",
+    "tokens": "التوكنات",
+    "cost": "التكلفة",
+    "input": "الإدخال",
+    "output": "الإخراج",
+    "cacheWrite": "Cache Write",
+    "cacheRead": "Cache Read",
+    "cache1hTier": "└ 1h tier",
+    "cache5mTier": "└ 5m tier",
+    "total": "الإجمالي",
+    "costRatio": "تفصيل التكاليف"
+  },
+  "chart": {
+    "dailyCost": "اتجاه التكلفة اليومية",
+    "hourlyCost": "نمط التكلفة بالساعة",
+    "dowCost": "نمط التكلفة حسب يوم الأسبوع",
+    "efficiency": "اتجاه الكفاءة",
+    "avgCost": "متوسط التكلفة",
+    "maxCost": "أقصى تكلفة",
+    "avg": "المتوسط",
+    "max": "الأقصى",
+    "hourSuffix": "h",
+    "pluginInstalled": "تم تثبيت الإضافة",
+    "legendAverage": "┄ المتوسط",
+    "effTotalPerOutput": "(Total / Output) ↓ الأقل أفضل",
+    "effCachePerOutput": "(Cache Creation / Output) ↓ الأقل أفضل",
+    "effNote": "* تم حذف الأيام التي تقل فيها توكنات الإخراج عن 1,000 (إخراج قليل جداً لحساب نسبة ذات معنى).",
+    "days": [
+      "أحد",
+      "إثنين",
+      "ثلاثاء",
+      "أربعاء",
+      "خميس",
+      "جمعة",
+      "سبت"
+    ]
+  },
+  "calendar": {
+    "title": "تقويم الاستخدام بالساعة",
+    "fiveHourWindow": "نافذة 5 ساعات",
+    "oneHourBlock": "بلوك ساعة واحدة",
+    "legendLow": "~$15/h",
+    "legendMid": "$15-30/h",
+    "legendHigh": "$30+/h",
+    "legendBlocked": "محظور",
+    "legendPlugin": "تم تثبيت الإضافة",
+    "note": "انقر على أي خلية لعرض تفاصيل الجلسة. العرض الافتراضي هو نافذة 5 ساعات — قم بالتبديل إلى كتل الساعة الواحدة بالزر أعلاه.",
+    "noData": "لا توجد بيانات"
+  },
+  "session": {
+    "detailExpand": "▶ تفاصيل الجلسة",
+    "detailCollapse": "▼ طي",
+    "alertExpand": "▶ المحادثات الأكثر استهلاكاً للتوكنات ({count})",
+    "alertCollapse": "▼ المحادثات الأكثر استهلاكاً للتوكنات ({count})",
+    "windowDetailTitle": "📋 {date} {start}~{end} تفاصيل الجلسة (${cost})",
+    "programmaticExec": "📦 تنفيذ برمجي ({count})",
+    "batchExec": "🔄 تنفيذ دفعي ({count})",
+    "continueRestore": "💚 ‎/continue‏ استعاد {n} جلسات (0 استدعاءات ‎LLM‏)",
+    "continueContext": "   السياق المستعاد: {tokens} توكن",
+    "continueCompactCost": "   ‎/compact‏ التكلفة المقدرة: ${min} ~ ${max}",
+    "continueSaved": "   → ${min} ~ ${max} تم توفيرها!",
+    "tableHeaders": [
+      "ID",
+      "Type",
+      "Msgs",
+      "Input",
+      "Output",
+      "Cache",
+      "Read",
+      "Cost"
+    ]
+  },
+  "alert": {
+    "ctxWarn": "⚠️ تجاوز ‎Context window‏ نسبة 35% — تكلفة ‎cache read‏ تزداد مع كل استدعاء.",
+    "ctxDanger": "🔴 تجاوز ‎Context window‏ نسبة 70% — تكلفة ‎cache read‏ مرتفعة جداً.",
+    "fiveHWarn": "⚠️ نافذة جلسة ‎5H‏ عند 70% — اقتراب من حد استخدام الاشتراك.",
+    "fiveHDanger": "🔴 نافذة جلسة ‎5H‏ عند 90% — قد ينتهي استخدام الاشتراك قريباً.",
+    "resume": "🔄 تم استئناف الجلسة — أُعيد توليد ‎cache‏، تكلفة مُتكبَّدة",
+    "compact": "📦 ‎/compact‏ إعادة تشغيل — أُعيد توليد ‎cache‏، تكلفة مُتكبَّدة",
+    "continue1": "💚 ‎/continue skill‏ استعاد جلسة واحدة",
+    "continueN": "💚 ‎/continue skill‏ استعاد جلستين أو أكثر",
+    "continueSkillTip": " 💡 نوصي باستخدام ‎/continue skill‏ بعد جلسة جديدة.\n",
+    "cacheWritePrefix": "{icon} في هذا الاستدعاء، ‎cache write‏ {tokens} توكن تم تخزينها مؤقتاً — ",
+    "resumeReason": "استئناف جلسة باستخدام ‎claude --continue‏ أو ‎/resume‏ يستهلك الكثير من التوكنات. ما لم يكن ضرورياً، نوصي باستخدام ‎/continue skill‏ بعد جلسة جديدة.",
+    "compactReason": "‎/compact‏ إعادة التشغيل تسببت في إعادة توليد ‎cache‏ — تكلفة عالية!",
+    "clearReason": "{reason} تسبب في إنشاء ‎cache‏ (${cost})",
+    "clearReasonClear": "‎/clear‏ إعادة تشغيل",
+    "clearReasonStartup": "بدء جلسة جديدة",
+    "pluginOverload": " — قد يكون هناك عدد كبير من الإضافات أو ‎MCP‏ أو ‎skills‏ المحملة. احتفظ فقط بما تحتاجه.",
+    "reloadReason": "‎/reload-plugins‏ تسبب في تغيير موجه النظام، أُعيد توليد ‎cache‏ (${cost})",
+    "modelReason": "‎/model‏ التغيير أبطل ‎cache‏ السابق، أُعيد توليده (${cost})",
+    "resumeHeuristicReason": "استئناف جلسة باستخدام ‎claude --continue‏ أو ‎/resume‏ يستهلك الكثير من التوكنات. ما لم يكن ضرورياً، نوصي باستخدام ‎/continue skill‏ بعد جلسة جديدة.",
+    "cacheExpiredReason": "عندما يكون السياق كبيراً ومر أكثر من ساعة، يتم توليد ‎cache‏ جديد — تكلفة عالية!",
+    "costTopLabel": "{icon} {label} (${cost})"
+  },
+  "ai": {
+    "analysis": "✨ تحليل الذكاء الاصطناعي",
+    "tips": "💡 نصائح — دليل استخدام ‎cc-token-saver‏"
+  }
+}

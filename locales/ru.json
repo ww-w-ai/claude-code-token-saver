@@ -1,0 +1,118 @@
+{
+  "meta": {
+    "locale": "ru",
+    "direction": "ltr",
+    "name": "Русский"
+  },
+  "header": {
+    "title": "Отчёт об использовании Claude Code",
+    "period": "Период анализа",
+    "totalCost": "Общая стоимость",
+    "sessions": "Сессии",
+    "periodTotal": "Итого за весь период",
+    "currentWindow": "Текущее 5-часовое окно",
+    "subtaskCount": "вкл. {count} подзадач",
+    "daysDuration": "{days} дней"
+  },
+  "token": {
+    "detail": "Детали токенов",
+    "type": "Тип",
+    "tokens": "Токены",
+    "cost": "Стоимость",
+    "input": "Ввод",
+    "output": "Вывод",
+    "cacheWrite": "Cache Write",
+    "cacheRead": "Cache Read",
+    "cache1hTier": "└ 1h tier",
+    "cache5mTier": "└ 5m tier",
+    "total": "Итого",
+    "costRatio": "Разбивка стоимости"
+  },
+  "chart": {
+    "dailyCost": "Ежедневная динамика стоимости",
+    "hourlyCost": "Почасовой паттерн стоимости",
+    "dowCost": "Паттерн стоимости по дням недели",
+    "efficiency": "Динамика эффективности",
+    "avgCost": "Средняя стоимость",
+    "maxCost": "Максимальная стоимость",
+    "avg": "Среднее",
+    "max": "Максимум",
+    "hourSuffix": "ч",
+    "pluginInstalled": "Плагин установлен",
+    "legendAverage": "┄ Среднее",
+    "effTotalPerOutput": "(Total / Output) ↓ Чем ниже, тем лучше",
+    "effCachePerOutput": "(Cache Creation / Output) ↓ Чем ниже, тем лучше",
+    "effNote": "* Дни с менее чем 1 000 выходных токенов опущены (слишком мало вывода для расчёта значимого соотношения).",
+    "days": [
+      "Вс",
+      "Пн",
+      "Вт",
+      "Ср",
+      "Чт",
+      "Пт",
+      "Сб"
+    ]
+  },
+  "calendar": {
+    "title": "Почасовой календарь использования",
+    "fiveHourWindow": "5-часовое окно",
+    "oneHourBlock": "1-часовой блок",
+    "legendLow": "~$15/h",
+    "legendMid": "$15-30/h",
+    "legendHigh": "$30+/h",
+    "legendBlocked": "заблокировано",
+    "legendPlugin": "Плагин установлен",
+    "note": "Нажмите на ячейку, чтобы увидеть детали сессии. По умолчанию отображается 5-часовое окно — переключитесь на 1-часовые блоки кнопкой выше.",
+    "noData": "Нет данных"
+  },
+  "session": {
+    "detailExpand": "▶ Детали сессии",
+    "detailCollapse": "▼ Свернуть",
+    "alertExpand": "▶ Самые затратные диалоги ({count})",
+    "alertCollapse": "▼ Самые затратные диалоги ({count})",
+    "windowDetailTitle": "📋 {date} {start}~{end} Детали сессии (${cost})",
+    "programmaticExec": "📦 Программное выполнение ({count})",
+    "batchExec": "🔄 Пакетное выполнение ({count})",
+    "continueRestore": "💚 /continue восстановил {n} сессий (0 вызовов LLM)",
+    "continueContext": "   Восстановленный контекст: {tokens} токенов",
+    "continueCompactCost": "   /compact расчётная стоимость: ${min} ~ ${max}",
+    "continueSaved": "   → ${min} ~ ${max} сэкономлено!",
+    "tableHeaders": [
+      "ID",
+      "Type",
+      "Msgs",
+      "Input",
+      "Output",
+      "Cache",
+      "Read",
+      "Cost"
+    ]
+  },
+  "alert": {
+    "ctxWarn": "⚠️ Context window превысило 35% — стоимость cache read растёт с каждым вызовом.",
+    "ctxDanger": "🔴 Context window превысило 70% — стоимость cache read очень высока.",
+    "fiveHWarn": "⚠️ 5H-окно сессии на 70% — приближение к лимиту подписки.",
+    "fiveHDanger": "🔴 5H-окно сессии на 90% — лимит подписки может скоро исчерпаться.",
+    "resume": "🔄 Сессия возобновлена — cache перегенерирован, расход начислен",
+    "compact": "📦 /compact перезапуск — cache перегенерирован, расход начислен",
+    "continue1": "💚 /continue skill восстановил 1 сессию",
+    "continueN": "💚 /continue skill восстановил 2+ сессий",
+    "continueSkillTip": " 💡 Рекомендуем /continue skill после новой сессии.\n",
+    "cacheWritePrefix": "{icon} В этом вызове cache write {tokens} токенов было закешировано — ",
+    "resumeReason": "Возобновление сессии через claude --continue или /resume потребляет много токенов. Если не необходимо, рекомендуем /continue skill после новой сессии.",
+    "compactReason": "/compact перезапуск вызвал перегенерацию cache — высокая стоимость!",
+    "clearReason": "{reason} вызвал создание cache (${cost})",
+    "clearReasonClear": "/clear перезапуск",
+    "clearReasonStartup": "запуск новой сессии",
+    "pluginOverload": " — возможно загружено слишком много плагинов, MCP или skills. Оставьте только необходимое.",
+    "reloadReason": "/reload-plugins вызвал изменение системного промпта, cache перегенерирован (${cost})",
+    "modelReason": "/model смена модели аннулировала предыдущий cache, перегенерирован (${cost})",
+    "resumeHeuristicReason": "Возобновление сессии через claude --continue или /resume потребляет много токенов. Если не необходимо, рекомендуем /continue skill после новой сессии.",
+    "cacheExpiredReason": "При большом контексте и бездействии более 1 часа генерируется новый cache — высокая стоимость!",
+    "costTopLabel": "{icon} {label} (${cost})"
+  },
+  "ai": {
+    "analysis": "✨ Анализ ИИ",
+    "tips": "💡 Советы — Руководство по использованию cc-token-saver"
+  }
+}

@@ -1,0 +1,118 @@
+{
+  "meta": {
+    "locale": "vi",
+    "direction": "ltr",
+    "name": "Tiếng Việt"
+  },
+  "header": {
+    "title": "Báo cáo sử dụng Claude Code",
+    "period": "Khoảng thời gian phân tích",
+    "totalCost": "Tổng chi phí",
+    "sessions": "Phiên",
+    "periodTotal": "Tổng cho toàn bộ khoảng thời gian",
+    "currentWindow": "Cửa sổ 5 giờ hiện tại",
+    "subtaskCount": "gồm {count} tác vụ phụ",
+    "daysDuration": "{days} ngày"
+  },
+  "token": {
+    "detail": "Chi tiết token",
+    "type": "Loại",
+    "tokens": "Token",
+    "cost": "Chi phí",
+    "input": "Đầu vào",
+    "output": "Đầu ra",
+    "cacheWrite": "Cache Write",
+    "cacheRead": "Cache Read",
+    "cache1hTier": "└ 1h tier",
+    "cache5mTier": "└ 5m tier",
+    "total": "Tổng",
+    "costRatio": "Phân bổ chi phí"
+  },
+  "chart": {
+    "dailyCost": "Xu hướng chi phí hàng ngày",
+    "hourlyCost": "Mẫu chi phí theo giờ",
+    "dowCost": "Mẫu chi phí theo ngày trong tuần",
+    "efficiency": "Xu hướng hiệu quả",
+    "avgCost": "Chi phí trung bình",
+    "maxCost": "Chi phí tối đa",
+    "avg": "Trung bình",
+    "max": "Tối đa",
+    "hourSuffix": "h",
+    "pluginInstalled": "Đã cài đặt plugin",
+    "legendAverage": "┄ Trung bình",
+    "effTotalPerOutput": "(Total / Output) ↓ Thấp hơn là tốt hơn",
+    "effCachePerOutput": "(Cache Creation / Output) ↓ Thấp hơn là tốt hơn",
+    "effNote": "* Các ngày có ít hơn 1.000 token đầu ra bị bỏ qua (đầu ra quá ít để tính tỷ lệ có ý nghĩa).",
+    "days": [
+      "CN",
+      "T2",
+      "T3",
+      "T4",
+      "T5",
+      "T6",
+      "T7"
+    ]
+  },
+  "calendar": {
+    "title": "Lịch sử dụng theo giờ",
+    "fiveHourWindow": "Cửa sổ 5 giờ",
+    "oneHourBlock": "Khối 1 giờ",
+    "legendLow": "~$15/h",
+    "legendMid": "$15-30/h",
+    "legendHigh": "$30+/h",
+    "legendBlocked": "bị chặn",
+    "legendPlugin": "Đã cài đặt plugin",
+    "note": "Nhấp vào ô bất kỳ để xem chi tiết phiên. Chế độ xem mặc định là cửa sổ 5 giờ — chuyển sang khối 1 giờ bằng nút phía trên.",
+    "noData": "Không có dữ liệu"
+  },
+  "session": {
+    "detailExpand": "▶ Chi tiết phiên",
+    "detailCollapse": "▼ Thu gọn",
+    "alertExpand": "▶ Cuộc hội thoại dùng nhiều token nhất ({count})",
+    "alertCollapse": "▼ Cuộc hội thoại dùng nhiều token nhất ({count})",
+    "windowDetailTitle": "📋 {date} {start}~{end} Chi tiết phiên (${cost})",
+    "programmaticExec": "📦 Thực thi lập trình ({count})",
+    "batchExec": "🔄 Thực thi hàng loạt ({count})",
+    "continueRestore": "💚 /continue đã khôi phục {n} phiên (0 lần gọi LLM)",
+    "continueContext": "   Ngữ cảnh đã khôi phục: {tokens} token",
+    "continueCompactCost": "   /compact chi phí ước tính: ${min} ~ ${max}",
+    "continueSaved": "   → ${min} ~ ${max} đã tiết kiệm!",
+    "tableHeaders": [
+      "ID",
+      "Type",
+      "Msgs",
+      "Input",
+      "Output",
+      "Cache",
+      "Read",
+      "Cost"
+    ]
+  },
+  "alert": {
+    "ctxWarn": "⚠️ Context window vượt quá 35% — chi phí cache read tăng với mỗi lần gọi.",
+    "ctxDanger": "🔴 Context window vượt quá 70% — chi phí cache read rất cao.",
+    "fiveHWarn": "⚠️ Cửa sổ phiên 5H ở 70% — đang tiến gần giới hạn sử dụng đăng ký.",
+    "fiveHDanger": "🔴 Cửa sổ phiên 5H ở 90% — sử dụng đăng ký có thể hết sớm.",
+    "resume": "🔄 Phiên được tiếp tục — cache được tạo lại, phát sinh chi phí",
+    "compact": "📦 /compact khởi động lại — cache được tạo lại, phát sinh chi phí",
+    "continue1": "💚 /continue skill khôi phục 1 phiên",
+    "continueN": "💚 /continue skill khôi phục 2+ phiên",
+    "continueSkillTip": " 💡 Chúng tôi khuyên dùng /continue skill sau phiên mới.\n",
+    "cacheWritePrefix": "{icon} Trong lần gọi này, cache write {tokens} token đã được cache mới — ",
+    "resumeReason": "Tiếp tục phiên với claude --continue hoặc /resume sử dụng rất nhiều token. Trừ khi cần thiết, chúng tôi khuyên dùng /continue skill sau phiên mới.",
+    "compactReason": "/compact khởi động lại gây ra tái tạo cache — chi phí lớn!",
+    "clearReason": "{reason} gây ra tạo cache (${cost})",
+    "clearReasonClear": "/clear khởi động lại",
+    "clearReasonStartup": "bắt đầu phiên mới",
+    "pluginOverload": " — có thể đang tải quá nhiều plugin, MCP hoặc skills. Chỉ giữ những gì cần thiết.",
+    "reloadReason": "/reload-plugins gây ra thay đổi prompt hệ thống, cache được tạo lại (${cost})",
+    "modelReason": "/model thay đổi làm vô hiệu cache trước đó, được tạo lại (${cost})",
+    "resumeHeuristicReason": "Tiếp tục phiên với claude --continue hoặc /resume sử dụng rất nhiều token. Trừ khi cần thiết, chúng tôi khuyên dùng /continue skill sau phiên mới.",
+    "cacheExpiredReason": "Khi ngữ cảnh lớn và đã qua hơn 1 giờ, cache mới được tạo — chi phí lớn!",
+    "costTopLabel": "{icon} {label} (${cost})"
+  },
+  "ai": {
+    "analysis": "✨ Phân tích AI",
+    "tips": "💡 Mẹo — Hướng dẫn sử dụng cc-token-saver"
+  }
+}
