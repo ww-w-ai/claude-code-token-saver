@@ -1279,9 +1279,9 @@ if (exportPromptPath) {
   // markerCounts.continue is populated from alertMessages which come from compact caches
 
   // Alert marker summary (from all windows)
-  const markerCounts = { startup: 0, cost: 0, context: 0, resume: 0, continue: 0, modelChange: 0, blockedHours: 0 };
+  const markerCounts = { startup: 0, cost: 0, context: 0, resume: 0, continue: 0, modelChange: 0, blockedWindows: 0 };
   for (const w of reportData.windows) {
-    if (w.rlHours) markerCounts.blockedHours += w.rlHours.length;
+    if (w.rlHours && w.rlHours.length > 0) markerCounts.blockedWindows++;
     if (!w.alertMessages) continue;
     for (const a of w.alertMessages) {
       const t = a.alertType || '';
@@ -1365,7 +1365,7 @@ ${dow}
 ${weeks.join('\n')}
 
 ## Rate Limit & Blocking
-- Rate-limit blocked hours (skulls on calendar): ${markerCounts.blockedHours}
+- Rate-limited windows (skulls on calendar): ${markerCounts.blockedWindows}
 - 5H window alerts: ${rlCount}
 
 ## /continue Skill Usage
