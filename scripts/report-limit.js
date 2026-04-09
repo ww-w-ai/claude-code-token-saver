@@ -339,13 +339,23 @@ if (allRatelimitFiles.size > 0) {
       if (cur7d) prev7d = cur7d;
     }
   }
-  // Back-fill missing reset values from nearest previous row
-  let last5hReset = '', last7dReset = '';
-  for (let i = 0; i < deduped.length; i++) {
-    const cols = deduped[i].split(',');
-    if (cols[2]) last5hReset = cols[2]; else if (last5hReset) cols[2] = last5hReset;
-    if (cols[4]) last7dReset = cols[4]; else if (last7dReset) cols[4] = last7dReset;
-    deduped[i] = cols.join(',');
+  // Fill first row's missing reset values (window cut may start mid-stream)
+  if (deduped.length > 0) {
+    const cols = deduped[0].split(',');
+    if (!cols[2] || !cols[4]) {
+      // Scan all source rows for nearest reset values before first row's ts
+      const firstTs = Number(cols[0]);
+      let best5h = '', best7d = '';
+      for (const row of sorted) {
+        const rc = row.split(',');
+        if (Number(rc[0]) > firstTs) break;
+        if (rc[2]) best5h = rc[2];
+        if (rc[4]) best7d = rc[4];
+      }
+      if (!cols[2] && best5h) cols[2] = best5h;
+      if (!cols[4] && best7d) cols[4] = best7d;
+      deduped[0] = cols.join(',');
+    }
   }
   fs.writeFileSync(path.join(reportDir, 'ratelimit.csv'),
     'ts,5h,5h_reset,7d,7d_reset,alert\n' + deduped.join('\n') + '\n');
