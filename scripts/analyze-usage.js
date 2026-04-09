@@ -4,9 +4,16 @@
  * Outputs JSON to stdout. Caches results per session in project/session hierarchy.
  *
  * Usage: node analyze-usage.js [options]
- *   --days N        Only analyze last N days (default: all)
- *   --project PATH  Analyze specific project directory (default: all projects)
- *   --force         Force re-analyze, ignore cached results
+ *   --days N            Only analyze last N days (default: ~1 month; 0 = all)
+ *   --project <name>    Analyze single project by name (hashed CWD, e.g. -Users-foo-myproject).
+ *                       Scans only ~/.claude/projects/{name}/ for transcripts.
+ *                       Default: all projects.
+ *   --force             Force re-analyze, ignore cached results
+ *
+ * Cache structure: ~/.claude/cc-token-saver/{projectName}/{sessionId}/
+ *   summary.json   — session metadata (tokens, cost, timestamps)
+ *   timeline.csv   — per-API-call timeline
+ *   subagents/{agentId}/summary.json, timeline.csv — agent sessions
  *
  * Timeline CSV columns: ts,model,input,cc,cc5m,cc1h,cr,out,cost,win,rl,evt
  *   win: 5h window start (sparse, simple hourFloor+5h per session)
@@ -56,14 +63,10 @@ function parseArgs(argv) {
   return { days, project, force };
 }
 
-function projectHash(dir) {
-  return dir.replace(/[^a-zA-Z0-9]/g, "-");
-}
-
 function findTranscriptDirs(opts) {
   if (opts.project) {
-    const hash = projectHash(opts.project);
-    const dir = path.join(PROJECTS_DIR, hash);
+    // --project accepts a projectName (hashed CWD, e.g. -Users-foo-myproject)
+    const dir = path.join(PROJECTS_DIR, opts.project);
     if (!fs.existsSync(dir)) {
       process.stderr.write(`Warning: transcripts dir not found: ${dir}\n`);
       return [];

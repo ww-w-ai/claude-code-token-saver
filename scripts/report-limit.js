@@ -4,9 +4,14 @@
  *
  * 1. Runs analyze-usage.js to ensure timeline CSVs exist
  * 2. Scans timeline CSVs for rate-limited windows
- * 3. Collects all rows within each 5h window
- * 4. Uploads to GitHub gist + opens pre-filled Discussion URL
- * 5. Prints JSON summary to stdout
+ * 3. Collects all rows within each 5h window, merges overlapping windows
+ * 4. Builds sessions.csv with hashed IDs and project mapping
+ * 5. Merges ratelimit CSVs into single ratelimit.csv (dedup + sort)
+ * 6. Uploads to GitHub gist + opens pre-filled Discussion URL
+ * 7. Prints JSON summary to stdout
+ *
+ * Cache structure: ~/.claude/cc-token-saver/{projectName}/{sessionId}/
+ *   timeline.csv, ratelimit.csv, summary.json, subagents/{agentId}/...
  *
  * Usage: node report-limit.js [--plan <plan>]
  *   --plan  pro|max100|max200|team|team_premium|enterprise|bedrock|foundry|vertex

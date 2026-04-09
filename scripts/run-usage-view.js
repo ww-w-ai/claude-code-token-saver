@@ -7,17 +7,24 @@
  * analyze-usage.js or build-report.js directly — always go through this runner.
  *
  * Modes:
- *   --gen-agent-prompt [--days N] [--current] [--locale XX]
+ *   --gen-agent-prompt [--days N] [--current] [--locale XX] [--plan <plan>] [--project <name>] [--all]
  *     → Run full pipeline: analyze → build REPORT_DATA → export AI prompt → write agent instructions
  *     → Outputs JSON: { agentPromptFile: "/tmp/..." }
  *     → Agent reads that file and follows instructions (AI analysis → finalize)
  *
- *   --prepare [--days N] [--current] [--locale XX]
+ *   --prepare [--days N] [--current] [--locale XX] [--plan <plan>] [--project <name>] [--all]
  *     → analyze-usage.js + build-report.js --export-data + --export-prompt
  *     → Outputs JSON: { reportDataFile, promptFile, outputFile }
  *
- *   --finalize --report-data <path> --ai-data <path> --output <path> [--locale XX]
+ *   --finalize --report-data <path> --ai-data <path> --output <path> [--locale XX] [--plan <plan>] [--project <name>]
  *     → build-report.js --import-data + --ai-data → final HTML + open browser
+ *
+ * Project scoping:
+ *   --project <name>  Scope to a single project (hashed CWD, e.g. -Users-foo-myproject)
+ *   --all             Analyze all projects (ignore CWD-based default)
+ *   (default)         Derive project from current working directory via projectNameFromCwd()
+ *
+ * Cache structure: ~/.claude/cc-token-saver/{projectName}/{sessionId}/
  *
  * Pipeline:
  *   /usage-view skill

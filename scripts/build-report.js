@@ -13,7 +13,7 @@
  * then parsed individually via string matching.
  *
  * Usage: node build-report.js [options]
- *   --data <path>           analyze-usage.js JSON output (required)
+ *   --data <path>           analyze-usage.js JSON output (required unless --import-data)
  *   --output <path>         Output HTML file path (required)
  *   --current               Current 5-hour window mode (session detail pre-opened)
  *   --ai-data <path>        AI analysis JSON to inject into report
@@ -21,6 +21,8 @@
  *   --export-data <path>    Export REPORT_DATA as JSON (for --import-data)
  *   --import-data <path>    Import pre-built REPORT_DATA instead of building from CSVs
  *   --locale <code>         Force locale (default: system language → en fallback)
+ *   --plan <plan>           Plan tier for AI prompt context (pro|max100|max200|...)
+ *   --project <name>        Project name (hashed CWD) to scope report to single project
  *
  * Input:
  *   - analyze-usage.js JSON output (--data)
