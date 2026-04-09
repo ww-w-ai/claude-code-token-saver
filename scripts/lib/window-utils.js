@@ -8,7 +8,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { listProjects, listSessions, getRatelimitPath } = require('./cache-paths');
+const { listProjects, listSessions, listSubagents, getRatelimitPath, getTimelinePath, getSubagentTimelinePath } = require('./cache-paths');
 
 const FIVE_HOURS_S = 5 * 3600;
 
@@ -79,9 +79,82 @@ function detectAndMergeWindows(cacheBase) {
   return mergeWindows(starts);
 }
 
+/**
+ * Collect all active hours from timeline CSVs across all projects/sessions/subagents.
+ * @param {string} [projectFilter] - Optional project name to scope scan
+ * @returns {number[]} Sorted array of unique hourFloor timestamps
+ */
+function collectActiveHours(projectFilter) {
+  const hours = new Set();
+  try {
+    const projects = projectFilter ? [projectFilter] : listProjects();
+    for (const proj of projects) {
+      const sessions = listSessions(proj);
+      for (const sess of sessions) {
+        _readHoursFromCsv(getTimelinePath(proj, sess), hours);
+        const agents = listSubagents(proj, sess);
+        for (const agent of agents) {
+          _readHoursFromCsv(getSubagentTimelinePath(proj, sess, agent), hours);
+        }
+      }
+    }
+  } catch { /* ignore missing dirs */ }
+  return [...hours].sort((a, b) => a - b);
+}
+
+function _readHoursFromCsv(csvPath, hoursSet) {
+  if (!fs.existsSync(csvPath)) return;
+  const content = fs.readFileSync(csvPath, 'utf8').trim();
+  const lines = content.split('\n');
+  for (let i = 1; i < lines.length; i++) {
+    const ts = Number(lines[i].split(',')[0]);
+    if (ts > 0) hoursSet.add(Math.floor(ts / 3600) * 3600);
+  }
+}
+
+/**
+ * Build 5h windows from 1h activity hours + ratelimit boundaries.
+ * Ratelimit data (actual Anthropic boundaries) takes priority.
+ * Uncovered hours are grouped into 5h blocks by earliest activity.
+ *
+ * @param {number[]} activeHours - Sorted hourFloor timestamps with activity
+ * @param {{start: number, end: number}[]} rlWindows - Merged ratelimit windows
+ * @returns {Map<number, number>} hourFloor → 5h window start mapping
+ */
+function buildHourToWindowMap(activeHours, rlWindows) {
+  const hourToWin = new Map();
+
+  // 1) Assign hours covered by ratelimit windows
+  for (const h of activeHours) {
+    for (const w of rlWindows) {
+      if (h >= w.start && h < w.end) {
+        hourToWin.set(h, w.start);
+        break;
+      }
+    }
+  }
+
+  // 2) For uncovered hours, group into 5h blocks
+  let groupStart = null;
+  for (const h of activeHours) {
+    if (hourToWin.has(h)) {
+      groupStart = null;
+      continue;
+    }
+    if (groupStart === null || h >= groupStart + FIVE_HOURS_S) {
+      groupStart = h;
+    }
+    hourToWin.set(h, groupStart);
+  }
+
+  return hourToWin;
+}
+
 module.exports = {
   FIVE_HOURS_S,
   scanRatelimitWindows,
   mergeWindows,
   detectAndMergeWindows,
+  collectActiveHours,
+  buildHourToWindowMap,
 };

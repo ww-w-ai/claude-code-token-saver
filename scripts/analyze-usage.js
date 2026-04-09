@@ -38,7 +38,7 @@ const {
   migrateFromYYMM,
 } = require("./lib/cache-paths");
 const { MODEL_PRICING, DEFAULT_PRICING, calcCost } = require("./lib/pricing");
-const CACHE_VERSION = 7; // Bump when cache format changes
+const CACHE_VERSION = 8; // Bump when cache format changes (v8: win column = hourFloor, not 5h window)
 const PROJECTS_DIR = path.join(os.homedir(), ".claude", "projects");
 
 function parseArgs(argv) {
@@ -526,16 +526,11 @@ async function analyzeSession(filePath) {
   // Re-sort after inserting rate limit and context events
   usageTimeline.sort((a, b) => (a.ts > b.ts ? 1 : -1));
 
-  // Compute per-session 5h windows (simple: hourFloor + 5h)
-  let currentWinStart = null;
-  let currentWinEnd = null;
+  // Mark each row with its hourFloor (1h boundary).
+  // 5h window assembly happens in build-report.js using all sessions + ratelimit data.
   for (const e of usageTimeline) {
     const ts = Math.floor(new Date(e.ts).getTime() / 1000);
-    if (currentWinStart === null || ts >= currentWinEnd) {
-      currentWinStart = hourFloor(ts);
-      currentWinEnd = currentWinStart + 5 * 3600;
-    }
-    e.win = currentWinStart;
+    e.win = hourFloor(ts);
   }
 
   // Add cost/context events to evt column

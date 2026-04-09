@@ -21,7 +21,7 @@ const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { mergeWindows, FIVE_HOURS_S } = require('./lib/window-utils');
+const { scanRatelimitWindows, mergeWindows, collectActiveHours, buildHourToWindowMap, FIVE_HOURS_S } = require('./lib/window-utils');
 const { listProjects, listSessions, listSubagents, getTimelinePath, getSubagentTimelinePath, getRatelimitPath, hashId, CACHE_BASE: CACHE_DIR, migrateFromYYMM } = require('./lib/cache-paths');
 const { PLAN_INFO, VALID_PLANS } = require('./lib/plan-info');
 const { fmtTokens, fmtDate, fmtTime } = require('./lib/format');
@@ -137,11 +137,29 @@ if (windowMap.size === 0) {
 
 log('Found ' + windowMap.size + ' raw rate-limited window(s).');
 
-// ── Step 3: Merge overlapping windows ─────────────────────────────
-const windowStarts = [...windowMap.keys()].map(Number);
-const mergedWindows = mergeWindows(windowStarts, WINDOW_SECS);
+// ── Step 3: Build 5h windows from all active hours + ratelimit data ──
+// Timeline win column is hourFloor (1h boundary). Use shared library to
+// construct proper 5h windows, then keep only those containing rate limits.
+const allActiveHours = collectActiveHours();
+const rlStarts = scanRatelimitWindows(CACHE_DIR);
+const rlWindows = mergeWindows(rlStarts, FIVE_HOURS_S);
+const hourToWin = buildHourToWindowMap(allActiveHours, rlWindows);
 
-log('After merging: ' + mergedWindows.length + ' window(s).');
+// Regroup windowMap (keyed by hourFloor) → 5h window starts
+const fiveHWindowMap = new Map(); // 5h winStart → { sessions, hasUnknown }
+for (const [hourTs, info] of windowMap) {
+  const h = Number(hourTs);
+  const winStart = hourToWin.get(h) || h;
+  if (!fiveHWindowMap.has(winStart)) fiveHWindowMap.set(winStart, { sessions: new Set(), hasUnknown: false });
+  const target = fiveHWindowMap.get(winStart);
+  for (const s of info.sessions) target.sessions.add(s);
+  if (info.hasUnknown) target.hasUnknown = true;
+}
+
+const mergedWindows = [...fiveHWindowMap.keys()].sort((a, b) => a - b)
+  .map(start => ({ start, end: start + FIVE_HOURS_S }));
+
+log('After grouping: ' + mergedWindows.length + ' window(s).');
 
 // ── Step 4: For each merged window, collect ALL rows within the range ──
 const results = [];
@@ -156,71 +174,50 @@ for (const merged of mergedWindows) {
   // Token aggregation per window
   let sumInput = 0, sumOutput = 0, sumCacheWrite = 0, sumCacheRead = 0;
 
-  // Collect sessions and hasUnknown from all constituent windowMap entries
-  const mergedSessions = new Set();
-  let hasUnknown = false;
-  for (const [winTs, info] of windowMap) {
-    const ws = Number(winTs);
-    if (ws >= winStart && ws < winEnd) {
-      for (const s of info.sessions) mergedSessions.add(s);
-      if (info.hasUnknown) hasUnknown = true;
+  // Get sessions and hasUnknown from 5h window map
+  const fiveHInfo = fiveHWindowMap.get(winStart);
+  const mergedSessions = fiveHInfo ? fiveHInfo.sessions : new Set();
+  const hasUnknown = fiveHInfo ? fiveHInfo.hasUnknown : false;
+
+  // Helper: read CSV, fill sparse model/win, collect rows in [winStart, winEnd)
+  function collectFromCsv(filePath, sessionTag) {
+    if (!fs.existsSync(filePath)) return false;
+    const content = fs.readFileSync(filePath, 'utf8').trim();
+    if (!content) return false;
+    const lines = content.split('\n');
+    let prevModel = '';
+    let hasRows = false;
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(',');
+      if (cols.length < 11) continue;
+      // Fill sparse model only (win is left as-is per original CSV)
+      if (cols[1]) prevModel = cols[1]; else cols[1] = prevModel;
+      const ts = Number(cols[0]);
+      if (ts < winStart || ts >= winEnd) continue;
+      cols.push(sessionTag);
+      rows.push(cols.join(','));
+      hasRows = true;
+      sumInput += Number(cols[2]) || 0;
+      sumOutput += Number(cols[7]) || 0;
+      sumCacheWrite += (Number(cols[3]) || 0) + (Number(cols[4]) || 0) + (Number(cols[5]) || 0);
+      sumCacheRead += Number(cols[6]) || 0;
     }
+    return hasRows;
   }
 
   for (const proj of projects) {
     const projSessions = listSessions(proj);
     for (const sess of projSessions) {
-      // Scan main session timeline
       const filePath = getTimelinePath(proj, sess);
-      if (fs.existsSync(filePath)) {
-        const content = fs.readFileSync(filePath, 'utf8').trim();
-        if (content) {
-          const lines = content.split('\n');
-          let hasRows = false;
-          for (let i = 1; i < lines.length; i++) {
-            const cols = lines[i].split(',');
-            if (cols.length < 11) continue;
-            const ts = Number(cols[0]);
-            if (ts < winStart || ts >= winEnd) continue;
-            rows.push(lines[i] + ',' + sess);
-            hasRows = true;
-            sumInput += Number(cols[2]) || 0;
-            sumOutput += Number(cols[7]) || 0;
-            sumCacheWrite += (Number(cols[3]) || 0) + (Number(cols[4]) || 0) + (Number(cols[5]) || 0);
-            sumCacheRead += Number(cols[6]) || 0;
-          }
-          if (hasRows) {
-            touchedFiles.timeline.add(filePath);
-            const rlPath = getRatelimitPath(proj, sess);
-            if (fs.existsSync(rlPath)) {
-              touchedFiles.ratelimit.add(rlPath);
-            }
-          }
-        }
+      if (collectFromCsv(filePath, sess)) {
+        touchedFiles.timeline.add(filePath);
+        const rlPath = getRatelimitPath(proj, sess);
+        if (fs.existsSync(rlPath)) touchedFiles.ratelimit.add(rlPath);
       }
-
-      // Scan subagent timelines
       const agents = listSubagents(proj, sess);
       for (const agent of agents) {
         const agentFilePath = getSubagentTimelinePath(proj, sess, agent);
-        if (!fs.existsSync(agentFilePath)) continue;
-        const agentContent = fs.readFileSync(agentFilePath, 'utf8').trim();
-        if (!agentContent) continue;
-        const agentLines = agentContent.split('\n');
-        let agentHasRows = false;
-        for (let i = 1; i < agentLines.length; i++) {
-          const cols = agentLines[i].split(',');
-          if (cols.length < 11) continue;
-          const ts = Number(cols[0]);
-          if (ts < winStart || ts >= winEnd) continue;
-          rows.push(agentLines[i] + ',agent-' + agent);
-          agentHasRows = true;
-          sumInput += Number(cols[2]) || 0;
-          sumOutput += Number(cols[7]) || 0;
-          sumCacheWrite += (Number(cols[3]) || 0) + (Number(cols[4]) || 0) + (Number(cols[5]) || 0);
-          sumCacheRead += Number(cols[6]) || 0;
-        }
-        if (agentHasRows) {
+        if (collectFromCsv(agentFilePath, 'agent-' + agent)) {
           touchedFiles.timeline.add(agentFilePath);
         }
       }
@@ -232,6 +229,59 @@ for (const merged of mergedWindows) {
   const startD = new Date(winStart * 1000);
   const endD = new Date(winEnd * 1000);
   const totalCost = rows.reduce((s, r) => s + Number(r.split(',')[8]), 0);
+
+  // ── Compute aggregate metrics for rate limit analysis ──
+  // Parse rows into structured data for analysis
+  const parsedRows = rows.map(r => {
+    const c = r.split(',');
+    return {
+      ts: Number(c[0]), model: c[1], input: Number(c[2]) || 0,
+      cc: Number(c[3]) || 0, cc5m: Number(c[4]) || 0, cc1h: Number(c[5]) || 0,
+      cr: Number(c[6]) || 0, out: Number(c[7]) || 0, cost: Number(c[8]) || 0,
+      rl: c[10] || '', session: c[c.length - 1],
+    };
+  });
+
+  // Max concurrent sessions (distinct sessions in same second)
+  const tsSessions = new Map();
+  for (const r of parsedRows) {
+    if (!tsSessions.has(r.ts)) tsSessions.set(r.ts, new Set());
+    tsSessions.get(r.ts).add(r.session);
+  }
+  const maxConcurrent = Math.max(...[...tsSessions.values()].map(s => s.size));
+
+  // Per-session cache read max (peak context size)
+  const sessionCrMax = new Map();
+  for (const r of parsedRows) {
+    const prev = sessionCrMax.get(r.session) || 0;
+    if (r.cr > prev) sessionCrMax.set(r.session, r.cr);
+  }
+  const maxCrPerSession = Math.max(...sessionCrMax.values(), 0);
+
+  // Cumulative totals at limit_hit (sum up to and including last row)
+  let cumInput = 0, cumOutput = 0, cumCc5m = 0, cumCc1h = 0, cumCr = 0, cumCost = 0;
+  for (const r of parsedRows) {
+    cumInput += r.input; cumOutput += r.out;
+    cumCc5m += r.cc5m; cumCc1h += r.cc1h;
+    cumCr += r.cr; cumCost += r.cost;
+  }
+
+  // Active duration (first row to last row)
+  const firstTs = parsedRows.length > 0 ? parsedRows[0].ts : winStart;
+  const lastTs = parsedRows.length > 0 ? parsedRows[parsedRows.length - 1].ts : winEnd;
+  const activeDurationMin = Math.round((lastTs - firstTs) / 60);
+
+  // Distinct models used
+  const modelsUsed = [...new Set(parsedRows.map(r => r.model).filter(Boolean))];
+
+  const metrics = {
+    maxConcurrentSessions: maxConcurrent,
+    maxCrPerSession,
+    cumInput, cumOutput, cumCc5m, cumCc1h, cumCr,
+    cumCost: Math.round(cumCost * 100) / 100,
+    activeDurationMin,
+    modelsUsed,
+  };
 
   results.push({
     winTs: String(winStart),
@@ -245,6 +295,7 @@ for (const merged of mergedWindows) {
     output: sumOutput,
     cacheWrite: sumCacheWrite,
     cacheRead: sumCacheRead,
+    metrics,
     csvHeader: 'ts,model,input,cc,cc5m,cc1h,cr,out,cost,win,rl,evt,session',
     csvRows: rows,
     touchedFiles,
@@ -257,17 +308,19 @@ const reportDir = path.join(os.tmpdir(), 'report-limit-' + new Date().toISOStrin
 fs.mkdirSync(reportDir, { recursive: true });
 log('Report directory: ' + reportDir);
 
-// Build global session index (full sessionId -> sequential 1-based number)
+// Build global session and model indexes (sequential 1-based numbers)
 const sessionIndex = new Map();
+const modelIndex = new Map();
 let sessionCounter = 0;
+let modelCounter = 0;
 
 for (const w of results) {
   for (const row of w.csvRows) {
     const cols = row.split(',');
-    const sessionId = cols[cols.length - 1]; // last column is session
-    if (!sessionIndex.has(sessionId)) {
-      sessionIndex.set(sessionId, ++sessionCounter);
-    }
+    const sessionId = cols[cols.length - 1];
+    if (!sessionIndex.has(sessionId)) sessionIndex.set(sessionId, ++sessionCounter);
+    const model = cols[1];
+    if (model && !modelIndex.has(model)) modelIndex.set(model, ++modelCounter);
   }
 }
 
@@ -296,12 +349,20 @@ for (const [sid, num] of sessionIndex) {
 }
 fs.writeFileSync(path.join(reportDir, 'sessions.csv'), sessionsCsv);
 
-// Write per-window CSV files with numeric session IDs
+// Write models.csv
+let modelsCsv = 'num,model\n';
+for (const [model, num] of modelIndex) {
+  modelsCsv += num + ',' + model + '\n';
+}
+fs.writeFileSync(path.join(reportDir, 'models.csv'), modelsCsv);
+
+// Write per-window CSV files with numeric session and model IDs
 for (const w of results) {
   const mappedRows = w.csvRows.map(row => {
     const cols = row.split(',');
     const sessionId = cols[cols.length - 1];
     cols[cols.length - 1] = String(sessionIndex.get(sessionId) || 0);
+    cols[1] = String(modelIndex.get(cols[1]) || 0);
     return cols.join(',');
   });
   const csvContent = w.csvHeader + '\n' + mappedRows.join('\n') + '\n';
@@ -397,7 +458,7 @@ if (ghAuthenticated) {
   try {
     // Gist only supports text files — upload window + ratelimit CSVs
     const gistFiles = fs.readdirSync(reportDir)
-      .filter(f => (f.startsWith('window-') || f === 'ratelimit.csv' || f === 'sessions.csv') && f.endsWith('.csv'))
+      .filter(f => (f.startsWith('window-') || f === 'ratelimit.csv' || f === 'sessions.csv' || f === 'models.csv') && f.endsWith('.csv'))
       .map(f => path.join(reportDir, f));
     if (gistFiles.length > 0) {
       const result = execFileSync('gh', ['gist', 'create', '--public'].concat(gistFiles), {
@@ -437,55 +498,52 @@ const dateStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStar
 // Discussion title (short — details go in body)
 const title = '\u{1F480} Rate Limit Report (' + results.length + ' window' + (results.length > 1 ? 's' : '') + ') \u2014 $' + totalCostAll;
 
-// Discussion body — per-window table
+// Discussion body — unified window table (usage + metrics)
 function buildWindowTable() {
-  let table = '| Window | Cost | Requests | Sessions | Input | Output | Cache Write | Cache Read |\n'
-    + '|--------|------|----------|----------|-------|--------|-------------|------------|\n';
+  let table = '| Window | Duration | Cost | Reqs | Sessions | Peak Concurrent | Max Ctx/Session | Output | Cache Write (5m/1h) | Cache Read | Models |\n'
+    + '|--------|----------|------|------|----------|-----------------|-----------------|--------|---------------------|------------|--------|\n';
   for (const w of results) {
+    const m = w.metrics;
     table += '| ' + w.date + ' ' + w.start + '-' + w.end
+      + ' | ' + m.activeDurationMin + 'min'
       + ' | $' + w.cost
       + ' | ' + w.requests
       + ' | ' + w.sessions
-      + ' | ' + fmtTokens(w.input)
+      + ' | ' + m.maxConcurrentSessions
+      + ' | ' + fmtTokens(m.maxCrPerSession)
       + ' | ' + fmtTokens(w.output)
-      + ' | ' + fmtTokens(w.cacheWrite)
+      + ' | ' + fmtTokens(m.cumCc5m) + ' / ' + fmtTokens(m.cumCc1h)
       + ' | ' + fmtTokens(w.cacheRead)
+      + ' | ' + m.modelsUsed.length
       + ' |\n';
   }
-  table += '| **Total** | **$' + totalCostAll
+  table += '| **Total** | '
+    + ' | **$' + totalCostAll
     + '** | **' + totalRequests
     + '** | **' + totalSessions
-    + '** | **' + fmtTokens(totalInput)
-    + '** | **' + fmtTokens(totalOutput)
-    + '** | **' + fmtTokens(totalCacheWrite)
-    + '** | **' + fmtTokens(totalCacheRead)
-    + '** |\n';
+    + '** | '
+    + ' | '
+    + ' | **' + fmtTokens(totalOutput)
+    + '** | '
+    + ' | **' + fmtTokens(totalCacheRead)
+    + '** | |\n';
   return table;
 }
 
-let body;
-if (gistUrl) {
-  body = '## Rate Limit Data Point\n\n'
-    + buildWindowTable() + '\n'
-    + '## Raw Data\n'
-    + '\u{1F4CE} ' + gistUrl + '\n\n'
-    + '## Context\n'
-    + '- Plan: ' + (plan ? PLAN_INFO[plan].label : 'unknown') + '\n'
-    + '- Claude Code version: ' + ccVersion + '\n'
-    + '- Date: ' + dateStr;
-} else {
-  const zipNote = zipCreated
+const rawDataSection = gistUrl
+  ? '\u{1F4CE} ' + gistUrl
+  : (zipCreated
     ? '\u{1F4CE} Please attach: `' + zipFile + '`'
-    : '\u{1F4CE} Please attach CSV files from: `' + reportDir + '/`';
-  body = '## Rate Limit Data Point\n\n'
-    + buildWindowTable() + '\n'
-    + '## Raw Data\n'
-    + zipNote + '\n\n'
-    + '## Context\n'
-    + '- Plan: ' + (plan ? PLAN_INFO[plan].label : 'unknown') + '\n'
-    + '- Claude Code version: ' + ccVersion + '\n'
-    + '- Date: ' + dateStr;
-}
+    : '\u{1F4CE} Please attach CSV files from: `' + reportDir + '/`');
+
+let body = '## Rate Limit Data Point\n\n'
+  + buildWindowTable() + '\n'
+  + '## Raw Data\n'
+  + rawDataSection + '\n\n'
+  + '## Context\n'
+  + '- Plan: ' + (plan ? PLAN_INFO[plan].label : 'unknown') + '\n'
+  + '- Claude Code version: ' + ccVersion + '\n'
+  + '- Date: ' + dateStr;
 
 // Note about unknown rate limit types (only if any window has them)
 if (results.some(w => w.hasUnknown)) {
@@ -539,6 +597,7 @@ const summary = {
     output: w.output,
     cacheWrite: w.cacheWrite,
     cacheRead: w.cacheRead,
+    metrics: w.metrics,
   })),
   totalCost: totalCostAll,
   ghAuthenticated: ghAuthenticated,

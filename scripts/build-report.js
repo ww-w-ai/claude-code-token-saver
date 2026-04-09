@@ -43,7 +43,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { scanRatelimitWindows, mergeWindows, FIVE_HOURS_S } = require('./lib/window-utils');
+const { scanRatelimitWindows, mergeWindows, buildHourToWindowMap, FIVE_HOURS_S } = require('./lib/window-utils');
 const { listProjects, listSessions, listSubagents, getTimelinePath, getSummaryPath, getRatelimitPath, getSubagentTimelinePath, getSubagentSummaryPath, getCompactPath, migrateFromYYMM, CACHE_BASE: CACHE_DIR } = require('./lib/cache-paths');
 const { PLAN_INFO: PLAN_INFO_ALL } = require('./lib/plan-info');
 const { round2 } = require('./lib/format');
@@ -196,14 +196,19 @@ const raw = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
 // ── Read all timeline CSVs ──────────────────────────────────────
 // CSV header: ts,model,input,cc,cc5m,cc1h,cr,out,cost,win,rl
 // sessionId may be passed with project context via _sessionProjectMap
-const _sessionProjectMap = new Map(); // sessionId → projectName (populated during scanning)
+const _sessionProjectMap = new Map(); // sessionId|agentId → { proj, parentSessionId? }
 
 function readTimelineCsv(sessionId) {
   // New structure: look up project from _sessionProjectMap
-  const proj = _sessionProjectMap.get(sessionId);
+  const info = _sessionProjectMap.get(sessionId);
+  if (!info) return [];
   let csvPath = null;
-  if (proj) {
-    csvPath = getTimelinePath(proj, sessionId);
+  if (info.parentSessionId) {
+    // Subagent: timeline lives under parent session's subagents/ dir
+    // Use agentDirName (without "agent-" prefix) for the actual directory path
+    csvPath = getSubagentTimelinePath(info.proj, info.parentSessionId, info.agentDirName);
+  } else {
+    csvPath = getTimelinePath(info.proj, sessionId);
   }
   if (!csvPath || !fs.existsSync(csvPath)) return [];
   const content = fs.readFileSync(csvPath, 'utf8').trim();
@@ -253,11 +258,15 @@ migrateFromYYMM();
   for (const proj of projects) {
     const sessions = listSessions(proj);
     for (const sess of sessions) {
-      _sessionProjectMap.set(sess, proj);
-      // Also map subagent IDs
+      _sessionProjectMap.set(sess, { proj });
+      // Also map subagent IDs with parent session reference
+      // listSubagents() returns directory names (e.g. "a3f8c62d612b97b5a")
+      // but raw.sessions uses "agent-{id}" as sessionId — map both forms
       const agents = listSubagents(proj, sess);
       for (const agent of agents) {
-        _sessionProjectMap.set(agent, proj);
+        const info = { proj, parentSessionId: sess, agentDirName: agent };
+        _sessionProjectMap.set(agent, info);
+        _sessionProjectMap.set('agent-' + agent, info);
       }
     }
   }
@@ -297,9 +306,9 @@ function generateMissingCompacts(sessionIds) {
     const isSubagent = sess.filePath && sess.filePath.includes('/subagents/');
     if (isSubagent) continue;
     if (!sess.filePath || !fs.existsSync(sess.filePath)) continue;
-    const proj = _sessionProjectMap.get(sid);
-    if (!proj) continue;
-    const compactFilePath = getCompactPath(proj, sid, false);
+    const info = _sessionProjectMap.get(sid);
+    if (!info) continue;
+    const compactFilePath = getCompactPath(info.proj, sid, false);
     if (fs.existsSync(compactFilePath)) continue;
     fs.mkdirSync(path.dirname(compactFilePath), { recursive: true });
     tasks.push({ sid, filePath: sess.filePath, compactPath: compactFilePath });
@@ -330,9 +339,9 @@ function generateMissingCompacts(sessionIds) {
 function readCompactAlerts(sessionId) {
   const sess = sessionMap.get(sessionId);
   if (!sess) return [];
-  const proj = _sessionProjectMap.get(sessionId);
-  if (!proj) return [];
-  const compactPath = getCompactPath(proj, sessionId, false);
+  const info = _sessionProjectMap.get(sessionId);
+  if (!info) return [];
+  const compactPath = getCompactPath(info.proj, sessionId, false);
   if (!fs.existsSync(compactPath)) return [];
 
   const content = fs.readFileSync(compactPath, 'utf8');
@@ -498,76 +507,33 @@ await generateMissingCompacts(allSessionIds);
 
 // 3. windows
 
-// ── Win correction: adjust timeline wins using ratelimit CSV data ──
-// Ratelimit CSVs have the actual 5h window boundaries from Anthropic (5h_reset column).
-// Timeline CSVs have simple hourFloor-based wins. Correct them where ratelimit data exists.
+// ── 5h window construction from 1h activity + ratelimit data ──
+// Timeline CSV win column stores hourFloor (1h boundary).
+// Combine all sessions' hourly activity with ratelimit CSVs to build 5h windows.
 
-// Step 1: Collect actual windows from ratelimit CSVs (using shared utility)
+// Normalize: ensure every row has hourFloor-based win (handles old cache with 5h wins)
+for (const [, rows] of allTimelines) {
+  for (const row of rows) {
+    const ts = typeof row.ts === 'number' ? row.ts : Math.floor(new Date(row.ts).getTime() / 1000);
+    row.win = Math.floor(ts / 3600) * 3600; // hourFloor
+  }
+}
+
+// Collect active hours, get ratelimit windows, build mapping (shared lib)
+const activeHours = new Set();
+for (const [, rows] of allTimelines) {
+  for (const row of rows) activeHours.add(row.win);
+}
+const sortedHours = [...activeHours].sort((a, b) => a - b);
 const rlStarts = scanRatelimitWindows(CACHE_DIR);
-const actualWindows = mergeWindows(rlStarts, FIVE_HOURS_S);
+const rlWindows = mergeWindows(rlStarts, FIVE_HOURS_S);
+const hourToWin = buildHourToWindowMap(sortedHours, rlWindows);
 
-// Step 2: Expand actual windows as anchors — chain forward/backward where activity exists
-if (actualWindows.length > 0) {
-  // Collect all activity timestamps from all timelines
-  const allTimestamps = new Set();
-  for (const [, rows] of allTimelines) {
-    for (const row of rows) {
-      const ts = typeof row.ts === 'number' ? row.ts : Math.floor(new Date(row.ts).getTime() / 1000);
-      if (ts > 0) allTimestamps.add(Math.floor(ts / 3600) * 3600); // hourFloor
-    }
-  }
-
-  // Expand anchors backward
-  for (const anchor of [...actualWindows]) {
-    let curStart = anchor.start;
-    while (true) {
-      const candStart = curStart - FIVE_HOURS_S;
-      const candEnd = curStart;
-      // Check overlap with existing windows
-      if (actualWindows.some(w => w !== anchor && candStart < w.end && candEnd > w.start)) break;
-      // Check if any activity in candidate range
-      let found = false;
-      for (let h = candStart; h < candEnd; h += 3600) {
-        if (allTimestamps.has(h)) { found = true; break; }
-      }
-      if (found) {
-        actualWindows.push({ start: candStart, end: candEnd });
-        curStart = candStart;
-      } else break;
-    }
-  }
-
-  // Expand anchors forward
-  for (const anchor of [...actualWindows]) {
-    let curEnd = anchor.end;
-    while (true) {
-      const candStart = curEnd;
-      const candEnd = curEnd + FIVE_HOURS_S;
-      if (actualWindows.some(w => w !== anchor && candStart < w.end && candEnd > w.start)) break;
-      let found = false;
-      for (let h = candStart; h < candEnd; h += 3600) {
-        if (allTimestamps.has(h)) { found = true; break; }
-      }
-      if (found) {
-        actualWindows.push({ start: candStart, end: candEnd });
-        curEnd = candEnd;
-      } else break;
-    }
-  }
-
-  actualWindows.sort((a, b) => a.start - b.start);
-
-  // Step 3: Correct timeline row wins where they overlap with actual windows
-  for (const [, rows] of allTimelines) {
-    for (const row of rows) {
-      const ts = typeof row.ts === 'number' ? row.ts : Math.floor(new Date(row.ts).getTime() / 1000);
-      for (const w of actualWindows) {
-        if (ts >= w.start && ts < w.end) {
-          row.win = w.start;
-          break;
-        }
-      }
-    }
+// Assign each row's win to its 5h window start
+for (const [, rows] of allTimelines) {
+  for (const row of rows) {
+    const mapped = hourToWin.get(row.win);
+    if (mapped !== undefined) row.win = mapped;
   }
 }
 
