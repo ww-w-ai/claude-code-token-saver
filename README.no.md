@@ -123,7 +123,7 @@ Kjør `/setup-statusline install` én gang, og en permanent statuslinje vises ne
 
 | Indikator        | Hva den viser                       | 🟢 Normal | 🟡 Advarsel | 🔴 Kritisk |
 | ---------------- | ----------------------------------- | --------- | ---------- | ----------- |
-| RUN (delta)      | Kostnad for siste API-kall          | < ＄0.50   | >= ＄0.50   | >= ＄1.00    |
+| RUN (delta)      | Kostnad for siste API-kall          | < ＄0.30   | >= ＄0.30   | >= ＄1.00    |
 | RUN (kumulativ)  | Samlet kostnad for denne mappen     | —         | —          | —           |
 | 5H               | 5-timers vindusbruk + nedtelling til tilbakestilling | < 70%     | >= 70%     | >= 90%      |
 | CTX              | Context-vindusbruk                  | < 35%     | >= 35%     | >= 70%      |

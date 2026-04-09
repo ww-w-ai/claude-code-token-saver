@@ -32,8 +32,23 @@ Do not run any analysis. Just display the help text and stop.
 
 Before running, ask the user's plan if not already known:
 
-> What's your Claude subscription plan?
-> `pro` / `max100` / `max200` / `team` / `team_premium` / `enterprise` / `bedrock` / `foundry` / `vertex`
+> What's your current Claude plan?
+>
+> | # | Plan | Price |
+> |---|------|-------|
+> | 1 | Pro | $20/mo |
+> | 2 | Max 5x | $100/mo |
+> | 3 | Max 20x | $200/mo |
+> | 4 | Team Standard | $20/seat/mo |
+> | 5 | Team Premium | $100/seat/mo |
+> | 6 | Enterprise | custom |
+> | 7 | Amazon Bedrock | usage-based |
+> | 8 | Microsoft Foundry | usage-based |
+> | 9 | Google Vertex AI | usage-based |
+>
+> Enter number or name (e.g. "3" or "max200"):
+
+Map user input to `--plan` values: 1=pro, 2=max100, 3=max200, 4=team, 5=team_premium, 6=enterprise, 7=bedrock, 8=foundry, 9=vertex
 
 Run the standalone script with `--plan`:
 
@@ -53,7 +68,8 @@ The script outputs JSON to stdout. Parse the result and show the user a brief su
 | {date} {start}-{end} | ${cost} | {n} |
 
 {If gistUrl: "📎 Data uploaded: {gistUrl}"}
-{If no gistUrl: "📎 Files ready at: {reportDir}/ — drag into the Discussion"}
+{If no gistUrl: "⚠️ GitHub CLI not authenticated. Run `gh auth login` first, or manually attach the zip file."}
+{If zipFile: "📎 Zip ready: {zipFile}"}
 
 Discussion opened in browser. Review and submit.
 ```

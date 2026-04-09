@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4] - 2026-04-09
+
+### Added
+
+- Shared lib modules: plan-info, constants, format, locale, pricing, window-utils (DRY across scripts)
+- SessionStart hook: auto-patch statusline path on plugin update (`statusline-version-check.sh`)
+- report-limit: window merging (overlapping 5h windows → single continuous period)
+- report-limit: per-window token breakdown table (input, output, cache write, cache read)
+- report-limit: sessions.csv index (numeric IDs + parent mapping, privacy-safe)
+- report-limit: zip compression + gist upload (window + ratelimit CSVs)
+- report-limit: gh auth failure guidance (`gh auth login`)
+- usage-view: plan badge in HTML template title
+- usage-view: monthly extrapolation only when ≤15 days
+- Numbered plan selection in report-limit and usage-view skills
+
+### Changed
+
+- RUN indicator threshold: 🟡 ≥$0.50 → ≥$0.30 (all 23 READMEs + SKILL.md)
+- report-limit: Discussion title shortened (`💀 Rate Limit Report (N windows) — $X`)
+- report-limit: Discussion body uses per-window table instead of flat field list
+- Plan question wording: "subscription plan" → "current plan" (inclusive of non-subscribers)
+
+### Fixed
+
+- Statusline path not updating on plugin version upgrade (settings.json pointed to old cache)
+- Gist upload failing on zip (binary not supported) — now uploads text CSVs
+
 ## [1.0.3] - 2026-04-09
 
 ### Added

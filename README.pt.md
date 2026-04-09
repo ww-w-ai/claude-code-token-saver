@@ -123,7 +123,7 @@ Execute `/setup-statusline install` uma vez e uma barra de status persistente ap
 
 | Indicador        | O que mostra                        | 🟢 Normal | 🟡 Atenção | 🔴 Crítico  |
 | ---------------- | ----------------------------------- | --------- | ---------- | ----------- |
-| RUN (delta)      | Custo da última chamada API         | < ＄0.50   | >= ＄0.50   | >= ＄1.00    |
+| RUN (delta)      | Custo da última chamada API         | < ＄0.30   | >= ＄0.30   | >= ＄1.00    |
 | RUN (acumulado)  | Custo acumulado para esta pasta     | —         | —          | —           |
 | 5H               | Uso da janela de 5h + contagem regressiva | < 70%     | >= 70%     | >= 90%      |
 | CTX              | Uso da context window               | < 35%     | >= 35%     | >= 70%      |

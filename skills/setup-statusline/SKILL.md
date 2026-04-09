@@ -16,8 +16,8 @@ If the user provides "help" as argument, show usage summary and stop:
 /setup-statusline — Install or uninstall the live usage monitor
 
 Format:
-  [RUN🟢] ＄0.10/＄12.23 | [5H🟢] 9% ⏳1h32m | [CTX🟢] 22%
-  ─────   last / total     5h window usage     context window
+  [RUN🟢] ＄0.10/＄12.23 | [5H🟢] 9% ⏳1h32m | [W🟡] 65% ⏳1d3h | [CTX🟢] 22%
+  ─────   last / total     5h window usage    weekly (≥60% only)  context window
                            (subscribers only)
 
 Options:
@@ -44,7 +44,9 @@ Do not modify any settings. Just display the help text and stop.
 
    **Case A: No statusLine** — install directly.
 
-   **Case B: Already our script** — print "Already installed." and stop.
+   **Case B: Already our script** — check if path matches current `${CLAUDE_PLUGIN_ROOT}`.
+   If version differs, update path silently, then print "Updated to current version." and stop.
+   If same version, print "Already installed." and stop.
    Check by matching the command path containing `cc-token-saver/scripts/statusline-logger.sh`.
 
    **Case C: Different statusLine exists** — warn and ask the user:
@@ -79,7 +81,7 @@ Do not modify any settings. Just display the help text and stop.
    It will appear after your next interaction with Claude.
 
    Subscriber format:
-     [RUN🟢] ＄0.10/＄12.23 | [5H🟢] 9% ⏳1h32m | [CTX🟢] 22%
+     [RUN🟢] ＄0.10/＄12.23 | [5H🟢] 9% ⏳1h32m | [W🟡] 65% ⏳1d3h | [CTX🟢] 22%
 
    API key format:
      [RUN🟢] ＄0.10/＄12.23 | [CTX🟢] 22%
@@ -89,13 +91,16 @@ Do not modify any settings. Just display the help text and stop.
                         Resets when you exit and restart claude.
    - [5H]  9% ⏳1h32m — Anthropic 5-hour rate limit usage (subscribers only).
                         ⏳ shows time until the window resets.
+   - [W]   65% ⏳1d3h — 7-day weekly rate limit. Only shown when ≥60%.
+                        ⏳ shows time until the weekly window resets.
    - [CTX] 22%         — Context window usage. Higher = more tokens per call.
 
-   Color thresholds (USD):
+   Color thresholds:
    | Indicator | 🟢 Normal | 🟡 Warning | 🔴 Critical |
    |-----------|-----------|------------|-------------|
-   | RUN       | < ＄0.50  | ≥ ＄0.50   | ≥ ＄1.00   |
+   | RUN       | < ＄0.30  | ≥ ＄0.30   | ≥ ＄1.00   |
    | 5H        | < 70%     | ≥ 70%      | ≥ 90%      |
+   | W         | (hidden)  | ≥ 60%      | ≥ 90%      |
    | CTX       | < 35%     | ≥ 35%      | ≥ 70%      |
 
    When 5H reaches 🔴, → /report-limit hint appears.

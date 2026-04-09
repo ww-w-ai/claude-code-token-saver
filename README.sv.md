@@ -123,7 +123,7 @@ Kör `/setup-statusline install` en gång så visas ett permanent statusfält l�
 
 | Indikator        | Vad den visar                       | 🟢 Normal | 🟡 Varning | 🔴 Kritisk  |
 | ---------------- | ----------------------------------- | --------- | ---------- | ----------- |
-| RUN (delta)      | Kostnad för senaste API-anropet     | < ＄0.50   | >= ＄0.50   | >= ＄1.00    |
+| RUN (delta)      | Kostnad för senaste API-anropet     | < ＄0.30   | >= ＄0.30   | >= ＄1.00    |
 | RUN (kumulativ)  | Ackumulerad kostnad för denna mapp  | —         | —          | —           |
 | 5H               | 5-timmarsfönstrets användning + nedräkning | < 70%     | >= 70%     | >= 90%      |
 | CTX              | Context window-användning           | < 35%     | >= 35%     | >= 70%      |

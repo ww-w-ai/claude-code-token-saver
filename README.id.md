@@ -123,7 +123,7 @@ Jalankan `/setup-statusline install` sekali dan status bar persisten muncul di b
 
 | Indikator        | Yang ditampilkan                    | 🟢 Normal | 🟡 Peringatan | 🔴 Kritis |
 | ---------------- | ----------------------------------- | --------- | ------------- | --------- |
-| RUN (delta)      | Biaya panggilan API terakhir        | < ＄0.50   | >= ＄0.50      | >= ＄1.00  |
+| RUN (delta)      | Biaya panggilan API terakhir        | < ＄0.30   | >= ＄0.30      | >= ＄1.00  |
 | RUN (kumulatif)  | Biaya kumulatif untuk folder ini    | —         | —             | —         |
 | 5H               | Penggunaan window 5 jam + hitung mundur reset | < 70%     | >= 70%        | >= 90%    |
 | CTX              | Penggunaan context window           | < 35%     | >= 35%        | >= 70%    |

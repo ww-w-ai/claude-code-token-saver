@@ -123,7 +123,7 @@ Kullanım: `/clear` ardından `/continue`. Önceki session'ların listesini gör
 
 | Gösterge         | Ne gösterir                         | 🟢 Normal | 🟡 Uyarı  | 🔴 Kritik   |
 | ---------------- | ----------------------------------- | --------- | ---------- | ----------- |
-| RUN (delta)      | Son API çağrısının maliyeti         | < ＄0.50   | >= ＄0.50   | >= ＄1.00    |
+| RUN (delta)      | Son API çağrısının maliyeti         | < ＄0.30   | >= ＄0.30   | >= ＄1.00    |
 | RUN (kümülatif)  | Bu klasörün toplam maliyeti         | —         | —          | —           |
 | 5H               | 5 saatlik pencere kullanımı + sıfırlanma geri sayımı | < %70  | >= %70     | >= %90      |
 | CTX              | Context penceresi kullanımı         | < %35     | >= %35     | >= %70      |

@@ -123,7 +123,7 @@ Voer eenmalig `/setup-statusline install` uit en er verschijnt een permanente st
 
 | Indicator        | Wat het toont                       | 🟢 Normaal | 🟡 Waarschuwing | 🔴 Kritiek |
 | ---------------- | ----------------------------------- | ---------- | --------------- | ---------- |
-| RUN (delta)      | Kosten van de laatste API call      | < ＄0,50    | >= ＄0,50        | >= ＄1,00   |
+| RUN (delta)      | Kosten van de laatste API call      | < ＄0.30    | >= ＄0.30        | >= ＄1,00   |
 | RUN (cumulatief) | Cumulatieve kosten voor deze map    | —          | —               | —          |
 | 5H               | 5-uurs window gebruik + reset countdown | < 70%  | >= 70%          | >= 90%     |
 | CTX              | Context window gebruik              | < 35%      | >= 35%          | >= 70%     |

@@ -16,28 +16,19 @@ const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { mergeWindows, FIVE_HOURS_S } = require('./lib/window-utils');
+const { CACHE_DIR } = require('./lib/constants');
+const { PLAN_INFO, VALID_PLANS } = require('./lib/plan-info');
+const { fmtTokens, fmtDate, fmtTime } = require('./lib/format');
 
 const SCRIPTS_DIR = __dirname;
-const CACHE_BASE = path.join(os.homedir(), '.claude', 'cc-token-saver');
 const REPO = 'ww-w-ai/cc-token-saver';
-const WINDOW_SECS = 5 * 3600; // 18000
+const WINDOW_SECS = FIVE_HOURS_S;
 
 function log(msg) {
   process.stderr.write(msg + '\n');
 }
 
-const VALID_PLANS = ['pro', 'max100', 'max200', 'team', 'team_premium', 'enterprise', 'bedrock', 'foundry', 'vertex'];
-const PLAN_LABELS = {
-  pro: 'Pro ($20/mo)',
-  max100: 'Max 5x ($100/mo)',
-  max200: 'Max 20x ($200/mo)',
-  team: 'Team Standard ($20/seat/mo)',
-  team_premium: 'Team Premium ($100/seat/mo)',
-  enterprise: 'Enterprise',
-  bedrock: 'Amazon Bedrock',
-  foundry: 'Microsoft Foundry',
-  vertex: 'Google Vertex AI',
-};
 
 // Parse --plan argument
 let plan = null;
@@ -64,22 +55,23 @@ try {
 }
 
 // ── Step 2: Scan timeline CSVs for rate-limited windows ─────────
-if (!fs.existsSync(CACHE_BASE)) {
+if (!fs.existsSync(CACHE_DIR)) {
   log('No cache directory found. Run /usage-view first.');
   process.exit(1);
 }
 
-const yymms = fs.readdirSync(CACHE_BASE).filter(d => /^\d{4}$/.test(d));
+const yymms = fs.readdirSync(CACHE_DIR).filter(d => /^\d{4}$/.test(d));
 if (yymms.length === 0) {
   log('No YYMM directories found. Run /usage-view first.');
   process.exit(1);
 }
 
 // Map: winTs (string) -> { sessions: Set<sessionId> }
+// Deduplicate: only take FIRST occurrence of limit_hit per unique win value
 const windowMap = new Map();
 
 for (const ym of yymms) {
-  const dir = path.join(CACHE_BASE, ym);
+  const dir = path.join(CACHE_DIR, ym);
   if (!fs.statSync(dir).isDirectory()) continue;
   const csvs = fs.readdirSync(dir).filter(f => f.startsWith('timeline-') && f.endsWith('.csv'));
 
@@ -97,6 +89,7 @@ for (const ym of yymms) {
       if (cols[9] !== '') prevWin = cols[9];
       const rl = cols[10] || '';
       if (rl.startsWith('limit_hit_5h') || rl.startsWith('limit_hit_unknown')) {
+        // Only register this window once (first hit); skip repeated rejections in same window
         if (!windowMap.has(win)) windowMap.set(win, { sessions: new Set(), hasUnknown: false });
         windowMap.get(win).sessions.add(sessionId);
         if (rl.startsWith('limit_hit_unknown')) windowMap.get(win).hasUnknown = true;
@@ -110,19 +103,40 @@ if (windowMap.size === 0) {
   process.exit(0);
 }
 
-log('Found ' + windowMap.size + ' rate-limited window(s).');
+log('Found ' + windowMap.size + ' raw rate-limited window(s).');
 
-// ── Step 3-4: For each window, collect ALL rows within the 5h range ──
+// ── Step 3: Merge overlapping windows ─────────────────────────────
+const windowStarts = [...windowMap.keys()].map(Number);
+const mergedWindows = mergeWindows(windowStarts, WINDOW_SECS);
+
+log('After merging: ' + mergedWindows.length + ' window(s).');
+
+// ── Step 4: For each merged window, collect ALL rows within the range ──
 const results = [];
+const fmtD = fmtDate;
+const fmtT = fmtTime;
 
-for (const [winTs, info] of windowMap) {
-  const winStart = Number(winTs);
-  const winEnd = winStart + WINDOW_SECS;
+for (const merged of mergedWindows) {
+  const winStart = merged.start;
+  const winEnd = merged.end;
   const rows = [];
   const touchedFiles = { timeline: new Set(), ratelimit: new Set() };
+  // Token aggregation per window
+  let sumInput = 0, sumOutput = 0, sumCacheWrite = 0, sumCacheRead = 0;
+
+  // Collect sessions and hasUnknown from all constituent windowMap entries
+  const mergedSessions = new Set();
+  let hasUnknown = false;
+  for (const [winTs, info] of windowMap) {
+    const ws = Number(winTs);
+    if (ws >= winStart && ws < winEnd) {
+      for (const s of info.sessions) mergedSessions.add(s);
+      if (info.hasUnknown) hasUnknown = true;
+    }
+  }
 
   for (const ym of yymms) {
-    const dir = path.join(CACHE_BASE, ym);
+    const dir = path.join(CACHE_DIR, ym);
     if (!fs.statSync(dir).isDirectory()) continue;
     const csvs = fs.readdirSync(dir).filter(f => f.startsWith('timeline-') && f.endsWith('.csv'));
 
@@ -138,9 +152,14 @@ for (const [winTs, info] of windowMap) {
         const cols = lines[i].split(',');
         if (cols.length < 11) continue;
         const ts = Number(cols[0]);
-        if (ts < winStart || ts > winEnd) continue;
+        if (ts < winStart || ts >= winEnd) continue;
         rows.push(lines[i] + ',' + sessionId);
         hasRows = true;
+        // cols: ts(0),model(1),input(2),cc(3),cc5m(4),cc1h(5),cr(6),out(7),cost(8),win(9),rl(10),evt(11)
+        sumInput += Number(cols[2]) || 0;
+        sumOutput += Number(cols[7]) || 0;
+        sumCacheWrite += (Number(cols[3]) || 0) + (Number(cols[4]) || 0) + (Number(cols[5]) || 0);
+        sumCacheRead += Number(cols[6]) || 0;
       }
 
       if (hasRows) {
@@ -158,32 +177,95 @@ for (const [winTs, info] of windowMap) {
 
   const startD = new Date(winStart * 1000);
   const endD = new Date(winEnd * 1000);
-  const fmtD = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-  const fmtT = d => String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
   const totalCost = rows.reduce((s, r) => s + Number(r.split(',')[8]), 0);
 
   results.push({
-    winTs,
+    winTs: String(winStart),
     date: fmtD(startD),
     start: fmtT(startD),
     end: fmtT(endD),
-    sessions: info.sessions.size,
+    sessions: mergedSessions.size,
     requests: rows.length,
     cost: Math.round(totalCost * 100) / 100,
+    input: sumInput,
+    output: sumOutput,
+    cacheWrite: sumCacheWrite,
+    cacheRead: sumCacheRead,
     csvHeader: 'ts,model,input,cc,cc5m,cc1h,cr,out,cost,win,rl,evt,session',
     csvRows: rows,
     touchedFiles,
-    hasUnknown: info.hasUnknown,
+    hasUnknown,
   });
 }
 
-// ── Step 5: Write per-window CSV files to temp dir ──────────────
+// ── Step 5: Build session index & write per-window CSV files ────
 const reportDir = path.join(os.tmpdir(), 'report-limit-' + new Date().toISOString().replace(/[:.]/g, '').slice(0, 15));
 fs.mkdirSync(reportDir, { recursive: true });
 log('Report directory: ' + reportDir);
 
+// Build global session index (full sessionId -> sequential 1-based number)
+const sessionIndex = new Map();
+let sessionCounter = 0;
+
 for (const w of results) {
-  const csvContent = w.csvHeader + '\n' + w.csvRows.join('\n') + '\n';
+  for (const row of w.csvRows) {
+    const cols = row.split(',');
+    const sessionId = cols[cols.length - 1]; // last column is session
+    if (!sessionIndex.has(sessionId)) {
+      sessionIndex.set(sessionId, ++sessionCounter);
+    }
+  }
+}
+
+// Determine parent for agent sessions
+// For each window, group sessions by YYMM folder. If an agent session shares a
+// window with exactly one main session in the same folder, that main is its parent.
+const sessionParent = new Map(); // sessionId -> parent sessionId or ''
+
+for (const w of results) {
+  // Group touched timeline files by YYMM folder
+  const folderSessions = new Map(); // folder -> { main: [], agent: [] }
+  for (const f of w.touchedFiles.timeline) {
+    const folder = path.basename(path.dirname(f));
+    const sid = path.basename(f).replace('timeline-', '').replace('.csv', '');
+    if (!folderSessions.has(folder)) folderSessions.set(folder, { main: [], agent: [] });
+    const group = folderSessions.get(folder);
+    if (sid.startsWith('agent-')) {
+      group.agent.push(sid);
+    } else {
+      group.main.push(sid);
+    }
+  }
+
+  for (const [, group] of folderSessions) {
+    for (const agentSid of group.agent) {
+      // Only assign parent if not already assigned and exactly one main session in folder
+      if (!sessionParent.has(agentSid) && group.main.length === 1) {
+        sessionParent.set(agentSid, group.main[0]);
+      }
+    }
+  }
+}
+
+// Write sessions.csv
+let sessionsCsv = 'num,id,type,parent\n';
+for (const [sid, num] of sessionIndex) {
+  const type = sid.startsWith('agent-') ? 'agent' : 'main';
+  const parentSid = sessionParent.get(sid) || '';
+  const parentNum = parentSid ? String(sessionIndex.get(parentSid) || '') : '';
+  sessionsCsv += num + ',' + sid + ',' + type + ',' + parentNum + '\n';
+}
+fs.writeFileSync(path.join(reportDir, 'sessions.csv'), sessionsCsv);
+
+// Write per-window CSV files with numeric session IDs
+for (const w of results) {
+  const mappedRows = w.csvRows.map(row => {
+    const cols = row.split(',');
+    const sessionId = cols[cols.length - 1];
+    cols[cols.length - 1] = String(sessionIndex.get(sessionId) || 0);
+    return cols.join(',');
+  });
+  const csvContent = w.csvHeader + '\n' + mappedRows.join('\n') + '\n';
   const fileName = 'window-' + w.date + '-' + w.start.replace(':', '') + '.csv';
   fs.writeFileSync(path.join(reportDir, fileName), csvContent);
 }
@@ -200,28 +282,56 @@ for (const w of results) {
   }
 }
 
-// ── Step 7: Try uploading to GitHub gist ────────────────────────
-let gistUrl = null;
+// ── Step 7: Compress files into zip ─────────────────────────────
+const zipFile = reportDir + '.zip';
+let zipCreated = false;
 try {
-  execFileSync('gh', ['auth', 'status'], { stdio: 'pipe' });
-  const csvFiles = fs.readdirSync(reportDir).filter(f => f.endsWith('.csv')).map(f => path.join(reportDir, f));
-  if (csvFiles.length > 0) {
-    const ghArgs = ['gist', 'create', '--public'].concat(csvFiles);
-    const result = execFileSync('gh', ghArgs, {
-      encoding: 'utf8',
-      stdio: ['pipe', 'pipe', 'pipe'],
+  const allFiles = fs.readdirSync(reportDir).filter(f => f.endsWith('.csv')).map(f => path.join(reportDir, f));
+  if (allFiles.length > 0) {
+    execFileSync('zip', ['-j', zipFile].concat(allFiles), {
+      stdio: 'pipe',
       timeout: 30000,
-    }).trim();
-    if (result.startsWith('http')) {
-      gistUrl = result;
-      log('Gist created: ' + gistUrl);
-    }
+    });
+    zipCreated = true;
+    log('Zip created: ' + zipFile);
   }
 } catch (e) {
-  log('Gist upload failed (gh not available or not authenticated). Will open temp folder instead.');
+  log('Warning: zip compression failed — ' + e.message);
 }
 
-// ── Step 8-9: Build Discussion URL ──────────────────────────────
+// ── Step 8: Try uploading zip to GitHub gist ────────────────────
+let gistUrl = null;
+let ghAuthenticated = false;
+try {
+  execFileSync('gh', ['auth', 'status'], { stdio: 'pipe' });
+  ghAuthenticated = true;
+} catch (e) {
+  log('GitHub CLI not authenticated. Run "gh auth login" to authenticate.');
+}
+
+if (ghAuthenticated) {
+  try {
+    // Gist only supports text files — upload window + ratelimit CSVs
+    const gistFiles = fs.readdirSync(reportDir)
+      .filter(f => (f.startsWith('window-') || f.startsWith('ratelimit-') || f === 'sessions.csv') && f.endsWith('.csv'))
+      .map(f => path.join(reportDir, f));
+    if (gistFiles.length > 0) {
+      const result = execFileSync('gh', ['gist', 'create', '--public'].concat(gistFiles), {
+        encoding: 'utf8',
+        stdio: ['pipe', 'pipe', 'pipe'],
+        timeout: 30000,
+      }).trim();
+      if (result.startsWith('http')) {
+        gistUrl = result;
+        log('Gist created: ' + gistUrl);
+      }
+    }
+  } catch (e) {
+    log('Gist upload failed: ' + (e.stderr ? e.stderr.toString().trim() : e.message));
+  }
+}
+
+// ── Step 9: Build Discussion URL ────────────────────────────────
 
 // Get Claude Code version
 let ccVersion = 'unknown';
@@ -233,43 +343,62 @@ const windowList = results.map(w => w.date + ' ' + w.start + '-' + w.end).join('
 const totalCostAll = Math.round(results.reduce((s, w) => s + w.cost, 0) * 100) / 100;
 const totalRequests = results.reduce((s, w) => s + w.requests, 0);
 const totalSessions = new Set(results.flatMap(w => [...w.touchedFiles.timeline].map(f => path.basename(f)))).size;
+const totalInput = results.reduce((s, w) => s + w.input, 0);
+const totalOutput = results.reduce((s, w) => s + w.output, 0);
+const totalCacheWrite = results.reduce((s, w) => s + w.cacheWrite, 0);
+const totalCacheRead = results.reduce((s, w) => s + w.cacheRead, 0);
 const today = new Date();
 const dateStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
 
-// Discussion title
-const title = '[Usage Data] \u{1F480} Window: ' + windowList + ' \u2014 $' + totalCostAll;
+// Discussion title (short — details go in body)
+const title = '\u{1F480} Rate Limit Report (' + results.length + ' window' + (results.length > 1 ? 's' : '') + ') \u2014 $' + totalCostAll;
 
-// Discussion body
+// Discussion body — per-window table
+function buildWindowTable() {
+  let table = '| Window | Cost | Requests | Sessions | Input | Output | Cache Write | Cache Read |\n'
+    + '|--------|------|----------|----------|-------|--------|-------------|------------|\n';
+  for (const w of results) {
+    table += '| ' + w.date + ' ' + w.start + '-' + w.end
+      + ' | $' + w.cost
+      + ' | ' + w.requests
+      + ' | ' + w.sessions
+      + ' | ' + fmtTokens(w.input)
+      + ' | ' + fmtTokens(w.output)
+      + ' | ' + fmtTokens(w.cacheWrite)
+      + ' | ' + fmtTokens(w.cacheRead)
+      + ' |\n';
+  }
+  table += '| **Total** | **$' + totalCostAll
+    + '** | **' + totalRequests
+    + '** | **' + totalSessions
+    + '** | **' + fmtTokens(totalInput)
+    + '** | **' + fmtTokens(totalOutput)
+    + '** | **' + fmtTokens(totalCacheWrite)
+    + '** | **' + fmtTokens(totalCacheRead)
+    + '** |\n';
+  return table;
+}
+
 let body;
 if (gistUrl) {
   body = '## Rate Limit Data Point\n\n'
-    + '| Field | Value |\n'
-    + '|-------|-------|\n'
-    + '| Window(s) | ' + windowList + ' |\n'
-    + '| Total Cost | $' + totalCostAll + ' |\n'
-    + '| API Requests | ' + totalRequests + ' |\n'
-    + '| Sessions | ' + totalSessions + ' |\n\n'
+    + buildWindowTable() + '\n'
     + '## Raw Data\n'
     + '\u{1F4CE} ' + gistUrl + '\n\n'
     + '## Context\n'
-    + '- Plan: ' + (plan ? PLAN_LABELS[plan] : 'unknown') + '\n'
+    + '- Plan: ' + (plan ? PLAN_INFO[plan].label : 'unknown') + '\n'
     + '- Claude Code version: ' + ccVersion + '\n'
     + '- Date: ' + dateStr;
 } else {
-  const fileList = fs.readdirSync(reportDir).filter(f => f.endsWith('.csv')).map(f => '- ' + f).join('\n');
+  const zipNote = zipCreated
+    ? '\u{1F4CE} Please attach: `' + zipFile + '`'
+    : '\u{1F4CE} Please attach CSV files from: `' + reportDir + '/`';
   body = '## Rate Limit Data Point\n\n'
-    + '| Field | Value |\n'
-    + '|-------|-------|\n'
-    + '| Window(s) | ' + windowList + ' |\n'
-    + '| Total Cost | $' + totalCostAll + ' |\n'
-    + '| API Requests | ' + totalRequests + ' |\n'
-    + '| Sessions | ' + totalSessions + ' |\n\n'
+    + buildWindowTable() + '\n'
     + '## Raw Data\n'
-    + '\u{1F4CE} Please attach CSV files from: ' + reportDir + '/\n'
-    + 'Files prepared:\n'
-    + fileList + '\n\n'
+    + zipNote + '\n\n'
     + '## Context\n'
-    + '- Plan: ' + (plan ? PLAN_LABELS[plan] : 'unknown') + '\n'
+    + '- Plan: ' + (plan ? PLAN_INFO[plan].label : 'unknown') + '\n'
     + '- Claude Code version: ' + ccVersion + '\n'
     + '- Date: ' + dateStr;
 }
@@ -287,7 +416,7 @@ body = body.replace(/sk-ant-[a-zA-Z0-9_-]{20,}/g, '[REDACTED]');
 body = body.replace(/sk-[a-zA-Z0-9]{20,}/g, '[REDACTED]');
 body = body.replace(/(API_KEY|SECRET|TOKEN|PASSWORD)\s*=\s*\S+/gi, '$1=[REDACTED]');
 
-// ── Step 10: Open Discussion URL in browser ─────────────────────
+// ── Step 10: Open Discussion URL in browser ────────────────────
 const discussionUrl = 'https://github.com/' + REPO + '/discussions/new'
   + '?category=rate-limits'
   + '&title=' + encodeURIComponent(title)
@@ -302,13 +431,14 @@ try {
   log('Could not open browser. Discussion URL:\n' + discussionUrl);
 }
 
-// ── Step 11: If gist failed, open temp dir in Finder ────────────
+// ── Step 11: If gist failed, open containing directory in Finder ────────────
 if (!gistUrl) {
+  const openTarget = zipCreated ? path.dirname(zipFile) : reportDir;
   try {
-    execFileSync('open', [reportDir], { stdio: 'pipe' });
-    log('Opened report directory in Finder: ' + reportDir);
+    execFileSync('open', [openTarget], { stdio: 'pipe' });
+    log('Opened directory in Finder: ' + openTarget);
   } catch (e) {
-    log('Could not open Finder. Files at: ' + reportDir);
+    log('Could not open Finder. Files at: ' + openTarget);
   }
 }
 
@@ -321,9 +451,15 @@ const summary = {
     cost: w.cost,
     requests: w.requests,
     sessions: w.sessions,
+    input: w.input,
+    output: w.output,
+    cacheWrite: w.cacheWrite,
+    cacheRead: w.cacheRead,
   })),
   totalCost: totalCostAll,
+  ghAuthenticated: ghAuthenticated,
   gistUrl: gistUrl,
+  zipFile: zipCreated ? zipFile : null,
   reportDir: reportDir,
   discussionOpened: discussionOpened,
 };

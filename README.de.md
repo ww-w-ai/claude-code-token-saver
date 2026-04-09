@@ -123,7 +123,7 @@ Führe `/setup-statusline install` einmal aus und eine permanente Statusleiste e
 
 | Indikator        | Was er anzeigt                      | 🟢 Normal | 🟡 Warnung | 🔴 Kritisch |
 | ---------------- | ----------------------------------- | --------- | ---------- | ----------- |
-| RUN (Delta)      | Kosten des letzten API-Aufrufs      | < ＄0,50   | >= ＄0,50   | >= ＄1,00    |
+| RUN (Delta)      | Kosten des letzten API-Aufrufs      | < ＄0.30   | >= ＄0.30   | >= ＄1,00    |
 | RUN (Kumuliert)  | Gesamtkosten für diesen Ordner      | —         | —          | —           |
 | 5H               | 5-Stunden-Fenster-Nutzung + Reset-Countdown | < 70 % | >= 70 %   | >= 90 %     |
 | CTX              | Context-Window-Auslastung           | < 35 %    | >= 35 %    | >= 70 %     |

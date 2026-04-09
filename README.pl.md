@@ -123,7 +123,7 @@ Uruchom `/setup-statusline install` raz, a na dole Claude Code pojawi się stał
 
 | Wskaźnik         | Co pokazuje                         | 🟢 Normalny | 🟡 Ostrzeżenie | 🔴 Krytyczny |
 | ---------------- | ----------------------------------- | ----------- | -------------- | ------------ |
-| RUN (delta)      | Koszt ostatniego wywołania API      | < ＄0.50    | >= ＄0.50       | >= ＄1.00     |
+| RUN (delta)      | Koszt ostatniego wywołania API      | < ＄0.30    | >= ＄0.30       | >= ＄1.00     |
 | RUN (skumulowany) | Skumulowany koszt dla tego folderu | —           | —              | —            |
 | 5H               | Użycie 5-godzinnego okna + odliczanie do resetu | < 70% | >= 70%    | >= 90%       |
 | CTX              | Użycie okna context                 | < 35%       | >= 35%         | >= 70%       |

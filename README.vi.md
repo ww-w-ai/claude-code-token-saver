@@ -123,7 +123,7 @@ Chạy `/setup-statusline install` một lần và thanh trạng thái cố đ�
 
 | Chỉ số          | Hiển thị                            | 🟢 Bình thường | 🟡 Cảnh báo | 🔴 Nguy hiểm |
 | ---------------- | ----------------------------------- | -------------- | ------------ | ------------- |
-| RUN (delta)      | Chi phí lần gọi API cuối            | < ＄0.50       | >= ＄0.50     | >= ＄1.00      |
+| RUN (delta)      | Chi phí lần gọi API cuối            | < ＄0.30       | >= ＄0.30     | >= ＄1.00      |
 | RUN (tích lũy)   | Chi phí tích lũy cho thư mục này    | —              | —            | —             |
 | 5H               | Mức dùng cửa sổ 5 giờ + đếm ngược reset | < 70%     | >= 70%       | >= 90%        |
 | CTX              | Mức dùng context window             | < 35%          | >= 35%       | >= 70%        |

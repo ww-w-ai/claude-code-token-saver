@@ -123,7 +123,7 @@ Ejecuta `/setup-statusline install` una vez y aparece una barra de estado persis
 
 | Indicador        | Qué muestra                         | 🟢 Normal | 🟡 Advertencia | 🔴 Crítico |
 | ---------------- | ----------------------------------- | --------- | -------------- | ---------- |
-| RUN (delta)      | Costo de la última llamada API      | < ＄0.50   | >= ＄0.50       | >= ＄1.00   |
+| RUN (delta)      | Costo de la última llamada API      | < ＄0.30   | >= ＄0.30       | >= ＄1.00   |
 | RUN (acumulado)  | Costo acumulado para esta carpeta   | —         | —              | —          |
 | 5H               | Uso de ventana de 5 horas + cuenta regresiva | < 70%     | >= 70%         | >= 90%     |
 | CTX              | Uso de la ventana de context        | < 35%     | >= 35%         | >= 70%     |

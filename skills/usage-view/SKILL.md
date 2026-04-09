@@ -53,10 +53,23 @@ Users may provide these in natural language. Parse and map to script flags.
 
 If the user does NOT provide a plan, ask before launching:
 
-> What's your Claude subscription plan?
-> `pro` / `max100` / `max200` / `team` / `team_premium` / `enterprise` / `bedrock` / `foundry` / `vertex`
+> What's your current Claude plan?
+>
+> | # | Plan | Price |
+> |---|------|-------|
+> | 1 | Pro | $20/mo |
+> | 2 | Max 5x | $100/mo |
+> | 3 | Max 20x | $200/mo |
+> | 4 | Team Standard | $20/seat/mo |
+> | 5 | Team Premium | $100/seat/mo |
+> | 6 | Enterprise | custom |
+> | 7 | Amazon Bedrock | usage-based |
+> | 8 | Microsoft Foundry | usage-based |
+> | 9 | Google Vertex AI | usage-based |
+>
+> Enter number or name (e.g. "3" or "max200"):
 
-Valid values: `pro`, `max100`, `max200`, `team`, `team_premium`, `enterprise`, `bedrock`, `foundry`, `vertex`
+Map user input to `--plan` values: 1=pro, 2=max100, 3=max200, 4=team, 5=team_premium, 6=enterprise, 7=bedrock, 8=foundry, 9=vertex
 
 If the user doesn't know or skips, run without `--plan`.
 

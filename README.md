@@ -123,7 +123,7 @@ Run `/setup-statusline install` once and a persistent status bar appears at the 
 
 | Indicator        | What it shows                       | 🟢 Normal | 🟡 Warning | 🔴 Critical |
 | ---------------- | ----------------------------------- | --------- | ---------- | ----------- |
-| RUN (delta)      | Cost of the last API call           | < ＄0.50   | >= ＄0.50   | >= ＄1.00    |
+| RUN (delta)      | Cost of the last API call           | < ＄0.30   | >= ＄0.30   | >= ＄1.00    |
 | RUN (cumulative) | Cumulative cost for this folder     | —         | —          | —           |
 | 5H               | 5-hour window usage + reset countdown | < 70%     | >= 70%     | >= 90%      |
 | CTX              | Context window usage                | < 35%     | >= 35%     | >= 70%      |

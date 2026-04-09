@@ -33,6 +33,7 @@ const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { SUPPORTED_LOCALES, resolveLocale } = require('./lib/locale');
 
 const SCRIPTS_DIR = __dirname;
 const PLUGIN_ROOT = path.join(SCRIPTS_DIR, '..');
@@ -76,10 +77,7 @@ if (mode === 'gen-agent-prompt') {
   if (plan) flags.push('--plan', plan);
 
   // Resolve locale
-  const SUPPORTED_LOCALES = ['en','ko','ja','zh','es','fr','de','pt','it','ru','ar','hi','bn','id','ms','th','vi','tr','pl','nl','he','sv','no'];
-  const envLang = (process.env.LANG || '').split(/[_.]/)[0];
-  const resolvedLocale = locale && SUPPORTED_LOCALES.includes(locale) ? locale
-    : SUPPORTED_LOCALES.includes(envLang) ? envLang : 'en';
+  const resolvedLocale = resolveLocale(locale);
 
   template = template.replace(/\{\{PLUGIN_ROOT\}\}/g, PLUGIN_ROOT);
   template = template.replace(/\{\{FLAGS\}\}/g, flags.join(' '));
@@ -125,10 +123,7 @@ if (mode === 'prepare') {
   });
 
   // Resolve locale (same logic as build-report.js)
-  const SUPPORTED_LOCALES = ['en','ko','ja','zh','es','fr','de','pt','it','ru','ar','hi','bn','id','ms','th','vi','tr','pl','nl','he','sv','no'];
-  const envLang = (process.env.LANG || '').split(/[_.]/)[0];
-  const resolvedLocale = locale && SUPPORTED_LOCALES.includes(locale) ? locale
-    : SUPPORTED_LOCALES.includes(envLang) ? envLang : 'en';
+  const resolvedLocale = resolveLocale(locale);
 
   const result = {
     promptFile,

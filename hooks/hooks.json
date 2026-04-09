@@ -16,6 +16,11 @@
         "hooks": [
           {
             "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/statusline-version-check.sh",
+            "timeout": 3
+          },
+          {
+            "type": "command",
             "command": "cat ${CLAUDE_PLUGIN_ROOT}/hooks/session-architecture.md",
             "timeout": 5
           }

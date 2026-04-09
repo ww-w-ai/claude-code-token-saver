@@ -936,6 +936,12 @@ function i18nT(template, vars) {
     logoSpan.textContent = 'CC';
     h1Logo.appendChild(logoSpan);
     h1Logo.appendChild(document.createTextNode(' ' + (I18N.header.title || 'Claude Code Usage Report')));
+    if (REPORT_DATA.plan && REPORT_DATA.plan.name) {
+      var planBadge = document.createElement('span');
+      planBadge.style.cssText = 'font-size:14px;font-weight:500;color:var(--text-secondary);margin-left:4px;';
+      planBadge.textContent = '\u2014 ' + REPORT_DATA.plan.name + ' (' + REPORT_DATA.plan.price + ')';
+      h1Logo.appendChild(planBadge);
+    }
   }
 
   // Summary cards

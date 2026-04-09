@@ -123,7 +123,7 @@ Jalankan `/setup-statusline install` sekali dan bar status kekal muncul di bahag
 
 | Penunjuk         | Apa yang dipaparkan                 | 🟢 Normal | 🟡 Amaran  | 🔴 Kritikal |
 | ---------------- | ----------------------------------- | --------- | ---------- | ----------- |
-| RUN (delta)      | Kos panggilan API terakhir          | < ＄0.50   | >= ＄0.50   | >= ＄1.00    |
+| RUN (delta)      | Kos panggilan API terakhir          | < ＄0.30   | >= ＄0.30   | >= ＄1.00    |
 | RUN (kumulatif)  | Kos kumulatif untuk folder ini      | —         | —          | —           |
 | 5H               | Penggunaan tetingkap 5 jam + undur masa reset | < 70%     | >= 70%     | >= 90%      |
 | CTX              | Penggunaan tetingkap context        | < 35%     | >= 35%     | >= 70%      |

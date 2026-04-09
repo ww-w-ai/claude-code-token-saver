@@ -123,7 +123,7 @@ Esegui `/setup-statusline install` una sola volta e una barra di stato persisten
 
 | Indicatore       | Cosa mostra                         | 🟢 Normale | 🟡 Attenzione | 🔴 Critico |
 | ---------------- | ----------------------------------- | --------- | ---------- | ----------- |
-| RUN (delta)      | Costo dell'ultima chiamata API      | < ＄0.50   | >= ＄0.50   | >= ＄1.00    |
+| RUN (delta)      | Costo dell'ultima chiamata API      | < ＄0.30   | >= ＄0.30   | >= ＄1.00    |
 | RUN (cumulativo) | Costo cumulativo per questa cartella | —         | —          | —           |
 | 5H               | Utilizzo finestra 5 ore + conto alla rovescia per il reset | < 70%     | >= 70%     | >= 90%      |
 | CTX              | Utilizzo della context window       | < 35%     | >= 35%     | >= 70%      |

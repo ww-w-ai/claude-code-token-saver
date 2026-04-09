@@ -41,19 +41,14 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { scanRatelimitWindows, mergeWindows, FIVE_HOURS_S } = require('./lib/window-utils');
+const { CACHE_DIR } = require('./lib/constants');
+const { PLAN_INFO: PLAN_INFO_ALL } = require('./lib/plan-info');
+const { round2 } = require('./lib/format');
+const { SUPPORTED_LOCALES, resolveLocale } = require('./lib/locale');
+const { MODEL_PRICING, DEFAULT_PRICING, getRates } = require('./lib/pricing');
 const TEMPLATE_PATH = path.join(__dirname, '..', 'skills', 'usage-view', 'template.html');
-const PRICING_PATH = path.join(__dirname, 'model-pricing.json');
 const LOCALES_DIR = path.join(__dirname, '..', 'locales');
-const CACHE_DIR = path.join(os.homedir(), '.claude', 'cc-token-saver');
-
-// ── i18n ───────────────────────────────────────────────────────
-const SUPPORTED_LOCALES = ['en','ko','ja','zh','es','fr','de','pt','it','ru','ar','hi','bn','id','ms','th','vi','tr','pl','nl','he','sv','no'];
-function resolveLocale(requested) {
-  if (requested && SUPPORTED_LOCALES.includes(requested)) return requested;
-  const envLang = (process.env.LANG || '').split(/[_.]/)[0];
-  if (SUPPORTED_LOCALES.includes(envLang)) return envLang;
-  return 'en';
-}
 
 // ── Args ────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
@@ -154,20 +149,6 @@ function isProgrammatic(session) {
   if (!session.firstUserMsg) return true;
   const patterns = [/^You are generating/, /^Read the /, /^Run the /, /^CRITICAL:/, /^Write the word/, /^Compare the /, /^This session is being continued/];
   return patterns.some(p => p.test(session.firstUserMsg));
-}
-
-function round2(n) { return Math.round(n * 100) / 100; }
-
-// ── Load pricing ────────────────────────────────────────────────
-const PRICING_DATA = JSON.parse(fs.readFileSync(PRICING_PATH, 'utf8'));
-const MODEL_PRICING = { ...PRICING_DATA.models };
-for (const [alias, target] of Object.entries(PRICING_DATA.aliases)) {
-  MODEL_PRICING[alias] = MODEL_PRICING[target];
-}
-const DEFAULT_PRICING = MODEL_PRICING[PRICING_DATA.default];
-
-function getRates(model) {
-  return MODEL_PRICING[model] || DEFAULT_PRICING;
 }
 
 // ── Import mode: skip all processing, just inject into template ─
@@ -491,31 +472,9 @@ await generateMissingCompacts(allSessionIds);
 // Ratelimit CSVs have the actual 5h window boundaries from Anthropic (5h_reset column).
 // Timeline CSVs have simple hourFloor-based wins. Correct them where ratelimit data exists.
 
-const FIVE_HOURS_S = 5 * 3600;
-
-// Step 1: Collect actual windows from ratelimit CSVs
-const actualWindows = []; // [{start, end}]
-try {
-  const rlYymms = fs.readdirSync(CACHE_DIR).filter(d => /^\d{4}$/.test(d));
-  for (const ym of rlYymms) {
-    const rlDir = path.join(CACHE_DIR, ym);
-    for (const f of fs.readdirSync(rlDir).filter(f => f.startsWith('ratelimit-') && f.endsWith('.csv'))) {
-      const lines = fs.readFileSync(path.join(rlDir, f), 'utf8').trim().split('\n');
-      for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i].split(',');
-        const resetTs = cols[2] ? Number(cols[2]) : 0;
-        if (resetTs > 0) {
-          const winStart = resetTs - FIVE_HOURS_S;
-          // Avoid duplicates
-          if (!actualWindows.some(w => w.start === winStart)) {
-            actualWindows.push({ start: winStart, end: resetTs });
-          }
-        }
-      }
-    }
-  }
-  actualWindows.sort((a, b) => a.start - b.start);
-} catch {}
+// Step 1: Collect actual windows from ratelimit CSVs (using shared utility)
+const rlStarts = scanRatelimitWindows(CACHE_DIR);
+const actualWindows = mergeWindows(rlStarts, FIVE_HOURS_S);
 
 // Step 2: Expand actual windows as anchors — chain forward/backward where activity exists
 if (actualWindows.length > 0) {
@@ -1207,6 +1166,10 @@ for (const p of pluginJsonPaths) {
   try { pluginInstalledAt = fs.statSync(p).birthtime.toISOString(); break; } catch(e) {}
 }
 
+// ── Plan info for REPORT_DATA and AI prompt ────────────────────
+const PLAN_INFO = PLAN_INFO_ALL;
+const planData = planArg && PLAN_INFO[planArg] ? PLAN_INFO[planArg] : null;
+
 // ── Assemble REPORT_DATA ────────────────────────────────────────
 const reportData = {
   summary,
@@ -1218,7 +1181,8 @@ const reportData = {
   dowStats,
   fiveHAlerts,
   pluginInstalledAt,
-  currentMode
+  currentMode,
+  plan: planData ? { key: planData.key, name: planData.name, price: planData.price } : null
 };
 
 if (exportDataPath) {
@@ -1273,33 +1237,37 @@ if (exportPromptPath) {
   const top10 = topSessions.slice(0, 15).map(t => '$' + t.cost.toFixed(1) + ' [' + t.type + '] (' + t.date + ') ' + t.msg).join('\n');
   // Rate limit & continue events
   const rlCount = reportData.fiveHAlerts ? reportData.fiveHAlerts.length : 0;
-  const PLAN_INFO = {
-    pro:          { label: 'Pro ($20/mo)',                 price: 20,  type: 'flat' },
-    max100:       { label: 'Max 5x ($100/mo)',             price: 100, type: 'flat' },
-    max200:       { label: 'Max 20x ($200/mo)',            price: 200, type: 'flat' },
-    team:         { label: 'Team Standard ($20/seat/mo)',  price: 20,  type: 'flat' },
-    team_premium: { label: 'Team Premium ($100/seat/mo)',  price: 100, type: 'flat' },
-    enterprise:   { label: 'Enterprise (usage-based)',     price: null, type: 'usage' },
-    bedrock:      { label: 'Amazon Bedrock (usage-based)', price: null, type: 'usage' },
-    foundry:      { label: 'Microsoft Foundry (usage-based)', price: null, type: 'usage' },
-    vertex:       { label: 'Google Vertex AI (usage-based)',   price: null, type: 'usage' },
-  };
-  const pi = planArg && PLAN_INFO[planArg] ? PLAN_INFO[planArg] : { label: 'unknown', price: null, type: 'unknown' };
-  const projectedMonthly = round2((s.totalCost / (s.days || 1)) * 30);
+  const pi = planData ? { label: planData.label, price: planData.priceNum, type: planData.type } : { label: 'unknown', price: null, type: 'unknown' };
+  const reportDays = s.days || 1;
+  const shouldExtrapolate = reportDays <= 15;
+  const projectedMonthly = shouldExtrapolate ? round2((s.totalCost / reportDays) * 30) : null;
   let planLine;
   if (pi.type === 'flat') {
-    const multiple = (projectedMonthly / pi.price).toFixed(1);
-    planLine = `- Projected monthly API value: $${projectedMonthly} (${multiple}x of $${pi.price} subscription)
-- Billing: flat-rate. User pays $${pi.price}/mo regardless of usage. Higher multiple = more value extracted.
-- Rate limit management is key: spread usage across 5h windows, avoid bursts, use cache efficiently, use /continue instead of /compact.
+    if (shouldExtrapolate) {
+      const multiple = (projectedMonthly / pi.price).toFixed(1);
+      planLine = `- Projected monthly API value: $${projectedMonthly} (${multiple}x of $${pi.price} subscription)
+- Billing: flat-rate. User pays $${pi.price}/mo regardless of usage. Higher multiple = more value extracted.`;
+    } else {
+      planLine = `- Total API value: $${s.totalCost} over ${reportDays} days on a $${pi.price}/mo subscription.
+- Billing: flat-rate. User pays $${pi.price}/mo regardless of usage.`;
+    }
+    planLine += `\n- Rate limit management is key: spread usage across 5h windows, avoid bursts, use cache efficiently, use /continue instead of /compact.
 - If frequently hitting limits, suggest upgrading plan OR optimizing usage patterns to stay within the ceiling.`;
   } else if (pi.type === 'usage') {
-    planLine = `- Projected monthly cost: $${projectedMonthly} — this is the actual projected bill.
-- Billing: usage-based (pay per token). Every token costs real money.
+    if (shouldExtrapolate) {
+      planLine = `- Projected monthly cost: $${projectedMonthly} — this is the actual projected bill.`;
+    } else {
+      planLine = `- Total cost: $${s.totalCost} over ${reportDays} days.`;
+    }
+    planLine += `\n- Billing: usage-based (pay per token). Every token costs real money.
 - Prioritize cost optimization: cache reuse, /continue over /compact, shorter prompts, model selection (Haiku for simple tasks).`;
   } else {
-    planLine = `- Projected monthly API value: $${projectedMonthly}
-- Billing: unknown plan.`;
+    if (shouldExtrapolate) {
+      planLine = `- Projected monthly API value: $${projectedMonthly}`;
+    } else {
+      planLine = `- Total API value: $${s.totalCost} over ${reportDays} days.`;
+    }
+    planLine += `\n- Billing: unknown plan.`;
   }
   planLine += '\n\n## Plan Comparison (for upgrade/downgrade advice)\n'
     + '| Plan | Monthly | Rate Limit | Type |\n'
@@ -1383,6 +1351,7 @@ if (exportPromptPath) {
 - Period: ${s.dateFrom} ~ ${s.dateTo} (${s.days} days)
 - Total cost: $${s.totalCost}, Sessions: ${s.sessionCount} main + ${s.subtaskCount || 0} subtasks
 - Plan: ${pi.label}
+- RULE: Monthly cost extrapolation is ONLY allowed when report period <= 15 days. This report covers ${reportDays} days${shouldExtrapolate ? ' — extrapolation is allowed.' : ' (>15) — do NOT extrapolate or mention monthly projections at all. Simply omit it — do NOT say "extrapolation is not needed" or similar.'}
 ${planLine}
 - Plugin installed: ${reportData.pluginInstalledAt ? new Date(reportData.pluginInstalledAt).toISOString().slice(0, 10) : 'not detected'}
 

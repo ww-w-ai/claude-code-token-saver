@@ -1,6 +1,6 @@
 {
   "name": "cc-token-saver",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Your Claude Code sessions expire too fast. This fixes that.",
   "author": {
     "name": "taehyoungkim"
