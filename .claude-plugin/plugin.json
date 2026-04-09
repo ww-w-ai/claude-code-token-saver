@@ -1,9 +1,9 @@
 {
   "name": "cc-token-saver",
-  "version": "1.0.4",
+  "version": "1.1.0",
   "description": "Your Claude Code sessions expire too fast. This fixes that.",
   "author": {
-    "name": "taehyoungkim"
+    "name": "taekim34"
   },
   "repository": "https://github.com/ww-w-ai/cc-token-saver",
   "license": "Apache-2.0",
