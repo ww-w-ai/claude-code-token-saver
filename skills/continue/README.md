@@ -41,6 +41,6 @@ Each line includes `[L{n}]` markers referencing the original JSONL line number.
 
 ## Caching
 
-- Location: `~/.claude/cc-token-saver/{YYMM}/compact-{SESSION_ID}.txt` and `~/.claude/cc-token-saver/{YYMM}/compact-{SESSION_ID}.aggressive.txt`
+- Location: `~/.claude/cc-token-saver/{projectName}/{sessionId}/compact.txt` and `~/.claude/cc-token-saver/{projectName}/{sessionId}/compact.aggressive.txt`
 - Valid when: BOTH files must exist and both must have mtime >= transcript mtime
 - Plain text format, instant preprocessing (< 1s even for 60MB+ transcripts)

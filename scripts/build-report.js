@@ -52,7 +52,7 @@ const LOCALES_DIR = path.join(__dirname, '..', 'locales');
 
 // ── Args ────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
-let dataPath = null, outputPath = null, currentMode = false, aiDataPath = null, exportPromptPath = null, exportDataPath = null, importDataPath = null, localeArg = null, planArg = null;
+let dataPath = null, outputPath = null, currentMode = false, aiDataPath = null, exportPromptPath = null, exportDataPath = null, importDataPath = null, localeArg = null, planArg = null, projectFilter = null;
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--data' && args[i + 1]) { dataPath = args[++i]; }
   else if (args[i] === '--output' && args[i + 1]) { outputPath = args[++i]; }
@@ -63,6 +63,7 @@ for (let i = 0; i < args.length; i++) {
   else if (args[i] === '--import-data' && args[i + 1]) { importDataPath = args[++i]; }
   else if (args[i] === '--locale' && args[i + 1]) { localeArg = args[++i]; }
   else if (args[i] === '--plan' && args[i + 1]) { planArg = args[++i]; }
+  else if (args[i] === '--project' && args[i + 1]) { projectFilter = args[++i]; }
 }
 const resolvedLocale = resolveLocale(localeArg);
 let localeData;
@@ -246,7 +247,7 @@ migrateFromYYMM();
 
 // Populate _sessionProjectMap by scanning new project/session structure
 {
-  const projects = listProjects();
+  const projects = projectFilter ? [projectFilter] : listProjects();
   for (const proj of projects) {
     const sessions = listSessions(proj);
     for (const sess of sessions) {
@@ -465,7 +466,7 @@ for (const key of Object.keys(tb)) {
 // 2b. 5H alerts from ratelimit CSVs (optional, statusline users only)
 const fiveHAlerts = [];
 try {
-  const rlProjects = listProjects();
+  const rlProjects = projectFilter ? [projectFilter] : listProjects();
   for (const proj of rlProjects) {
     const rlSessions = listSessions(proj);
     for (const sess of rlSessions) {

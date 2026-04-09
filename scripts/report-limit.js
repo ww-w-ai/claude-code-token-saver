@@ -339,6 +339,14 @@ if (allRatelimitFiles.size > 0) {
       if (cur7d) prev7d = cur7d;
     }
   }
+  // Back-fill missing reset values from nearest previous row
+  let last5hReset = '', last7dReset = '';
+  for (let i = 0; i < deduped.length; i++) {
+    const cols = deduped[i].split(',');
+    if (cols[2]) last5hReset = cols[2]; else if (last5hReset) cols[2] = last5hReset;
+    if (cols[4]) last7dReset = cols[4]; else if (last7dReset) cols[4] = last7dReset;
+    deduped[i] = cols.join(',');
+  }
   fs.writeFileSync(path.join(reportDir, 'ratelimit.csv'),
     'ts,5h,5h_reset,7d,7d_reset,alert\n' + deduped.join('\n') + '\n');
 }

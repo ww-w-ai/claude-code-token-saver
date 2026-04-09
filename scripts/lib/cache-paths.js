@@ -313,17 +313,7 @@ function migrateFromYYMM() {
       fs.renameSync(dir, migratedPath);
       process.stderr.write(`[cache-paths] renamed ${ym} → ${ym}.migrated\n`);
     } catch {
-      // Directory not empty — new files written during migration. Remove remaining files.
-      const remaining = fs.readdirSync(dir);
-      for (const rf of remaining) {
-        try { fs.unlinkSync(path.join(dir, rf)); } catch {}
-      }
-      try {
-        fs.rmdirSync(dir);
-        process.stderr.write(`[cache-paths] cleaned up ${ym} (${remaining.length} late files)\n`);
-      } catch {
-        process.stderr.write(`[cache-paths] warning: could not remove ${ym}, will retry next run\n`);
-      }
+      process.stderr.write(`[cache-paths] warning: ${ym} not empty after migration, will retry next run\n`);
     }
   }
 }

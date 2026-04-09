@@ -34,6 +34,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { SUPPORTED_LOCALES, resolveLocale } = require('./lib/locale');
+const { projectNameFromCwd } = require('./lib/cache-paths');
 
 const SCRIPTS_DIR = __dirname;
 const PLUGIN_ROOT = path.join(SCRIPTS_DIR, '..');
@@ -45,6 +46,7 @@ const args = process.argv.slice(2);
 let mode = null;
 let days = null, current = false, locale = null, plan = null;
 let reportDataPath = null, aiDataPath = null, outputPath = null;
+let projectArg = null, allProjects = false;
 
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--prepare') mode = 'prepare';
@@ -57,7 +59,12 @@ for (let i = 0; i < args.length; i++) {
   else if (args[i] === '--ai-data' && args[i + 1]) aiDataPath = args[++i];
   else if (args[i] === '--output' && args[i + 1]) outputPath = args[++i];
   else if (args[i] === '--plan' && args[i + 1]) plan = args[++i];
+  else if (args[i] === '--project' && args[i + 1]) projectArg = args[++i];
+  else if (args[i] === '--all') allProjects = true;
 }
+
+// Resolve project: --project > --all > derive from CWD
+const resolvedProject = projectArg || (allProjects ? null : projectNameFromCwd(process.cwd()));
 
 if (!mode) {
   console.error('Usage:\n  node run-usage-view.js --prepare [--days N] [--current]\n  node run-usage-view.js --finalize --report-data <path> --ai-data <path> --output <path>\n  node run-usage-view.js --gen-agent-prompt [--days N] [--current] [--locale XX]');
@@ -75,6 +82,8 @@ if (mode === 'gen-agent-prompt') {
   if (current) flags.push('--current');
   if (locale) flags.push('--locale', locale);
   if (plan) flags.push('--plan', plan);
+  if (resolvedProject) flags.push('--project', resolvedProject);
+  else if (allProjects) flags.push('--all');
 
   // Resolve locale
   const resolvedLocale = resolveLocale(locale);
@@ -96,6 +105,7 @@ if (mode === 'prepare') {
   const resultsFile = path.join(tmpDir, `cc-usage-data-${pid}.json`);
   const analyzeArgs = [path.join(SCRIPTS_DIR, 'analyze-usage.js')];
   if (days) analyzeArgs.push('--days', days);
+  if (resolvedProject) analyzeArgs.push('--project', resolvedProject);
 
   const analyzeOutput = execFileSync('node', analyzeArgs, {
     stdio: ['pipe', 'pipe', 'inherit'],
@@ -116,6 +126,7 @@ if (mode === 'prepare') {
   if (current) buildArgs.push('--current');
   if (locale) buildArgs.push('--locale', locale);
   if (plan) buildArgs.push('--plan', plan);
+  if (resolvedProject) buildArgs.push('--project', resolvedProject);
 
   execFileSync('node', buildArgs, {
     stdio: ['pipe', 'pipe', 'pipe'],
@@ -152,6 +163,7 @@ if (mode === 'finalize') {
   }
   if (locale) buildArgs.push('--locale', locale);
   if (plan) buildArgs.push('--plan', plan);
+  if (resolvedProject) buildArgs.push('--project', resolvedProject);
 
   execFileSync('node', buildArgs, {
     stdio: ['pipe', 'pipe', 'pipe'],

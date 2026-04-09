@@ -43,11 +43,13 @@ Users may provide these in natural language. Parse and map to script flags.
 
 | User input       | Script flag           | Example                    |
 | ---------------- | --------------------- | -------------------------- |
-| _(nothing)_      | _(no flags)_          | all projects, all time     |
+| _(nothing)_      | _(no flags)_          | current project, all time  |
 | a number of days | `--days N`            | "last 7 days" → `--days 7` |
 | "current"        | `--days 1 --current`  | current 5H window only     |
 | "locale XX"      | `--locale XX`         | "locale ja" → `--locale ja` |
 | plan name        | `--plan XX`           | "max200" → `--plan max200` |
+| "project X"      | `--project X`         | specific project only      |
+| "all"            | `--all`               | aggregate all projects     |
 
 ### Plan parameter
 
@@ -109,7 +111,7 @@ The HTML file is self-contained -- you can share it or re-open it anytime.
 ## Important Notes
 
 1. **Large files**: The analyze-usage.js script uses streaming (`readline`) internally. Do not read JSONL files with `fs.readFileSync`.
-2. **Caching**: The script caches per-session JSON at `~/.claude/cc-token-saver/YYMM/summary-{SESSION_ID}.json` and timeline CSV at `~/.claude/cc-token-saver/YYMM/timeline-{SESSION_ID}.csv`. Use `--force` to force re-analysis.
+2. **Caching**: The script caches per-session JSON at `~/.claude/cc-token-saver/{projectName}/{sessionId}/summary.json` and timeline CSV at `~/.claude/cc-token-saver/{projectName}/{sessionId}/timeline.csv`. Use `--force` to force re-analysis.
 3. **Build script**: `scripts/build-report.js` reads timeline CSVs and constructs the REPORT_DATA object. The template at `skills/usage-view/template.html` contains the viewer (HTML/CSS/JS) with sample data that gets replaced.
 4. **Timezone**: All displayed dates/times use the user's local timezone via `new Date()`.
 5. **Cost formula**: Per-model pricing from `scripts/model-pricing.json`. Falls back to default model if unknown.
