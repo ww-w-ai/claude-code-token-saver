@@ -292,8 +292,21 @@ if (allRatelimitFiles.size > 0) {
     }
   }
   const sorted = [...allRows].sort((a, b) => Number(a.split(',')[0]) - Number(b.split(',')[0]));
+  // Dedup: keep only rows where 5h or 7d changed from previous
+  const deduped = [];
+  let prev5h = null, prev7d = null;
+  for (const row of sorted) {
+    const cols = row.split(',');
+    const cur5h = cols[1] || '';
+    const cur7d = cols[3] || '';
+    if (cur5h !== prev5h || cur7d !== prev7d) {
+      deduped.push(row);
+      if (cur5h) prev5h = cur5h;
+      if (cur7d) prev7d = cur7d;
+    }
+  }
   fs.writeFileSync(path.join(reportDir, 'ratelimit.csv'),
-    'ts,5h,5h_reset,7d,7d_reset,alert\n' + sorted.join('\n') + '\n');
+    'ts,5h,5h_reset,7d,7d_reset,alert\n' + deduped.join('\n') + '\n');
 }
 
 // ── Step 7: Compress files into zip ─────────────────────────────
