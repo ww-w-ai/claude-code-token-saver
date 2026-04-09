@@ -164,10 +164,21 @@ for (const merged of mergedWindows) {
 
       if (hasRows) {
         touchedFiles.timeline.add(filePath);
-        // Check for corresponding ratelimit CSV
-        const rlPath = path.join(dir, 'ratelimit-' + sessionId + '.csv');
-        if (fs.existsSync(rlPath)) {
+      }
+    }
+
+    // Scan ALL ratelimit CSVs in this YYMM folder for rows within window range
+    const rlCsvs = fs.readdirSync(dir).filter(f => f.startsWith('ratelimit-') && f.endsWith('.csv'));
+    for (const rl of rlCsvs) {
+      const rlPath = path.join(dir, rl);
+      const rlContent = fs.readFileSync(rlPath, 'utf8').trim();
+      if (!rlContent) continue;
+      const rlLines = rlContent.split('\n');
+      for (let i = 1; i < rlLines.length; i++) {
+        const ts = Number(rlLines[i].split(',')[0]);
+        if (ts >= winStart && ts < winEnd) {
           touchedFiles.ratelimit.add(rlPath);
+          break; // one match is enough to include this file
         }
       }
     }
