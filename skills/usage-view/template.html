@@ -2296,6 +2296,8 @@ function renderCalendar() {
     var w = REPORT_DATA.windows[wi];
     var startHour = parseInt(w.start.split(':')[0], 10);
     var endHour = parseInt(w.end.split(':')[0], 10);
+    var endMin = parseInt(w.end.split(':')[1] || '0', 10);
+    if (endMin > 0) endHour++;  // include partial hour (e.g. 18:30 → loop up to 19)
     var isRateLimit = w.usage === 100;
     var rlHours = w.rlHours || [];
     var hourlyCosts = w.hourlyCosts || {};
