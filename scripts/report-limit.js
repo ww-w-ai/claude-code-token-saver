@@ -271,15 +271,29 @@ for (const w of results) {
 }
 
 // ── Step 6: Copy relevant timeline and ratelimit CSVs ───────────
+const allRatelimitFiles = new Set();
 for (const w of results) {
   for (const f of w.touchedFiles.timeline) {
     const dest = path.join(reportDir, path.basename(f));
     if (!fs.existsSync(dest)) fs.copyFileSync(f, dest);
   }
   for (const f of w.touchedFiles.ratelimit) {
-    const dest = path.join(reportDir, path.basename(f));
-    if (!fs.existsSync(dest)) fs.copyFileSync(f, dest);
+    if (!allRatelimitFiles.has(f)) allRatelimitFiles.add(f);
   }
+}
+
+// Merge all ratelimit CSVs into a single ratelimit.csv (dedup + sort by ts)
+if (allRatelimitFiles.size > 0) {
+  const allRows = new Set();
+  for (const f of allRatelimitFiles) {
+    const lines = fs.readFileSync(f, 'utf8').trim().split('\n');
+    for (let i = 1; i < lines.length; i++) {
+      if (lines[i]) allRows.add(lines[i]);
+    }
+  }
+  const sorted = [...allRows].sort((a, b) => Number(a.split(',')[0]) - Number(b.split(',')[0]));
+  fs.writeFileSync(path.join(reportDir, 'ratelimit.csv'),
+    'ts,5h,5h_reset,7d,7d_reset,alert\n' + sorted.join('\n') + '\n');
 }
 
 // ── Step 7: Compress files into zip ─────────────────────────────
@@ -313,7 +327,7 @@ if (ghAuthenticated) {
   try {
     // Gist only supports text files — upload window + ratelimit CSVs
     const gistFiles = fs.readdirSync(reportDir)
-      .filter(f => (f.startsWith('window-') || f.startsWith('ratelimit-') || f === 'sessions.csv') && f.endsWith('.csv'))
+      .filter(f => (f.startsWith('window-') || f === 'ratelimit.csv' || f === 'sessions.csv') && f.endsWith('.csv'))
       .map(f => path.join(reportDir, f));
     if (gistFiles.length > 0) {
       const result = execFileSync('gh', ['gist', 'create', '--public'].concat(gistFiles), {
