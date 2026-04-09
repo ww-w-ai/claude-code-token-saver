@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2026-04-09
+
+### Fixed
+
+- Calendar window boundary bug: partial end hours (e.g., 18:30) were excluded from the grid, causing blank cells
+
 ## [1.1.1] - 2026-04-09
 
 ### Changed
