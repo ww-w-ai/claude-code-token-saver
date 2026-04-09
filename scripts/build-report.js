@@ -286,12 +286,12 @@ for (const [, rows] of allTimelines) {
 }
 
 // ── Scan compact caches for alert messages ─────────────────────
-// Simplified format: [L{n} User HH:MM]{allMarkers} {text}
-// Groups: 1=lineNum, 2=time, 3=allMarkers (entire marker string), 4=text
+// Simplified format: [L{n} User HH:MM:SS]{allMarkers} {text}
+// Groups: 1=lineNum, 2=time (HH:MM or HH:MM:SS, optionally prefixed MM-DDT), 3=allMarkers (entire marker string), 4=text
 // Individual markers are parsed from group 3 via string matching.
 // Marker chars: @ (startup/clear) * (cost) # (context) + (resume/compact) ~ (reload-plugins)
 //   ! (model-change) ? (resume-heuristic) ^ (/continue skill) % (rate-limit)
-const ALERT_LINE_RE = /^\[L(\d+) User ((?:\d{2}-\d{2}T)?\d+:\d+)\]([^\s]*)\s*(.*)/;
+const ALERT_LINE_RE = /^\[L(\d+) User ((?:\d{2}-\d{2}T)?\d+:\d+(?::\d+)?)\]([^\s]*)\s*(.*)/;
 
 const { execFile } = require('child_process');
 const PREPROCESS_PATH = path.join(__dirname, 'preprocess.js');
@@ -364,8 +364,7 @@ function readCompactAlerts(sessionId) {
     const rlMark = (markers.match(/%[%5WOSX](?:\{[^}]+\})?/) || [''])[0];
     const text = m[4] || '';
     if (!markers) continue;
-    // Session markers alone (no cost/ctx/continue/ratelimit) are not alerts — skip
-    if (!costMark && !ctxMark && !contMark && !rlMark) continue;
+    const isInfoOnly = !costMark && !ctxMark && !contMark && !rlMark;
 
     const alertTypes = [];
     if (costMark === '**') alertTypes.push('cost-danger');
@@ -396,8 +395,9 @@ function readCompactAlerts(sessionId) {
       time: m[2],
       markers: markers,
       text: text.slice(0, 120),
-      alertType: alertTypes.join('+') || 'unknown',
-      tokens: null
+      alertType: alertTypes.join('+') || 'info',
+      tokens: null,
+      isInfoOnly
     });
   }
   return alerts;
@@ -408,7 +408,7 @@ function matchAlertWithTimeline(alert, timelineRows) {
   let bestRow = null;
   let bestDiff = Infinity;
   for (const row of timelineRows) {
-    if (row.evt) continue; // skip event rows (continue, compact) — no real token data
+    if (row.evt && row.cost <= 0 && row.input <= 0) continue; // skip event-only rows (no real token data)
     const diff = Math.abs(row.ts - alert.ts);
     if (diff < bestDiff) {
       bestDiff = diff;
@@ -871,15 +871,19 @@ for (const winStart of winStarts) {
       const timeParts = alert.time.split('T');
       let alertDate;
       if (timeParts.length === 2) {
-        // New format: MM-DDTHH:MM — use exact date
+        // New format: MM-DDTHH:MM or MM-DDTHH:MM:SS — use exact date
         const [md, hm] = timeParts;
         const [mon, day] = md.split('-').map(Number);
-        const [ah, am] = hm.split(':').map(Number);
-        alertDate = new Date(Date.UTC(sessDate.getUTCFullYear(), mon - 1, day, ah, am));
+        const hmParts = hm.split(':').map(Number);
+        const [ah, am] = hmParts;
+        const as = hmParts[2] || 0;
+        alertDate = new Date(Date.UTC(sessDate.getUTCFullYear(), mon - 1, day, ah, am, as));
       } else {
-        // Old format: HH:MM — reconstruct from session date, try ±1 day for midnight-crossing sessions
-        const [ah, am] = alert.time.split(':').map(Number);
-        const baseDate = new Date(Date.UTC(sessDate.getUTCFullYear(), sessDate.getUTCMonth(), sessDate.getUTCDate(), ah, am));
+        // Old format: HH:MM or HH:MM:SS — reconstruct from session date, try ±1 day for midnight-crossing sessions
+        const hmParts = alert.time.split(':').map(Number);
+        const [ah, am] = hmParts;
+        const as = hmParts[2] || 0;
+        const baseDate = new Date(Date.UTC(sessDate.getUTCFullYear(), sessDate.getUTCMonth(), sessDate.getUTCDate(), ah, am, as));
         const candidates = [baseDate.getTime(), baseDate.getTime() + 86400000, baseDate.getTime() - 86400000];
         const sessEnd = new Date(sessMeta ? sessMeta.lastTs : Date.now()).getTime();
         const sessStart = sessDate.getTime();

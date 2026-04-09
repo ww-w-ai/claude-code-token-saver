@@ -89,8 +89,8 @@
     ]
   },
   "alert": {
-    "ctxWarn": "⚠️ Context window %35'i aştı — her çağrıda cache read maliyeti artıyor.",
-    "ctxDanger": "🔴 Context window %70'i aştı — cache read maliyeti çok yüksek.",
+    "ctxWarn": "⚠️ Context window %35'i aştı — her çağrıda cache write/read maliyeti artıyor.",
+    "ctxDanger": "🔴 Context window %70'i aştı — cache write/read maliyeti çok yüksek.",
     "fiveHWarn": "⚠️ 5H oturum penceresi %70'te — abonelik kullanım sınırına yaklaşılıyor.",
     "fiveHDanger": "🔴 5H oturum penceresi %90'da — abonelik kullanımı yakında dolabilir.",
     "resume": "🔄 Oturum devam ettirildi — cache yeniden oluşturuldu, maliyet oluştu",
@@ -109,7 +109,9 @@
     "modelReason": "/model değişikliği önceki cache'i geçersiz kıldı, yeniden oluşturuldu (${cost})",
     "resumeHeuristicReason": "claude --continue veya /resume ile oturum devam ettirmek çok token kullanır. Gerekli değilse, yeni oturumdan sonra /continue skill öneririz.",
     "cacheExpiredReason": "Bağlam büyük olduğunda ve 1 saatten fazla geçtiğinde yeni cache oluşturulur — yüksek maliyet!",
-    "costTopLabel": "{icon} {label} (${cost})"
+    "costTopLabel": "{icon} {label} (${cost})",
+    "costOutputReason": "{icon} Çıkış {tokens} maliyeti domine etti (${cost}) — dosyaları tamamen yeniden yazmak yerine Edit (diff) kullanmayı ve prompt'taki uzun açıklamaları kısaltmayı düşünün.",
+    "costInputReason": "{icon} Giriş {tokens} maliyeti domine etti (${cost}) — resim yerine metin kullanmayı, offset/limit ile yalnızca gerekli bölümleri okumayı veya özetlenmiş bağlam sağlamayı düşünün."
   },
   "ai": {
     "analysis": "✨ AI Analizi",

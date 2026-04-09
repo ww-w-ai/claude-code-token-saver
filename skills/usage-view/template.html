@@ -714,7 +714,7 @@ if (!I18N.meta) {
   I18N.chart = { dailyCost: 'Daily Cost Trend', hourlyCost: 'Hourly Cost Pattern', dowCost: 'Day-of-Week Cost Pattern', efficiency: 'Efficiency Trend', avgCost: 'Avg Cost', maxCost: 'Max Cost', avg: 'Average', max: 'Maximum', hourSuffix: 'h', pluginInstalled: 'Plugin installed', legendAverage: '┄ Average', effTotalPerOutput: '(Total / Output) ↓ Lower is better', effCachePerOutput: '(Cache Creation / Output) ↓ Lower is better', effNote: '* Days with <1,000 output tokens are omitted (too little output to compute a meaningful ratio).', days: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] };
   I18N.calendar = { title: 'Hourly Usage Calendar', fiveHourWindow: '5-Hour Window', oneHourBlock: '1-Hour Block', legendLow: '~$15/h', legendMid: '$15-30/h', legendHigh: '$30+/h', legendBlocked: 'blocked', legendPlugin: 'Plugin installed', note: 'Click any cell to see session details. Default view is 5-hour window — toggle to 1-hour blocks with the button above.', noData: 'No Data' };
   I18N.session = { detailExpand: '▶ Session Details', detailCollapse: '▼ Collapse', alertExpand: '▶ Top Token Conversations ({count})', alertCollapse: '▼ Top Token Conversations ({count})', windowDetailTitle: '📋 {date} {start}~{end} Session Details (${cost})', programmaticExec: '📦 Programmatic Execution ({count})', batchExec: '🔄 Batch Execution ({count})', continueRestore: '💚 /continue restored {n} sessions (0 LLM calls)', continueContext: '   Restored context: {tokens} tokens', continueCompactCost: '   /compact estimated cost: ${min} ~ ${max}', continueSaved: '   → ${min} ~ ${max} saved!', tableHeaders: ['ID', 'Type', 'Msgs', 'Input', 'Output', 'Cache', 'Read', 'Cost'] };
-  I18N.alert = { ctxWarn: '⚠️ Context window exceeded 35% — cache read cost increases with each call.', ctxDanger: '🔴 Context window exceeded 70% — cache read cost is very high.', fiveHWarn: '⚠️ 5H session window at 70% — approaching subscription usage limit.', fiveHDanger: '🔴 5H session window at 90% — subscription usage may expire soon.', resume: '🔄 Session resumed — cache regenerated, cost incurred', compact: '📦 /compact restart — cache regenerated, cost incurred', continue1: '💚 /continue skill restored 1 session', continueN: '💚 /continue skill restored 2+ sessions', continueSkillTip: ' 💡 We recommend /continue skill after a new session.\n', cacheWritePrefix: '{icon} In this call, cache write {tokens} tokens were newly cached — ', resumeReason: 'Resuming a session with claude --continue or /resume uses a lot of tokens. Unless necessary, we recommend /continue skill after a new session.', compactReason: '/compact restart caused cache regeneration — large cost!', clearReason: '{reason} caused cache creation (${cost})', clearReasonClear: '/clear restart', clearReasonStartup: 'new session start', pluginOverload: ' — too many plugins, MCP, or skills may be loaded. Keep only what you need.', reloadReason: '/reload-plugins caused system prompt change, cache regenerated (${cost})', modelReason: '/model change invalidated previous cache, regenerated (${cost})', resumeHeuristicReason: 'Resuming a session with claude --continue or /resume uses a lot of tokens. Unless necessary, we recommend /continue skill after a new session.', cacheExpiredReason: 'When context is large and over 1 hour has passed, new cache is generated — large cost!', costTopLabel: '{icon} {label} (${cost})' };
+  I18N.alert = { ctxWarn: '⚠️ Context window exceeded 35% — cache write/read cost increases with each call.', ctxDanger: '🔴 Context window exceeded 70% — cache write/read cost is very high.', fiveHWarn: '⚠️ 5H session window at 70% — approaching subscription usage limit.', fiveHDanger: '🔴 5H session window at 90% — subscription usage may expire soon.', resume: '🔄 Session resumed — cache regenerated, cost incurred', compact: '📦 /compact restart — cache regenerated, cost incurred', continue1: '💚 /continue skill restored 1 session', continueN: '💚 /continue skill restored 2+ sessions', continueSkillTip: ' 💡 We recommend /continue skill after a new session.\n', cacheWritePrefix: '{icon} In this call, cache write {tokens} tokens were newly cached — ', resumeReason: 'Resuming a session with claude --continue or /resume uses a lot of tokens. Unless necessary, we recommend /continue skill after a new session.', compactReason: '/compact restart caused cache regeneration — large cost!', clearReason: '{reason} caused cache creation (${cost})', clearReasonClear: '/clear restart', clearReasonStartup: 'new session start', pluginOverload: ' — too many plugins, MCP, or skills may be loaded. Keep only what you need.', reloadReason: '/reload-plugins caused system prompt change, cache regenerated (${cost})', modelReason: '/model change invalidated previous cache, regenerated (${cost})', resumeHeuristicReason: 'Resuming a session with claude --continue or /resume uses a lot of tokens. Unless necessary, we recommend /continue skill after a new session.', cacheExpiredReason: 'When context is large and over 1 hour has passed, new cache is generated — large cost!', costTopLabel: '{icon} {label} (${cost})', costOutputReason: '{icon} Output {tokens} dominated cost (${cost}) — consider using Edit (diff) instead of full file rewrites, and trim verbose explanations in your prompt.', costInputReason: '{icon} Input {tokens} dominated cost (${cost}) — consider using text instead of images, reading only needed sections with offset/limit, or providing summarized context.' };
   I18N.ai = { analysis: '✨ AI Analysis', tips: '💡 Tips — cc-token-saver Usage Guide' };
 }
 
@@ -1872,6 +1872,7 @@ function renderAlertItems(alerts, container, sessionType) {
   }
   for (var i = 0; i < alerts.length; i++) {
     var a = alerts[i];
+    if (a.isInfoOnly) continue;  // info-only alerts kept in data but not rendered
     // Skip alerts with /continue skill (^ or ^^) — /continue saves tokens vs compact, not a cost event
     var aTypes = (a.alertType || '').split('+');
     var hasContinueMarker = aTypes.indexOf('continue-1') >= 0 || aTypes.indexOf('continue-n') >= 0;
@@ -1928,20 +1929,29 @@ function renderAlertItems(alerts, container, sessionType) {
         diagMsg += I18N.alert.continueN + '\n';
       } else if ((typ === 'cost-warn' || typ === 'cost-danger') && a.tokens) {
         var t = a.tokens;
-        var pricing = REPORT_DATA.tokenBreakdown || {};
-        // Find the dominant cost component
+        var tb = REPORT_DATA.tokenBreakdown || {};
+        // Derive per-token cost rates from aggregate tokenBreakdown (average across all models/sessions)
+        function rate(entry) { return (entry && entry.tokens > 0) ? entry.cost / entry.tokens : 0; }
+        var rCW1h = rate(tb.cacheCreate1h);
+        var rCW5m = rate(tb.cacheCreate5m);
+        var rCR = rate(tb.cacheRead);
+        var rOut = rate(tb.output);
+        var rIn = rate(tb.input);
+        // Find the dominant cost component (sorted by estimated cost, not token count)
+        var cwTokens = (t.cc1h || 0) + (t.cc5m || 0);
+        var cwCost = (t.cc1h || 0) * rCW1h + (t.cc5m || 0) * rCW5m;
         var costs = [
-          { name: 'cache write', val: (t.cc1h || 0) + (t.cc5m || 0), label: 'cache write ' + fmtTokens((t.cc1h||0)+(t.cc5m||0)) },
-          { name: 'cache read', val: t.cr || 0, label: 'cache read ' + fmtTokens(t.cr||0) },
-          { name: 'output', val: t.out || 0, label: 'output ' + fmtTokens(t.out||0) },
-          { name: 'input', val: t.input || 0, label: 'input ' + fmtTokens(t.input||0) }
+          { name: 'cache write', val: cwCost, tokens: cwTokens, label: 'cache write ' + fmtTokens(cwTokens) },
+          { name: 'cache read', val: (t.cr || 0) * rCR, tokens: t.cr || 0, label: 'cache read ' + fmtTokens(t.cr||0) },
+          { name: 'output', val: (t.out || 0) * rOut, tokens: t.out || 0, label: 'output ' + fmtTokens(t.out||0) },
+          { name: 'input', val: (t.input || 0) * rIn, tokens: t.input || 0, label: 'input ' + fmtTokens(t.input||0) }
         ];
         costs.sort(function(a, b) { return b.val - a.val; });
         var top = costs[0];
         var icon = typ === 'cost-danger' ? '\uD83D\uDD34' : '\u26A0\uFE0F';
         if (top.name === 'cache write' && top.val > 0) {
           // Common prefix for all cache write cases
-          var cwPrefix = i18nT(I18N.alert.cacheWritePrefix, { icon: icon, tokens: fmtTokens(top.val) });
+          var cwPrefix = i18nT(I18N.alert.cacheWritePrefix, { icon: icon, tokens: fmtTokens(top.tokens) });
           // Determine reason based on session markers
           var hasResume = false, hasCompact = false, hasContinue = false, hasStartup = false, hasClear = false;
           var hasReload = false, hasModel = false, hasResumeHeuristic = false;
@@ -1961,7 +1971,7 @@ function renderAlertItems(alerts, container, sessionType) {
           } else if (hasCompact) {
             diagMsg += cwPrefix + I18N.alert.compactReason + continueSkillTip;
           } else if (hasClear || hasStartup) {
-            var startupTip = top.val >= 30000 ? I18N.alert.pluginOverload : '';
+            var startupTip = top.tokens >= 30000 ? I18N.alert.pluginOverload : '';
             var reason = hasClear ? I18N.alert.clearReasonClear : I18N.alert.clearReasonStartup;
             diagMsg += cwPrefix + i18nT(I18N.alert.clearReason, { reason: reason, cost: t.cost.toFixed(2) }) + startupTip + '\n';
           } else if (hasContinue) {
@@ -1975,6 +1985,17 @@ function renderAlertItems(alerts, container, sessionType) {
           } else {
             diagMsg += cwPrefix + I18N.alert.cacheExpiredReason + continueSkillTip;
           }
+        } else if (top.name === 'cache read') {
+          // Cache read dominated — ctx warning usually covers this.
+          // Fallback to generic label if ctx warning is not present (rare: ctx < 35%)
+          var hasCtx = types.indexOf('ctx-warn') >= 0 || types.indexOf('ctx-danger') >= 0;
+          if (!hasCtx) {
+            diagMsg += i18nT(I18N.alert.costTopLabel, { icon: icon, label: top.label, cost: t.cost.toFixed(2) }) + '\n';
+          }
+        } else if (top.name === 'output') {
+          diagMsg += i18nT(I18N.alert.costOutputReason, { icon: icon, tokens: fmtTokens(top.tokens), cost: t.cost.toFixed(2) }) + '\n';
+        } else if (top.name === 'input') {
+          diagMsg += i18nT(I18N.alert.costInputReason, { icon: icon, tokens: fmtTokens(top.tokens), cost: t.cost.toFixed(2) }) + '\n';
         } else {
           diagMsg += i18nT(I18N.alert.costTopLabel, { icon: icon, label: top.label, cost: t.cost.toFixed(2) }) + '\n';
         }
@@ -1998,7 +2019,8 @@ function getSessionAlerts(win, sessionIds) {
   var filtered = [];
   for (var i = 0; i < allAlerts.length; i++) {
     if (allAlerts[i].sessionId && idSet[allAlerts[i].sessionId]) {
-      // Exclude alerts with /continue skill — /continue saves tokens vs compact, not a cost event
+      // Exclude alerts with /continue skill or info-only alerts from count
+      if (allAlerts[i].isInfoOnly) continue;
       var at = (allAlerts[i].alertType || '').split('+');
       if (at.indexOf('continue-1') >= 0 || at.indexOf('continue-n') >= 0) continue;
       filtered.push(allAlerts[i]);

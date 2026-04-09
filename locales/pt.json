@@ -89,8 +89,8 @@
     ]
   },
   "alert": {
-    "ctxWarn": "⚠️ Context window ultrapassou 35% — o custo de cache read aumenta a cada chamada.",
-    "ctxDanger": "🔴 Context window ultrapassou 70% — o custo de cache read está muito alto.",
+    "ctxWarn": "⚠️ Context window ultrapassou 35% — o custo de cache write/read aumenta a cada chamada.",
+    "ctxDanger": "🔴 Context window ultrapassou 70% — o custo de cache write/read está muito alto.",
     "fiveHWarn": "⚠️ Janela de sessão 5H em 70% — aproximando-se do limite de uso da assinatura.",
     "fiveHDanger": "🔴 Janela de sessão 5H em 90% — o uso da assinatura pode expirar em breve.",
     "resume": "🔄 Sessão retomada — cache regenerado, custo incorrido",
@@ -109,7 +109,9 @@
     "modelReason": "/model mudança invalidou o cache anterior, regenerado (${cost})",
     "resumeHeuristicReason": "Retomar uma sessão com claude --continue ou /resume usa muitos tokens. A menos que necessário, recomendamos /continue skill após uma nova sessão.",
     "cacheExpiredReason": "Quando o contexto é grande e mais de 1 hora se passou, novo cache é gerado — custo alto!",
-    "costTopLabel": "{icon} {label} (${cost})"
+    "costTopLabel": "{icon} {label} (${cost})",
+    "costOutputReason": "{icon} A saída {tokens} dominou o custo (${cost}) — considere usar Edit (diff) em vez de reescrever arquivos inteiros e reduza explicações extensas no seu prompt.",
+    "costInputReason": "{icon} A entrada {tokens} dominou o custo (${cost}) — considere usar texto em vez de imagens, ler apenas seções necessárias com offset/limit ou fornecer contexto resumido."
   },
   "ai": {
     "analysis": "✨ Análise de IA",

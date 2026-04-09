@@ -89,8 +89,8 @@
     ]
   },
   "alert": {
-    "ctxWarn": "⚠️ Context window ৩৫% অতিক্রম করেছে — প্রতিটি কলে cache read খরচ বাড়ছে।",
-    "ctxDanger": "🔴 Context window ৭০% অতিক্রম করেছে — cache read খরচ অত্যন্ত বেশি।",
+    "ctxWarn": "⚠️ Context window ৩৫% অতিক্রম করেছে — প্রতিটি কলে cache write/read খরচ বাড়ছে।",
+    "ctxDanger": "🔴 Context window ৭০% অতিক্রম করেছে — cache write/read খরচ অত্যন্ত বেশি।",
     "fiveHWarn": "⚠️ 5H সেশন উইন্ডো ৭০%-এ — সাবস্ক্রিপশন ব্যবহারের সীমার কাছে।",
     "fiveHDanger": "🔴 5H সেশন উইন্ডো ৯০%-এ — সাবস্ক্রিপশন ব্যবহার শীঘ্রই শেষ হতে পারে।",
     "resume": "🔄 সেশন পুনরায় শুরু — cache পুনরায় তৈরি, খরচ হয়েছে",
@@ -109,7 +109,9 @@
     "modelReason": "/model পরিবর্তন আগের cache বাতিল করেছে, পুনরায় তৈরি (${cost})",
     "resumeHeuristicReason": "claude --continue বা /resume দিয়ে সেশন পুনরায় শুরু করলে অনেক টোকেন খরচ হয়। প্রয়োজন না হলে নতুন সেশনের পরে /continue skill সুপারিশ করি।",
     "cacheExpiredReason": "কনটেক্সট বড় হলে এবং ১ ঘণ্টার বেশি সময় পার হলে নতুন cache তৈরি হয় — উচ্চ খরচ!",
-    "costTopLabel": "{icon} {label} (${cost})"
+    "costTopLabel": "{icon} {label} (${cost})",
+    "costOutputReason": "{icon} আউটপুট {tokens} খরচের প্রধান কারণ (${cost}) — সম্পূর্ণ ফাইল পুনর্লিখনের পরিবর্তে Edit (diff) ব্যবহার করুন এবং প্রম্পটে অতিরিক্ত ব্যাখ্যা কমান।",
+    "costInputReason": "{icon} ইনপুট {tokens} খরচের প্রধান কারণ (${cost}) — ছবির পরিবর্তে টেক্সট ব্যবহার করুন, offset/limit দিয়ে শুধু প্রয়োজনীয় অংশ পড়ুন, বা সংক্ষিপ্ত কনটেক্সট দিন।"
   },
   "ai": {
     "analysis": "✨ AI বিশ্লেষণ",

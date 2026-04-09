@@ -89,8 +89,8 @@
     ]
   },
   "alert": {
-    "ctxWarn": "⚠️ Context window heeft 35% overschreden — cache read kosten stijgen bij elke aanroep.",
-    "ctxDanger": "🔴 Context window heeft 70% overschreden — cache read kosten zijn zeer hoog.",
+    "ctxWarn": "⚠️ Context window heeft 35% overschreden — cache write/read kosten stijgen bij elke aanroep.",
+    "ctxDanger": "🔴 Context window heeft 70% overschreden — cache write/read kosten zijn zeer hoog.",
     "fiveHWarn": "⚠️ 5H-sessievenster op 70% — nadert de gebruikslimiet van het abonnement.",
     "fiveHDanger": "🔴 5H-sessievenster op 90% — abonnementsgebruik kan binnenkort verlopen.",
     "resume": "🔄 Sessie hervat — cache opnieuw gegenereerd, kosten gemaakt",
@@ -109,7 +109,9 @@
     "modelReason": "/model wijziging maakte vorige cache ongeldig, opnieuw gegenereerd (${cost})",
     "resumeHeuristicReason": "Een sessie hervatten met claude --continue of /resume verbruikt veel tokens. Tenzij noodzakelijk, raden wij /continue skill aan na een nieuwe sessie.",
     "cacheExpiredReason": "Bij grote context en meer dan 1 uur inactiviteit wordt nieuwe cache gegenereerd — hoge kosten!",
-    "costTopLabel": "{icon} {label} (${cost})"
+    "costTopLabel": "{icon} {label} (${cost})",
+    "costOutputReason": "{icon} Uitvoer {tokens} domineerde de kosten (${cost}) — overweeg Edit (diff) te gebruiken in plaats van volledige bestanden te herschrijven en beperk uitgebreide uitleg in uw prompt.",
+    "costInputReason": "{icon} Invoer {tokens} domineerde de kosten (${cost}) — overweeg tekst te gebruiken in plaats van afbeeldingen, lees alleen benodigde secties met offset/limit, of bied samengevatte context aan."
   },
   "ai": {
     "analysis": "✨ AI-analyse",

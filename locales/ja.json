@@ -89,8 +89,8 @@
     ]
   },
   "alert": {
-    "ctxWarn": "⚠️ Context windowが35%を超えました — 呼び出しごとにcache readコストが増加します。",
-    "ctxDanger": "🔴 Context windowが70%を超えました — cache readコストが非常に高くなっています。",
+    "ctxWarn": "⚠️ Context windowが35%を超えました — 呼び出しごとにcache write/readコストが増加します。",
+    "ctxDanger": "🔴 Context windowが70%を超えました — cache write/readコストが非常に高くなっています。",
     "fiveHWarn": "⚠️ 5Hセッションウィンドウが70% — サブスクリプション使用量の上限に近づいています。",
     "fiveHDanger": "🔴 5Hセッションウィンドウが90% — サブスクリプション使用量がまもなく上限に達します。",
     "resume": "🔄 セッション再開 — cacheが再生成され、コストが発生しました",
@@ -109,7 +109,9 @@
     "modelReason": "/model 変更により以前のcacheが無効化され、再生成されました (${cost})",
     "resumeHeuristicReason": "claude --continue または /resume でのセッション再開は大量のトークンを使用します。必要でなければ、新しいセッション開始後に /continue スキルを推奨します。",
     "cacheExpiredReason": "コンテキストが大きく1時間以上経過すると、新しいcacheが生成されます — 大きなコスト！",
-    "costTopLabel": "{icon} {label} (${cost})"
+    "costTopLabel": "{icon} {label} (${cost})",
+    "costOutputReason": "{icon} 出力 {tokens} がコストの大部分を占めました (${cost}) — ファイル全体の書き直しではなく Edit (diff) の使用を検討し、プロンプトの冗長な説明を減らしてください。",
+    "costInputReason": "{icon} 入力 {tokens} がコストの大部分を占めました (${cost}) — 画像ではなくテキストの使用、offset/limit で必要な部分のみの読み取り、または要約されたコンテキストの提供を検討してください。"
   },
   "ai": {
     "analysis": "✨ AI分析",

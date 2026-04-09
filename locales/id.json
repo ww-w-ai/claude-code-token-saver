@@ -89,8 +89,8 @@
     ]
   },
   "alert": {
-    "ctxWarn": "⚠️ Context window melebihi 35% — biaya cache read meningkat setiap panggilan.",
-    "ctxDanger": "🔴 Context window melebihi 70% — biaya cache read sangat tinggi.",
+    "ctxWarn": "⚠️ Context window melebihi 35% — biaya cache write/read meningkat setiap panggilan.",
+    "ctxDanger": "🔴 Context window melebihi 70% — biaya cache write/read sangat tinggi.",
     "fiveHWarn": "⚠️ Jendela sesi 5H di 70% — mendekati batas penggunaan langganan.",
     "fiveHDanger": "🔴 Jendela sesi 5H di 90% — penggunaan langganan mungkin segera habis.",
     "resume": "🔄 Sesi dilanjutkan — cache diregenerasi, biaya terjadi",
@@ -109,7 +109,9 @@
     "modelReason": "/model perubahan membatalkan cache sebelumnya, diregenerasi (${cost})",
     "resumeHeuristicReason": "Melanjutkan sesi dengan claude --continue atau /resume menggunakan banyak token. Kecuali diperlukan, kami merekomendasikan /continue skill setelah sesi baru.",
     "cacheExpiredReason": "Saat konteks besar dan lebih dari 1 jam berlalu, cache baru dihasilkan — biaya besar!",
-    "costTopLabel": "{icon} {label} (${cost})"
+    "costTopLabel": "{icon} {label} (${cost})",
+    "costOutputReason": "{icon} Output {tokens} mendominasi biaya (${cost}) — pertimbangkan menggunakan Edit (diff) alih-alih menulis ulang seluruh file, dan kurangi penjelasan panjang di prompt Anda.",
+    "costInputReason": "{icon} Input {tokens} mendominasi biaya (${cost}) — pertimbangkan menggunakan teks alih-alih gambar, baca hanya bagian yang diperlukan dengan offset/limit, atau berikan konteks yang diringkas."
   },
   "ai": {
     "analysis": "✨ Analisis AI",

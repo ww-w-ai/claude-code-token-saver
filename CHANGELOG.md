@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-04-09
+
+### Fixed
+
+- Marker system: session markers now accumulate instead of overwriting (e.g., `/clear` + `/model` → `@@!`)
+- Marker system: rate limit path now flushes pending session markers
+- Marker system: prevent `+++` edge case when `+` and `++` co-occur
+- analyze-usage: `/continue` detection updated for new compact file path structure
+- analyze-usage: `/continue` detection string aligned with preprocess.js (`cc-token-saver:continue`)
+- analyze-usage: context threshold events now fire on first crossing only (matches preprocess.js)
+- build-report: `matchAlertWithTimeline` no longer skips usage rows with cost/ctx event annotations
+- build-report: session-marker-only alerts kept in REPORT_DATA (with `isInfoOnly` flag), filtered in UI only
+- build-report: alert count in UI excludes info-only alerts
+- template: cost diagnostic now sorts by estimated cost instead of token count (was using token count)
+- template: cache write cost split by 1h/5m tier rates for accurate ranking
+- Dead code removed: unreachable `isFirstUserMessage` resets in preprocess.js
+
+### Added
+
+- analyze-usage: session event detection (`/clear`, `/resume`, `/reload-plugins`, `/model`) → timeline evt column
+- Compact timestamp now includes seconds (`MM-DDThh:mm:ss`) for precise alert-timeline matching
+- Cost diagnostic: dedicated messages for output-dominated and input-dominated alerts (23 locales)
+- Cost diagnostic: cache-read-dominated alerts fall back to generic label when ctx < 35%
+- i18n: `costOutputReason`, `costInputReason` added to all 23 locales
+- i18n: `ctxWarn`/`ctxDanger` updated to "cache write/read cost" across all 23 locales
+
+## [1.2.0] - 2026-04-09
+
+### Fixed
+
+- Subagent timeline path resolution: `agent-` prefix mismatch in `_sessionProjectMap`
+- 5m cache tier showing $0: resolved by fixing subagent token aggregation
+- 5h window overlap: refactored from per-session `hourFloor` to library-based window assembly
+
+### Added
+
+- window-utils library: `collectActiveHours`, `buildFiveHourWindows`, `buildHourToWindowMap`
+- report-limit: model indexing (`models.csv`), per-window analysis metrics, unified table
+
 ## [1.1.2] - 2026-04-09
 
 ### Fixed

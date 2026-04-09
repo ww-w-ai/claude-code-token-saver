@@ -29,14 +29,14 @@
  * rendered in template.html (showWindowDetail).
  *
  * Line format:
- *   [L{n} User MM-DDThh:mm]{markers} {text}
- *   [L{n} Assistant MM-DDThh:mm] {text}
+ *   [L{n} User MM-DDThh:mm:ss]{markers} {text}
+ *   [L{n} Assistant MM-DDThh:mm:ss] {text}
  *   [Tools: {tool1}, {tool2}, ...]
  *
  * Regex (build-report.js ALERT_LINE_RE):
- *   /^\[L(\d+) User ((?:\d{2}-\d{2}T)?\d+:\d+)\]([^\s]*)\s*(.*)/
+ *   /^\[L(\d+) User ((?:\d{2}-\d{2}T)?\d+:\d+(?::\d+)?)\]([^\s]*)\s*(.*)/
  *
- * Session markers (position: after [L# User HH:MM])
+ * Session markers (position: after [L# User HH:MM:SS], can accumulate e.g. @@! for /clear + /model)
  *   @   New session start (first non-meta user message)
  *   @@  /clear restart
  *   +   /resume slash command
@@ -55,7 +55,7 @@
  *   #   Context window ≥ 35%
  *   ##  Context window ≥ 70%
  *
- * Rate limit markers (from obj.error === "rate_limit" assistant messages)
+ * Rate limit markers (from obj.error === "rate_limit" assistant messages; also flush pending session markers)
  *   %%              Unknown/generic rate limit ("You've hit your limit")
  *   %5              5-hour session limit ("You've hit your session limit")
  *   %W              Weekly limit ("You've hit your weekly limit")
@@ -64,7 +64,7 @@
  *   %X              Extra usage exhausted ("You're out of extra usage")
  *   {time@timezone}  Optional reset info appended (e.g. %5{1am@Asia/Seoul})
  *
- * Marker order: @ * # + ~ ! ? ^ %
+ * Marker order: @ * # + ~ ! ? ^ % (session markers accumulate until flushed by user line or rate limit)
  * ─────────────────────────────────────────────
  */
 
@@ -205,6 +205,16 @@ async function main() {
   const _seenReqIds = new Set();
   let prevCtxLevel = 0; // track CTX threshold crossings: 0=normal, 1=#, 2=##
   let pendingSessionMarker = ""; // session markers — applied to next user message
+  function addSessionMarker(mark) {
+    if (!pendingSessionMarker.includes(mark)) {
+      // Prevent "+++" when "+" exists and "++" is added: replace "+" with "++"
+      if (mark === "++" && pendingSessionMarker.includes("+")) {
+        pendingSessionMarker = pendingSessionMarker.replace("+", "++");
+      } else {
+        pendingSessionMarker += mark;
+      }
+    }
+  }
   let isFirstUserMessage = true; // track first non-meta user message for @ marker
   let lastAssistantTs = 0; // epoch seconds of last assistant response (for ? heuristic)
   let inContinueSkill = false; // track /continue skill execution for compact file detection
@@ -241,12 +251,12 @@ async function main() {
     const type = obj.type;
     const content = obj.message?.content ?? obj.content;
     const ts = obj.timestamp || obj.message?.timestamp || "";
-    const tsTag = ts ? ts.slice(5, 16) : "";
+    const tsTag = ts ? ts.slice(5, 19) : "";
     const loc = `L${lineNum}`;
 
     // Detect compact events (auto or manual)
     if (type === "system" && obj.subtype === "compact_boundary") {
-      pendingSessionMarker = "++";
+      addSessionMarker("++");
       continue;
     }
 
@@ -256,10 +266,10 @@ async function main() {
       const cmdMatch = rawForCmd.match(/<command-name>\/([\w-]+)<\/command-name>/);
       if (cmdMatch) {
         const cmd = cmdMatch[1];
-        if (cmd === "clear") pendingSessionMarker = "@@";
-        else if (cmd === "resume") pendingSessionMarker = "+";
-        else if (cmd === "reload-plugins") pendingSessionMarker = "~";
-        else if (cmd === "model") pendingSessionMarker = "!";
+        if (cmd === "clear") addSessionMarker("@@");
+        else if (cmd === "resume") addSessionMarker("+");
+        else if (cmd === "reload-plugins") addSessionMarker("~");
+        else if (cmd === "model") addSessionMarker("!");
       }
       // Detect /continue skill invocation (uses <command-message> tag, not <command-name>)
       if (rawForCmd.includes("<command-message>cc-token-saver:continue</command-message>")) {
@@ -308,9 +318,12 @@ async function main() {
         // Unlike cost markers (deferred until usage data arrives), rate limit is a
         // blocking event with no usage data — must apply now before lastUserIdx moves.
         if (lastUserIdx >= 0) {
+          let sMark = pendingSessionMarker;
+          if (isFirstUserMessage && !sMark) sMark = "@";
+          if (sMark) { pendingSessionMarker = ""; isFirstUserMessage = false; }
           output[lastUserIdx] = output[lastUserIdx].replace(
             /^(\[L\d+ User[^\]]*\])/,
-            `$1${rlType}`,
+            `$1${sMark}${rlType}`,
           );
         }
         continue; // skip normal assistant processing for synthetic rate limit messages
@@ -343,7 +356,6 @@ async function main() {
           pendingSessionMarker = "";
           isFirstUserMessage = false;
         }
-        if (isFirstUserMessage) isFirstUserMessage = false;
 
         // Cost marker: * (≥$0.50) or ** (≥$1.00)
         const cMark = costMarker(cost);

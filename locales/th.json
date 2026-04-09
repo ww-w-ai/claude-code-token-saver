@@ -89,8 +89,8 @@
     ]
   },
   "alert": {
-    "ctxWarn": "⚠️ Context window เกิน 35% — ค่าใช้จ่าย cache read เพิ่มขึ้นทุกการเรียก",
-    "ctxDanger": "🔴 Context window เกิน 70% — ค่าใช้จ่าย cache read สูงมาก",
+    "ctxWarn": "⚠️ Context window เกิน 35% — ค่าใช้จ่าย cache write/read เพิ่มขึ้นทุกการเรียก",
+    "ctxDanger": "🔴 Context window เกิน 70% — ค่าใช้จ่าย cache write/read สูงมาก",
     "fiveHWarn": "⚠️ หน้าต่างเซสชัน 5H อยู่ที่ 70% — ใกล้ถึงขีดจำกัดการใช้งานสมาชิก",
     "fiveHDanger": "🔴 หน้าต่างเซสชัน 5H อยู่ที่ 90% — การใช้งานสมาชิกอาจหมดเร็วๆ นี้",
     "resume": "🔄 เซสชันกลับมาทำงาน — cache สร้างใหม่ มีค่าใช้จ่าย",
@@ -109,7 +109,9 @@
     "modelReason": "/model เปลี่ยนทำให้ cache ก่อนหน้าใช้ไม่ได้ สร้างใหม่ (${cost})",
     "resumeHeuristicReason": "การกลับมาเซสชันด้วย claude --continue หรือ /resume ใช้โทเค็นจำนวนมาก หากไม่จำเป็น แนะนำ /continue skill หลังเซสชันใหม่",
     "cacheExpiredReason": "เมื่อบริบทใหญ่และผ่านไปมากกว่า 1 ชั่วโมง cache ใหม่จะถูกสร้าง — ค่าใช้จ่ายสูง!",
-    "costTopLabel": "{icon} {label} (${cost})"
+    "costTopLabel": "{icon} {label} (${cost})",
+    "costOutputReason": "{icon} เอาต์พุต {tokens} เป็นสาเหตุหลักของค่าใช้จ่าย (${cost}) — ลองใช้ Edit (diff) แทนการเขียนไฟล์ใหม่ทั้งหมด และลดคำอธิบายที่ยืดยาวในพรอมต์ของคุณ",
+    "costInputReason": "{icon} อินพุต {tokens} เป็นสาเหตุหลักของค่าใช้จ่าย (${cost}) — ลองใช้ข้อความแทนรูปภาพ อ่านเฉพาะส่วนที่ต้องการด้วย offset/limit หรือให้บริบทที่สรุปแล้ว"
   },
   "ai": {
     "analysis": "✨ การวิเคราะห์ AI",

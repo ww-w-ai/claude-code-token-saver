@@ -43,7 +43,15 @@
     "effTotalPerOutput": "(Total / Output) ↓ Lower is better",
     "effCachePerOutput": "(Cache Creation / Output) ↓ Lower is better",
     "effNote": "* Days with <1,000 output tokens are omitted (too little output to compute a meaningful ratio).",
-    "days": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    "days": [
+      "Sun",
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri",
+      "Sat"
+    ]
   },
   "calendar": {
     "title": "Hourly Usage Calendar",
@@ -69,11 +77,20 @@
     "continueContext": "   Restored context: {tokens} tokens",
     "continueCompactCost": "   /compact estimated cost: ${min} ~ ${max}",
     "continueSaved": "   → ${min} ~ ${max} saved!",
-    "tableHeaders": ["ID", "Type", "Msgs", "Input", "Output", "Cache", "Read", "Cost"]
+    "tableHeaders": [
+      "ID",
+      "Type",
+      "Msgs",
+      "Input",
+      "Output",
+      "Cache",
+      "Read",
+      "Cost"
+    ]
   },
   "alert": {
-    "ctxWarn": "⚠️ Context window exceeded 35% — cache read cost increases with each call.",
-    "ctxDanger": "🔴 Context window exceeded 70% — cache read cost is very high.",
+    "ctxWarn": "⚠️ Context window exceeded 35% — cache write/read cost increases with each call.",
+    "ctxDanger": "🔴 Context window exceeded 70% — cache write/read cost is very high.",
     "fiveHWarn": "⚠️ 5H session window at 70% — approaching subscription usage limit.",
     "fiveHDanger": "🔴 5H session window at 90% — subscription usage may expire soon.",
     "resume": "🔄 Session resumed — cache regenerated, cost incurred",
@@ -92,7 +109,9 @@
     "modelReason": "/model change invalidated previous cache, regenerated (${cost})",
     "resumeHeuristicReason": "Resuming a session with claude --continue or /resume uses a lot of tokens. Unless necessary, we recommend /continue skill after a new session.",
     "cacheExpiredReason": "When context is large and over 1 hour has passed, new cache is generated — large cost!",
-    "costTopLabel": "{icon} {label} (${cost})"
+    "costTopLabel": "{icon} {label} (${cost})",
+    "costOutputReason": "{icon} Output {tokens} dominated cost (${cost}) — consider using Edit (diff) instead of full file rewrites, and trim verbose explanations in your prompt.",
+    "costInputReason": "{icon} Input {tokens} dominated cost (${cost}) — consider using text instead of images, reading only needed sections with offset/limit, or providing summarized context."
   },
   "ai": {
     "analysis": "✨ AI Analysis",

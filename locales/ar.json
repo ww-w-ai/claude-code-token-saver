@@ -89,8 +89,8 @@
     ]
   },
   "alert": {
-    "ctxWarn": "⚠️ تجاوز ‎Context window‏ نسبة 35% — تكلفة ‎cache read‏ تزداد مع كل استدعاء.",
-    "ctxDanger": "🔴 تجاوز ‎Context window‏ نسبة 70% — تكلفة ‎cache read‏ مرتفعة جداً.",
+    "ctxWarn": "⚠️ تجاوز ‎Context window‏ نسبة 35% — تكلفة ‎cache write/read‏ تزداد مع كل استدعاء.",
+    "ctxDanger": "🔴 تجاوز ‎Context window‏ نسبة 70% — تكلفة ‎cache write/read‏ مرتفعة جداً.",
     "fiveHWarn": "⚠️ نافذة جلسة ‎5H‏ عند 70% — اقتراب من حد استخدام الاشتراك.",
     "fiveHDanger": "🔴 نافذة جلسة ‎5H‏ عند 90% — قد ينتهي استخدام الاشتراك قريباً.",
     "resume": "🔄 تم استئناف الجلسة — أُعيد توليد ‎cache‏، تكلفة مُتكبَّدة",
@@ -109,7 +109,9 @@
     "modelReason": "‎/model‏ التغيير أبطل ‎cache‏ السابق، أُعيد توليده (${cost})",
     "resumeHeuristicReason": "استئناف جلسة باستخدام ‎claude --continue‏ أو ‎/resume‏ يستهلك الكثير من التوكنات. ما لم يكن ضرورياً، نوصي باستخدام ‎/continue skill‏ بعد جلسة جديدة.",
     "cacheExpiredReason": "عندما يكون السياق كبيراً ومر أكثر من ساعة، يتم توليد ‎cache‏ جديد — تكلفة عالية!",
-    "costTopLabel": "{icon} {label} (${cost})"
+    "costTopLabel": "{icon} {label} (${cost})",
+    "costOutputReason": "{icon} الإخراج {tokens} هيمن على التكلفة (${cost}) — جرّب استخدام Edit (diff) بدلاً من إعادة كتابة الملفات بالكامل، واختصر التوضيحات المطوّلة في تعليماتك.",
+    "costInputReason": "{icon} الإدخال {tokens} هيمن على التكلفة (${cost}) — جرّب استخدام النص بدلاً من الصور، وقراءة الأقسام المطلوبة فقط باستخدام offset/limit، أو تقديم سياق ملخّص."
   },
   "ai": {
     "analysis": "✨ تحليل الذكاء الاصطناعي",

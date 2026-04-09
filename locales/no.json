@@ -89,8 +89,8 @@
     ]
   },
   "alert": {
-    "ctxWarn": "⚠️ Context window oversteg 35% — cache read-kostnaden øker ved hvert kall.",
-    "ctxDanger": "🔴 Context window oversteg 70% — cache read-kostnaden er svært høy.",
+    "ctxWarn": "⚠️ Context window oversteg 35% — cache write/read-kostnaden øker ved hvert kall.",
+    "ctxDanger": "🔴 Context window oversteg 70% — cache write/read-kostnaden er svært høy.",
     "fiveHWarn": "⚠️ 5H-sesjonsvindu på 70% — nærmer seg abonnementets bruksgrense.",
     "fiveHDanger": "🔴 5H-sesjonsvindu på 90% — abonnementsbruken kan snart være oppbrukt.",
     "resume": "🔄 Sesjon gjenopptatt — cache regenerert, kostnad påløpt",
@@ -109,7 +109,9 @@
     "modelReason": "/model endring ugyldiggjorde tidligere cache, regenerert (${cost})",
     "resumeHeuristicReason": "Å gjenoppta en sesjon med claude --continue eller /resume bruker mange tokens. Med mindre det er nødvendig, anbefaler vi /continue skill etter en ny sesjon.",
     "cacheExpiredReason": "Når konteksten er stor og mer enn 1 time har passert, genereres ny cache — høy kostnad!",
-    "costTopLabel": "{icon} {label} (${cost})"
+    "costTopLabel": "{icon} {label} (${cost})",
+    "costOutputReason": "{icon} Utdata {tokens} dominerte kostnaden (${cost}) — vurder å bruke Edit (diff) i stedet for å skrive om hele filer, og forkort detaljerte forklaringer i prompten din.",
+    "costInputReason": "{icon} Inndata {tokens} dominerte kostnaden (${cost}) — vurder å bruke tekst i stedet for bilder, les bare nødvendige seksjoner med offset/limit, eller gi oppsummert kontekst."
   },
   "ai": {
     "analysis": "✨ AI-analyse",

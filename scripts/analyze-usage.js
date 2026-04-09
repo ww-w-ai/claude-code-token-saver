@@ -249,7 +249,9 @@ async function analyzeSession(filePath) {
     if (!inContinueSequence || continueReads.length === 0) return;
     const uniqueFiles = new Set(continueReads.map(r => r.filePath.replace(/\.aggressive\.txt$/, '.txt')));
     const restoredSessionIds = [...uniqueFiles].map(f => {
-      const m = f.match(/compact-([0-9a-f-]+)\.txt$/);
+      const mNew = f.match(/\/([0-9a-f-]+)\/compact\.txt$/);
+      const mOld = f.match(/compact-([0-9a-f-]+)\.txt$/);
+      const m = mNew || mOld;
       return m ? m[1] : null;
     }).filter(Boolean);
     contextEvents.push({
@@ -312,7 +314,7 @@ async function analyzeSession(filePath) {
       let text = "";
       if (typeof content === "string") text = content;
       else if (Array.isArray(content)) text = content.filter(b => b.type === "text" && b.text).map(b => b.text).join(" ");
-      if (text.includes("skills/continue")) {
+      if (text.includes("cc-token-saver:continue")) {
         inContinueSequence = true;
         continueStartTs = ts;
         continueReads = [];
@@ -321,6 +323,26 @@ async function analyzeSession(filePath) {
 
     if (obj.type === "user") {
       userMsgs++;
+      // Detect cache-affecting slash commands (mirrors preprocess.js)
+      const rawContent = obj.message && obj.message.content;
+      let rawText = "";
+      if (typeof rawContent === "string") rawText = rawContent;
+      else if (Array.isArray(rawContent)) rawText = rawContent.filter(b => b.type === "text" && b.text).map(b => b.text).join(" ");
+      // Session event detection — mirrors preprocess.js session marker detection.
+      // Events are stored in contextEvents → timeline evt column.
+      // Used by build-report for session detail rendering.
+      const cmdMatch = rawText.match(/<command-name>\/([\w-]+)<\/command-name>/);
+      if (cmdMatch) {
+        const cmd = cmdMatch[1];
+        let evtType = null;
+        if (cmd === "clear") evtType = "clear";
+        else if (cmd === "resume") evtType = "resume";
+        else if (cmd === "reload-plugins") evtType = "reload_plugins";
+        else if (cmd === "model") evtType = "model_change";
+        if (evtType) {
+          contextEvents.push({ type: evtType, ts });
+        }
+      }
       // Extract first/last user message text
       if (!obj.isMeta) {
         const content = obj.message && obj.message.content;
@@ -403,7 +425,7 @@ async function analyzeSession(filePath) {
           // Detect Read tool_use calls to compact-*.txt (part of /continue)
           if (inContinueSequence && block.type === "tool_use" && block.name === "Read") {
             const filePath = block.input && block.input.file_path;
-            if (filePath && /compact-[0-9a-f-]+\.(txt|aggressive\.txt)$/.test(filePath)) {
+            if (filePath && (/compact-[0-9a-f-]+\.(txt|aggressive\.txt)$/.test(filePath) || /\/[0-9a-f-]+\/compact(?:\.aggressive)?\.txt$/.test(filePath))) {
               continueReads.push({ ts, filePath });
             }
           }
@@ -418,7 +440,7 @@ async function analyzeSession(filePath) {
           for (const block of content) {
             if (block.type === "tool_use" && block.name === "Read") {
               const fp = block.input && block.input.file_path;
-              if (fp && /compact-[0-9a-f-]+\.(txt|aggressive\.txt)$/.test(fp)) {
+              if (fp && (/compact-[0-9a-f-]+\.(txt|aggressive\.txt)$/.test(fp) || /\/[0-9a-f-]+\/compact(?:\.aggressive)?\.txt$/.test(fp))) {
                 hasCompactRead = true;
               }
             }
@@ -519,7 +541,9 @@ async function analyzeSession(filePath) {
       rl: "",
       evt: ce.type === "compact"
         ? `compact:${ce.trigger}:${ce.preTokens}`
-        : `continue:${ce.sessionCount}`,
+        : ce.type === "continue"
+        ? `continue:${ce.sessionCount}`
+        : ce.type,  // clear, resume, reload_plugins, model_change
     });
   }
 
@@ -536,6 +560,8 @@ async function analyzeSession(filePath) {
   // Add cost/context events to evt column
   // Track current model for contextWindow lookup
   let curModel = null;
+  // First-crossing only: emit ctx_warn/ctx_danger once per threshold, matching preprocess.js behavior
+  let prevCtxLevel = 0;  // 0=none, 1=warn(35%), 2=danger(70%)
   for (const e of usageTimeline) {
     if (e.model && e.model !== "unknown" && e.model !== "") curModel = e.model;
     if (e.cost <= 0 && e.input <= 0) continue; // skip event-only rows
@@ -549,17 +575,21 @@ async function analyzeSession(filePath) {
       evts.push("cost_warn");
     }
 
-    // Context % thresholds
+    // Context % thresholds (first-crossing only)
     if (curModel) {
       const rates = MODEL_PRICING[curModel];
       const contextWindow = rates ? rates.contextWindow : (DEFAULT_PRICING ? DEFAULT_PRICING.contextWindow : 200000);
       if (contextWindow > 0) {
         const contextTokens = e.input + e.cacheCreation + e.cacheRead;
         const contextPct = contextTokens / contextWindow;
-        if (contextPct >= 0.70) {
-          evts.push("ctx_danger");
-        } else if (contextPct >= 0.35) {
-          evts.push("ctx_warn");
+        let ctxLevel = 0;
+        if (contextPct >= 0.70) ctxLevel = 2;
+        else if (contextPct >= 0.35) ctxLevel = 1;
+
+        if (ctxLevel > prevCtxLevel) {
+          if (ctxLevel >= 2) evts.push("ctx_danger");
+          else if (ctxLevel >= 1) evts.push("ctx_warn");
+          prevCtxLevel = ctxLevel;
         }
       }
     }

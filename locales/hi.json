@@ -89,8 +89,8 @@
     ]
   },
   "alert": {
-    "ctxWarn": "⚠️ Context window 35% से अधिक हो गया — हर कॉल के साथ cache read लागत बढ़ रही है।",
-    "ctxDanger": "🔴 Context window 70% से अधिक हो गया — cache read लागत बहुत अधिक है।",
+    "ctxWarn": "⚠️ Context window 35% से अधिक हो गया — हर कॉल के साथ cache write/read लागत बढ़ रही है।",
+    "ctxDanger": "🔴 Context window 70% से अधिक हो गया — cache write/read लागत बहुत अधिक है।",
     "fiveHWarn": "⚠️ 5H सत्र विंडो 70% पर — सदस्यता उपयोग सीमा के करीब।",
     "fiveHDanger": "🔴 5H सत्र विंडो 90% पर — सदस्यता उपयोग जल्द समाप्त हो सकता है।",
     "resume": "🔄 सत्र फिर से शुरू — cache पुनः उत्पन्न, लागत लगी",
@@ -109,7 +109,9 @@
     "modelReason": "/model परिवर्तन ने पिछला cache अमान्य किया, पुनः उत्पन्न (${cost})",
     "resumeHeuristicReason": "claude --continue या /resume से सत्र फिर से शुरू करने में बहुत सारे टोकन लगते हैं। आवश्यक न हो तो नए सत्र के बाद /continue skill की सिफारिश करते हैं।",
     "cacheExpiredReason": "जब संदर्भ बड़ा हो और 1 घंटे से अधिक बीत चुका हो, तो नया cache उत्पन्न होता है — उच्च लागत!",
-    "costTopLabel": "{icon} {label} (${cost})"
+    "costTopLabel": "{icon} {label} (${cost})",
+    "costOutputReason": "{icon} आउटपुट {tokens} ने लागत में प्रमुख भूमिका निभाई (${cost}) — पूर्ण फ़ाइल पुनर्लेखन के बजाय Edit (diff) का उपयोग करें और प्रॉम्प्ट में विस्तृत व्याख्या कम करें।",
+    "costInputReason": "{icon} इनपुट {tokens} ने लागत में प्रमुख भूमिका निभाई (${cost}) — छवियों के बजाय टेक्स्ट का उपयोग करें, offset/limit से केवल आवश्यक भाग पढ़ें, या संक्षिप्त संदर्भ प्रदान करें।"
   },
   "ai": {
     "analysis": "✨ AI विश्लेषण",

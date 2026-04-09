@@ -89,8 +89,8 @@
     ]
   },
   "alert": {
-    "ctxWarn": "⚠️ ‎Context window‏ חרג מ-35% — עלות ‎cache read‏ עולה עם כל קריאה.",
-    "ctxDanger": "🔴 ‎Context window‏ חרג מ-70% — עלות ‎cache read‏ גבוהה מאוד.",
+    "ctxWarn": "⚠️ ‎Context window‏ חרג מ-35% — עלות ‎cache write/read‏ עולה עם כל קריאה.",
+    "ctxDanger": "🔴 ‎Context window‏ חרג מ-70% — עלות ‎cache write/read‏ גבוהה מאוד.",
     "fiveHWarn": "⚠️ חלון הפעלה ‎5H‏ ב-70% — מתקרב למגבלת השימוש במנוי.",
     "fiveHDanger": "🔴 חלון הפעלה ‎5H‏ ב-90% — השימוש במנוי עלול להסתיים בקרוב.",
     "resume": "🔄 הפעלה חודשה — ‎cache‏ נוצר מחדש, נוצרה עלות",
@@ -109,7 +109,9 @@
     "modelReason": "‎/model‏ שינוי ביטל ‎cache‏ קודם, נוצר מחדש (${cost})",
     "resumeHeuristicReason": "חידוש הפעלה עם ‎claude --continue‏ או ‎/resume‏ צורך הרבה טוקנים. אלא אם כן הכרחי, אנו ממליצים על ‎/continue skill‏ לאחר הפעלה חדשה.",
     "cacheExpiredReason": "כאשר ההקשר גדול ועברה יותר משעה, נוצר ‎cache‏ חדש — עלות גבוהה!",
-    "costTopLabel": "{icon} {label} (${cost})"
+    "costTopLabel": "{icon} {label} (${cost})",
+    "costOutputReason": "{icon} הפלט {tokens} שלט בעלות (${cost}) — שקול להשתמש ב-Edit (diff) במקום לשכתב קבצים שלמים, וקצר הסברים מפורטים בפרומפט.",
+    "costInputReason": "{icon} הקלט {tokens} שלט בעלות (${cost}) — שקול להשתמש בטקסט במקום תמונות, לקרוא רק חלקים נדרשים עם offset/limit, או לספק הקשר מסוכם."
   },
   "ai": {
     "analysis": "✨ ניתוח ‎AI‏",

@@ -89,8 +89,8 @@
     ]
   },
   "alert": {
-    "ctxWarn": "⚠️ Context window превысило 35% — стоимость cache read растёт с каждым вызовом.",
-    "ctxDanger": "🔴 Context window превысило 70% — стоимость cache read очень высока.",
+    "ctxWarn": "⚠️ Context window превысило 35% — стоимость cache write/read растёт с каждым вызовом.",
+    "ctxDanger": "🔴 Context window превысило 70% — стоимость cache write/read очень высока.",
     "fiveHWarn": "⚠️ 5H-окно сессии на 70% — приближение к лимиту подписки.",
     "fiveHDanger": "🔴 5H-окно сессии на 90% — лимит подписки может скоро исчерпаться.",
     "resume": "🔄 Сессия возобновлена — cache перегенерирован, расход начислен",
@@ -109,7 +109,9 @@
     "modelReason": "/model смена модели аннулировала предыдущий cache, перегенерирован (${cost})",
     "resumeHeuristicReason": "Возобновление сессии через claude --continue или /resume потребляет много токенов. Если не необходимо, рекомендуем /continue skill после новой сессии.",
     "cacheExpiredReason": "При большом контексте и бездействии более 1 часа генерируется новый cache — высокая стоимость!",
-    "costTopLabel": "{icon} {label} (${cost})"
+    "costTopLabel": "{icon} {label} (${cost})",
+    "costOutputReason": "{icon} Вывод {tokens} преобладал в стоимости (${cost}) — используйте Edit (diff) вместо полной перезаписи файлов и сократите подробные объяснения в промпте.",
+    "costInputReason": "{icon} Ввод {tokens} преобладал в стоимости (${cost}) — используйте текст вместо изображений, читайте только нужные разделы с offset/limit или предоставьте сжатый контекст."
   },
   "ai": {
     "analysis": "✨ Анализ ИИ",

@@ -89,8 +89,8 @@
     ]
   },
   "alert": {
-    "ctxWarn": "⚠️ Context window 超过35% — 每次调用的 cache read 费用都在增加。",
-    "ctxDanger": "🔴 Context window 超过70% — cache read 费用非常高。",
+    "ctxWarn": "⚠️ Context window 超过35% — 每次调用的 cache write/read 费用都在增加。",
+    "ctxDanger": "🔴 Context window 超过70% — cache write/read 费用非常高。",
     "fiveHWarn": "⚠️ 5H 会话窗口已达70% — 接近订阅使用上限。",
     "fiveHDanger": "🔴 5H 会话窗口已达90% — 订阅使用量即将耗尽。",
     "resume": "🔄 会话已恢复 — cache 已重新生成，产生了费用",
@@ -109,7 +109,9 @@
     "modelReason": "/model 切换使之前的 cache 失效，已重新生成 (${cost})",
     "resumeHeuristicReason": "使用 claude --continue 或 /resume 恢复会话会消耗大量 token。如非必要，建议在新会话开始后使用 /continue 技能。",
     "cacheExpiredReason": "上下文较大且超过1小时未使用时，会生成新的 cache — 费用很高！",
-    "costTopLabel": "{icon} {label} (${cost})"
+    "costTopLabel": "{icon} {label} (${cost})",
+    "costOutputReason": "{icon} 输出 {tokens} 是费用的主要来源 (${cost}) — 考虑使用 Edit (diff) 而非完整重写文件，并减少 prompt 中冗长的解释。",
+    "costInputReason": "{icon} 输入 {tokens} 是费用的主要来源 (${cost}) — 考虑使用文本而非图片，通过 offset/limit 只读取所需部分，或提供精简的上下文。"
   },
   "ai": {
     "analysis": "✨ AI 分析",
