@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Analyze transcript JSONL files for token usage and cost data.
- * Outputs JSON to stdout. Caches results per session.
+ * Outputs JSON to stdout. Caches results per session in project/session hierarchy.
  *
  * Usage: node analyze-usage.js [options]
  *   --days N        Only analyze last N days (default: all)
@@ -19,7 +19,17 @@ const path = require("path");
 const readline = require("readline");
 const os = require("os");
 
-const { CACHE_DIR } = require("./lib/constants");
+const {
+  CACHE_BASE: CACHE_DIR,
+  extractProjectName,
+  getSessionDir,
+  getTimelinePath,
+  getSummaryPath,
+  getSubagentDir,
+  getSubagentTimelinePath,
+  getSubagentSummaryPath,
+  migrateFromYYMM,
+} = require("./lib/cache-paths");
 const { MODEL_PRICING, DEFAULT_PRICING, calcCost } = require("./lib/pricing");
 const CACHE_VERSION = 7; // Bump when cache format changes
 const PROJECTS_DIR = path.join(os.homedir(), ".claude", "projects");
@@ -111,28 +121,46 @@ function listJsonlFiles(dirs, cutoffDate) {
   return files;
 }
 
-function getYearMonth(filePath) {
-  // Read first few lines to find the earliest timestamp
-  try {
-    const fd = fs.openSync(filePath, "r");
-    const buf = Buffer.alloc(4096);
-    const bytesRead = fs.readSync(fd, buf, 0, 4096, 0);
-    fs.closeSync(fd);
-    const chunk = buf.toString("utf8", 0, bytesRead);
-    const match = chunk.match(/"timestamp"\s*:\s*"(\d{4})-(\d{2})/);
-    if (match) return match[1].slice(2) + match[2]; // e.g., "2604"
-  } catch {}
-  // Fallback: use file mtime
-  const d = fs.statSync(filePath).mtime;
-  return String(d.getFullYear()).slice(2) + String(d.getMonth() + 1).padStart(2, "0");
-}
+/**
+ * Resolve cache paths for a transcript file.
+ * Main sessions:  {projectName}/{sessionId}/summary.json, timeline.csv
+ * Agent sessions:  {projectName}/{mainSessionId}/subagents/{agentId}/summary.json, timeline.csv
+ *
+ * @param {string} filePath - transcript .jsonl path
+ * @returns {{ summaryPath: string, timelinePath: string, sessionDir: string, isAgent: boolean, agentId: string|null, mainSessionId: string|null, projectName: string }}
+ */
+function resolveSessionPaths(filePath) {
+  const projectName = extractProjectName(filePath) || "_unknown";
+  const basename = path.basename(filePath, ".jsonl");
 
-function getCachePath(sessionId, yearMonth) {
-  return path.join(CACHE_DIR, yearMonth, `summary-${sessionId}.json`);
-}
+  // Agent transcript: .../{mainSessionId}/subagents/agent-{agentId}.jsonl
+  if (filePath.includes("/subagents/")) {
+    const parts = filePath.split("/subagents/");
+    const mainSessionId = path.basename(parts[0]); // directory name = mainSessionId
+    // basename is "agent-{agentId}" — strip "agent-" prefix
+    const agentId = basename.startsWith("agent-") ? basename.slice(6) : basename;
+    return {
+      summaryPath: getSubagentSummaryPath(projectName, mainSessionId, agentId),
+      timelinePath: getSubagentTimelinePath(projectName, mainSessionId, agentId),
+      sessionDir: getSubagentDir(projectName, mainSessionId, agentId),
+      isAgent: true,
+      agentId,
+      mainSessionId,
+      projectName,
+    };
+  }
 
-function getTimelineCsvPath(sessionId, yearMonth) {
-  return path.join(CACHE_DIR, yearMonth, `timeline-${sessionId}.csv`);
+  // Main session transcript
+  const sessionId = basename;
+  return {
+    summaryPath: getSummaryPath(projectName, sessionId),
+    timelinePath: getTimelinePath(projectName, sessionId),
+    sessionDir: getSessionDir(projectName, sessionId),
+    isAgent: false,
+    agentId: null,
+    mainSessionId: null,
+    projectName,
+  };
 }
 
 function isCacheValid(cachePath, transcriptMtime) {
@@ -155,20 +183,17 @@ function readCache(cachePath) {
   }
 }
 
-function writeCache(cachePath, data) {
+function writeCache(summaryPath, timelinePath, data) {
   try {
-    const dir = path.dirname(cachePath);
-    fs.mkdirSync(dir, { recursive: true });
+    fs.mkdirSync(path.dirname(summaryPath), { recursive: true });
+    fs.mkdirSync(path.dirname(timelinePath), { recursive: true });
 
     // Split: JSON metadata (without usageTimeline)
     const { usageTimeline, ...metadata } = data;
     metadata.cacheVersion = CACHE_VERSION;
-    fs.writeFileSync(cachePath, JSON.stringify(metadata));
+    fs.writeFileSync(summaryPath, JSON.stringify(metadata));
 
     // CSV timeline
-    const sessionId = metadata.sessionId;
-    const ym = path.basename(dir);
-    const csvPath = getTimelineCsvPath(sessionId, ym);
     const header = "ts,model,input,cc,cc5m,cc1h,cr,out,cost,win,rl,evt";
     const lines = [header];
     let prevModel = null;
@@ -183,7 +208,7 @@ function writeCache(cachePath, data) {
       if (e.model) prevModel = e.model;
       if (e.win != null) prevWin = e.win;
     }
-    fs.writeFileSync(csvPath, lines.join("\n") + "\n");
+    fs.writeFileSync(timelinePath, lines.join("\n") + "\n");
   } catch (err) {
     process.stderr.write(`Warning: failed to write cache: ${err.message}\n`);
   }
@@ -637,16 +662,17 @@ async function main() {
   // Ensure cache dir exists
   fs.mkdirSync(CACHE_DIR, { recursive: true });
 
+  // Auto-migrate old YYMM cache structure (idempotent, runs once)
+  migrateFromYYMM();
+
   const sessions = [];
 
   for (const file of files) {
-    const sessionId = path.basename(file.path, ".jsonl");
-    const ym = getYearMonth(file.path);
-    const cachePath = getCachePath(sessionId, ym);
+    const paths = resolveSessionPaths(file.path);
 
     // Check cache
-    if (!opts.force && isCacheValid(cachePath, file.mtime)) {
-      const cached = readCache(cachePath);
+    if (!opts.force && isCacheValid(paths.summaryPath, file.mtime)) {
+      const cached = readCache(paths.summaryPath);
       if (cached) {
         sessions.push(cached);
         continue;
@@ -655,7 +681,26 @@ async function main() {
 
     // Analyze and cache
     const result = await analyzeSession(file.path);
-    writeCache(cachePath, result);
+
+    // For agent sessions, read CC's meta.json if available
+    if (paths.isAgent && paths.mainSessionId && paths.agentId) {
+      const ccMetaPath = path.join(
+        PROJECTS_DIR,
+        paths.projectName,
+        paths.mainSessionId,
+        "subagents",
+        `agent-${paths.agentId}.meta.json`,
+      );
+      try {
+        if (fs.existsSync(ccMetaPath)) {
+          const meta = JSON.parse(fs.readFileSync(ccMetaPath, "utf8"));
+          if (meta.agentType) result.agentType = meta.agentType;
+          if (meta.description) result.agentDescription = meta.description;
+        }
+      } catch (_) { /* ignore meta read errors */ }
+    }
+
+    writeCache(paths.summaryPath, paths.timelinePath, result);
     // Push metadata only (without usageTimeline)
     const { usageTimeline, ...metadata } = result;
     sessions.push(metadata);

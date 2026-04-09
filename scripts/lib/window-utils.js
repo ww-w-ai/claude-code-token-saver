@@ -8,24 +8,26 @@
 
 const fs = require('fs');
 const path = require('path');
+const { listProjects, listSessions, getRatelimitPath } = require('./cache-paths');
 
 const FIVE_HOURS_S = 5 * 3600;
 
 /**
  * Scan ratelimit CSVs for 5h_reset values and derive window starts.
- * @param {string} cacheBase - Path to cache base directory (e.g. ~/.claude/cc-token-saver)
+ * Uses new project/session cache structure.
+ * @param {string} cacheBase - Path to cache base directory (e.g. ~/.claude/cc-token-saver) — kept for API compat
  * @returns {number[]} Array of unique window start timestamps
  */
 function scanRatelimitWindows(cacheBase) {
   const windowStarts = new Set();
   try {
-    const yymms = fs.readdirSync(cacheBase).filter(d => /^\d{4}$/.test(d));
-    for (const ym of yymms) {
-      const rlDir = path.join(cacheBase, ym);
-      if (!fs.statSync(rlDir).isDirectory()) continue;
-      const files = fs.readdirSync(rlDir).filter(f => f.startsWith('ratelimit-') && f.endsWith('.csv'));
-      for (const f of files) {
-        const lines = fs.readFileSync(path.join(rlDir, f), 'utf8').trim().split('\n');
+    const projects = listProjects();
+    for (const proj of projects) {
+      const sessions = listSessions(proj);
+      for (const sess of sessions) {
+        const rlPath = getRatelimitPath(proj, sess);
+        if (!fs.existsSync(rlPath)) continue;
+        const lines = fs.readFileSync(rlPath, 'utf8').trim().split('\n');
         for (let i = 1; i < lines.length; i++) {
           const cols = lines[i].split(',');
           const resetTs = cols[2] ? Number(cols[2]) : 0;

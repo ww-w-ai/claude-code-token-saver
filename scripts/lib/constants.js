@@ -1,10 +1,13 @@
 /**
  * constants.js — Shared constants
+ *
+ * DEPRECATED: CACHE_DIR moved to lib/cache-paths.js as CACHE_BASE.
+ * This file re-exports for backward compatibility.
  */
 
-const path = require('path');
-const os = require('os');
+const { CACHE_BASE } = require('./cache-paths');
 
 module.exports = {
-  CACHE_DIR: path.join(os.homedir(), '.claude', 'cc-token-saver'),
+  /** @deprecated Use CACHE_BASE from lib/cache-paths.js instead */
+  CACHE_DIR: CACHE_BASE,
 };

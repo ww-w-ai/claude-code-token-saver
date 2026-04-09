@@ -20,8 +20,8 @@
  *   First line: "# {lines} lines, {bytes} bytes" (meta header for chunked reading)
  *
  * Cache (managed by /continue skill, not by this script):
- *   ~/.claude/cc-token-saver/{YYMM}/compact-{SESSION_ID}.txt           (default truncation)
- *   ~/.claude/cc-token-saver/{YYMM}/compact-{SESSION_ID}.aggressive.txt (50/20 truncation)
+ *   ~/.claude/cc-token-saver/{projectName}/{sessionId}/compact.txt              (default truncation)
+ *   ~/.claude/cc-token-saver/{projectName}/{sessionId}/compact.aggressive.txt   (50/20 truncation)
  *
  * Marker Reference (v2.0)
  * ─────────────────────────────────────────────
@@ -394,7 +394,11 @@ async function main() {
             // Track compact file reads during /continue skill
             if (inContinueSkill && block.name === "Read" && block.input && block.input.file_path) {
               const fp = block.input.file_path;
-              const m = fp.match(/compact-([0-9a-f-]+)\.(?:aggressive\.)?txt$/);
+              // New structure: {projectName}/{sessionId}/compact.txt
+              const mNew = fp.match(/\/([0-9a-f-]+)\/compact(?:\.aggressive)?\.txt$/);
+              // Old structure: compact-{sessionId}.txt
+              const mOld = fp.match(/compact-([0-9a-f-]+)\.(?:aggressive\.)?txt$/);
+              const m = mNew || mOld;
               if (m) continueCompactFiles.add(m[1]);
             }
           }

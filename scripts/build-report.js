@@ -24,8 +24,8 @@
  *
  * Input:
  *   - analyze-usage.js JSON output (--data)
- *   - ~/.claude/cc-token-saver/{YYMM}/timeline-{SESSION_ID}.csv   (per-API-call data)
- *   - ~/.claude/cc-token-saver/{YYMM}/ratelimit-{SESSION_ID}.csv  (statusline rate limit logs)
+ *   - ~/.claude/cc-token-saver/{projectName}/{sessionId}/timeline.csv   (per-API-call data)
+ *   - ~/.claude/cc-token-saver/{projectName}/{sessionId}/ratelimit.csv  (statusline rate limit logs)
  *   - skills/usage-view/template.html                              (dashboard template)
  *   - locales/{code}.json                                          (i18n strings)
  *
@@ -42,7 +42,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { scanRatelimitWindows, mergeWindows, FIVE_HOURS_S } = require('./lib/window-utils');
-const { CACHE_DIR } = require('./lib/constants');
+const { listProjects, listSessions, listSubagents, getTimelinePath, getSummaryPath, getRatelimitPath, getSubagentTimelinePath, getSubagentSummaryPath, getCompactPath, migrateFromYYMM, CACHE_BASE: CACHE_DIR } = require('./lib/cache-paths');
 const { PLAN_INFO: PLAN_INFO_ALL } = require('./lib/plan-info');
 const { round2 } = require('./lib/format');
 const { SUPPORTED_LOCALES, resolveLocale } = require('./lib/locale');
@@ -192,12 +192,17 @@ const raw = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
 
 // ── Read all timeline CSVs ──────────────────────────────────────
 // CSV header: ts,model,input,cc,cc5m,cc1h,cr,out,cost,win,rl
+// sessionId may be passed with project context via _sessionProjectMap
+const _sessionProjectMap = new Map(); // sessionId → projectName (populated during scanning)
+
 function readTimelineCsv(sessionId) {
-  const yearMonth = ym(
-    (sessionMap.get(sessionId) || {}).firstTs || Date.now()
-  );
-  const csvPath = path.join(CACHE_DIR, yearMonth, `timeline-${sessionId}.csv`);
-  if (!fs.existsSync(csvPath)) return [];
+  // New structure: look up project from _sessionProjectMap
+  const proj = _sessionProjectMap.get(sessionId);
+  let csvPath = null;
+  if (proj) {
+    csvPath = getTimelinePath(proj, sessionId);
+  }
+  if (!csvPath || !fs.existsSync(csvPath)) return [];
   const content = fs.readFileSync(csvPath, 'utf8').trim();
   const lines = content.split('\n');
   if (lines.length < 2) return [];
@@ -236,6 +241,25 @@ for (const s of raw.sessions) {
   sessionMap.set(s.sessionId, s);
 }
 
+// Migrate old YYMM structure (idempotent)
+migrateFromYYMM();
+
+// Populate _sessionProjectMap by scanning new project/session structure
+{
+  const projects = listProjects();
+  for (const proj of projects) {
+    const sessions = listSessions(proj);
+    for (const sess of sessions) {
+      _sessionProjectMap.set(sess, proj);
+      // Also map subagent IDs
+      const agents = listSubagents(proj, sess);
+      for (const agent of agents) {
+        _sessionProjectMap.set(agent, proj);
+      }
+    }
+  }
+}
+
 // Collect all timeline rows, keyed by sessionId
 const allTimelines = new Map();
 for (const s of raw.sessions) {
@@ -270,12 +294,12 @@ function generateMissingCompacts(sessionIds) {
     const isSubagent = sess.filePath && sess.filePath.includes('/subagents/');
     if (isSubagent) continue;
     if (!sess.filePath || !fs.existsSync(sess.filePath)) continue;
-    const yearMonth = ym(sess.firstTs || Date.now());
-    const compactDir = path.join(CACHE_DIR, yearMonth);
-    const compactPath = path.join(compactDir, `compact-${sid}.txt`);
-    if (fs.existsSync(compactPath)) continue;
-    fs.mkdirSync(compactDir, { recursive: true });
-    tasks.push({ sid, filePath: sess.filePath, compactPath });
+    const proj = _sessionProjectMap.get(sid);
+    if (!proj) continue;
+    const compactFilePath = getCompactPath(proj, sid, false);
+    if (fs.existsSync(compactFilePath)) continue;
+    fs.mkdirSync(path.dirname(compactFilePath), { recursive: true });
+    tasks.push({ sid, filePath: sess.filePath, compactPath: compactFilePath });
   }
   if (tasks.length === 0) return Promise.resolve();
 
@@ -303,8 +327,9 @@ function generateMissingCompacts(sessionIds) {
 function readCompactAlerts(sessionId) {
   const sess = sessionMap.get(sessionId);
   if (!sess) return [];
-  const yearMonth = ym(sess.firstTs || Date.now());
-  const compactPath = path.join(CACHE_DIR, yearMonth, `compact-${sessionId}.txt`);
+  const proj = _sessionProjectMap.get(sessionId);
+  if (!proj) return [];
+  const compactPath = getCompactPath(proj, sessionId, false);
   if (!fs.existsSync(compactPath)) return [];
 
   const content = fs.readFileSync(compactPath, 'utf8');
@@ -440,11 +465,13 @@ for (const key of Object.keys(tb)) {
 // 2b. 5H alerts from ratelimit CSVs (optional, statusline users only)
 const fiveHAlerts = [];
 try {
-  const rlYymms = fs.readdirSync(CACHE_DIR).filter(d => /^\d{4}$/.test(d));
-  for (const ym of rlYymms) {
-    const rlDir = path.join(CACHE_DIR, ym);
-    for (const f of fs.readdirSync(rlDir).filter(f => f.startsWith('ratelimit-'))) {
-      const lines = fs.readFileSync(path.join(rlDir, f), 'utf8').trim().split('\n');
+  const rlProjects = listProjects();
+  for (const proj of rlProjects) {
+    const rlSessions = listSessions(proj);
+    for (const sess of rlSessions) {
+      const rlPath = getRatelimitPath(proj, sess);
+      if (!fs.existsSync(rlPath)) continue;
+      const lines = fs.readFileSync(rlPath, 'utf8').trim().split('\n');
       for (let i = 1; i < lines.length; i++) {
         const cols = lines[i].split(',');
         const alert = cols[5];
@@ -453,7 +480,7 @@ try {
             ts: Number(cols[0]),
             pct: Number(cols[1]),
             level: alert,
-            sessionId: f.replace('ratelimit-', '').replace('.csv', '')
+            sessionId: sess
           });
         }
       }

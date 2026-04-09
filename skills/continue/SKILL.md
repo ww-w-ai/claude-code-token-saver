@@ -79,17 +79,17 @@ Wait for user selection before proceeding. This avoids preprocessing sessions th
 
 ## Step 2: Check Cache
 
-For each session, check if a valid cache exists. Cache files are organized by year-month (YYMM) based on the session's first timestamp.
+For each session, check if a valid cache exists. Cache files are organized by project and session ID.
 
-To determine YYMM, read the first 4KB of the transcript file and extract the first timestamp:
+Derive the project hash from the current working directory:
 
 ```bash
-YYMM=$(head -c 4096 "${TRANSCRIPT_PATH}" | grep -o '"timestamp":"[0-9]\{4\}-[0-9]\{2\}' | head -1 | sed 's/.*"\([0-9]\{2\}\)\([0-9]\{2\}\)-\([0-9]\{2\}\)/\2\3/')
-CACHE_DIR="${HOME}/.claude/cc-token-saver/${YYMM}"
-CACHE_FILE="${CACHE_DIR}/compact-${SESSION_ID}.txt"
+PROJECT_HASH=$(echo "${PWD}" | sed 's/[^a-zA-Z0-9]/-/g')
+CACHE_DIR="${HOME}/.claude/cc-token-saver/${PROJECT_HASH}/${SESSION_ID}"
+CACHE_FILE="${CACHE_DIR}/compact.txt"
 ```
 
-Cache is valid when: both `${CACHE_DIR}/compact-${SESSION_ID}.txt` and `${CACHE_DIR}/compact-${SESSION_ID}.aggressive.txt` exist, and both have `mtime >= transcript file mtime`.
+Cache is valid when: both `${CACHE_DIR}/compact.txt` and `${CACHE_DIR}/compact.aggressive.txt` exist, and both have `mtime >= transcript file mtime`.
 
 If all sessions are cached and valid, skip to Step 4.
 
@@ -102,12 +102,12 @@ Preprocess uncached sessions with both default (200/100) and aggressive (50/20) 
 ```bash
 mkdir -p "${CACHE_DIR}"
 node ${CLAUDE_PLUGIN_ROOT}/scripts/preprocess.js \
-  "${TRANSCRIPT_PATH}" > "${CACHE_DIR}/compact-${SESSION_ID}.txt"
+  "${TRANSCRIPT_PATH}" > "${CACHE_DIR}/compact.txt"
 node ${CLAUDE_PLUGIN_ROOT}/scripts/preprocess.js \
-  "${TRANSCRIPT_PATH}" 50 20 > "${CACHE_DIR}/compact-${SESSION_ID}.aggressive.txt"
+  "${TRANSCRIPT_PATH}" 50 20 > "${CACHE_DIR}/compact.aggressive.txt"
 ```
 
-Then calculate total size of all selected sessions' default cache files (`.txt`):
+Then calculate total size of all selected sessions' default cache files (`compact.txt`):
 
 ```bash
 TOTAL_SIZE=0
@@ -134,7 +134,7 @@ Preprocessing is instant (< 1 second even for 60MB+ transcripts).
 
 ## Step 4: Read and Output
 
-If total size of default caches (`.txt`) exceeds 100KB, use `.aggressive.txt` files instead.
+If total size of default caches (`compact.txt`) exceeds 100KB, use `compact.aggressive.txt` files instead.
 
 Read all cached preprocessed files and output directly to the current conversation. No LLM summarization needed — the preprocessed text preserves important context verbatim.
 
@@ -169,7 +169,7 @@ Show the completion message with the active context:
 [Context restored by /continue]
 - {N} session(s) loaded ({date range})
 - [L{n}] markers → original transcript at ~/.claude/projects/{PROJECT_HASH}/{SESSION_ID}.jsonl
-- Preprocessed caches: ~/.claude/cc-token-saver/{YYMM}/compact-{SESSION_ID}.txt
+- Preprocessed caches: ~/.claude/cc-token-saver/{PROJECT_HASH}/{SESSION_ID}/compact.txt
 - Git commit details: run `git show {commit_hash}` for any commit above
 - 💡 Next session: run `/clear` first, then `/continue` to restore context cheaply
 

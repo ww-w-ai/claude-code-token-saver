@@ -17,7 +17,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { mergeWindows, FIVE_HOURS_S } = require('./lib/window-utils');
-const { CACHE_DIR } = require('./lib/constants');
+const { listProjects, listSessions, listSubagents, getTimelinePath, getSubagentTimelinePath, getRatelimitPath, hashId, CACHE_BASE: CACHE_DIR, migrateFromYYMM } = require('./lib/cache-paths');
 const { PLAN_INFO, VALID_PLANS } = require('./lib/plan-info');
 const { fmtTokens, fmtDate, fmtTime } = require('./lib/format');
 
@@ -60,24 +60,28 @@ if (!fs.existsSync(CACHE_DIR)) {
   process.exit(1);
 }
 
-const yymms = fs.readdirSync(CACHE_DIR).filter(d => /^\d{4}$/.test(d));
-if (yymms.length === 0) {
-  log('No YYMM directories found. Run /usage-view first.');
+// Migrate old YYMM structure (idempotent)
+migrateFromYYMM();
+
+const projects = listProjects();
+if (projects.length === 0) {
+  log('No project directories found. Run /usage-view first.');
   process.exit(1);
 }
 
 // Map: winTs (string) -> { sessions: Set<sessionId> }
 // Deduplicate: only take FIRST occurrence of limit_hit per unique win value
 const windowMap = new Map();
+// Track sessionId → projectName for sessions.csv
+const sessionProjectMap = new Map();
 
-for (const ym of yymms) {
-  const dir = path.join(CACHE_DIR, ym);
-  if (!fs.statSync(dir).isDirectory()) continue;
-  const csvs = fs.readdirSync(dir).filter(f => f.startsWith('timeline-') && f.endsWith('.csv'));
-
-  for (const csv of csvs) {
-    const sessionId = csv.replace('timeline-', '').replace('.csv', '');
-    const content = fs.readFileSync(path.join(dir, csv), 'utf8').trim();
+for (const proj of projects) {
+  const sessions = listSessions(proj);
+  for (const sess of sessions) {
+    sessionProjectMap.set(sess, proj);
+    const csvPath = getTimelinePath(proj, sess);
+    if (!fs.existsSync(csvPath)) continue;
+    const content = fs.readFileSync(csvPath, 'utf8').trim();
     if (!content) continue;
     const lines = content.split('\n');
     let prevWin = '';
@@ -89,10 +93,33 @@ for (const ym of yymms) {
       if (cols[9] !== '') prevWin = cols[9];
       const rl = cols[10] || '';
       if (rl.startsWith('limit_hit_5h') || rl.startsWith('limit_hit_unknown')) {
-        // Only register this window once (first hit); skip repeated rejections in same window
         if (!windowMap.has(win)) windowMap.set(win, { sessions: new Set(), hasUnknown: false });
-        windowMap.get(win).sessions.add(sessionId);
+        windowMap.get(win).sessions.add(sess);
         if (rl.startsWith('limit_hit_unknown')) windowMap.get(win).hasUnknown = true;
+      }
+    }
+
+    // Also scan subagent timelines
+    const agents = listSubagents(proj, sess);
+    for (const agent of agents) {
+      sessionProjectMap.set('agent-' + agent, proj);
+      const agentCsvPath = getSubagentTimelinePath(proj, sess, agent);
+      if (!fs.existsSync(agentCsvPath)) continue;
+      const agentContent = fs.readFileSync(agentCsvPath, 'utf8').trim();
+      if (!agentContent) continue;
+      const agentLines = agentContent.split('\n');
+      let agentPrevWin = '';
+      for (let i = 1; i < agentLines.length; i++) {
+        const cols = agentLines[i].split(',');
+        if (cols.length < 11) continue;
+        const win = cols[9] !== '' ? cols[9] : agentPrevWin;
+        if (cols[9] !== '') agentPrevWin = cols[9];
+        const rl = cols[10] || '';
+        if (rl.startsWith('limit_hit_5h') || rl.startsWith('limit_hit_unknown')) {
+          if (!windowMap.has(win)) windowMap.set(win, { sessions: new Set(), hasUnknown: false });
+          windowMap.get(win).sessions.add('agent-' + agent);
+          if (rl.startsWith('limit_hit_unknown')) windowMap.get(win).hasUnknown = true;
+        }
       }
     }
   }
@@ -135,39 +162,61 @@ for (const merged of mergedWindows) {
     }
   }
 
-  for (const ym of yymms) {
-    const dir = path.join(CACHE_DIR, ym);
-    if (!fs.statSync(dir).isDirectory()) continue;
-    const csvs = fs.readdirSync(dir).filter(f => f.startsWith('timeline-') && f.endsWith('.csv'));
-
-    for (const csv of csvs) {
-      const sessionId = csv.replace('timeline-', '').replace('.csv', '');
-      const filePath = path.join(dir, csv);
-      const content = fs.readFileSync(filePath, 'utf8').trim();
-      if (!content) continue;
-      const lines = content.split('\n');
-      let hasRows = false;
-
-      for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i].split(',');
-        if (cols.length < 11) continue;
-        const ts = Number(cols[0]);
-        if (ts < winStart || ts >= winEnd) continue;
-        rows.push(lines[i] + ',' + sessionId);
-        hasRows = true;
-        // cols: ts(0),model(1),input(2),cc(3),cc5m(4),cc1h(5),cr(6),out(7),cost(8),win(9),rl(10),evt(11)
-        sumInput += Number(cols[2]) || 0;
-        sumOutput += Number(cols[7]) || 0;
-        sumCacheWrite += (Number(cols[3]) || 0) + (Number(cols[4]) || 0) + (Number(cols[5]) || 0);
-        sumCacheRead += Number(cols[6]) || 0;
+  for (const proj of projects) {
+    const projSessions = listSessions(proj);
+    for (const sess of projSessions) {
+      // Scan main session timeline
+      const filePath = getTimelinePath(proj, sess);
+      if (fs.existsSync(filePath)) {
+        const content = fs.readFileSync(filePath, 'utf8').trim();
+        if (content) {
+          const lines = content.split('\n');
+          let hasRows = false;
+          for (let i = 1; i < lines.length; i++) {
+            const cols = lines[i].split(',');
+            if (cols.length < 11) continue;
+            const ts = Number(cols[0]);
+            if (ts < winStart || ts >= winEnd) continue;
+            rows.push(lines[i] + ',' + sess);
+            hasRows = true;
+            sumInput += Number(cols[2]) || 0;
+            sumOutput += Number(cols[7]) || 0;
+            sumCacheWrite += (Number(cols[3]) || 0) + (Number(cols[4]) || 0) + (Number(cols[5]) || 0);
+            sumCacheRead += Number(cols[6]) || 0;
+          }
+          if (hasRows) {
+            touchedFiles.timeline.add(filePath);
+            const rlPath = getRatelimitPath(proj, sess);
+            if (fs.existsSync(rlPath)) {
+              touchedFiles.ratelimit.add(rlPath);
+            }
+          }
+        }
       }
 
-      if (hasRows) {
-        touchedFiles.timeline.add(filePath);
-        // Include corresponding ratelimit CSV for this session
-        const rlPath = path.join(dir, 'ratelimit-' + sessionId + '.csv');
-        if (fs.existsSync(rlPath)) {
-          touchedFiles.ratelimit.add(rlPath);
+      // Scan subagent timelines
+      const agents = listSubagents(proj, sess);
+      for (const agent of agents) {
+        const agentFilePath = getSubagentTimelinePath(proj, sess, agent);
+        if (!fs.existsSync(agentFilePath)) continue;
+        const agentContent = fs.readFileSync(agentFilePath, 'utf8').trim();
+        if (!agentContent) continue;
+        const agentLines = agentContent.split('\n');
+        let agentHasRows = false;
+        for (let i = 1; i < agentLines.length; i++) {
+          const cols = agentLines[i].split(',');
+          if (cols.length < 11) continue;
+          const ts = Number(cols[0]);
+          if (ts < winStart || ts >= winEnd) continue;
+          rows.push(agentLines[i] + ',agent-' + agent);
+          agentHasRows = true;
+          sumInput += Number(cols[2]) || 0;
+          sumOutput += Number(cols[7]) || 0;
+          sumCacheWrite += (Number(cols[3]) || 0) + (Number(cols[4]) || 0) + (Number(cols[5]) || 0);
+          sumCacheRead += Number(cols[6]) || 0;
+        }
+        if (agentHasRows) {
+          touchedFiles.timeline.add(agentFilePath);
         }
       }
     }
@@ -218,42 +267,27 @@ for (const w of results) {
 }
 
 // Determine parent for agent sessions
-// For each window, group sessions by YYMM folder. If an agent session shares a
-// window with exactly one main session in the same folder, that main is its parent.
+// Agent sessions detected by subagent dir structure (proj/sess/subagents/agent/)
 const sessionParent = new Map(); // sessionId -> parent sessionId or ''
 
-for (const w of results) {
-  // Group touched timeline files by YYMM folder
-  const folderSessions = new Map(); // folder -> { main: [], agent: [] }
-  for (const f of w.touchedFiles.timeline) {
-    const folder = path.basename(path.dirname(f));
-    const sid = path.basename(f).replace('timeline-', '').replace('.csv', '');
-    if (!folderSessions.has(folder)) folderSessions.set(folder, { main: [], agent: [] });
-    const group = folderSessions.get(folder);
-    if (sid.startsWith('agent-')) {
-      group.agent.push(sid);
-    } else {
-      group.main.push(sid);
-    }
-  }
-
-  for (const [, group] of folderSessions) {
-    for (const agentSid of group.agent) {
-      // Only assign parent if not already assigned and exactly one main session in folder
-      if (!sessionParent.has(agentSid) && group.main.length === 1) {
-        sessionParent.set(agentSid, group.main[0]);
-      }
+for (const proj of projects) {
+  const projSessions = listSessions(proj);
+  for (const sess of projSessions) {
+    const agents = listSubagents(proj, sess);
+    for (const agent of agents) {
+      sessionParent.set('agent-' + agent, sess);
     }
   }
 }
 
-// Write sessions.csv
-let sessionsCsv = 'num,id,type,parent\n';
+// Write sessions.csv with hashed IDs and project column
+let sessionsCsv = 'num,id,project,type,parent\n';
 for (const [sid, num] of sessionIndex) {
   const type = sid.startsWith('agent-') ? 'agent' : 'main';
   const parentSid = sessionParent.get(sid) || '';
   const parentNum = parentSid ? String(sessionIndex.get(parentSid) || '') : '';
-  sessionsCsv += num + ',' + sid + ',' + type + ',' + parentNum + '\n';
+  const proj = sessionProjectMap.get(sid) || '_unknown';
+  sessionsCsv += num + ',' + hashId(sid) + ',' + hashId(proj) + ',' + type + ',' + parentNum + '\n';
 }
 fs.writeFileSync(path.join(reportDir, 'sessions.csv'), sessionsCsv);
 

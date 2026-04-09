@@ -24,13 +24,14 @@
 #   Hints: 5H🔴 → /report-limit, other warnings → /usage-view current
 #
 # Cache (side-effects):
-#   ~/.claude/cc-token-saver/{YYMM}/ratelimit-{SESSION_ID}.csv
+#   ~/.claude/cc-token-saver/{projectName}/{SESSION_ID}/ratelimit.csv
 #     Header: ts,5h,5h_reset,7d,7d_reset,alert
 #     - ts: unix timestamp
 #     - 5h/7d: usage percentage (0-100, two decimals)
 #     - 5h_reset/7d_reset: unix timestamp when window resets (sparse — only on change)
 #     - alert: threshold crossing event ("warn" at ≥70%, "danger" at ≥90%, "" otherwise)
 #     - Rows appended only when 5h or 7d percentage changes (delta dedup)
+#     - projectName derived from CWD: sed 's/[^a-zA-Z0-9]/-/g'
 #
 #   $TMPDIR/cc-token-saver-state-{SESSION_ID}.csv
 #     Per-session cost delta state (cost,lastDelta). Used to calculate per-call cost.
@@ -76,11 +77,11 @@ if (stateFile) {
   fs.writeFileSync(stateFile, 'cost,lastDelta\n' + cost + ',' + (currentDelta || ''));
 }
 
-// Append to rate limit CSV (per-session, YYMM folder)
+// Append to rate limit CSV (per-session, project/session folder)
 if ((fiveH !== null || sevenD !== null) && deltaCost !== 0 && session) {
-  const yymm = String(now.getUTCFullYear()).slice(2) + String(now.getUTCMonth() + 1).padStart(2, '0');
-  const csvDir = dir + '/' + yymm;
-  const csvFile = csvDir + '/ratelimit-' + session + '.csv';
+  const projectName = process.cwd().replace(/[^a-zA-Z0-9]/g, '-');
+  const csvDir = dir + '/' + projectName + '/' + session;
+  const csvFile = csvDir + '/ratelimit.csv';
   fs.mkdirSync(csvDir, { recursive: true });
   let lastFiveH = null, lastFiveHReset = null, lastSevenD = null, lastSevenDReset = null;
   if (!fs.existsSync(csvFile)) {
