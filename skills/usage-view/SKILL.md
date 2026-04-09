@@ -111,7 +111,7 @@ The HTML file is self-contained -- you can share it or re-open it anytime.
 ## Important Notes
 
 1. **Large files**: The analyze-usage.js script uses streaming (`readline`) internally. Do not read JSONL files with `fs.readFileSync`.
-2. **Caching**: The script caches per-session JSON at `~/.claude/cc-token-saver/{projectName}/{sessionId}/summary.json` and timeline CSV at `~/.claude/cc-token-saver/{projectName}/{sessionId}/timeline.csv`. Use `--force` to force re-analysis.
+2. **Caching**: The script caches per-session JSON at `~/.claude/cc-token-saver-data/{projectName}/{sessionId}/summary.json` and timeline CSV at `~/.claude/cc-token-saver-data/{projectName}/{sessionId}/timeline.csv`. Use `--force` to force re-analysis.
 3. **Build script**: `scripts/build-report.js` reads timeline CSVs and constructs the REPORT_DATA object. The template at `skills/usage-view/template.html` contains the viewer (HTML/CSS/JS) with sample data that gets replaced.
 4. **Timezone**: All displayed dates/times use the user's local timezone via `new Date()`.
 5. **Cost formula**: Per-model pricing from `scripts/model-pricing.json`. Falls back to default model if unknown.

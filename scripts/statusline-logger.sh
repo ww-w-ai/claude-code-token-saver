@@ -24,7 +24,7 @@
 #   Hints: 5H🔴 → /report-limit, other warnings → /usage-view current
 #
 # Cache (side-effects):
-#   ~/.claude/cc-token-saver/{projectName}/{SESSION_ID}/ratelimit.csv
+#   ~/.claude/cc-token-saver-data/{projectName}/{SESSION_ID}/ratelimit.csv
 #     Header: ts,5h,5h_reset,7d,7d_reset,alert
 #     - ts: unix timestamp
 #     - 5h/7d: usage percentage (0-100, two decimals)
@@ -36,7 +36,7 @@
 #   $TMPDIR/cc-token-saver-state-{SESSION_ID}.csv
 #     Per-session cost delta state (cost,lastDelta). Used to calculate per-call cost.
 
-LOG_DIR="$HOME/.claude/cc-token-saver"
+LOG_DIR="$HOME/.claude/cc-token-saver-data"
 
 # Pipe stdin to node (avoids ARG_MAX limit)
 cat | node -e "

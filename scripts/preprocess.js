@@ -20,8 +20,8 @@
  *   First line: "# {lines} lines, {bytes} bytes" (meta header for chunked reading)
  *
  * Cache (managed by /continue skill, not by this script):
- *   ~/.claude/cc-token-saver/{projectName}/{sessionId}/compact.txt              (default truncation)
- *   ~/.claude/cc-token-saver/{projectName}/{sessionId}/compact.aggressive.txt   (50/20 truncation)
+ *   ~/.claude/cc-token-saver-data/{projectName}/{sessionId}/compact.txt              (default truncation)
+ *   ~/.claude/cc-token-saver-data/{projectName}/{sessionId}/compact.aggressive.txt   (50/20 truncation)
  *
  * Marker Reference (v2.0)
  * ─────────────────────────────────────────────

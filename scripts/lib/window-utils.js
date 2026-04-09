@@ -15,7 +15,7 @@ const FIVE_HOURS_S = 5 * 3600;
 /**
  * Scan ratelimit CSVs for 5h_reset values and derive window starts.
  * Uses new project/session cache structure.
- * @param {string} cacheBase - Path to cache base directory (e.g. ~/.claude/cc-token-saver) — kept for API compat
+ * @param {string} cacheBase - Path to cache base directory (e.g. ~/.claude/cc-token-saver-data) — kept for API compat
  * @returns {number[]} Array of unique window start timestamps
  */
 function scanRatelimitWindows(cacheBase) {

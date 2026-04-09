@@ -2,13 +2,13 @@
  * cache-paths.js — Single source of truth for all cache path resolution.
  *
  * Structure:
- *   ~/.claude/cc-token-saver/{projectName}/{sessionId}/timeline.csv
- *   ~/.claude/cc-token-saver/{projectName}/{sessionId}/summary.json
- *   ~/.claude/cc-token-saver/{projectName}/{sessionId}/ratelimit.csv
- *   ~/.claude/cc-token-saver/{projectName}/{sessionId}/compact.txt
- *   ~/.claude/cc-token-saver/{projectName}/{sessionId}/compact.aggressive.txt
- *   ~/.claude/cc-token-saver/{projectName}/{sessionId}/subagents/{agentId}/timeline.csv
- *   ~/.claude/cc-token-saver/{projectName}/{sessionId}/subagents/{agentId}/summary.json
+ *   ~/.claude/cc-token-saver-data/{projectName}/{sessionId}/timeline.csv
+ *   ~/.claude/cc-token-saver-data/{projectName}/{sessionId}/summary.json
+ *   ~/.claude/cc-token-saver-data/{projectName}/{sessionId}/ratelimit.csv
+ *   ~/.claude/cc-token-saver-data/{projectName}/{sessionId}/compact.txt
+ *   ~/.claude/cc-token-saver-data/{projectName}/{sessionId}/compact.aggressive.txt
+ *   ~/.claude/cc-token-saver-data/{projectName}/{sessionId}/subagents/{agentId}/timeline.csv
+ *   ~/.claude/cc-token-saver-data/{projectName}/{sessionId}/subagents/{agentId}/summary.json
  */
 
 const path = require('path');
@@ -16,7 +16,17 @@ const os = require('os');
 const fs = require('fs');
 const crypto = require('crypto');
 
-const CACHE_BASE = path.join(os.homedir(), '.claude', 'cc-token-saver');
+const CACHE_BASE = path.join(os.homedir(), '.claude', 'cc-token-saver-data');
+
+// Auto-migrate: cc-token-saver → cc-token-saver-data (v1.1.1)
+const OLD_CACHE_BASE = path.join(os.homedir(), '.claude', 'cc-token-saver');
+if (CACHE_BASE !== OLD_CACHE_BASE && fs.existsSync(OLD_CACHE_BASE) && !fs.existsSync(CACHE_BASE)) {
+  try {
+    fs.renameSync(OLD_CACHE_BASE, CACHE_BASE);
+  } catch (_) {
+    // If rename fails (cross-device), copy will happen naturally as new data is written
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Project name helpers

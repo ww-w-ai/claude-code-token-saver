@@ -85,7 +85,7 @@ Derive the project hash from the current working directory:
 
 ```bash
 PROJECT_HASH=$(echo "${PWD}" | sed 's/[^a-zA-Z0-9]/-/g')
-CACHE_DIR="${HOME}/.claude/cc-token-saver/${PROJECT_HASH}/${SESSION_ID}"
+CACHE_DIR="${HOME}/.claude/cc-token-saver-data/${PROJECT_HASH}/${SESSION_ID}"
 CACHE_FILE="${CACHE_DIR}/compact.txt"
 ```
 
@@ -169,7 +169,7 @@ Show the completion message with the active context:
 [Context restored by /continue]
 - {N} session(s) loaded ({date range})
 - [L{n}] markers → original transcript at ~/.claude/projects/{PROJECT_HASH}/{SESSION_ID}.jsonl
-- Preprocessed caches: ~/.claude/cc-token-saver/{PROJECT_HASH}/{SESSION_ID}/compact.txt
+- Preprocessed caches: ~/.claude/cc-token-saver-data/{PROJECT_HASH}/{SESSION_ID}/compact.txt
 - Git commit details: run `git show {commit_hash}` for any commit above
 - 💡 Next session: run `/clear` first, then `/continue` to restore context cheaply
 

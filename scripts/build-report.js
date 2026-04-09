@@ -26,8 +26,8 @@
  *
  * Input:
  *   - analyze-usage.js JSON output (--data)
- *   - ~/.claude/cc-token-saver/{projectName}/{sessionId}/timeline.csv   (per-API-call data)
- *   - ~/.claude/cc-token-saver/{projectName}/{sessionId}/ratelimit.csv  (statusline rate limit logs)
+ *   - ~/.claude/cc-token-saver-data/{projectName}/{sessionId}/timeline.csv   (per-API-call data)
+ *   - ~/.claude/cc-token-saver-data/{projectName}/{sessionId}/ratelimit.csv  (statusline rate limit logs)
  *   - skills/usage-view/template.html                              (dashboard template)
  *   - locales/{code}.json                                          (i18n strings)
  *

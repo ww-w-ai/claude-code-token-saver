@@ -10,7 +10,7 @@
  *                       Default: all projects.
  *   --force             Force re-analyze, ignore cached results
  *
- * Cache structure: ~/.claude/cc-token-saver/{projectName}/{sessionId}/
+ * Cache structure: ~/.claude/cc-token-saver-data/{projectName}/{sessionId}/
  *   summary.json   — session metadata (tokens, cost, timestamps)
  *   timeline.csv   — per-API-call timeline
  *   subagents/{agentId}/summary.json, timeline.csv — agent sessions

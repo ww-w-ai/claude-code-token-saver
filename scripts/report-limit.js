@@ -10,7 +10,7 @@
  * 6. Uploads to GitHub gist + opens pre-filled Discussion URL
  * 7. Prints JSON summary to stdout
  *
- * Cache structure: ~/.claude/cc-token-saver/{projectName}/{sessionId}/
+ * Cache structure: ~/.claude/cc-token-saver-data/{projectName}/{sessionId}/
  *   timeline.csv, ratelimit.csv, summary.json, subagents/{agentId}/...
  *
  * Usage: node report-limit.js [--plan <plan>]
