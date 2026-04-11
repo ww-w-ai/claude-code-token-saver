@@ -15,7 +15,7 @@ Restore context from previous sessions — smarter, cheaper alternative to `/com
 2. User selects sessions by number (e.g., `1,3` or `1-4`). Type `more` for older sessions
 3. Checks cache validity (both default and aggressive variants must exist with fresh mtime)
 4. Uncached sessions: preprocessed to compact text (no LLM call needed)
-5. Total ≤ 100KB: default cache used. > 100KB: aggressive truncation (50/20) kicks in automatically
+5. Total ≤ 150KB: default cache used. > 150KB: aggressive truncation (50/20) kicks in automatically
 6. Appends git history for the time range
 7. Shows **Last 5 user messages** (verbatim) + **Session summary** so you instantly recall where you left off
 

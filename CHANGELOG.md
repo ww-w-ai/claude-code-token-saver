@@ -5,6 +5,75 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - unreleased
+
+### /continue skill improvements
+
+- Current session with context-loss events (`/clear`, `/compact`, auto-compact) now appears as **#0 [default]** in session list
+- `/continue last` auto-restores current session when it has context-loss events (recovers lost earlier content after auto-compact)
+- New `hasContextLoss` + `contextLossEvents` fields in `list-sessions.js` output
+- Event badges in session list: `📍` (current), `@@` (`/clear`), `+` (manual compact), `++` (auto-compact)
+- Additive input parsing: empty = #0, `1,3` = #0 + #1 + #3
+- Global-index pagination: browse via "more", select any number from any page
+- Large selection confirmation (>=10 sessions or >500KB)
+- 150KB threshold (up from 100KB) for default/aggressive mode switching
+
+### preprocess.js v3 format — Signal-weighted truncation
+
+- **4-category tag system** replaces bulk content with compact tags:
+  - `[C{n} | {N}L | {N}KB]` — code blocks (>5 lines or >200B)
+  - `[T{n} | {R}R | "{name}"]` — markdown tables
+  - `[B{n} | {N}# | "{name}"]` — numbered lists (`#`) / bullet lists (`*`)
+  - `[I{n} | {format} | {W}x{H}]` — images with parsed dimensions
+- **Context Window truncation** for assistant messages: preserves URLs, inline code, attention-emoji lines, and keyword lines with natural +/-60 char context windows (no `[...]` markers, blank-line separated)
+- **Meta footer** with full indexes (TOC at end for LLM attention weight): Code Blocks -> Tables -> Lists -> Images -> Attention Signals -> Table of Contents
+- **Name extraction heuristic** for T/B tags: header / colon label / bold prefix
+- **Image dimension parsing**: PNG, GIF, WebP (with signature check), JPEG (SOF0/1/2/3 for progressive support, 8KB scan window for EXIF-heavy images)
+- **Attention emoji set** (20): red-X, red-circle, warning, siren, fire, target, bug, wrench, bulb, collision, party, trophy, rocket, test-tube, robot, money-wings, money, chart-up, chart-down, pin, yellow-circle (check-mark excluded as status marker noise)
+- **Keyword detection**: `root cause`, `TL;DR`, `breakthrough`, `bug found`, `wrong`, `CRITICAL`, `CONFIRMED`, `FATAL`, `fixed`, `verified`, `finding`
+- **Short code block protection**: <=5 lines or <=200B blocks kept in-place but masked during table/list/TOC scanning to prevent shell-pipe/italic/comment false positives
+- **Tag-aware smartTruncate**: head/tail/snippet boundaries snap to tag edges, preventing tag splitting
+- **Unified user/assistant HEAD/TAIL**: default 300/200, aggressive 100/100
+- **Last-10 turn boost**: 1.5x head/tail for recent context
+- **CACHE_VERSION 12 -> 13** (auto-invalidates old caches)
+- **COMPACT_FORMAT_VERSION 2 -> 3**
+
+### Memory retention comparison
+
+- Session-level comparison between auto-compact summary and `/continue` raw restoration informed the design
+- Validated that auto-compact requires "All user messages: List ALL user messages" per CC source prompt (`services/compact/prompt.ts:73`)
+
+### Changed
+
+- usage-view: Replaced "Top 20 user prompts" with "Autonomous Runs" list (>=20 min runs)
+- usage-view: Per-API-call cost chart now uses square aspect ratio
+- usage-view: Long-runs section moved above calendar
+- usage-view: AI section2 now analyzes autonomous runs + per-call scatter (expanded length)
+- **Marker semantics rename (breaking)**: `+` marker now means manual `/compact` (was: `/resume`, which was dead code due to CC's `display:'skip'`). `++` marker now means auto-compact (via `compact_boundary.trigger='auto'`).
+- **alertType strings renamed**: `resume` → `compact-manual`, `compact` → `compact-auto`.
+- **i18n keys renamed** (23 locales): `resume`/`resumeReason`/`compact`/`compactReason` removed, `compactManual`/`compactAuto`/`compactManualReason`/`compactAutoReason` added.
+- **Marker ownership separated** (compact-timeline-separation):
+  - `compact.txt` (preprocess.js) now holds ONLY user-side markers: `@ @@ + ++ ~ ! ^ ^^`.
+  - `timeline.csv` (analyze-usage.js) now owns assistant-side markers: `* ** # ## ?` and rate-limit `%` markers, written into new `line,markers` columns.
+  - `build-report.js` joins the two streams by JSONL line number via `buildAlertsFromUserTurns` and aggregates cost per user turn.
+- **CACHE_VERSION bumped**: 8 → 9. Existing caches auto-invalidate on next `analyze-usage.js` run; no migration required.
+- **Statusline cost display** now shows accumulated cost per user turn instead of per-call delta. Turn boundary detected via idle timeout (`CC_TOKEN_SAVER_TURN_IDLE_SEC`, default 60s). A $1.43 spike no longer flashes away on the next cheap tool call.
+
+### Fixed
+
+- `/resume` detection was never working (CC uses `display:'skip'` for resume command, so no transcript entry is ever written). `?` heuristic marker continues to detect 1h-inside cache_creation as the intended resume proxy.
+- `preprocess.js`: removed legacy `+ → ++` dedup replace logic (no longer needed after semantic rename).
+- **`****` cost marker accumulation bug**: the retroactive regex `$1${markers}` in `preprocess.js` kept re-marking the same user line on each of N assistant turns in a tool-heavy chain, producing literal `****` / `##**##` artefacts. Cost markers are now emitted once per API call into `timeline.csv` instead.
+- **Cost underreporting on multi-turn prompts**: dashboard previously showed one random assistant row per user line via nearest-timestamp 1:1 matching. Now aggregates ALL assistant rows in the user turn, so a 7-turn $3.41 prompt reports as $3.41 total with per-turn breakdown.
+- **Stale `compact.txt` during mid-session runs**: `generateMissingCompacts` in `build-report.js` only checked file existence. It now compares JSONL mtime against compact.txt mtime and regenerates when the transcript is newer.
+
+### Removed
+
+- Dead code: `resume`, `resumeReason`, `compact`, `compactReason` i18n keys and their rendering paths.
+- Dead code: `5h-warn`/`5h-danger` alertType handlers and i18n keys (no source emits them).
+- `preprocess.js` cost/ctx/heuristic/rate-limit marker emission (moved to `analyze-usage.js`).
+- `preprocess.js` now no longer imports `model-pricing.json` or computes `calcCost` — all pricing logic lives in `analyze-usage.js`.
+
 ## [1.3.0] - 2026-04-09
 
 ### Fixed

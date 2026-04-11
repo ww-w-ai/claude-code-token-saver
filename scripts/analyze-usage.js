@@ -15,10 +15,22 @@
  *   timeline.csv   — per-API-call timeline
  *   subagents/{agentId}/summary.json, timeline.csv — agent sessions
  *
- * Timeline CSV columns: ts,model,input,cc,cc5m,cc1h,cr,out,cost,win,rl,evt
- *   win: 5h window start (sparse, simple hourFloor+5h per session)
- *   rl: rate limit event (limit_hit_5h, limit_hit_weekly, limit_hit_opus, limit_hit_sonnet, limit_hit_extra, limit_hit_unknown) + reset info
- *   evt: context/cost events, pipe-separated (startup, compact, cost_warn, ctx_danger, etc.)
+ * Timeline CSV columns (v9): ts,model,input,cc,cc5m,cc1h,cr,out,cost,win,rl,evt,line,markers
+ *   win:     5h window start (sparse, simple hourFloor+5h per session)
+ *   rl:      rate limit event (limit_hit_5h, limit_hit_weekly, limit_hit_opus, limit_hit_sonnet, limit_hit_extra, limit_hit_unknown) + reset info
+ *   evt:     context/cost events, pipe-separated (startup, compact, cost_warn, ctx_danger, etc.)
+ *   line:    1-based JSONL line number of this row's source message (v9+, for user-turn aggregation)
+ *   markers: assistant-side marker string from analyze-usage side:
+ *              cost markers  *  (≥ $0.50)  **  (≥ $1.00)
+ *              ctx markers   #  (≥ 35%)    ##  (≥ 70%)  (first-crossing only)
+ *              heuristic     ?  (large cache creation with < 1h gap, likely /continue or --resume)
+ *              rate-limit    %% %5 %W %O %S %X  (on synthetic assistant rate-limit messages)
+ *            Concatenated string, e.g. "**##?". Parsed order-agnostically in build-report.js.
+ *
+ * Marker ownership (v1.4.0+):
+ *   compact.txt (preprocess.js) — user-side only: @ @@ + ++ ~ ! ^ ^^
+ *   timeline.csv (this file)    — assistant-side: * ** # ## ? %5/%%/%W/%O/%S/%X
+ *   build-report.js joins by JSONL line number and aggregates per user-turn.
  */
 
 const fs = require("fs");
@@ -38,8 +50,12 @@ const {
   migrateFromYYMM,
 } = require("./lib/cache-paths");
 const { MODEL_PRICING, DEFAULT_PRICING, calcCost } = require("./lib/pricing");
-const CACHE_VERSION = 8; // Bump when cache format changes (v8: win column = hourFloor, not 5h window)
+const CACHE_VERSION = 13; // v13: preprocess.js v1.4.0 tag system + meta footer (compact-format 3)
 const PROJECTS_DIR = path.join(os.homedir(), ".claude", "projects");
+
+// v1.4.0: Per-row evt tags and structured rl column own all assistant-side
+// event information. Short-form marker strings (*, **, #, ##, ?, %5) are no
+// longer stored here; build-report.js maps evt/rl to display badges for HTML.
 
 function parseArgs(argv) {
   const args = argv.slice(2);
@@ -196,8 +212,8 @@ function writeCache(summaryPath, timelinePath, data) {
     metadata.cacheVersion = CACHE_VERSION;
     fs.writeFileSync(summaryPath, JSON.stringify(metadata));
 
-    // CSV timeline
-    const header = "ts,model,input,cc,cc5m,cc1h,cr,out,cost,win,rl,evt";
+    // CSV timeline (v11: add req column for subagent cost dedup)
+    const header = "ts,model,input,cc,cc5m,cc1h,cr,out,cost,win,rl,evt,line,req";
     const lines = [header];
     let prevModel = null;
     let prevWin = null;
@@ -207,7 +223,9 @@ function writeCache(summaryPath, timelinePath, data) {
       const win = e.win != null && e.win !== prevWin ? e.win : "";
       const rl = e.rl || "";
       const evt = e.evt || "";
-      lines.push(`${ts},${model},${e.input},${e.cacheCreation},${e.cacheCreate5m},${e.cacheCreate1h},${e.cacheRead},${e.output},${e.cost},${win},${rl},${evt}`);
+      const line = e.line != null ? e.line : "";
+      const req = e.reqId || "";
+      lines.push(`${ts},${model},${e.input},${e.cacheCreation},${e.cacheCreate5m},${e.cacheCreate1h},${e.cacheRead},${e.output},${e.cost},${win},${rl},${evt},${line},${req}`);
       if (e.model) prevModel = e.model;
       if (e.win != null) prevWin = e.win;
     }
@@ -279,7 +297,19 @@ async function analyzeSession(filePath) {
   // Track per-requestId to deduplicate streaming chunks
   const requestUsage = new Map();
 
+  // v9: 1-based JSONL line counter (increments on every line, skips or not)
+  // Used by build-report.js to join user alerts (from compact.txt) with
+  // assistant rows (from timeline.csv) by line proximity.
+  let lineNum = 0;
+  // Track last user message line so heuristic '?' can skip if session marker was set
+  let lastUserLineNum = 0;
+  let lastAssistantTs = 0;  // epoch seconds for heuristic_resume (<1h gap)
+  // Track whether a session-marker-producing event happened after the last user message
+  // (clear / compact / reload / model / startup). Used to suppress heuristic_resume.
+  let sessionMarkPending = false;
+
   for await (const line of rl) {
+    lineNum++;
     const trimmed = line.trim();
     if (!trimmed) continue;
 
@@ -305,7 +335,9 @@ async function analyzeSession(filePath) {
         ts,
         trigger: meta.trigger || "unknown",
         preTokens: meta.preTokens || 0,
+        line: lineNum,
       });
+      sessionMarkPending = true;  // suppress ? heuristic on the next assistant turn
     }
 
     // Detect /continue skill invocation in user meta messages
@@ -318,6 +350,7 @@ async function analyzeSession(filePath) {
         inContinueSequence = true;
         continueStartTs = ts;
         continueReads = [];
+        sessionMarkPending = true;  // /continue is a session transition
       }
     }
 
@@ -336,12 +369,20 @@ async function analyzeSession(filePath) {
         const cmd = cmdMatch[1];
         let evtType = null;
         if (cmd === "clear") evtType = "clear";
-        else if (cmd === "resume") evtType = "resume";
+        // Note: /resume is NOT detected — CC's resume command uses display:'skip'
+        // and never writes the command-name tag to the transcript. The ? heuristic
+        // in preprocess.js covers 1h-inside cache_creation cases instead.
         else if (cmd === "reload-plugins") evtType = "reload_plugins";
         else if (cmd === "model") evtType = "model_change";
         if (evtType) {
-          contextEvents.push({ type: evtType, ts });
+          contextEvents.push({ type: evtType, ts, line: lineNum });
+          sessionMarkPending = true;  // suppress ? on next assistant turn
         }
+      }
+      // Track non-meta user line for ? heuristic scope.
+      // A new user message (non-meta, non-tool-result) "starts" a new user turn.
+      if (!obj.isMeta) {
+        lastUserLineNum = lineNum;
       }
       // Extract first/last user message text
       if (!obj.isMeta) {
@@ -399,6 +440,7 @@ async function analyzeSession(filePath) {
           message: msgText,
           rateLimitType,
           resetsAt,
+          line: lineNum,
         });
       }
 
@@ -468,8 +510,25 @@ async function analyzeSession(filePath) {
         const cc5mFinal = cc5m || 0;
         const cc1hFinal = cc1h || (cc5m ? 0 : ccTotal);
         const msgCost = calcCost(inp, cc5mFinal, cc1hFinal, cr, out, model);
+
+        // ── Streaming-time flag: heuristic_resume ──
+        // Conditions: large cache creation, tight gap, no pending session event.
+        // The actual evt string is assembled in the post-sort loop below.
+        const currentTs = ts ? Math.floor(new Date(ts).getTime() / 1000) : 0;
+        const isHeuristicResume =
+          !sessionMarkPending &&
+          ccTotal >= 10000 &&
+          ccTotal >= inp * 2 &&
+          lastAssistantTs > 0 &&
+          currentTs > 0 &&
+          (currentTs - lastAssistantTs) < 3600;
+        if (currentTs > 0) lastAssistantTs = currentTs;
+        // Once an assistant turn fires, session-mark pending flag is consumed
+        sessionMarkPending = false;
+
         requestUsage.set(reqId, {
           ts,
+          reqId,
           model: model || "unknown",
           input: inp,
           cacheCreation: ccTotal,
@@ -478,6 +537,8 @@ async function analyzeSession(filePath) {
           cacheRead: cr,
           output: out,
           cost: Math.round(msgCost * 1000000) / 1000000,
+          line: lineNum,
+          _heuristicResume: isHeuristicResume,
         });
       }
     }
@@ -487,6 +548,11 @@ async function analyzeSession(filePath) {
   flushContinueEvent();
 
   // Aggregate deduplicated usage
+  // reqEntries: compact per-request records for universal subagent cost dedup.
+  // Each entry: {r: reqId, i: input, c5: cc5m, c1: cc1h, cr, o: out, $ : cost}
+  // Stored in summary.json; post-processing subtracts parent-session reqIds from
+  // subagent totals to correct double-counting from CC's runForkedAgent replay.
+  const reqEntries = [];
   for (const entry of requestUsage.values()) {
     input += entry.input;
     cacheCreation += entry.cacheCreation;
@@ -496,6 +562,15 @@ async function analyzeSession(filePath) {
     output += entry.output;
     costUSD += entry.cost;
     usageTimeline.push(entry);
+    reqEntries.push({
+      r: entry.reqId,
+      i: entry.input,
+      c5: entry.cacheCreate5m,
+      c1: entry.cacheCreate1h,
+      cr: entry.cacheRead,
+      o: entry.output,
+      $: entry.cost,
+    });
   }
 
   // Initialize rl/evt fields on usage entries
@@ -503,11 +578,13 @@ async function analyzeSession(filePath) {
     e.win = null;
     e.rl = "";
     e.evt = "";
+    if (e.line == null) e.line = null;
   }
 
-  // Insert rate limit events into the timeline
+  // Insert rate limit events into the timeline. Structured data in `rl`
+  // column (type + reset info); no short-form marker duplicated in evt.
   for (const rle of rateLimitEvents) {
-    // Format: %5{1am@Asia/Seoul} or %% (no reset info)
+    // Format: limit_hit_5h{1am@Asia/Seoul} or limit_hit_unknown (no reset info)
     const rlValue = rle.resetsAt ? `${rle.rateLimitType}${rle.resetsAt}` : rle.rateLimitType;
     usageTimeline.push({
       ts: rle.ts,
@@ -522,6 +599,7 @@ async function analyzeSession(filePath) {
       win: null,
       rl: rlValue,
       evt: "",
+      line: rle.line != null ? rle.line : null,
     });
   }
 
@@ -543,7 +621,8 @@ async function analyzeSession(filePath) {
         ? `compact:${ce.trigger}:${ce.preTokens}`
         : ce.type === "continue"
         ? `continue:${ce.sessionCount}`
-        : ce.type,  // clear, resume, reload_plugins, model_change
+        : ce.type,  // clear, reload_plugins, model_change
+      line: ce.line != null ? ce.line : null,
     });
   }
 
@@ -557,18 +636,19 @@ async function analyzeSession(filePath) {
     e.win = hourFloor(ts);
   }
 
-  // Add cost/context events to evt column
-  // Track current model for contextWindow lookup
+  // Build the evt column — single source of truth for cost/ctx/heuristic tags.
+  // Post-sort so context tokens are computed on chronological order; cost tags
+  // use per-row cost thresholds; heuristic_resume was detected at streaming time
+  // (has session-mark suppression) and carried via _heuristicResume flag.
   let curModel = null;
-  // First-crossing only: emit ctx_warn/ctx_danger once per threshold, matching preprocess.js behavior
-  let prevCtxLevel = 0;  // 0=none, 1=warn(35%), 2=danger(70%)
+  let evtPrevCtxLevel = 0;  // 0=none, 1=warn(35%), 2=danger(70%)
   for (const e of usageTimeline) {
     if (e.model && e.model !== "unknown" && e.model !== "") curModel = e.model;
     if (e.cost <= 0 && e.input <= 0) continue; // skip event-only rows
 
     const evts = e.evt ? [e.evt] : [];
 
-    // Cost thresholds
+    // Cost thresholds (per-row, single API call)
     if (e.cost >= 1.0) {
       evts.push("cost_danger");
     } else if (e.cost >= 0.5) {
@@ -586,15 +666,20 @@ async function analyzeSession(filePath) {
         if (contextPct >= 0.70) ctxLevel = 2;
         else if (contextPct >= 0.35) ctxLevel = 1;
 
-        if (ctxLevel > prevCtxLevel) {
+        if (ctxLevel > evtPrevCtxLevel) {
           if (ctxLevel >= 2) evts.push("ctx_danger");
           else if (ctxLevel >= 1) evts.push("ctx_warn");
-          prevCtxLevel = ctxLevel;
+          evtPrevCtxLevel = ctxLevel;
         }
       }
     }
 
+    // heuristic_resume — flag set during streaming parse (has session-mark suppression)
+    if (e._heuristicResume) evts.push("heuristic_resume");
+
     e.evt = evts.join("|");
+    // Clean up transient flag — not persisted in CSV
+    delete e._heuristicResume;
   }
 
   // Determine primary model (most frequent in timeline)
@@ -618,6 +703,7 @@ async function analyzeSession(filePath) {
     model: primaryModel,
     tokens: { input, cacheCreation, cacheCreate5m, cacheCreate1h, cacheRead, output },
     costUSD: Math.round(costUSD * 10000) / 10000,
+    reqEntries,
     usageTimeline,
     rateLimitEvents,
     contextEvents,
@@ -734,6 +820,74 @@ async function main() {
     sessions.push(metadata);
   }
 
+  // ── Universal subagent cost dedup ──────────────────────────────
+  // CC's runForkedAgent (auto-compact, sideQuestion, agentSummary, worktree forks)
+  // writes the FULL parent conversation history into the subagent sidechain via
+  // recordSidechainTranscript. Replayed parent messages retain their ORIGINAL
+  // requestId, causing cost double-counting when subagents are aggregated
+  // independently. Fix: a subagent's effective cost = sum of entries whose reqId
+  // does NOT appear in its parent's requestIds. Handles ALL fork cases uniformly:
+  //   • Regular independent subagents → 0 overlap → unchanged
+  //   • Acompact → ~100% overlap → only the summary call counted
+  //   • Aside_question → ~90% overlap → only new calls counted
+  //   • Worktree forks → high overlap → only new calls counted
+  //
+  // Dedup mutates session.tokens, session.costUSD in place (on the in-memory
+  // copy — cached summary.json keeps raw reqEntries so dedup is reproducible
+  // across runs without re-parsing JSONL).
+  {
+    // Build parent reqId sets keyed by main sessionId
+    const parentReqIds = new Map(); // mainSessionId -> Set<reqId>
+    for (const sess of sessions) {
+      if (!sess.filePath || sess.filePath.includes("/subagents/")) continue;
+      if (!Array.isArray(sess.reqEntries)) continue;
+      const set = new Set();
+      for (const e of sess.reqEntries) set.add(e.r);
+      parentReqIds.set(sess.sessionId, set);
+    }
+
+    let dedupCount = 0;
+    for (const sess of sessions) {
+      if (!sess.filePath || !sess.filePath.includes("/subagents/")) continue;
+      if (!Array.isArray(sess.reqEntries) || sess.reqEntries.length === 0) continue;
+      // Derive parent session id from file path
+      const parts = sess.filePath.split("/subagents/");
+      if (parts.length < 2) continue;
+      const parentId = path.basename(parts[0]);
+      const parentSet = parentReqIds.get(parentId);
+      if (!parentSet || parentSet.size === 0) continue;
+      // Filter entries whose reqId is NOT in parent
+      const filtered = sess.reqEntries.filter((e) => !parentSet.has(e.r));
+      if (filtered.length === sess.reqEntries.length) continue; // no overlap
+      let input = 0, cc5m = 0, cc1h = 0, cr = 0, out = 0, cost = 0;
+      for (const e of filtered) {
+        input += e.i || 0;
+        cc5m += e.c5 || 0;
+        cc1h += e.c1 || 0;
+        cr += e.cr || 0;
+        out += e.o || 0;
+        cost += e.$ || 0;
+      }
+      sess.tokens = {
+        input,
+        cacheCreation: cc5m + cc1h,
+        cacheCreate5m: cc5m,
+        cacheCreate1h: cc1h,
+        cacheRead: cr,
+        output: out,
+      };
+      sess.costUSD = Math.round(cost * 10000) / 10000;
+      sess._dedupApplied = {
+        removed: sess.reqEntries.length - filtered.length,
+        kept: filtered.length,
+      };
+      dedupCount++;
+    }
+    if (dedupCount > 0) {
+      process.stderr.write(`Subagent cost dedup applied to ${dedupCount} sessions\n`);
+    }
+  }
+
   // Filter sessions that have timestamps and are within cutoff, sort by firstTs descending
   // Also exclude /continue skill invocation sessions (their first user message
   // starts with "Base directory for this skill:" and contains "skills/continue")
@@ -746,7 +900,13 @@ async function main() {
     .sort((a, b) => new Date(b.firstTs) - new Date(a.firstTs));
 
   // Remove internal-only fields from output
-  for (const s of valid) delete s.skillSignature;
+  // reqEntries stays in cached summary.json (needed for reproducible dedup)
+  // but is not emitted to stdout/build-report (keeps JSON payload small).
+  for (const s of valid) {
+    delete s.skillSignature;
+    delete s.reqEntries;
+    delete s._dedupApplied;
+  }
 
   // Build summary inline
   const totalCost = Math.round(valid.reduce((s, x) => s + x.costUSD, 0) * 100) / 100;

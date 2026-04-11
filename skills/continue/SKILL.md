@@ -17,7 +17,11 @@ If the user provides "help" as argument, show usage summary and stop:
 
 Options:
   (nothing)     Show session list, pick which to restore
-  last          Instantly restore the most recent session
+                  - Current session with context-loss events appears as #0 [default]
+                  - Press Enter to restore just #0, or add more numbers
+  last          Quick restore:
+                  - Current session if it had /clear, /compact, or auto-compact
+                  - Otherwise, most recent other session
   help          Show this help
 
 Examples:
@@ -91,7 +95,9 @@ CACHE_FILE="${CACHE_DIR}/compact.txt"
 
 Cache is valid when: both `${CACHE_DIR}/compact.txt` and `${CACHE_DIR}/compact.aggressive.txt` exist, and both have `mtime >= transcript file mtime`.
 
-If all sessions are cached and valid, skip to Step 4.
+**Exception — current session**: For the CURRENT session specifically, always re-run preprocess (ignore cache validity). The JSONL is actively being written and the cache goes stale quickly.
+
+If all sessions are cached and valid (excluding the current session exception above), skip to Step 4.
 
 ## Step 3: Preprocess Transcripts
 
@@ -116,7 +122,7 @@ for f in ${CACHE_FILES[@]}; do
 done
 ```
 
-If total > 100KB, use `.aggressive.txt` files instead in Step 4.
+If total > 150KB, use `.aggressive.txt` files instead in Step 4.
 
 The `[L{n}]` markers remain intact so the user can always trace back to the original transcript for full detail.
 
@@ -134,7 +140,7 @@ Preprocessing is instant (< 1 second even for 60MB+ transcripts).
 
 ## Step 4: Read and Output
 
-If total size of default caches (`compact.txt`) exceeds 100KB, use `compact.aggressive.txt` files instead.
+If total size of default caches (`compact.txt`) exceeds 150KB, use `compact.aggressive.txt` files instead.
 
 Read all cached preprocessed files and output directly to the current conversation. No LLM summarization needed — the preprocessed text preserves important context verbatim.
 

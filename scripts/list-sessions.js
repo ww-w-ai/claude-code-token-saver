@@ -60,6 +60,46 @@ function isGenuineUserMessage(text) {
   return true;
 }
 
+function detectContextLoss(jsonlPath) {
+  const content = fs.readFileSync(jsonlPath, "utf8");
+  const events = { clear: false, compactManual: false, compactAuto: false };
+
+  for (const line of content.split("\n")) {
+    if (!line.trim()) continue;
+    try {
+      const msg = JSON.parse(line);
+      // auto-compact: isCompactSummary flag on user message
+      if (msg.message?.isCompactSummary === true) events.compactAuto = true;
+      // compact_boundary system event (more reliable)
+      if (msg.type === "system" && msg.subtype === "compact_boundary") {
+        if (msg.compactMetadata?.trigger === "auto") events.compactAuto = true;
+        if (msg.compactMetadata?.trigger === "manual") events.compactManual = true;
+      }
+      // /clear command
+      if (
+        msg.type === "user" &&
+        typeof msg.message?.content === "string" &&
+        /^\/clear\b/.test(msg.message.content)
+      ) {
+        events.clear = true;
+      }
+      // /compact manual command
+      if (
+        msg.type === "user" &&
+        typeof msg.message?.content === "string" &&
+        /^\/compact\b/.test(msg.message.content)
+      ) {
+        events.compactManual = true;
+      }
+    } catch (e) {}
+  }
+
+  return {
+    hasContextLoss: events.clear || events.compactManual || events.compactAuto,
+    events,
+  };
+}
+
 function formatLocalTime(date) {
   const now = new Date();
   const hh = String(date.getHours()).padStart(2, "0");
@@ -199,6 +239,10 @@ async function main() {
       firstActive = formatLocalTime(new Date(firstActiveTimestamp));
     }
 
+    const { hasContextLoss, events: contextLossEvents } = detectContextLoss(
+      entry.path,
+    );
+
     mainSessions.push({
       id,
       path: entry.path,
@@ -209,6 +253,8 @@ async function main() {
       lastMsg: genuineMessages.length > 0 ? truncateMsg(genuineMessages[genuineMessages.length - 1], 100) : "",
       userMsgCount: genuineMessages.length,
       isMain,
+      hasContextLoss,
+      contextLossEvents,
     });
   }
 
