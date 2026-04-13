@@ -860,8 +860,8 @@ function matchAlertWithTimeline(_alert, _timelineRows) {
 //
 // Each point carries marker badge, time, sid, text, token breakdown.
 function buildContextCostScatters(allTimelines, sessionMap) {
-  const ASST_COST_FLOOR = 1.0;
-  const USER_TURN_COST_FLOOR = 4.0;
+  const ASST_COST_FLOOR = 0.05;
+  const USER_TURN_COST_FLOOR = 0;
   const points = [];        // per assistant API call
   const userTurnPoints = [];  // per user turn (aggregated)
   // Dominant-type counts across ALL $1+ calls (used by AI prompt, not chart).
@@ -936,7 +936,6 @@ function buildContextCostScatters(allTimelines, sessionMap) {
       const ctx = (row.input || 0) + (row.cc || 0) + (row.cr || 0);
       if (ctx <= 0) continue;
       if (ctx > maxX) maxX = ctx;
-      if (row.cost < ASST_COST_FLOOR) continue;
 
       // Compute cost breakdown per token type using model pricing to classify
       // the dominant contributor — used ONLY for the breakdown counts fed to AI.
@@ -952,6 +951,8 @@ function buildContextCostScatters(allTimelines, sessionMap) {
       if (ccWriteCost > domCost) { dom = 'cacheCreate'; domCost = ccWriteCost; }
       if (crReadCost > domCost) { dom = 'cacheRead'; domCost = crReadCost; }
       dominantBreakdown[dom]++;
+      // CW: $0.05 floor; Non-CW: no floor (include all)
+      if (dom === 'cacheCreate' && row.cost < ASST_COST_FLOOR) continue;
 
       const parent = findEnclosingUser(row.line || 0);
       points.push({
@@ -965,7 +966,12 @@ function buildContextCostScatters(allTimelines, sessionMap) {
         input: row.input,
         out: row.out,
         cc: (row.cc5m || 0) + (row.cc1h || 0),
-        cr: row.cr
+        cr: row.cr,
+        dom: dom,
+        cw1hCost: Math.round((row.cc1h || 0) * rates.cacheCreate1h / 1e6 * 10000) / 10000,
+        cw5mCost: Math.round((row.cc5m || 0) * rates.cacheCreate5m / 1e6 * 10000) / 10000,
+        crCost: Math.round(crReadCost * 10000) / 10000,
+        mdl: (row.model || '').includes('opus') ? 'O' : (row.model || '').includes('haiku') ? 'H' : 'S'
       });
     }
 
@@ -1004,7 +1010,8 @@ function buildContextCostScatters(allTimelines, sessionMap) {
         out: turn.agg.out,
         cc: turn.agg.cc,
         cr: turn.agg.cr,
-        callCount: turn.breakdown.length
+        callCount: turn.breakdown.length,
+        mdl: rows.length > 0 ? ((rows[0].model || '').includes('opus') ? 'O' : (rows[0].model || '').includes('haiku') ? 'H' : 'S') : 'O'
       });
     }
   }
@@ -1027,17 +1034,102 @@ function buildContextCostScatters(allTimelines, sessionMap) {
     return { slope, intercept, x0, x1 };
   }
 
+  // Grid-based density clustering: merge nearby points into bubbles.
+  // N=100 grid cells per axis. Each bubble: {x, y, r, n, avgCost, minCost, maxCost, dom, texts[]}.
+  // Single-point bubbles retain full detail for tooltip.
+  function clusterPoints(pts, gridN) {
+    if (!pts || pts.length === 0) return { bubbles: [], trend: null, totalCount: 0 };
+    let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity;
+    for (const p of pts) {
+      if (p.x < xMin) xMin = p.x;
+      if (p.x > xMax) xMax = p.x;
+      if (p.y < yMin) yMin = p.y;
+      if (p.y > yMax) yMax = p.y;
+    }
+    const xRange = xMax - xMin || 1;
+    const yRange = yMax - yMin || 0.01;
+    const cellW = xRange / gridN;
+    const cellH = yRange / gridN;
+    const cells = new Map();
+    for (const p of pts) {
+      const cx = Math.floor((p.x - xMin) / cellW);
+      const cy = Math.floor((p.y - yMin) / cellH);
+      const key = cx + ',' + cy;
+      if (!cells.has(key)) cells.set(key, []);
+      cells.get(key).push(p);
+    }
+    const bubbles = [];
+    for (const group of cells.values()) {
+      const n = group.length;
+      let sx = 0, sy = 0, minC = Infinity, maxC = -Infinity;
+      const mdlCount = {};
+      for (const p of group) {
+        sx += p.x; sy += p.y;
+        if (p.y < minC) minC = p.y; if (p.y > maxC) maxC = p.y;
+        if (p.mdl) mdlCount[p.mdl] = (mdlCount[p.mdl] || 0) + 1;
+      }
+      const bx = Math.round(sx / n);
+      const by = Math.round(sy / n * 10000) / 10000;
+      const r = n <= 1 ? 2 : n <= 5 ? 4 : n <= 20 ? 7 : 10;
+      // Dominant model in cluster
+      let domMdl = 'O';
+      let domMdlN = 0;
+      for (const [m, c] of Object.entries(mdlCount)) { if (c > domMdlN) { domMdl = m; domMdlN = c; } }
+      let totalCalls = 0;
+      for (const p of group) totalCalls += (p.callCount || 1);
+      const bubble = { x: bx, y: by, r, n, minCost: Math.round(minC * 100) / 100, maxCost: Math.round(maxC * 100) / 100, mdl: domMdl, calls: totalCalls };
+      if (n === 1) {
+        // Single-point: retain full detail
+        const p = group[0];
+        bubble.badge = p.badge; bubble.time = p.time; bubble.sid = p.sid;
+        bubble.text = p.text; bubble.input = p.input; bubble.out = p.out;
+        bubble.cc = p.cc; bubble.cr = p.cr;
+      } else {
+        // Multi-point: top 3 texts by cost
+        const sorted = group.slice().sort((a, b) => b.y - a.y);
+        bubble.topTexts = sorted.slice(0, 3)
+          .map(p => ({ cost: Math.round(p.y * 100) / 100, text: (p.text || '').slice(0, 60), input: p.input, out: p.out, cc: p.cc, cr: p.cr, calls: p.callCount || 1 }));
+      }
+      bubbles.push(bubble);
+    }
+    return { bubbles, totalCount: pts.length };
+  }
+
+  // Split perAssistant points by dom for pre-clustered export
+  const cwPoints = points.filter(p => p.dom === 'cacheCreate');
+  const nonCwPoints = points.filter(p => p.dom !== 'cacheCreate');
+
+  // Trend from a specific cost field (cwCost or crCost) instead of total y
+  function componentTrend(pts, costField) {
+    const mapped = pts.filter(p => p[costField] > 0).map(p => ({ x: p.x, y: p[costField] }));
+    return linearTrend(mapped);
+  }
+
+  const cwClustered = clusterPoints(cwPoints, 50);
+  const nonCwClustered = clusterPoints(nonCwPoints, 50);
+
+  // Model pricing for reference lines — pass all 3 models so template can switch
+  const pricingJson = JSON.parse(fs.readFileSync(path.join(__dirname, 'model-pricing.json'), 'utf8'));
+  const modelPricing = {};
+  for (const [key, label] of [['claude-opus-4-6', 'Opus'], ['claude-sonnet-4-6', 'Sonnet'], ['claude-haiku-4-5-20251001', 'Haiku']]) {
+    const m = pricingJson.models[key];
+    if (m) modelPricing[label] = { cw1h: m.cacheCreate1h, cw5m: m.cacheCreate5m, cr: m.cacheRead };
+  }
+  cwClustered.modelPricing = modelPricing;
+  nonCwClustered.modelPricing = modelPricing;
+
+  // User Turn: also cluster
+  const utClustered = clusterPoints(userTurnPoints, 50);
+
   return {
     perAssistant: {
-      points,
-      trend: linearTrend(points),
+      cw: cwClustered,
+      nonCW: nonCwClustered,
       totalCount: points.length,
-      costFloor: ASST_COST_FLOOR,
       dominantBreakdown
     },
     perUserTurn: {
-      points: userTurnPoints,
-      trend: linearTrend(userTurnPoints),
+      ...utClustered,
       totalCount: userTurnPoints.length,
       costFloor: USER_TURN_COST_FLOOR
     },
@@ -1737,7 +1829,7 @@ for (const row of allRows) {
 const dailyTokens = [...dailyTokenMap.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(e => e[1]);
 
 // 5. hourlyStats
-const hourCostsByDay = {}; // hour -> [cost per day]
+const hourCostsByDay = {}; // hour -> { dateKey -> cost }
 const daySetByHour = {}; // hour -> Set of date strings
 for (const row of allRows) {
   const d = new Date(row.ts * 1000);
@@ -1748,41 +1840,94 @@ for (const row of allRows) {
   hourCostsByDay[h][dateKey] = (hourCostsByDay[h][dateKey] || 0) + row.cost;
 }
 
+// Boundary timestamps for partial-hour weighting
+const firstTs = allRows.length > 0 ? Math.min(...allRows.map(r => r.ts)) : 0;
+const lastTs = allRows.length > 0 ? Math.max(...allRows.map(r => r.ts)) : 0;
+const firstD = new Date(firstTs * 1000);
+const lastD = new Date(lastTs * 1000);
+const firstHour = firstD.getHours();
+const firstMin = firstD.getMinutes();
+const lastHour = lastD.getHours();
+const lastMin = lastD.getMinutes() || 1; // avoid /0
+const firstDateKey = fsdKey(firstD);
+const lastDateKey = fsdKey(lastD);
+
+// Total calendar days in range
+const totalCalDays = days;
+
+// For each hour, how many calendar days include it?
+function calendarDaysForHour(h) {
+  let count = totalCalDays;
+  // First day: if h < firstHour, that hour wasn't active on first day
+  if (h < firstHour) count--;
+  // Last day: if h > lastHour, that hour hasn't happened yet today
+  if (h > lastHour) count--;
+  return Math.max(count, 1);
+}
+
 const hourlyStats = [];
 for (let h = 0; h < 24; h++) {
   if (!hourCostsByDay[h]) {
-    hourlyStats.push({ hour: h, avg: 0, max: 0 });
+    hourlyStats.push({ hour: h, avg: 0, max: 0, calAvg: 0 });
     continue;
   }
-  const costs = Object.values(hourCostsByDay[h]);
-  const activeDays = daySetByHour[h].size || 1;
-  const avg = round2(costs.reduce((s, c) => s + c, 0) / activeDays);
-  const max = round2(Math.max(...costs));
-  hourlyStats.push({ hour: h, avg, max });
+  // Active avg with partial-hour weighting at boundaries
+  const weightedCosts = Object.entries(hourCostsByDay[h]).map(([dateKey, cost]) => {
+    if (h === firstHour && dateKey === firstDateKey && firstMin > 0) {
+      const minutesActive = Math.max(60 - firstMin, 1);
+      return cost * 60 / minutesActive;
+    }
+    if (h === lastHour && dateKey === lastDateKey) {
+      return cost * 60 / (lastMin || 1);
+    }
+    return cost;
+  });
+  const activeAvg = round2(weightedCosts.reduce((s, c) => s + c, 0) / weightedCosts.length);
+  const max = round2(Math.max(...Object.values(hourCostsByDay[h])));
+  // Calendar avg: raw total / calendar days for this hour
+  const rawTotal = Object.values(hourCostsByDay[h]).reduce((s, c) => s + c, 0);
+  const calDays = calendarDaysForHour(h);
+  const calAvg = round2(rawTotal / calDays);
+  hourlyStats.push({ hour: h, avg: activeAvg, max, calAvg });
 }
 
 // 6. dowStats
 const dowLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const dowCostsByWeek = {}; // dow -> { weekKey -> cost }
+const dowRawCosts = {}; // dow -> total raw cost
 for (const row of allRows) {
   const d = new Date(row.ts * 1000);
   const dow = d.getDay();
   // Use ISO week as key for grouping
   const weekKey = Math.floor(row.ts / (7 * 86400));
-  if (!dowCostsByWeek[dow]) dowCostsByWeek[dow] = {};
+  if (!dowCostsByWeek[dow]) { dowCostsByWeek[dow] = {}; dowRawCosts[dow] = 0; }
   dowCostsByWeek[dow][weekKey] = (dowCostsByWeek[dow][weekKey] || 0) + row.cost;
+  dowRawCosts[dow] += row.cost;
+}
+
+// Count calendar occurrences of each DOW in [fromDate, toDate]
+function calendarDowCount(dow) {
+  let count = 0;
+  const d = new Date(fromDate);
+  while (d <= toDate) {
+    if (d.getDay() === dow) count++;
+    d.setDate(d.getDate() + 1);
+  }
+  return count;
 }
 
 const dowStats = [];
 for (let dow = 0; dow < 7; dow++) {
   if (!dowCostsByWeek[dow]) {
-    dowStats.push({ dow, label: dowLabels[dow], avg: 0, max: 0 });
+    dowStats.push({ dow, label: dowLabels[dow], avg: 0, max: 0, calAvg: 0 });
     continue;
   }
   const costs = Object.values(dowCostsByWeek[dow]);
   const avg = round2(costs.reduce((s, c) => s + c, 0) / costs.length);
   const max = round2(Math.max(...costs));
-  dowStats.push({ dow, label: dowLabels[dow], avg, max });
+  const calCount = Math.max(calendarDowCount(dow), 1);
+  const calAvg = round2(dowRawCosts[dow] / calCount);
+  dowStats.push({ dow, label: dowLabels[dow], avg, max, calAvg });
 }
 
 // 7. Plugin installed date (birthtime of plugin.json, most stable indicator)
@@ -2006,10 +2151,20 @@ if (exportPromptPath) {
     ? `Before plugin: ${effBefore}x, After plugin: ${effAfter}x (lower is better, ${effBefore > effAfter ? round2((1 - effAfter / effBefore) * 100) + '% improved' : 'no improvement yet'})`
     : 'Not enough data for before/after comparison';
 
+  // Load model pricing for AI prompt
+  const pricingData = JSON.parse(fs.readFileSync(path.join(__dirname, 'model-pricing.json'), 'utf8'));
+  const pricingTable = Object.entries(pricingData.models)
+    .filter(([k]) => ['claude-opus-4-6', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001'].includes(k))
+    .map(([k, v]) => `${k}: input=$${v.input}/MTok, cw5m=$${v.cacheCreate5m}, cw1h=$${v.cacheCreate1h}, cr=$${v.cacheRead}, output=$${v.output}`)
+    .join('\n');
+
   const prompt = `## Usage Data (THESE ARE THE ONLY NUMBERS YOU MAY USE)
 - Period: ${s.dateFrom} ~ ${s.dateTo} (${s.days} days)
 - Total cost: $${s.totalCost}, Sessions: ${s.sessionCount} main + ${s.subtaskCount || 0} subtasks
 - Plan: ${pi.label}
+
+## API Pricing (per million tokens, use these exact numbers)
+${pricingTable}
 - RULE: Monthly cost extrapolation is ONLY allowed when report period <= 15 days. This report covers ${reportDays} days${shouldExtrapolate ? ' — extrapolation is allowed.' : ' (>15) — do NOT extrapolate or mention monthly projections at all. Simply omit it — do NOT say "extrapolation is not needed" or similar.'}
 ${planLine}
 - Plugin installed: ${reportData.pluginInstalledAt ? new Date(reportData.pluginInstalledAt).toISOString().slice(0, 10) : 'not detected'}
@@ -2048,40 +2203,35 @@ ${weeks.join('\n')}
 Cost: ${costComparison}
 Efficiency (Total/Output ratio, lower = better): ${effComparison}
 
-## Expensive API Calls ($1+ cost) — Dominant Token Type Breakdown
+## API Calls — Dominant Token Type Breakdown
 ${(() => {
   const pa = reportData.contextCostScatter && reportData.contextCostScatter.perAssistant;
-  if (!pa || !pa.points || pa.points.length === 0) return 'Total: 0 calls above $1';
+  if (!pa) return 'No scatter data available';
   const bd = pa.dominantBreakdown || { input:0, output:0, cacheCreate:0, cacheRead:0 };
   const total = pa.totalCount;
   function pct(n) { return total > 0 ? (100 * n / total).toFixed(1) + '%' : '0%'; }
-  const pts = pa.points;
-  let maxCost = 0;
-  for (const p of pts) if (p.y > maxCost) maxCost = p.y;
-  let smallSum = 0, smallN = 0, largeSum = 0, largeN = 0;
-  for (const p of pts) {
-    if (p.x < 100000) { smallSum += p.y; smallN++; }
-    else if (p.x > 500000) { largeSum += p.y; largeN++; }
-  }
-  const smallAvg = smallN > 0 ? (smallSum / smallN).toFixed(2) : 'n/a';
-  const largeAvg = largeN > 0 ? (largeSum / largeN).toFixed(2) : 'n/a';
-  return 'Total calls >= $1: ' + total + '\n'
-    + 'Max single call: $' + maxCost.toFixed(2) + '\n'
-    + 'Avg cost at small context (<100K): $' + smallAvg + ' (n=' + smallN + ')\n'
-    + 'Avg cost at large context (>500K): $' + largeAvg + ' (n=' + largeN + ')\n'
+  const cwData = pa.cw || { totalCount: 0 };
+  const nonCwData = pa.nonCW || { totalCount: 0 };
+  return 'Total API calls analyzed: ' + total + '\n'
+    + 'CW (cache_write dominant, $1+): ' + cwData.totalCount + ' calls\n'
+    + 'Non-CW (input+output+cache_read dominant): ' + nonCwData.totalCount + ' calls\n'
     + '\nBreakdown by dominant cost contributor:\n'
     + '- input dominant:        ' + bd.input        + ' calls (' + pct(bd.input) + ')\n'
     + '- output dominant:       ' + bd.output       + ' calls (' + pct(bd.output) + ')\n'
     + '- cache_write dominant:  ' + bd.cacheCreate  + ' calls (' + pct(bd.cacheCreate) + ')\n'
     + '- cache_read dominant:   ' + bd.cacheRead    + ' calls (' + pct(bd.cacheRead) + ')\n'
-    + '\nKEY INSIGHT TO EMPHASIZE: Nearly all $1+ API calls are driven by cache_write '
-    + '(cache regeneration events). This is the single biggest cost lever — '
-    + 'frequent /compact, /resume, or /clear causes cache to be rewritten from scratch, '
-    + 'which is where expensive calls come from. The AI analysis should state the '
-    + 'cache_write share (e.g. "' + pct(bd.cacheCreate) + ' of expensive calls") and '
-    + 'explain WHY: because cache_read at $0.30/MTok is 25-33x cheaper than cache_write '
-    + 'at $6.25-$10/MTok, so a single cache regeneration event costs as much as many '
-    + 'ordinary messages combined.';
+    + '\nModel breakdown (CW / Non-CW):\n'
+    + (() => {
+      const models = { O: 'Opus', S: 'Sonnet', H: 'Haiku' };
+      const cwBubbles = (cwData.bubbles || []);
+      const ncBubbles = (nonCwData.bubbles || []);
+      const counts = {};
+      for (const b of cwBubbles) { const m = models[b.mdl] || 'Other'; if (!counts[m]) counts[m] = { cw: 0, ncw: 0 }; counts[m].cw += b.n; }
+      for (const b of ncBubbles) { const m = models[b.mdl] || 'Other'; if (!counts[m]) counts[m] = { cw: 0, ncw: 0 }; counts[m].ncw += b.n; }
+      return Object.entries(counts).map(([m, c]) => '- ' + m + ': CW=' + c.cw + ', Non-CW=' + c.ncw).join('\n');
+    })()
+    + '\n\nKEY INSIGHT: Opus cache write is the most expensive per-call cost. '
+    + 'Non-CW calls are cheaper individually but accumulate — context size management keeps their total down.';
 })()}
 
 ## Context Size Efficiency

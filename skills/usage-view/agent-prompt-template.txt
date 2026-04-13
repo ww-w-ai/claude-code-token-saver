@@ -26,7 +26,13 @@ AI analysis instructions (apply after reading the prompt data):
 3. Write in the language matching the `locale` field from Tool Call 1's JSON output (e.g. "ko" → Korean, "ja" → Japanese, "en" → English). Tone: warm, empathetic counselor/advisor who genuinely cares about the user's wellbeing and productivity. NOT a formal report.
 4. Output a valid JSON object. If the flags contain "--current", output ONLY key "section1" (current 5-hour window = cost analysis only, skip work patterns and session analysis). Otherwise output keys section1, section2, section3. Nothing else — no markdown fences, no explanation.
 5. RANDOMNESS: First understand ALL the data holistically, then for sections 1 and 3, WRITE focusing on a random subset of topics. Vary opening, structure, word choice each time.
-6. AUDIENCE: Non-technical general users. Do not use raw code names for technical terms (cache_write, cache_read, MTok, tier, surcharge, etc.). However, key concepts like "cache", "context", and "tokens" should include a brief parenthetical explanation on first use. E.g.: "cache (temporarily storing and reusing conversation data)", "context (the conversation history the AI remembers)", "tokens (usage units)". On subsequent mentions, just use "cache", "context", "tokens" without the explanation.
+6. AUDIENCE: Non-developers and general users. Write so that someone who has never seen API pricing can understand.
+   - Do NOT use raw technical terms: cache_write, cache_read, MTok, tier, surcharge, dominant, regression, etc.
+   - On first use, explain key concepts with parenthetical notes: "cache (temporarily storing and reusing conversation data)", "context (the conversation history the AI remembers)", "tokens (usage units)". After that, just use "cache", "context", "tokens".
+   - Use analogies sparingly — only for genuinely hard concepts. Don't overdo it.
+   - Always back claims with specific numbers from the data. Data-driven facts build trust.
+   - Be friendly and encouraging, not lecturing. Frame costs as "here's how you can save" rather than "you're spending too much."
+   - After stating a number, briefly explain what it means in plain language so non-developers understand the significance.
 
 ## Cache Pricing Guide (use this knowledge when interpreting cache data)
 - Cache Read: 90% cheaper than regular input (e.g. $0.50/MTok vs $5/MTok for Opus)
@@ -55,20 +61,19 @@ AI analysis instructions (apply after reading the prompt data):
 - If section2 covers plugin before/after comparison, section3 should NOT repeat those numbers.
 - Before writing each section, mentally check: "Did I already say this in a previous section?"
 
-## section1 (8-9 sentences): Cost Analysis
+## section1 (8-9 sentences): Cost Analysis — ONLY from Token Breakdown + Summary numbers
 
 First understand ALL the data, then write focusing on 5-6 of these topics (random selection each time).
-Use the Cache Pricing Guide above to interpret cache data correctly:
+Use the Cache Pricing Guide above to interpret cache data correctly.
+SCOPE: Section1 uses ONLY the top-level summary numbers (total cost, token breakdown, session counts). Do NOT analyze scatter chart data, context size distribution, or per-API-call cost patterns here — those belong in section2.
 1. Total cost over entire period, daily average cost. Monthly extrapolation rules: (a) In current mode (5-hour window), extrapolate monthly cost assuming 6 working hours per day × 22 working days. Never simply multiply the window cost × 30 days. (b) If the data already covers 20+ days, do NOT extrapolate to monthly — the data itself IS the monthly figure. Just state the total and daily average.
 2. Savings vs Max plan — these savings are thanks to Max subscription ($200/month), NOT cc-token-saver! Express as "Max plan subscription value is Nx". cc-token-saver's contribution is efficiency improvement (covered in section2)
 3. High cache ratio = large context complex work = "hard worker"
 4. LLM conversation accumulation → caching discount structure
-5. Context management = core cost optimization
-6. cc-token-saver's value: cost visibility + auto cache expiry detection + context management guide. Savings themselves are Max plan's credit
-7. Token pattern education: input < output << cache_write << cache_read is the natural pattern for complex work. Context engineering is the key to cost optimization
-8. Cache read COST ratio analysis (NOT token count ratio — that's always high and meaningless). If moderate (50-60%) with many SubTasks, praise efficient delegation
-9. Per-session average cost as work unit measure
-10. Main vs subtask cost distribution characteristics
+5. cc-token-saver's value: cost visibility + auto cache expiry detection + context management guide. Savings themselves are Max plan's credit
+6. Cache read COST ratio analysis (NOT token count ratio — that's always high and meaningless). If moderate (50-60%) with many SubTasks, praise efficient delegation
+7. Per-session average cost as work unit measure
+8. Main vs subtask cost distribution characteristics
 
 ## section2 (14-16 sentences): Work Pattern Analysis
 
@@ -84,8 +89,13 @@ Use the Cache Pricing Guide above to interpret cache data correctly:
 - If <20% improvement or insufficient data, skip that metric and say "not enough data yet to draw conclusions"
 - Autonomous Runs list (≥20 min long-running prompts): analyze what kinds of prompts triggered these long runs — refactors, multi-step debugging, Ralph-loop style automation, research? Are they cost-effective compared to interactive back-and-forth, or do they show runaway cost patterns? Comment on whether autonomous runs dominate the top costs or are a small tail.
 - Empathize warmly with users who lean on autonomous runs — this is a legitimate workflow (especially for solo devs leveraging AI for long tasks), not a misuse. Never judgemental. Frame as "you trust the AI to run long" with practical tips only.
-- Per-API-Call Cost vs Context scatter (cost ≥ $1 filter): interpret whether cost grows with context size using the small vs large context averages. If the slope is steep, the practical implication is that aggressive context pruning (/continue, /clear) saves real money on every call. If the slope is flat, the cost is driven more by output volume than context size — different optimization strategy.
-- Context Size Distribution: interpret the 4-bucket distribution (~250K, 250~350K, 350~500K, 500K+). If most calls are in ~250K, the user is managing context well. If 500K+ has significant share, context is growing large before resets — suggest more frequent /clear or /continue. Compare avg cost per call between buckets to show the concrete cost difference. Frame positively: "X% of your calls stay under 250K — that's efficient" or "your 500K+ calls cost $Y avg vs $Z at ~250K — there's room to save".
+- Cost by Context Size + Context Size Distribution — CONSOLIDATE into 1-2 paragraphs:
+  Write ONE unified analysis covering CW (cache write dominant calls), Non-CW (cache read/output dominant), User Turn, and the 4-bucket context distribution together. Do NOT repeat similar points across separate paragraphs. Key points to weave together:
+  - Opus cache write is the most expensive per-call cost. It happens when cache expires (1h+ idle) or after /resume, --continue.
+  - Non-CW calls: context size drives cache read cost. Keeping context small = cheaper calls.
+  - 500K+ bucket is disproportionately expensive vs ~250K. Guide: /clear then /continue before context grows past 350K.
+  - User Turn: high-cost turns from autonomous runs (Ralph Loop etc.) are legitimate, but running them at large context (500K+) multiplies cost.
+  Combine all this into a coherent flow — don't list them separately.
 
 ## section3 (10 sentences): Window & Session Analysis
 
@@ -97,11 +107,8 @@ Use the Cache Pricing Guide above to interpret cache data correctly:
   - Skip session start counts. Only mention clear counts if meaningful
   - Cost markers: individual messages costing $0.50+. Two levels: * = "cost warning" (≥$0.50), ** = "cost danger" (≥$1.00). Explain most are due to growing context, frame as "each one signaled a good time to clean up context". Guide: "click that time point in the hourly usage calendar for details". Never say "alert" — say "warning" or "danger"
   - Context size markers: two levels: # = "context size warning" (context window ≥35%), ## = "context size danger" (≥70%). If many, advise context cleanup needed. Never say "alert" or "conversation size" — say "context size"
-  - resume/continue and compact are separate events:
-    - resume/continue: continues previous session. Not LLM summary but re-caches entire context, so cache cost always recurs
-    - compact: LLM must re-read entire context for summarization. Especially costly after cache expiry
-    - Both are inefficient if frequent. Recommend plugin's /continue skill instead. /continue has ZERO cache cost unlike resume/compact — explain this comparison clearly
-- If /continue usage history exists, mention specific count and evaluate positively. Compare with resume/compact: "/continue was used N times, and those N times cost absolutely nothing unlike resume/compact". Keep it simple: fast, zero cost, restores original text, can pick from multiple sessions
+  - resume/compact vs /continue — CONSOLIDATE into one concise paragraph:
+    resume/compact both re-cache the entire context (costly). /continue skill costs zero. Mention resume/compact count, /continue count, and the contrast in ONE paragraph. Don't separate them into multiple blocks.
 - Only mention before/after installation differences if data supports it
 
 Write the JSON output to the AI_DATA_FILE path. Keys: section1 only if "--current" mode, otherwise section1 + section2 + section3.

@@ -758,15 +758,28 @@
   <!-- Section: Per-API-Call Cost vs Context (above aiSection2 so AI can reference it) -->
   <div class="charts-grid">
     <div class="chart-container" id="ctxCostAsstContainer">
-      <h3 style="display:flex;justify-content:space-between;align-items:center">
-        <span class="ctx-cost-section-title">💸 Context Size vs High-Cost API Calls ($1+)</span>
-        <span id="ctxCostGranularity" style="display:inline-flex;gap:2px;font-size:12px">
-          <button class="ctx-cost-btn active" data-granularity="call" style="padding:2px 10px;border-radius:4px 0 0 4px;border:1px solid var(--border);background:var(--accent);color:#fff;cursor:pointer;font-size:12px">Per API Call</button>
-          <button class="ctx-cost-btn" data-granularity="turn" style="padding:2px 10px;border-radius:0 4px 4px 0;border:1px solid var(--border);background:var(--bg-tertiary);color:var(--text-secondary);cursor:pointer;font-size:12px">Per User Turn</button>
-        </span>
-      </h3>
+      <div style="margin-bottom:8px">
+        <h3 style="margin:0 0 6px 0"><span class="ctx-cost-section-title">💸 Cost by Context Size</span></h3>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-size:12px">
+          <div style="display:flex;align-items:center;gap:4px">
+            <span style="color:var(--text-secondary)">Per</span>
+            <span id="ctxCostModeToggle" style="display:inline-flex;gap:0">
+              <button class="ctx-cost-mode-btn active" data-mode="cw" style="padding:2px 10px;border-radius:4px 0 0 4px;border:1px solid var(--border);background:var(--accent);color:#fff;cursor:pointer;font-size:12px">API Call (CW)</button>
+              <button class="ctx-cost-mode-btn" data-mode="nonCW" style="padding:2px 10px;border-radius:0;border:1px solid var(--border);border-left:none;background:var(--bg-tertiary);color:var(--text-secondary);cursor:pointer;font-size:12px">API Call (Non-CW)</button>
+              <button class="ctx-cost-mode-btn" data-mode="turn" style="padding:2px 10px;border-radius:0 4px 4px 0;border:1px solid var(--border);border-left:none;background:var(--bg-tertiary);color:var(--text-secondary);cursor:pointer;font-size:12px">User Turn</button>
+            </span>
+          </div>
+          <span id="ctxCostModelSelect" style="display:flex;align-items:center;gap:6px;color:var(--text-secondary);position:relative">
+            <span>Price lines:</span>
+            <label style="display:flex;align-items:center;gap:2px;cursor:pointer"><input type="checkbox" id="chkOpus" checked style="accent-color:#ff7b72"> Opus</label>
+            <label style="display:flex;align-items:center;gap:2px;cursor:pointer"><input type="checkbox" id="chkSonnet" checked style="accent-color:#58a6ff"> Sonnet</label>
+            <label style="display:flex;align-items:center;gap:2px;cursor:pointer"><input type="checkbox" id="chkHaiku" checked style="accent-color:#3fb950"> Haiku</label>
+          </span>
+        </div>
+      </div>
+      <div id="ctxCostLegend" style="display:grid;grid-template-columns:1fr 1fr;gap:2px 16px;justify-items:center;font-size:11px;color:#9198a1;margin:4px auto;max-width:520px"></div>
       <div class="chart-wrapper" style="max-width:520px;margin:0 auto"><canvas id="ctxCostAsstChart"></canvas></div>
-      <div id="ctxCostFootnote" style="font-size:11px;color:var(--text-muted);margin-top:6px;padding-left:4px">* Only API calls costing ≥ $1 are plotted. Cheap calls (&lt; $1) don't follow this linear relationship — this chart shows the "expensive tail" where context size drives cost. Hover for details. Trend = linear regression.</div>
+      <div id="ctxCostFootnote" style="font-size:11px;color:var(--text-muted);margin-top:6px;padding-left:4px"></div>
     </div>
   </div>
 
@@ -1910,61 +1923,227 @@ function fmtTokensShort(n) {
   return String(n);
 }
 
-function renderContextCostChart(canvasId, wrapId, data, yLabel, floorUsd) {
-  if (!data || !data.points || data.points.length === 0) {
+function renderContextCostChart(canvasId, wrapId, data, yLabel, chartMode) {
+  // data: { bubbles: [...], trend, totalCount } — all modes use bubble chart
+  var pts = data ? data.bubbles : null;
+  if (!pts || pts.length === 0) {
     var w = document.getElementById(wrapId);
     if (w) w.style.display = 'none';
     return;
   }
-  var maxX = data.maxX || Math.max.apply(null, data.points.map(function(p){return p.x;})) * 1.1;
-  var trendLine = [];
-  if (data.trend && typeof data.trend.slope === 'number') {
-    var t = data.trend;
-    trendLine = [
-      { x: t.x0, y: t.slope * t.x0 + t.intercept },
-      { x: t.x1, y: t.slope * t.x1 + t.intercept }
+  var maxX = data.maxX || Math.max.apply(null, pts.map(function(p){return p.x;})) * 1.1;
+  function trendToLine(t) {
+    if (!t || typeof t.slope !== 'number') return [];
+    return [{ x: t.x0, y: t.slope * t.x0 + t.intercept }, { x: t.x1, y: t.slope * t.x1 + t.intercept }];
+  }
+  // Color by model: Opus=red (like 1h line), Sonnet=blue (like 5m line), Haiku=green (like CR line)
+  var mdlColorMap = { O: '255, 123, 114', S: '88, 166, 255', H: '63, 185, 80' };
+  var defaultColor = '251, 146, 60';
+  function mdlColor(mdl) { return mdlColorMap[mdl] || defaultColor; }
+  var baseColor = defaultColor; // fallback for legend swatch
+  var datasets = [];
+  var trendDatasetIndices = [];
+  if (chartMode === 'turn') {
+    // Split into normal + capped ($50+) datasets
+    var normalPts = pts.filter(function(p) { return !p.realY; });
+    var cappedPts = pts.filter(function(p) { return !!p.realY; });
+    // Capped points: force r=10
+    cappedPts = cappedPts.map(function(p) { return Object.assign({}, p, { r: 10 }); });
+    // Normal bubbles by model
+    var modelSets = [
+      { pts: normalPts.filter(function(p){return p.mdl==='O';}), label: 'Opus', color: '255, 123, 114', order: 3 },
+      { pts: normalPts.filter(function(p){return p.mdl==='S';}), label: 'Sonnet', color: '88, 166, 255', order: 2 },
+      { pts: normalPts.filter(function(p){return p.mdl==='H';}), label: 'Haiku', color: '63, 185, 80', order: 1 }
     ];
+    for (var mi = 0; mi < modelSets.length; mi++) {
+      var ms = modelSets[mi];
+      if (ms.pts.length === 0) continue;
+      datasets.push({
+        label: ms.label + ' (' + ms.pts.reduce(function(s,p){return s+p.n;},0) + ' turns, ' + ms.pts.length + ' clusters)',
+        data: ms.pts, type: 'bubble',
+        backgroundColor: (function(c) { return function(ctx) { var b=ctx.raw; if(!b) return 'rgba('+c+',0.4)'; return 'rgba('+c+','+Math.min(0.8,0.3+(b.n/20)*0.5)+')'; }; })(ms.color),
+        borderColor: 'rgba(' + ms.color + ', 0.7)', order: ms.order
+      });
+    }
+    // Capped stars by model
+    var cappedModels = [
+      { pts: cappedPts.filter(function(p){return p.mdl==='O';}), label: 'Opus $50+', color: '255, 123, 114' },
+      { pts: cappedPts.filter(function(p){return p.mdl==='S';}), label: 'Sonnet $50+', color: '88, 166, 255' },
+      { pts: cappedPts.filter(function(p){return p.mdl==='H';}), label: 'Haiku $50+', color: '63, 185, 80' }
+    ];
+    for (var ci = 0; ci < cappedModels.length; ci++) {
+      var cm = cappedModels[ci];
+      if (cm.pts.length === 0) continue;
+      datasets.push({
+        label: cm.label + ' (' + cm.pts.length + (cm.pts.length === 1 ? ' turn)' : ' turns)'),
+        data: cm.pts, type: 'bubble', pointStyle: 'star',
+        backgroundColor: 'rgba(' + cm.color + ', 0.8)',
+        borderColor: 'rgba(' + cm.color + ', 1)', order: 0
+      });
+    }
+  } else {
+    var opusPts = pts.filter(function(p) { return p.mdl === 'O'; });
+    var sonnetPts = pts.filter(function(p) { return p.mdl === 'S'; });
+    var haikuPts = pts.filter(function(p) { return p.mdl === 'H'; });
+    var modelSets = [
+      { pts: opusPts, label: 'Opus', color: '255, 123, 114', order: 3 },
+      { pts: sonnetPts, label: 'Sonnet', color: '88, 166, 255', order: 2 },
+      { pts: haikuPts, label: 'Haiku', color: '63, 185, 80', order: 1 }
+    ];
+    for (var mi = 0; mi < modelSets.length; mi++) {
+      var ms = modelSets[mi];
+      if (ms.pts.length === 0) continue;
+      datasets.push({
+        label: ms.label + ' (' + ms.pts.reduce(function(s,p){return s+p.n;},0) + ' calls, ' + ms.pts.length + ' clusters)',
+        data: ms.pts,
+        type: 'bubble',
+        backgroundColor: function(color) { return function(ctx) {
+          var b = ctx.raw;
+          if (!b) return 'rgba(' + color + ', 0.4)';
+          var opacity = Math.min(0.8, 0.3 + (b.n / 20) * 0.5);
+          return 'rgba(' + color + ', ' + opacity + ')';
+        }; }(ms.color),
+        borderColor: 'rgba(' + ms.color + ', 0.7)',
+        hoverBackgroundColor: 'rgba(' + ms.color + ', 0.9)',
+        order: ms.order
+      });
+    }
+  }
+  // Theoretical pricing lines (0 to maxX) — exact API rates per selected model
+  function pricingLine(ratePerMTok, xMax) {
+    return [{ x: 0, y: 0 }, { x: xMax, y: xMax * ratePerMTok / 1e6 }];
+  }
+  if (chartMode === 'cw') {
+    var allModels = data.modelPricing || {};
+    // Per-model, per-type colors: 1h=pure, 5m=warm shift, cr=yellow shift
+    var modelTypeColors = {
+      Opus:   { cw1h: '#ef4444', cw5m: '#f97316', cr: '#eab308' },
+      Sonnet: { cw1h: '#3b82f6', cw5m: '#8b5cf6', cr: '#a78bfa' },
+      Haiku:  { cw1h: '#22c55e', cw5m: '#14b8a6', cr: '#06b6d4' }
+    };
+    var dashStyles = { cw1h: [10, 5], cw5m: [6, 3], cr: [2, 3] };
+    var typeLabels = { cw1h: '1h CW', cw5m: '5m CW', cr: 'CR' };
+    // Check which models have data (bubbles)
+    var modelsWithData = {};
+    for (var bi = 0; bi < pts.length; bi++) {
+      var mdl = pts[bi].mdl;
+      if (mdl === 'O') modelsWithData.Opus = true;
+      else if (mdl === 'S') modelsWithData.Sonnet = true;
+      else if (mdl === 'H') modelsWithData.Haiku = true;
+    }
+    // Check which models are enabled via checkboxes
+    var chkOpus = document.getElementById('chkOpus');
+    var chkSonnet = document.getElementById('chkSonnet');
+    var chkHaiku = document.getElementById('chkHaiku');
+    var enabledModels = {
+      Opus: chkOpus ? chkOpus.checked : true,
+      Sonnet: chkSonnet ? chkSonnet.checked : true,
+      Haiku: chkHaiku ? chkHaiku.checked : true
+    };
+    // No data → uncheck by default (but keep clickable to toggle lines on/off)
+    if (chkOpus && !chkOpus._initialized) { chkOpus._initialized = true; if (!modelsWithData.Opus) chkOpus.checked = false; }
+    if (chkSonnet && !chkSonnet._initialized) { chkSonnet._initialized = true; if (!modelsWithData.Sonnet) chkSonnet.checked = false; }
+    if (chkHaiku && !chkHaiku._initialized) { chkHaiku._initialized = true; if (!modelsWithData.Haiku) chkHaiku.checked = false; }
+    // Re-read after initialization
+    enabledModels.Opus = chkOpus ? chkOpus.checked : true;
+    enabledModels.Sonnet = chkSonnet ? chkSonnet.checked : true;
+    enabledModels.Haiku = chkHaiku ? chkHaiku.checked : true;
+
+    var modelNames = ['Opus', 'Sonnet', 'Haiku'];
+    for (var mni = 0; mni < modelNames.length; mni++) {
+      var mn = modelNames[mni];
+      if (!enabledModels[mn]) continue;
+      var mp = allModels[mn];
+      if (!mp) continue;
+      var types = [
+        { key: 'cw1h', rate: mp.cw1h },
+        { key: 'cw5m', rate: mp.cw5m },
+        { key: 'cr', rate: mp.cr }
+      ];
+      for (var ti = 0; ti < types.length; ti++) {
+        if (!types[ti].rate) continue;
+        trendDatasetIndices.push(datasets.length);
+        datasets.push({
+          label: '',
+          data: pricingLine(types[ti].rate, maxX),
+          type: 'line',
+          borderColor: (modelTypeColors[mn] || {})[types[ti].key] || '#888',
+          borderWidth: 1.5,
+          borderDash: dashStyles[types[ti].key],
+          pointRadius: 0, tension: 0, fill: false, order: 0
+        });
+      }
+    }
+  } else if (chartMode === 'nonCW') {
+    var allModels = data.modelPricing || {};
+    var crColors = { Opus: '#eab308', Sonnet: '#a78bfa', Haiku: '#06b6d4' };
+    var modelsWithData = {};
+    for (var bi = 0; bi < pts.length; bi++) {
+      var mdl = pts[bi].mdl;
+      if (mdl === 'O') modelsWithData.Opus = true;
+      else if (mdl === 'S') modelsWithData.Sonnet = true;
+      else if (mdl === 'H') modelsWithData.Haiku = true;
+    }
+    var modelNames = ['Opus', 'Sonnet', 'Haiku'];
+    for (var mni = 0; mni < modelNames.length; mni++) {
+      var mn = modelNames[mni];
+      if (!modelsWithData[mn]) continue;
+      var mp = allModels[mn];
+      if (!mp || !mp.cr) continue;
+      trendDatasetIndices.push(datasets.length);
+      datasets.push({
+        label: '',
+        data: pricingLine(mp.cr, maxX),
+        type: 'line',
+        borderColor: crColors[mn],
+        borderWidth: 1.5,
+        borderDash: [2, 3],
+        pointRadius: 0, tension: 0, fill: false, order: 0
+      });
+    }
   }
   // Destroy existing chart instance on this canvas before creating a new one,
   // otherwise Chart.js silently keeps the old chart and the toggle has no effect.
+  // Build custom HTML legend (2 items per row via CSS grid)
+  var legendEl = document.getElementById('ctxCostLegend');
+  if (legendEl) {
+    while (legendEl.firstChild) legendEl.removeChild(legendEl.firstChild);
+    for (var di = 0; di < datasets.length; di++) {
+      var ds = datasets[di];
+      if (!ds.label) continue;
+      var item = document.createElement('div');
+      item.style.cssText = 'display:flex;align-items:center;gap:4px;white-space:nowrap';
+      var swatch = document.createElement('span');
+      if (ds.type === 'line') {
+        // skip - price lines have empty labels
+      } else if (ds.pointStyle === 'star') {
+        swatch.textContent = '\u2733\uFE0E';
+        swatch.style.cssText = 'font-size:14px;color:' + ds.borderColor + ';line-height:1';
+      } else {
+        swatch.style.cssText = 'width:10px;height:10px;border-radius:50%;background:' + ds.borderColor;
+      }
+      item.appendChild(swatch);
+      var labelSpan = document.createElement('span');
+      labelSpan.textContent = ds.label;
+      item.appendChild(labelSpan);
+      legendEl.appendChild(item);
+    }
+  }
   var canvasEl = document.getElementById(canvasId);
   var existing = (typeof Chart !== 'undefined' && Chart.getChart) ? Chart.getChart(canvasEl) : null;
   if (existing) existing.destroy();
   new Chart(canvasEl, {
-    type: 'scatter',
+    type: 'bubble',
     data: {
-      datasets: [
-        {
-          label: '≥ $' + floorUsd.toFixed(0) + ' calls (n=' + data.totalCount + ')',
-          data: data.points,
-          backgroundColor: 'rgba(88, 166, 255, 0.35)',
-          borderColor: 'rgba(88, 166, 255, 0.6)',
-          pointRadius: 3,
-          pointHoverRadius: 5
-        },
-        {
-          label: 'Linear trend',
-          data: trendLine,
-          type: 'line',
-          borderColor: '#ff7b72',
-          backgroundColor: 'rgba(255, 123, 114, 0.1)',
-          borderWidth: 2,
-          pointRadius: 0,
-          tension: 0,
-          fill: false
-        }
-      ]
+      datasets: datasets
     },
     options: {
       responsive: true,
       maintainAspectRatio: true,
       aspectRatio: 1,
       plugins: {
-        legend: {
-          labels: { color: '#9198a1' }
-        },
+        legend: { display: false },
         tooltip: {
-          // Single-row tooltip (no body pair), we render the alert via callbacks.
           displayColors: false,
           titleFont: { family: 'monospace', size: 12 },
           bodyFont: { family: 'monospace', size: 12 },
@@ -1973,27 +2152,52 @@ function renderContextCostChart(canvasId, wrapId, data, yLabel, floorUsd) {
             title: function(items) {
               if (!items || !items.length) return '';
               var it = items[0];
-              if (it.datasetIndex === 1) return 'trend';
+              if (trendDatasetIndices.indexOf(it.datasetIndex) >= 0) return 'trend';
               var p = it.raw;
+              if (p.n > 1) {
+                var unit = chartMode === 'turn' ? ' turns' : ' calls';
+                return p.n + unit + ' ($' + p.minCost.toFixed(2) + ' ~ $' + p.maxCost.toFixed(2) + ')';
+              }
               var badge = p.badge ? '[' + p.badge + ']  ' : '';
               return badge + (p.time || '') + '  ' + (p.sid || '');
             },
             label: function(ctx) {
-              if (ctx.datasetIndex === 1) {
+              if (trendDatasetIndices.indexOf(ctx.datasetIndex) >= 0) {
                 return 'ctx ' + fmtTokensShort(ctx.parsed.x) + '  avg $' + ctx.parsed.y.toFixed(2);
               }
               var p = ctx.raw;
+              if (p.n > 1) {
+                var result = [];
+                if (p.topTexts && p.topTexts.length > 0) {
+                  for (var ti = 0; ti < p.topTexts.length; ti++) {
+                    var tt = p.topTexts[ti];
+                    var tokens = '';
+                    if (tt.input) tokens += ' In:' + fmtTokensShort(tt.input);
+                    if (tt.out) tokens += ' Out:' + fmtTokensShort(tt.out);
+                    if (tt.cc) tokens += ' CW:' + fmtTokensShort(tt.cc);
+                    if (tt.cr) tokens += ' CR:' + fmtTokensShort(tt.cr);
+                    var callInfo = tt.calls && tt.calls > 1 ? ' (' + tt.calls + ' calls)' : '';
+                    result.push('$' + tt.cost.toFixed(2) + callInfo + tokens);
+                    if (tt.text) result.push('  "' + tt.text + '"');
+                  }
+                  var rest = p.n - p.topTexts.length;
+                  if (rest > 0) result.push('+' + rest + ' more');
+                }
+                return result;
+              }
               var lines = [];
               if (p.text) {
                 var t = String(p.text);
-                if (t.length > 100) t = t.slice(0, 100) + '…';
+                if (t.length > 100) t = t.slice(0, 100) + '\u2026';
                 lines.push('"' + t + '"');
               }
-              var stats = '$' + p.y.toFixed(2);
-              if (p.input) stats += ' · Input ' + fmtTokensShort(p.input);
-              if (p.out) stats += ' · Output ' + fmtTokensShort(p.out);
-              if (p.cc) stats += ' · Cache ' + fmtTokensShort(p.cc);
-              if (p.cr) stats += ' · Read ' + fmtTokensShort(p.cr);
+              var costStr = p.realY ? '$' + p.realY.toFixed(2) : '$' + p.y.toFixed(2);
+              if (p.calls || p.callCount) costStr += ' (' + (p.calls || p.callCount) + ' calls)';
+              var stats = costStr;
+              if (p.input) stats += ' \u00b7 Input ' + fmtTokensShort(p.input);
+              if (p.out) stats += ' \u00b7 Output ' + fmtTokensShort(p.out);
+              if (p.cc) stats += ' \u00b7 Cache ' + fmtTokensShort(p.cc);
+              if (p.cr) stats += ' \u00b7 Read ' + fmtTokensShort(p.cr);
               lines.push(stats);
               return lines;
             }
@@ -2005,7 +2209,7 @@ function renderContextCostChart(canvasId, wrapId, data, yLabel, floorUsd) {
           type: 'linear',
           min: 0,
           max: maxX,
-          title: { display: true, text: 'Context tokens', color: '#9198a1' },
+          title: { display: true, text: 'Context Size (tokens)', color: '#9198a1' },
           ticks: {
             color: '#9198a1',
             callback: function(v) { return fmtTokensShort(v); }
@@ -2026,34 +2230,96 @@ function renderContextCostChart(canvasId, wrapId, data, yLabel, floorUsd) {
   });
 }
 
-var ctxCostGranularity = 'call'; // 'call' or 'turn'
+function computeTrend(pts) {
+  if (!pts || pts.length < 2) return null;
+  var n=0,sx=0,sy=0,sxx=0,sxy=0,x0=Infinity,x1=-Infinity;
+  for (var i=0;i<pts.length;i++) { var p=pts[i]; n++; sx+=p.x; sy+=p.y; sxx+=p.x*p.x; sxy+=p.x*p.y; if(p.x<x0)x0=p.x; if(p.x>x1)x1=p.x; }
+  var d=n*sxx-sx*sx; if(d===0)return null;
+  var slope=(n*sxy-sx*sy)/d, intercept=(sy-slope*sx)/n;
+  return {slope:slope,intercept:intercept,x0:x0,x1:x1};
+}
+var ctxCostMode = 'cw'; // 'cw' | 'nonCW' | 'turn'
 function renderContextCostCharts() {
   var ccs = REPORT_DATA.contextCostScatter;
   if (!ccs) return;
-  var data, yLabel, titleText, footnote;
-  if (ctxCostGranularity === 'turn' && ccs.perUserTurn && ccs.perUserTurn.points && ccs.perUserTurn.points.length > 0) {
-    data = ccs.perUserTurn;
+  var pa = ccs.perAssistant;
+  var yLabel, titleText, footnote, filteredData;
+
+  if (ctxCostMode === 'turn' && ccs.perUserTurn && ccs.perUserTurn.bubbles && ccs.perUserTurn.bubbles.length > 0) {
+    var utData = ccs.perUserTurn;
     yLabel = 'Cost per user turn ($)';
-    titleText = '\uD83D\uDCB8 Context Size vs High-Cost User Turns ($' + (data.costFloor || 4).toFixed(0) + '+)';
-    footnote = '* Each dot = one user prompt turn with aggregated cost \u2265 $' + (data.costFloor || 4).toFixed(0) + ' (sum of all API calls triggered). X = context size at turn start. Hover for details. Trend = linear regression.';
-  } else {
-    data = ccs.perAssistant;
+    titleText = '\uD83D\uDCB8 Cost by Context Size \u2014 Per User Turn';
+    footnote = [
+      '* Each bubble = aggregated cost of one user prompt (all API calls combined), sized by density.',
+      '* \u2733 Stars = turns exceeding $50 (capped for display \u2014 hover for actual cost).'
+    ];
+    // Cap y at $100 for display
+    var cappedBubbles = utData.bubbles.map(function(b) {
+      if (b.y > 50) return Object.assign({}, b, { realY: b.y, y: 50 });
+      if (b.maxCost > 100) return Object.assign({}, b, { maxCost: b.maxCost });
+      return b;
+    });
+    filteredData = { bubbles: cappedBubbles, trend: null, totalCount: utData.totalCount };
+  } else if (ctxCostMode === 'cw') {
+    var cwData = pa && pa.cw;
+    if (!cwData || !cwData.bubbles || cwData.bubbles.length === 0) {
+      var cont = document.getElementById('ctxCostAsstContainer');
+      if (cont) cont.style.display = 'none';
+      return;
+    }
+    filteredData = {
+      bubbles: cwData.bubbles,
+      modelPricing: cwData.modelPricing,
+      totalCount: cwData.totalCount
+    };
     yLabel = 'Cost per API call ($)';
-    titleText = '\uD83D\uDCB8 Context Size vs High-Cost API Calls ($' + (data.costFloor || 1).toFixed(0) + '+)';
-    footnote = '* Only API calls costing \u2265 $' + (data.costFloor || 1).toFixed(0) + ' are plotted. Cheap calls (< $1) don\'t follow this linear relationship \u2014 this chart shows the "expensive tail" where context size drives cost. Hover for details. Trend = linear regression.';
+    titleText = '\uD83D\uDCB8 Cost by Context Size \u2014 Cache Write (CW)';
+    footnote = [
+      '* Cache write is the most expensive token type \u2014 occurs when cache expires (1h+ idle) or after /resume, --continue.',
+      '* Lines: \u2500\u2500 1-hour cache write, \u254C 5-min cache write, \u00B7\u00B7\u00B7 cache read.',
+      '* Line colors by model: red tones = Opus, blue tones = Sonnet, green tones = Haiku.'
+    ];
+  } else {
+    // nonCW
+    var ncData = pa && pa.nonCW;
+    if (!ncData || !ncData.bubbles || ncData.bubbles.length === 0) {
+      var cont = document.getElementById('ctxCostAsstContainer');
+      if (cont) cont.style.display = 'none';
+      return;
+    }
+    filteredData = {
+      bubbles: ncData.bubbles,
+      modelPricing: ncData.modelPricing,
+      totalCount: ncData.totalCount
+    };
+    yLabel = 'Cost per API call ($)';
+    titleText = '\uD83D\uDCB8 Cost by Context Size \u2014 Non-CW (Cache Read / Output)';
+    footnote = [
+      '* API calls where cache write is NOT the dominant cost (cache read, output, or input dominant).',
+      '* Dotted lines = cache read price per model. Points below may use a cheaper model.'
+    ];
   }
-  if (!data || !data.points || data.points.length === 0) {
+  if (!filteredData || !filteredData.bubbles || filteredData.bubbles.length === 0) {
     var cont = document.getElementById('ctxCostAsstContainer');
     if (cont) cont.style.display = 'none';
     return;
   }
-  // Update title span (only the text part, preserving the toggle buttons)
+  var cont2 = document.getElementById('ctxCostAsstContainer');
+  if (cont2) cont2.style.display = '';
   var titleSpan = document.querySelector('.ctx-cost-section-title');
   if (titleSpan) titleSpan.textContent = titleText;
-  // Update footnote
   var fn = document.getElementById('ctxCostFootnote');
-  if (fn) fn.textContent = footnote;
-  renderContextCostChart('ctxCostAsstChart', 'ctxCostAsstContainer', data, yLabel, data.costFloor || 1.0);
+  if (fn) {
+    while (fn.firstChild) fn.removeChild(fn.firstChild);
+    var lines = Array.isArray(footnote) ? footnote : [footnote];
+    for (var fi = 0; fi < lines.length; fi++) {
+      var line = document.createElement('div');
+      line.textContent = lines[fi];
+      fn.appendChild(line);
+    }
+  }
+  updateModelSelectVisibility();
+  renderContextCostChart('ctxCostAsstChart', 'ctxCostAsstContainer', filteredData, yLabel, ctxCostMode);
 }
 
 var ctxDistChartInstance = null;
@@ -2097,19 +2363,18 @@ function renderCtxDistChart() {
   });
 }
 
-// Toggle handler for Per API Call / Per User Turn
-(function setupCtxCostGranularityToggle() {
-  var btnContainer = document.getElementById('ctxCostGranularity');
+// Toggle handler for unified mode: CW / Non-CW / User Turn
+(function setupCtxCostModeToggle() {
+  var btnContainer = document.getElementById('ctxCostModeToggle');
   if (!btnContainer) return;
-  var btns = btnContainer.querySelectorAll('.ctx-cost-btn');
+  var btns = btnContainer.querySelectorAll('.ctx-cost-mode-btn');
   btns.forEach(function(b) {
     b.addEventListener('click', function() {
-      var g = b.getAttribute('data-granularity');
-      if (g === ctxCostGranularity) return;
-      ctxCostGranularity = g;
-      // Update button styles
+      var mode = b.getAttribute('data-mode');
+      if (mode === ctxCostMode) return;
+      ctxCostMode = mode;
       btns.forEach(function(x) {
-        var active = x.getAttribute('data-granularity') === g;
+        var active = x.getAttribute('data-mode') === mode;
         x.classList.toggle('active', active);
         x.style.background = active ? 'var(--accent)' : 'var(--bg-tertiary)';
         x.style.color = active ? '#fff' : 'var(--text-secondary)';
@@ -2118,6 +2383,21 @@ function renderCtxDistChart() {
     });
   });
 })();
+
+// Model checkbox handlers
+(function() {
+  ['chkOpus', 'chkSonnet', 'chkHaiku'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('change', function() { renderContextCostCharts(); });
+  });
+})();
+
+// Show/hide model select based on mode (hide for User Turn)
+function updateModelSelectVisibility() {
+  var el = document.getElementById('ctxCostModelSelect');
+  if (el) el.style.display = ctxCostMode === 'cw' ? 'flex' : 'none';
+}
 
 // ─── Render: Calendar Heatmap ───────────────────────────────
 
