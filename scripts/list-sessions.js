@@ -12,13 +12,16 @@ const fs = require("fs");
 const path = require("path");
 const readline = require("readline");
 
-// Tags to strip before checking user message content
+// Tags to strip before checking user message content.
+// NOTE: <command-name> and <command-args> are intentionally NOT stripped —
+// slash-command invocations without extra text (e.g. /continue, /clear) would
+// otherwise collapse to empty strings and get filtered out as "not genuine",
+// which broke current-session detection when the newest JSONL held only a
+// /continue call. Keeping the raw tags preserves intent with minimal noise.
 const STRIP_PATTERNS = [
   /<system-reminder>[\s\S]*?<\/system-reminder>/g,
   /<task-notification>[\s\S]*?<\/task-notification>/g,
-  /<command-name>[\s\S]*?<\/command-name>/g,
   /<command-message>[\s\S]*?<\/command-message>/g,
-  /<command-args>[\s\S]*?<\/command-args>/g,
   /<local-command-stdout>[\s\S]*?<\/local-command-stdout>/g,
   /<local-command-caveat>[\s\S]*?<\/local-command-caveat>/g,
 ];
@@ -62,41 +65,49 @@ function isGenuineUserMessage(text) {
 
 function detectContextLoss(jsonlPath) {
   const content = fs.readFileSync(jsonlPath, "utf8");
-  const events = { clear: false, compactManual: false, compactAuto: false };
+  const events = { compactManual: false, compactAuto: false };
+  const eventLines = []; // track all context-loss event line numbers
 
-  for (const line of content.split("\n")) {
+  const lines = content.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
     if (!line.trim()) continue;
+    const lineNum = i + 1; // 1-based line number
     try {
       const msg = JSON.parse(line);
+      let isEvent = false;
       // auto-compact: isCompactSummary flag on user message
-      if (msg.message?.isCompactSummary === true) events.compactAuto = true;
+      if (msg.message?.isCompactSummary === true) {
+        events.compactAuto = true;
+        isEvent = true;
+      }
       // compact_boundary system event (more reliable)
       if (msg.type === "system" && msg.subtype === "compact_boundary") {
         if (msg.compactMetadata?.trigger === "auto") events.compactAuto = true;
         if (msg.compactMetadata?.trigger === "manual") events.compactManual = true;
+        isEvent = true;
       }
-      // /clear command
-      if (
-        msg.type === "user" &&
-        typeof msg.message?.content === "string" &&
-        /^\/clear\b/.test(msg.message.content)
-      ) {
-        events.clear = true;
+      // /compact manual command (via <command-name> tag in transcript).
+      // Strip <task-notification> blocks first — subagent results may contain
+      // command tags as discussion topics, not actual command invocations.
+      // NOTE: /clear is NOT detected here — it creates a new JSONL and appears
+      // at line 3 of the new session, so there's no content before it to restore.
+      if (msg.type === "user" && typeof msg.message?.content === "string") {
+        const stripped = msg.message.content.replace(/<task-notification>[\s\S]*?<\/task-notification>/g, "");
+        if (/<command-name>\/compact<\/command-name>/.test(stripped)) {
+          events.compactManual = true;
+          isEvent = true;
+        }
       }
-      // /compact manual command
-      if (
-        msg.type === "user" &&
-        typeof msg.message?.content === "string" &&
-        /^\/compact\b/.test(msg.message.content)
-      ) {
-        events.compactManual = true;
-      }
+      if (isEvent) eventLines.push(lineNum);
     } catch (e) {}
   }
 
   return {
-    hasContextLoss: events.clear || events.compactManual || events.compactAuto,
+    hasContextLoss: events.compactManual || events.compactAuto,
     events,
+    eventLines,
+    lastContextLossLine: eventLines.length > 0 ? eventLines[eventLines.length - 1] : null,
   };
 }
 
@@ -123,6 +134,28 @@ function formatLocalTime(date) {
   return `${months[date.getMonth()]} ${date.getDate()} ${hh}:${mm}`;
 }
 
+// Bare slash commands to skip in firstMsg/lastMsg display.
+// Matches both "/clear" and plugin-namespaced "/plugin:clear".
+const DISPLAY_SKIP_COMMANDS = ["clear", "exit", "compact", "continue"];
+
+function isBareCommand(text) {
+  const stripped = text
+    .replace(/<command-name>([\s\S]*?)<\/command-name>/g, "$1")
+    .replace(/<command-args>[\s\S]*?<\/command-args>/g, "")
+    .trim();
+  // Extract the final segment after any ":" or "/" prefix
+  const cmd = stripped.replace(/^\//, "").split(":").pop();
+  return DISPLAY_SKIP_COMMANDS.includes(cmd);
+}
+
+// Clean command tags for display (firstMsg/lastMsg only)
+function cleanForDisplay(text) {
+  return text
+    .replace(/<command-name>([\s\S]*?)<\/command-name>/g, "$1")
+    .replace(/<command-args>[\s\S]*?<\/command-args>/g, "")
+    .trim();
+}
+
 function truncateMsg(text, maxLen) {
   if (text.length <= maxLen) return text;
   return text.slice(0, maxLen) + "...";
@@ -134,6 +167,7 @@ async function analyzeSession(filePath) {
 
   const genuineMessages = [];
   let firstActiveTimestamp = null;
+  let lastUserTimestamp = null;
 
   for await (const line of rl) {
     const trimmed = line.trim();
@@ -147,10 +181,16 @@ async function analyzeSession(filePath) {
     }
 
     if (obj.type !== "user") continue;
-    if (obj.isMeta === true) continue;
 
     const content = obj.message?.content ?? obj.content;
     const raw = extractText(content);
+
+    if (obj.timestamp) {
+      lastUserTimestamp = obj.timestamp;
+    }
+
+    if (obj.isMeta === true) continue;
+
     const stripped = stripTags(raw);
 
     if (isGenuineUserMessage(stripped)) {
@@ -161,7 +201,11 @@ async function analyzeSession(filePath) {
     }
   }
 
-  return { genuineMessages, firstActiveTimestamp };
+  return {
+    genuineMessages,
+    firstActiveTimestamp,
+    lastUserTimestamp,
+  };
 }
 
 function parseArgs(argv) {
@@ -227,9 +271,11 @@ async function main() {
     // Filter out excluded session
     if (exclude && id === exclude) continue;
 
-    const { genuineMessages, firstActiveTimestamp } = await analyzeSession(
-      entry.path,
-    );
+    const {
+      genuineMessages,
+      firstActiveTimestamp,
+      lastUserTimestamp,
+    } = await analyzeSession(entry.path);
     const isMain = genuineMessages.length >= 1;
 
     if (!all && !isMain) continue;
@@ -239,9 +285,13 @@ async function main() {
       firstActive = formatLocalTime(new Date(firstActiveTimestamp));
     }
 
-    const { hasContextLoss, events: contextLossEvents } = detectContextLoss(
-      entry.path,
-    );
+    const { hasContextLoss, events: contextLossEvents, eventLines, lastContextLossLine } =
+      detectContextLoss(entry.path);
+
+    const now = Date.now();
+    const lastMsgAgeSeconds = lastUserTimestamp
+      ? Math.max(0, Math.floor((now - new Date(lastUserTimestamp).getTime()) / 1000))
+      : null;
 
     mainSessions.push({
       id,
@@ -249,13 +299,33 @@ async function main() {
       firstActive,
       lastActive: formatLocalTime(entry.mtime),
       size: entry.size,
-      firstMsg: genuineMessages.length > 0 ? truncateMsg(genuineMessages[0], 100) : "",
-      lastMsg: genuineMessages.length > 0 ? truncateMsg(genuineMessages[genuineMessages.length - 1], 100) : "",
+      firstMsg: truncateMsg(cleanForDisplay(genuineMessages.find((m) => !isBareCommand(m)) || genuineMessages[0] || ""), 100),
+      lastMsg: truncateMsg(cleanForDisplay([...genuineMessages].reverse().find((m) => !isBareCommand(m)) || genuineMessages[genuineMessages.length - 1] || ""), 100),
       userMsgCount: genuineMessages.length,
       isMain,
       hasContextLoss,
       contextLossEvents,
+      lastContextLossLine,
+      eventLines,
+      lastMsgTimestamp: lastUserTimestamp,
+      lastMsgAgeSeconds,
     });
+  }
+
+  // Current session = most recently active (smallest lastMsgAgeSeconds).
+  // This works because STRIP_PATTERNS now preserves <command-name> tags,
+  // so a freshly-started session containing only a /continue invocation
+  // still counts as genuine and appears in mainSessions.
+  let currentId = null;
+  let minAge = Infinity;
+  for (const s of mainSessions) {
+    if (s.lastMsgAgeSeconds != null && s.lastMsgAgeSeconds < minAge) {
+      minAge = s.lastMsgAgeSeconds;
+      currentId = s.id;
+    }
+  }
+  for (const s of mainSessions) {
+    s.isCurrent = s.id === currentId;
   }
 
   // Apply offset, then limit

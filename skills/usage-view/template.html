@@ -44,6 +44,29 @@
     margin-bottom: 24px;
     padding-bottom: 16px;
     border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .plan-badge {
+    font-size: 12px;
+    color: var(--text-secondary);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 12px;
+    white-space: nowrap;
+  }
+
+  .plan-badge .plan-label {
+    color: var(--text-muted);
+    margin-right: 4px;
+  }
+
+  .plan-badge .plan-name {
+    color: var(--text-primary);
+    font-weight: 500;
   }
 
   header h1 {
@@ -248,6 +271,19 @@
     filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));
   }
 
+  .calendar-cell .alert-icon {
+    font-size: 16px;
+    font-weight: bold;
+    color: #ff0000;
+    line-height: 1;
+  }
+
+  .calendar-cell .alert-icon.on-red {
+    /* Silver gray instead of pure white — matches the luminance delta that
+       red-dot-on-green has, so red-bg dots don't visually dominate the board. */
+    color: #c0c0c0;
+  }
+
   .calendar-cell.window-selected {
     box-shadow: inset 0 0 0 2px white;
   }
@@ -265,6 +301,20 @@
     font-weight: 600;
   }
 
+  .calendar-options-bar {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    padding: 10px 14px;
+    background: rgba(139, 148, 158, 0.06);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin: 8px 0 20px auto;
+    width: fit-content;
+    max-width: 100%;
+  }
+
   .calendar-legend {
     display: flex;
     gap: 16px;
@@ -272,6 +322,51 @@
     font-size: 12px;
     color: var(--text-secondary);
     flex-wrap: wrap;
+  }
+
+  .cost-filter-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    flex-wrap: wrap;
+  }
+  .cost-filter-row label { white-space: nowrap; }
+  .cost-filter-row input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 120px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+  }
+  .cost-filter-row input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 0;
+  }
+  .cost-filter-row input[type="range"]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 0;
+  }
+  .cost-filter-row .cost-filter-value {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    min-width: 48px;
+    color: var(--text-primary);
+  }
+  .cost-filter-row .cost-filter-count {
+    color: var(--text-muted);
   }
 
   .legend-item {
@@ -288,10 +383,7 @@
   }
 
   .calendar-tooltip {
-    position: absolute;
-    bottom: calc(100% + 6px);
-    left: 50%;
-    transform: translateX(-50%);
+    position: fixed;
     background: var(--bg-tertiary);
     border: 1px solid var(--border);
     border-radius: 6px;
@@ -299,7 +391,7 @@
     font-size: 11px;
     color: var(--text-primary);
     white-space: nowrap;
-    z-index: 100;
+    z-index: 9999;
     pointer-events: none;
     line-height: 1.4;
     box-shadow: 0 4px 12px rgba(0,0,0,0.4);
@@ -435,6 +527,7 @@
     .calendar-grid { grid-template-columns: minmax(40px, 56px) repeat(24, minmax(0, 1fr)); }
     .calendar-header-cell { font-size: 9px; padding: 2px 0; }
     .calendar-cell .skull { font-size: 9px; }
+    .calendar-cell .alert-icon { font-size: 12px; }
     .calendar-date-label { font-size: 10px; padding: 4px 4px; }
   }
 
@@ -515,8 +608,6 @@
   .marker-cost-danger { color: #f85149; }
   .marker-ctx-warn { color: #fb923c; }
   .marker-ctx-danger { color: #f85149; }
-  .marker-5h-warn { color: #d29922; }
-  .marker-5h-danger { color: #f85149; }
 
   ::-webkit-scrollbar { width: 8px; }
   ::-webkit-scrollbar-track { background: var(--bg-primary); }
@@ -562,6 +653,7 @@
   <!-- Section 1: Title + Summary -->
   <header>
     <h1><span class="logo">CC</span> Claude Code Usage Report</h1>
+    <div id="planBadge" class="plan-badge" style="display:none"></div>
   </header>
 
   <div class="summary-bar">
@@ -663,15 +755,49 @@
     </div>
   </div>
 
+  <!-- Section: Per-API-Call Cost vs Context (above aiSection2 so AI can reference it) -->
+  <div class="charts-grid">
+    <div class="chart-container" id="ctxCostAsstContainer">
+      <h3 style="display:flex;justify-content:space-between;align-items:center">
+        <span class="ctx-cost-section-title">💸 Context Size vs High-Cost API Calls ($1+)</span>
+        <span id="ctxCostGranularity" style="display:inline-flex;gap:2px;font-size:12px">
+          <button class="ctx-cost-btn active" data-granularity="call" style="padding:2px 10px;border-radius:4px 0 0 4px;border:1px solid var(--border);background:var(--accent);color:#fff;cursor:pointer;font-size:12px">Per API Call</button>
+          <button class="ctx-cost-btn" data-granularity="turn" style="padding:2px 10px;border-radius:0 4px 4px 0;border:1px solid var(--border);background:var(--bg-tertiary);color:var(--text-secondary);cursor:pointer;font-size:12px">Per User Turn</button>
+        </span>
+      </h3>
+      <div class="chart-wrapper" style="max-width:520px;margin:0 auto"><canvas id="ctxCostAsstChart"></canvas></div>
+      <div id="ctxCostFootnote" style="font-size:11px;color:var(--text-muted);margin-top:6px;padding-left:4px">* Only API calls costing ≥ $1 are plotted. Cheap calls (&lt; $1) don't follow this linear relationship — this chart shows the "expensive tail" where context size drives cost. Hover for details. Trend = linear regression.</div>
+    </div>
+  </div>
+
+  <!-- Section: Context Size Distribution -->
+  <div class="charts-grid" id="ctxDistContainer">
+    <div class="chart-container">
+      <h3>📊 Context Size Distribution</h3>
+      <div class="chart-wrapper" style="max-width:520px;margin:0 auto"><canvas id="ctxDistChart"></canvas></div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:6px;padding-left:4px">
+        * Lower context = cheaper per call. Keeping context small via /clear or /continue saves cost.
+      </div>
+    </div>
+  </div>
+
   <div id="aiSection2" class="ai-analysis-box"><div class="ai-label">✨ AI Analysis</div><span id="aiText2"></span></div>
 
   <!-- Section 6: Calendar Heatmap -->
   <section class="section">
-    <div class="section-title" style="display:flex;justify-content:space-between;align-items:center">
-      📅 Hourly Usage Calendar
+    <div class="section-title calendar-section-title" style="display:flex;justify-content:space-between;align-items:center">
+      <span class="calendar-title-text">📅 Hourly Usage Calendar</span>
       <div id="calendarClickMode" style="display:inline-flex;gap:2px;font-size:12px">
         <button class="click-mode-btn active" data-mode="window" style="padding:2px 10px;border-radius:4px 0 0 4px;border:1px solid var(--border);background:var(--accent);color:#fff;cursor:pointer;font-size:12px">5-Hour Window</button>
         <button class="click-mode-btn" data-mode="block" style="padding:2px 10px;border-radius:0 4px 4px 0;border:1px solid var(--border);background:var(--bg-tertiary);color:var(--text-secondary);cursor:pointer;font-size:12px">1-Hour Block</button>
+      </div>
+    </div>
+    <div class="calendar-options-bar">
+      <div class="cost-filter-row">
+        <label for="costThresholdSlider" id="costThresholdLabel">💰 Cost ≥</label>
+        <input type="range" id="costThresholdSlider" min="0.80" max="10.00" step="0.10" value="0.80">
+        <span class="cost-filter-value" id="costThresholdValue">$0.80</span>
+        <span class="cost-filter-count" id="costThresholdCount"></span>
       </div>
     </div>
     <div class="calendar-legend">
@@ -711,10 +837,10 @@ if (!I18N.meta) {
   I18N.meta = { locale: 'en', direction: 'ltr', name: 'English' };
   I18N.header = { title: 'Claude Code Usage Report', period: 'Analysis Period', totalCost: 'Total Cost', sessions: 'Sessions', periodTotal: 'Total for entire period', currentWindow: 'Current 5-Hour Window', subtaskCount: 'incl. {count} subtasks', daysDuration: '{days} days' };
   I18N.token = { detail: 'Token Details', type: 'Type', tokens: 'Tokens', cost: 'Cost', input: 'Input', output: 'Output', cacheWrite: 'Cache Write', cacheRead: 'Cache Read', cache1hTier: '└ 1h tier', cache5mTier: '└ 5m tier', total: 'Total', costRatio: 'Cost Breakdown' };
-  I18N.chart = { dailyCost: 'Daily Cost Trend', hourlyCost: 'Hourly Cost Pattern', dowCost: 'Day-of-Week Cost Pattern', efficiency: 'Efficiency Trend', avgCost: 'Avg Cost', maxCost: 'Max Cost', avg: 'Average', max: 'Maximum', hourSuffix: 'h', pluginInstalled: 'Plugin installed', legendAverage: '┄ Average', effTotalPerOutput: '(Total / Output) ↓ Lower is better', effCachePerOutput: '(Cache Creation / Output) ↓ Lower is better', effNote: '* Days with <1,000 output tokens are omitted (too little output to compute a meaningful ratio).', days: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] };
-  I18N.calendar = { title: 'Hourly Usage Calendar', fiveHourWindow: '5-Hour Window', oneHourBlock: '1-Hour Block', legendLow: '~$15/h', legendMid: '$15-30/h', legendHigh: '$30+/h', legendBlocked: 'blocked', legendPlugin: 'Plugin installed', note: 'Click any cell to see session details. Default view is 5-hour window — toggle to 1-hour blocks with the button above.', noData: 'No Data' };
+  I18N.chart = { dailyCost: 'Daily Cost Trend', hourlyCost: 'Hourly Cost Pattern', dowCost: 'Day-of-Week Cost Pattern', efficiency: 'Efficiency Trend', ctxCostTitle: 'Context Size vs High-Cost API Calls ($1+)', avgCost: 'Avg Cost', maxCost: 'Max Cost', avg: 'Average', max: 'Maximum', hourSuffix: 'h', pluginInstalled: 'Plugin installed', legendAverage: '┄ Average', effTotalPerOutput: '(Total / Output) ↓ Lower is better', effCachePerOutput: '(Cache Creation / Output) ↓ Lower is better', effNote: '* Days with <1,000 output tokens are omitted (too little output to compute a meaningful ratio).', days: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] };
+  I18N.calendar = { title: 'Hourly Usage Calendar', fiveHourWindow: '5-Hour Window', oneHourBlock: '1-Hour Block', legendLow: '~$15/h', legendMid: '$15-30/h', legendHigh: '$30+/h', legendBlocked: 'blocked', legendPlugin: 'Plugin installed', note: 'Click any cell to see session details. Default view is 5-hour window — toggle to 1-hour blocks with the button above.', noData: 'No Data', costFilterLabel: '💰 Cost ≥', costFilterCount: '{n} shown' };
   I18N.session = { detailExpand: '▶ Session Details', detailCollapse: '▼ Collapse', alertExpand: '▶ Top Token Conversations ({count})', alertCollapse: '▼ Top Token Conversations ({count})', windowDetailTitle: '📋 {date} {start}~{end} Session Details (${cost})', programmaticExec: '📦 Programmatic Execution ({count})', batchExec: '🔄 Batch Execution ({count})', continueRestore: '💚 /continue restored {n} sessions (0 LLM calls)', continueContext: '   Restored context: {tokens} tokens', continueCompactCost: '   /compact estimated cost: ${min} ~ ${max}', continueSaved: '   → ${min} ~ ${max} saved!', tableHeaders: ['ID', 'Type', 'Msgs', 'Input', 'Output', 'Cache', 'Read', 'Cost'] };
-  I18N.alert = { ctxWarn: '⚠️ Context window exceeded 35% — cache write/read cost increases with each call.', ctxDanger: '🔴 Context window exceeded 70% — cache write/read cost is very high.', fiveHWarn: '⚠️ 5H session window at 70% — approaching subscription usage limit.', fiveHDanger: '🔴 5H session window at 90% — subscription usage may expire soon.', resume: '🔄 Session resumed — cache regenerated, cost incurred', compact: '📦 /compact restart — cache regenerated, cost incurred', continue1: '💚 /continue skill restored 1 session', continueN: '💚 /continue skill restored 2+ sessions', continueSkillTip: ' 💡 We recommend /continue skill after a new session.\n', cacheWritePrefix: '{icon} In this call, cache write {tokens} tokens were newly cached — ', resumeReason: 'Resuming a session with claude --continue or /resume uses a lot of tokens. Unless necessary, we recommend /continue skill after a new session.', compactReason: '/compact restart caused cache regeneration — large cost!', clearReason: '{reason} caused cache creation (${cost})', clearReasonClear: '/clear restart', clearReasonStartup: 'new session start', pluginOverload: ' — too many plugins, MCP, or skills may be loaded. Keep only what you need.', reloadReason: '/reload-plugins caused system prompt change, cache regenerated (${cost})', modelReason: '/model change invalidated previous cache, regenerated (${cost})', resumeHeuristicReason: 'Resuming a session with claude --continue or /resume uses a lot of tokens. Unless necessary, we recommend /continue skill after a new session.', cacheExpiredReason: 'When context is large and over 1 hour has passed, new cache is generated — large cost!', costTopLabel: '{icon} {label} (${cost})', costOutputReason: '{icon} Output {tokens} dominated cost (${cost}) — consider using Edit (diff) instead of full file rewrites, and trim verbose explanations in your prompt.', costInputReason: '{icon} Input {tokens} dominated cost (${cost}) — consider using text instead of images, reading only needed sections with offset/limit, or providing summarized context.' };
+  I18N.alert = { ctxWarn: '⚠️ Context window exceeded 35% — cache write/read cost increases with each call.', ctxDanger: '🔴 Context window exceeded 70% — cache write/read cost is very high.', compactManual: '📦 Manual /compact — cache regenerated, cost incurred', compactAuto: '📦 /compact fired automatically (context pressure).', continue1: '💚 /continue skill restored 1 session', continueN: '💚 /continue skill restored 2+ sessions', continueSkillTip: ' 💡 We recommend /continue skill after a new session.\n', cacheWritePrefix: '{icon} In this call, cache write {tokens} tokens were newly cached — ', compactManualReason: '/compact manually invoked, cache regenerated — large cost! Consider /continue skill for lighter context restoration.', compactAutoReason: '/compact fired automatically due to context pressure. Cache was regenerated.', clearReason: '{reason} caused cache creation (${cost})', clearReasonClear: '/clear restart', clearReasonStartup: 'new session start', pluginOverload: ' — too many plugins, MCP, or skills may be loaded. Keep only what you need.', reloadReason: '/reload-plugins caused system prompt change, cache regenerated (${cost})', modelReason: '/model change invalidated previous cache, regenerated (${cost})', resumeHeuristicReason: 'Resuming a session with claude --continue or /resume uses a lot of tokens. Unless necessary, we recommend /continue skill after a new session.', cacheExpiredReason: 'When context is large and over 1 hour has passed, new cache is generated — large cost!', costTopLabel: '{icon} {label} (${cost})', costOutputReason: '{icon} Output {tokens} dominated cost (${cost}) — consider using Edit (diff) instead of full file rewrites, and trim verbose explanations in your prompt.', costInputReason: '{icon} Input {tokens} dominated cost (${cost}) — consider using text instead of images, reading only needed sections with offset/limit, or providing summarized context.', rateLimitHit: '💀 Rate limit hit — usage was blocked at this point.', rateLimitReset: '💀 Rate limit hit — blocked until {reset}.', rateLimitType5h: ' (5-hour window limit)', rateLimitTypeWeekly: ' (weekly limit)', rateLimitTypeOpus: ' (Opus model limit)', rateLimitTypeSonnet: ' (Sonnet model limit)', rateLimitTypeExtra: ' (extra limit)', rateLimitTypeUnknown: '' };
   I18N.ai = { analysis: '✨ AI Analysis', tips: '💡 Tips — cc-token-saver Usage Guide' };
 }
 
@@ -770,8 +896,7 @@ const REPORT_DATA = {
         { sessionId: 'c3d4e5f6', lineNum: 42, time: '16:30', markers: '*', text: 'Refactor the entire dashboard chart component. Current structure is too complex to maintain', alertType: 'cost-warn', tokens: { input: 45000, cc: 50000, cc5m: 0, cc1h: 50000, cr: 200000, out: 12000, cost: 0.85 } },
         { sessionId: 'c3d4e5f6', lineNum: 78, time: '17:15', markers: '**#', text: 'Analyze the entire project and remove all unused code', alertType: 'cost-danger+ctx-warn', tokens: { input: 120000, cc: 80000, cc5m: 2000, cc1h: 78000, cr: 350000, out: 25000, cost: 1.45 } },
         { sessionId: 'a2b3c4d5', lineNum: 15, time: '18:00', markers: '#', text: 'Raise test coverage above 90%. Include all edge cases', alertType: 'ctx-warn', tokens: { input: 30000, cc: 40000, cc5m: 0, cc1h: 40000, cr: 180000, out: 8000, cost: 0.52 } },
-        { sessionId: 'a2b3c4d5', lineNum: 55, time: '19:30', markers: '**##', text: 'Write integration tests for the entire codebase', alertType: 'cost-danger+ctx-danger', tokens: { input: 200000, cc: 150000, cc5m: 5000, cc1h: 145000, cr: 500000, out: 45000, cost: 2.10 } },
-        { sessionId: '', lineNum: 0, time: '19:45', markers: '', text: '5H 90%', alertType: '5h-danger', tokens: null }
+        { sessionId: 'a2b3c4d5', lineNum: 55, time: '19:30', markers: '**##', text: 'Write integration tests for the entire codebase', alertType: 'cost-danger+ctx-danger', tokens: { input: 200000, cc: 150000, cc5m: 5000, cc1h: 145000, cr: 500000, out: 45000, cost: 2.10 } }
       ],
       windowSessions: [
         {
@@ -937,10 +1062,20 @@ function i18nT(template, vars) {
     h1Logo.appendChild(logoSpan);
     h1Logo.appendChild(document.createTextNode(' ' + (I18N.header.title || 'Claude Code Usage Report')));
     if (REPORT_DATA.plan && REPORT_DATA.plan.name) {
-      var planBadge = document.createElement('span');
-      planBadge.style.cssText = 'font-size:14px;font-weight:500;color:var(--text-secondary);margin-left:4px;';
-      planBadge.textContent = '\u2014 ' + REPORT_DATA.plan.name + ' (' + REPORT_DATA.plan.price + ')';
-      h1Logo.appendChild(planBadge);
+      var badge = document.getElementById('planBadge');
+      var lbl = document.createElement('span');
+      lbl.className = 'plan-label';
+      lbl.textContent = 'Plan:';
+      var name = document.createElement('span');
+      name.className = 'plan-name';
+      name.textContent = ' ' + REPORT_DATA.plan.name;
+      var price = document.createElement('span');
+      price.style.color = 'var(--text-muted)';
+      price.textContent = ' (' + REPORT_DATA.plan.price + ')';
+      badge.appendChild(lbl);
+      badge.appendChild(name);
+      badge.appendChild(price);
+      badge.style.display = '';
     }
   }
 
@@ -1000,6 +1135,12 @@ function i18nT(template, vars) {
     if (sel) effH3.appendChild(sel);
   }
 
+  // Cost vs Context Size section title (💸 + localized text)
+  var ctxCostTitle = document.querySelector('.ctx-cost-section-title');
+  if (ctxCostTitle && I18N.chart.ctxCostTitle) {
+    ctxCostTitle.textContent = '\uD83D\uDCB8 ' + I18N.chart.ctxCostTitle;
+  }
+
   // Toggle button text
   document.getElementById('btnHourAvg').textContent = I18N.chart.avg;
   document.getElementById('btnHourMax').textContent = I18N.chart.max;
@@ -1017,14 +1158,11 @@ function i18nT(template, vars) {
   var effNote = document.querySelector('#efficiencyChart').closest('.chart-container').querySelector('div[style*="font-size:11px"]');
   if (effNote) effNote.textContent = I18N.chart.effNote;
 
-  // Calendar section title
-  var calTitle = document.querySelector('.section-title');
-  if (calTitle) {
-    var calToggle = document.getElementById('calendarClickMode');
-    var titleText = '\uD83D\uDCC5 ' + I18N.calendar.title;
-    while (calTitle.firstChild) calTitle.removeChild(calTitle.firstChild);
-    calTitle.appendChild(document.createTextNode(titleText));
-    if (calToggle) calTitle.appendChild(calToggle);
+  // Calendar section title — only update the text span; the toggle buttons
+  // live as a sibling inside the flex title and must be preserved.
+  var calTitleText = document.querySelector('.calendar-title-text');
+  if (calTitleText) {
+    calTitleText.textContent = '\uD83D\uDCC5 ' + I18N.calendar.title;
   }
 
   // Calendar toggle buttons
@@ -1069,6 +1207,10 @@ function i18nT(template, vars) {
   // Calendar note
   var calNote = document.querySelector('.calendar-note');
   if (calNote) calNote.textContent = '\uD83D\uDCA1 ' + I18N.calendar.note;
+
+  // Cost-filter slider label
+  var costLabel = document.getElementById('costThresholdLabel');
+  if (costLabel && I18N.calendar.costFilterLabel) costLabel.textContent = I18N.calendar.costFilterLabel;
 
   // AI section labels
   var aiLabels = document.querySelectorAll('.ai-label');
@@ -1209,7 +1351,7 @@ function renderDonutChart() {
         legend: {
           position: 'bottom',
           labels: {
-            color: '#8b949e',
+            color: TICK_COLOR,
             padding: 16,
             font: { size: 11 },
             usePointStyle: true,
@@ -1254,6 +1396,11 @@ function renderDonutChart() {
     }]
   });
 }
+
+// ─── Chart color constants (from CSS variables) ─────────────
+var _cs = getComputedStyle(document.documentElement);
+var GRID_COLOR = _cs.getPropertyValue('--bg-tertiary').trim() || '#21262d';
+var TICK_COLOR = _cs.getPropertyValue('--text-secondary').trim() || '#8b949e';
 
 // ─── Render: Daily Cost Bar Chart ───────────────────────────
 
@@ -1300,22 +1447,22 @@ function renderBarChart() {
       scales: {
         x: {
           stacked: true,
-          grid: { color: '#21262d' },
+          grid: { color: GRID_COLOR },
           ticks: {
-            color: function(ctx) { return labels[ctx.index] === piLabel && ctx.index > 0 ? '#ffd700' : '#8b949e'; },
+            color: function(ctx) { return labels[ctx.index] === piLabel && ctx.index > 0 ? '#ffd700' : TICK_COLOR; },
             font: function(ctx) { return labels[ctx.index] === piLabel && ctx.index > 0 ? { size: 12, weight: 'bold' } : { size: 12 }; }
           },
         },
         y: {
           stacked: true,
-          grid: { color: '#21262d' },
-          ticks: { color: '#8b949e', font: { size: 12 }, callback: function(v) { return '$' + v; } }
+          grid: { color: GRID_COLOR },
+          ticks: { color: TICK_COLOR, font: { size: 12 }, callback: function(v) { return '$' + v; } }
         }
       },
       plugins: {
         legend: {
           labels: {
-            color: '#8b949e', padding: 16, font: { size: 12 }, usePointStyle: false, boxWidth: 12, boxHeight: 12,
+            color: TICK_COLOR, padding: 16, font: { size: 12 }, usePointStyle: false, boxWidth: 12, boxHeight: 12,
             generateLabels: function(chart) {
               var items = Chart.defaults.plugins.legend.labels.generateLabels(chart);
               items.push({ text: I18N.chart.legendAverage, fillStyle: 'transparent', strokeStyle: 'transparent', lineWidth: 0, boxWidth: 0, boxHeight: 0, hidden: !chart._showAvgLines, datasetIndex: -1 });
@@ -1381,7 +1528,7 @@ function renderBarChart() {
           ctx2.save();
           ctx2.beginPath();
           ctx2.setLineDash([6, 3]);
-          ctx2.strokeStyle = '#8b949e';
+          ctx2.strokeStyle = TICK_COLOR;
           ctx2.lineWidth = 2;
           ctx2.moveTo(x0, y);
           ctx2.lineTo(x1, y);
@@ -1436,12 +1583,12 @@ function renderHourlyChart() {
       responsive: true,
       scales: {
         x: {
-          grid: { color: '#21262d' },
-          ticks: { color: '#8b949e', font: { size: 11 }, maxRotation: 0 },
+          grid: { color: GRID_COLOR },
+          ticks: { color: TICK_COLOR, font: { size: 11 }, maxRotation: 0 },
         },
         y: {
-          grid: { color: '#21262d' },
-          ticks: { color: '#8b949e', font: { size: 12 }, callback: function(v) { return '$' + v; } }
+          grid: { color: GRID_COLOR },
+          ticks: { color: TICK_COLOR, font: { size: 12 }, callback: function(v) { return '$' + v; } }
         }
       },
       plugins: {
@@ -1506,8 +1653,8 @@ function renderDowChart() {
     options: {
       responsive: true,
       scales: {
-        x: { grid: { color: '#21262d' }, ticks: { color: '#8b949e', font: { size: 12 } } },
-        y: { grid: { color: '#21262d' }, ticks: { color: '#8b949e', font: { size: 12 }, callback: function(v) { return '$' + v; } } }
+        x: { grid: { color: GRID_COLOR }, ticks: { color: TICK_COLOR, font: { size: 12 } } },
+        y: { grid: { color: GRID_COLOR }, ticks: { color: TICK_COLOR, font: { size: 12 }, callback: function(v) { return '$' + v; } } }
       },
       plugins: {
         legend: { display: false },
@@ -1589,22 +1736,29 @@ function renderEfficiencyChart() {
     if (instKey && agg.dates[i] === instKey) pluginInstalledIdx = labels.length - 1;
   }
 
-  // splitIdx: first index AFTER install date (install day itself = before)
-  var splitIdx = (pluginInstalledIdx > 0) ? pluginInstalledIdx + 1 : labels.length;
+  // splitIdx: install day itself = after (matches build-report.js _installIdx)
+  var splitIdx = (pluginInstalledIdx >= 0) ? pluginInstalledIdx : labels.length;
 
   var chartLabel = metric === 'totalPerOutput' ? 'Total / Output' : 'Cache / Output';
   var piLabelStr = instKey;
 
-  // Compute before/after averages for horizontal lines
+  // Compute before/after averages as weighted ratio: sum(total) / sum(output)
+  // This matches the before/after comparison in build-report.js
   var effBeforeAvg = null, effAfterAvg = null;
-  if (splitIdx > 0 && splitIdx < labels.length) {
-    var ebSum = 0, ebCnt = 0, eaSum = 0, eaCnt = 0;
-    for (var m = 0; m < allData.length; m++) {
-      if (m < splitIdx) { ebSum += allData[m]; ebCnt++; }
-      if (m >= splitIdx - 1) { eaSum += allData[m]; eaCnt++; }
+  if (splitIdx > 0) {
+    var ebTotal = 0, ebOut = 0, eaTotal = 0, eaOut = 0;
+    for (var m = 0; m < labels.length; m++) {
+      var dd = agg.dayMap[labels[m]];
+      if (metric === 'totalPerOutput') {
+        if (m < splitIdx) { ebTotal += dd.total; ebOut += dd.out; }
+        if (m >= splitIdx) { eaTotal += dd.total; eaOut += dd.out; }
+      } else {
+        if (m < splitIdx) { ebTotal += dd.cc; ebOut += dd.out; }
+        if (m >= splitIdx) { eaTotal += dd.cc; eaOut += dd.out; }
+      }
     }
-    if (ebCnt > 0) effBeforeAvg = Math.round(ebSum / ebCnt * 100) / 100;
-    if (eaCnt > 0) effAfterAvg = Math.round(eaSum / eaCnt * 100) / 100;
+    if (ebOut > 0) effBeforeAvg = Math.round(ebTotal / ebOut * 100) / 100;
+    if (eaOut > 0) effAfterAvg = Math.round(eaTotal / eaOut * 100) / 100;
   }
   // Average lines drawn via plugin (canvas-drawn, not datasets)
 
@@ -1638,19 +1792,19 @@ function renderEfficiencyChart() {
       responsive: true,
       scales: {
         x: {
-          grid: { color: '#21262d' },
-          ticks: { color: '#8b949e', font: { size: 12 } }
+          grid: { color: GRID_COLOR },
+          ticks: { color: TICK_COLOR, font: { size: 12 } }
         },
         y: {
-          grid: { color: '#21262d' },
-          ticks: { color: '#8b949e', font: { size: 12 }, callback: function(v) { return v.toFixed(1) + 'x'; } },
+          grid: { color: GRID_COLOR },
+          ticks: { color: TICK_COLOR, font: { size: 12 }, callback: function(v) { return v.toFixed(1) + 'x'; } },
           beginAtZero: true
         }
       },
       plugins: {
         legend: {
           labels: {
-            color: '#8b949e', padding: 16, font: { size: 12 }, usePointStyle: true, pointStyleWidth: 10,
+            color: TICK_COLOR, padding: 16, font: { size: 12 }, usePointStyle: true, pointStyleWidth: 10,
             generateLabels: function(chart) {
               var items = Chart.defaults.plugins.legend.labels.generateLabels(chart);
               items.push({ text: I18N.chart.legendAverage, pointStyle: false, fillStyle: 'transparent', strokeStyle: 'transparent', lineWidth: 0, hidden: !chart._showAvgLines, datasetIndex: -1 });
@@ -1719,7 +1873,7 @@ function renderEfficiencyChart() {
           ctx2.save();
           ctx2.beginPath();
           ctx2.setLineDash([6, 3]);
-          ctx2.strokeStyle = '#8b949e';
+          ctx2.strokeStyle = TICK_COLOR;
           ctx2.lineWidth = 2;
           ctx2.moveTo(x0, y);
           ctx2.lineTo(x1, y);
@@ -1747,9 +1901,235 @@ function renderEfficiencyChart() {
 
 document.getElementById('efficiencyMetricSelect').addEventListener('change', function() { renderEfficiencyChart(); });
 
+// ─── Render: Context-vs-Cost Scatter Charts ─────────────────
+
+function fmtTokensShort(n) {
+  if (n == null) return '';
+  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+  if (n >= 1000) return Math.round(n / 1000) + 'K';
+  return String(n);
+}
+
+function renderContextCostChart(canvasId, wrapId, data, yLabel, floorUsd) {
+  if (!data || !data.points || data.points.length === 0) {
+    var w = document.getElementById(wrapId);
+    if (w) w.style.display = 'none';
+    return;
+  }
+  var maxX = data.maxX || Math.max.apply(null, data.points.map(function(p){return p.x;})) * 1.1;
+  var trendLine = [];
+  if (data.trend && typeof data.trend.slope === 'number') {
+    var t = data.trend;
+    trendLine = [
+      { x: t.x0, y: t.slope * t.x0 + t.intercept },
+      { x: t.x1, y: t.slope * t.x1 + t.intercept }
+    ];
+  }
+  // Destroy existing chart instance on this canvas before creating a new one,
+  // otherwise Chart.js silently keeps the old chart and the toggle has no effect.
+  var canvasEl = document.getElementById(canvasId);
+  var existing = (typeof Chart !== 'undefined' && Chart.getChart) ? Chart.getChart(canvasEl) : null;
+  if (existing) existing.destroy();
+  new Chart(canvasEl, {
+    type: 'scatter',
+    data: {
+      datasets: [
+        {
+          label: '≥ $' + floorUsd.toFixed(0) + ' calls (n=' + data.totalCount + ')',
+          data: data.points,
+          backgroundColor: 'rgba(88, 166, 255, 0.35)',
+          borderColor: 'rgba(88, 166, 255, 0.6)',
+          pointRadius: 3,
+          pointHoverRadius: 5
+        },
+        {
+          label: 'Linear trend',
+          data: trendLine,
+          type: 'line',
+          borderColor: '#ff7b72',
+          backgroundColor: 'rgba(255, 123, 114, 0.1)',
+          borderWidth: 2,
+          pointRadius: 0,
+          tension: 0,
+          fill: false
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: 1,
+      plugins: {
+        legend: {
+          labels: { color: '#9198a1' }
+        },
+        tooltip: {
+          // Single-row tooltip (no body pair), we render the alert via callbacks.
+          displayColors: false,
+          titleFont: { family: 'monospace', size: 12 },
+          bodyFont: { family: 'monospace', size: 12 },
+          padding: 10,
+          callbacks: {
+            title: function(items) {
+              if (!items || !items.length) return '';
+              var it = items[0];
+              if (it.datasetIndex === 1) return 'trend';
+              var p = it.raw;
+              var badge = p.badge ? '[' + p.badge + ']  ' : '';
+              return badge + (p.time || '') + '  ' + (p.sid || '');
+            },
+            label: function(ctx) {
+              if (ctx.datasetIndex === 1) {
+                return 'ctx ' + fmtTokensShort(ctx.parsed.x) + '  avg $' + ctx.parsed.y.toFixed(2);
+              }
+              var p = ctx.raw;
+              var lines = [];
+              if (p.text) {
+                var t = String(p.text);
+                if (t.length > 100) t = t.slice(0, 100) + '…';
+                lines.push('"' + t + '"');
+              }
+              var stats = '$' + p.y.toFixed(2);
+              if (p.input) stats += ' · Input ' + fmtTokensShort(p.input);
+              if (p.out) stats += ' · Output ' + fmtTokensShort(p.out);
+              if (p.cc) stats += ' · Cache ' + fmtTokensShort(p.cc);
+              if (p.cr) stats += ' · Read ' + fmtTokensShort(p.cr);
+              lines.push(stats);
+              return lines;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          type: 'linear',
+          min: 0,
+          max: maxX,
+          title: { display: true, text: 'Context tokens', color: '#9198a1' },
+          ticks: {
+            color: '#9198a1',
+            callback: function(v) { return fmtTokensShort(v); }
+          },
+          grid: { color: 'rgba(139,148,158,0.1)' }
+        },
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: yLabel, color: '#9198a1' },
+          ticks: {
+            color: '#9198a1',
+            callback: function(v) { return '$' + v.toFixed(2); }
+          },
+          grid: { color: 'rgba(139,148,158,0.1)' }
+        }
+      }
+    }
+  });
+}
+
+var ctxCostGranularity = 'call'; // 'call' or 'turn'
+function renderContextCostCharts() {
+  var ccs = REPORT_DATA.contextCostScatter;
+  if (!ccs) return;
+  var data, yLabel, titleText, footnote;
+  if (ctxCostGranularity === 'turn' && ccs.perUserTurn && ccs.perUserTurn.points && ccs.perUserTurn.points.length > 0) {
+    data = ccs.perUserTurn;
+    yLabel = 'Cost per user turn ($)';
+    titleText = '\uD83D\uDCB8 Context Size vs High-Cost User Turns ($' + (data.costFloor || 4).toFixed(0) + '+)';
+    footnote = '* Each dot = one user prompt turn with aggregated cost \u2265 $' + (data.costFloor || 4).toFixed(0) + ' (sum of all API calls triggered). X = context size at turn start. Hover for details. Trend = linear regression.';
+  } else {
+    data = ccs.perAssistant;
+    yLabel = 'Cost per API call ($)';
+    titleText = '\uD83D\uDCB8 Context Size vs High-Cost API Calls ($' + (data.costFloor || 1).toFixed(0) + '+)';
+    footnote = '* Only API calls costing \u2265 $' + (data.costFloor || 1).toFixed(0) + ' are plotted. Cheap calls (< $1) don\'t follow this linear relationship \u2014 this chart shows the "expensive tail" where context size drives cost. Hover for details. Trend = linear regression.';
+  }
+  if (!data || !data.points || data.points.length === 0) {
+    var cont = document.getElementById('ctxCostAsstContainer');
+    if (cont) cont.style.display = 'none';
+    return;
+  }
+  // Update title span (only the text part, preserving the toggle buttons)
+  var titleSpan = document.querySelector('.ctx-cost-section-title');
+  if (titleSpan) titleSpan.textContent = titleText;
+  // Update footnote
+  var fn = document.getElementById('ctxCostFootnote');
+  if (fn) fn.textContent = footnote;
+  renderContextCostChart('ctxCostAsstChart', 'ctxCostAsstContainer', data, yLabel, data.costFloor || 1.0);
+}
+
+var ctxDistChartInstance = null;
+function renderCtxDistChart() {
+  if (ctxDistChartInstance) { ctxDistChartInstance.destroy(); ctxDistChartInstance = null; }
+  var dist = REPORT_DATA.ctxDistribution;
+  if (!dist || dist.length === 0) return;
+  var total = 0;
+  for (var i = 0; i < dist.length; i++) total += dist[i].count;
+  if (total === 0) return;
+  var colors = ['#3fb950', '#58a6ff', '#d29922', '#f85149'];
+  ctxDistChartInstance = new Chart(document.getElementById('ctxDistChart'), {
+    type: 'bar',
+    data: {
+      labels: dist.map(function(b) { return b.label; }),
+      datasets: [{
+        label: 'API Calls',
+        data: dist.map(function(b) { return b.count; }),
+        backgroundColor: colors,
+        borderRadius: 3
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        x: { grid: { color: GRID_COLOR }, ticks: { color: TICK_COLOR, font: { size: 12 } } },
+        y: { grid: { color: GRID_COLOR }, ticks: { color: TICK_COLOR, font: { size: 12 } }, title: { display: true, text: 'Number of calls', color: TICK_COLOR } }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              var b = dist[ctx.dataIndex];
+              return b.count + ' calls (' + b.pct + '%) · Total $' + b.cost + ' · Avg $' + b.avgCost + '/call';
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+// Toggle handler for Per API Call / Per User Turn
+(function setupCtxCostGranularityToggle() {
+  var btnContainer = document.getElementById('ctxCostGranularity');
+  if (!btnContainer) return;
+  var btns = btnContainer.querySelectorAll('.ctx-cost-btn');
+  btns.forEach(function(b) {
+    b.addEventListener('click', function() {
+      var g = b.getAttribute('data-granularity');
+      if (g === ctxCostGranularity) return;
+      ctxCostGranularity = g;
+      // Update button styles
+      btns.forEach(function(x) {
+        var active = x.getAttribute('data-granularity') === g;
+        x.classList.toggle('active', active);
+        x.style.background = active ? 'var(--accent)' : 'var(--bg-tertiary)';
+        x.style.color = active ? '#fff' : 'var(--text-secondary)';
+      });
+      renderContextCostCharts();
+    });
+  });
+})();
+
 // ─── Render: Calendar Heatmap ───────────────────────────────
 
 var selectedWindowKey = null;
+// Cost-threshold filter state (see slider in calendar section)
+var defaultCostThreshold = 0.80;
+var currentCostThreshold = 0.80;
+var lastDetailRender = null; // thunk to re-render the currently-open detail panel
+function alertPassesCostFilter(a) {
+  if (a && a.tokens && typeof a.tokens.cost === 'number' && a.tokens.cost < currentCostThreshold) return false;
+  return true;
+}
 var calendarClickMode = 'window'; // 'window' = 5h window, 'block' = 1h block
 
 function getCellColor(cost, isRateLimit, isActive, hasSkull) {
@@ -1852,14 +2232,14 @@ function toggleDetails(el) {
 }
 
 function getAlertMarkerClass(alertType) {
+  if (alertType.includes('rate-limit')) return 'marker-cost-danger';
   if (alertType.includes('cost-danger')) return 'marker-cost-danger';
   if (alertType.includes('cost-warn')) return 'marker-cost-warn';
   if (alertType.includes('ctx-danger')) return 'marker-ctx-danger';
   if (alertType.includes('ctx-warn')) return 'marker-ctx-warn';
-  if (alertType.includes('5h-danger')) return 'marker-5h-danger';
-  if (alertType.includes('5h-warn')) return 'marker-5h-warn';
-  if (alertType.includes('resume')) return 'marker-resume';
-  if (alertType.includes('compact')) return 'marker-compact';
+  if (alertType.includes('compact-manual')) return 'marker-compact-manual';
+  if (alertType.includes('compact-auto')) return 'marker-compact-auto';
+  if (alertType.includes('resume-heuristic')) return 'marker-resume-heuristic';
   if (alertType.includes('continue')) return 'marker-continue';
   return '';
 }
@@ -1880,9 +2260,20 @@ function renderAlertItems(alerts, container, sessionType) {
     var item = createEl('div', { className: 'alert-item' });
 
     var header = createEl('div', { className: 'alert-header' });
-    var markerClass = getAlertMarkerClass(a.alertType);
-    var markerDisplay = a.markers || a.alertType.replace(/-/g, ' ').toUpperCase();
-    header.appendChild(createEl('span', { className: 'alert-markers ' + markerClass, textContent: '[' + markerDisplay + ']' }));
+    // Show markers but: strip skipped types (continue ^/^^, info-only session markers)
+    // and remove {extra info} suffixes
+    var rawMarkers = a.markers || '';
+    // Remove {…} suffixes (e.g. {1am@Asia/Seoul}, {restart})
+    var cleanMarkers = rawMarkers.replace(/\{[^}]*\}/g, '');
+    // Remove continue markers (^ ^^)
+    cleanMarkers = cleanMarkers.replace(/\^+/g, '');
+    // Remove session-only markers that are info-only (@, @@, +, ++, ~, !, ?)
+    cleanMarkers = cleanMarkers.replace(/@@|@|\+\+|\+|~|!|\?/g, '');
+    cleanMarkers = cleanMarkers.trim();
+    if (cleanMarkers) {
+      var markerClass = getAlertMarkerClass(a.alertType);
+      header.appendChild(createEl('span', { className: 'alert-markers ' + markerClass, textContent: '[' + cleanMarkers + ']' }));
+    }
     header.appendChild(createEl('span', { className: 'alert-time', textContent: a.time }));
     if (a.sessionId) {
       header.appendChild(createEl('span', { style: { color: 'var(--accent-blue)', fontFamily: 'monospace', fontSize: '11px' }, textContent: a.sessionId.slice(0, 8) }));
@@ -1893,11 +2284,14 @@ function renderAlertItems(alerts, container, sessionType) {
       item.appendChild(createEl('div', { className: 'alert-text', textContent: '"' + a.text + '"' }));
     }
 
-    // Token/cost summary line
+    // Token/cost summary line — includes `N calls` (assistant API call rounds
+    // in this user turn) because high call count drives aggregated cost and
+    // this line is the most visible metric row for each alert.
     if (a.tokens) {
       var t = a.tokens;
       var parts = [];
       parts.push('$' + (t.cost || 0).toFixed(2));
+      if (a.turnCount && a.turnCount > 0) parts.push(a.turnCount + ' calls');
       if (t.input) parts.push('Input ' + fmtTokens(t.input));
       if (t.out) parts.push('Output ' + fmtTokens(t.out));
       if ((t.cc1h || 0) + (t.cc5m || 0) > 0) parts.push('Cache ' + fmtTokens((t.cc1h || 0) + (t.cc5m || 0)));
@@ -1911,18 +2305,35 @@ function renderAlertItems(alerts, container, sessionType) {
     var types = (a.alertType || '').split('+');
     for (var ti = 0; ti < types.length; ti++) {
       var typ = types[ti];
-      if (typ === 'ctx-warn') {
+      if (typ.startsWith('rate-limit-')) {
+        // Extract reset time from markers {info} suffix if present
+        var resetMatch = (a.markers || '').match(/\{([^}]+)\}/);
+        var resetInfo = resetMatch ? resetMatch[1] : '';
+        var rlSubtype = '';
+        if (typ === 'rate-limit-5h') rlSubtype = I18N.alert.rateLimitType5h || '';
+        else if (typ === 'rate-limit-weekly') rlSubtype = I18N.alert.rateLimitTypeWeekly || '';
+        else if (typ === 'rate-limit-opus') rlSubtype = I18N.alert.rateLimitTypeOpus || '';
+        else if (typ === 'rate-limit-sonnet') rlSubtype = I18N.alert.rateLimitTypeSonnet || '';
+        else if (typ === 'rate-limit-extra') rlSubtype = I18N.alert.rateLimitTypeExtra || '';
+        if (resetInfo) {
+          diagMsg += i18nT(I18N.alert.rateLimitReset || '\uD83D\uDC80 Rate limit hit \u2014 blocked until {reset}.', { reset: resetInfo }) + rlSubtype + '\n';
+        } else {
+          diagMsg += (I18N.alert.rateLimitHit || '\uD83D\uDC80 Rate limit hit \u2014 usage was blocked at this point.') + rlSubtype + '\n';
+        }
+      } else if (typ === 'ctx-warn') {
         diagMsg += I18N.alert.ctxWarn + continueSkillTip;
       } else if (typ === 'ctx-danger') {
         diagMsg += I18N.alert.ctxDanger + continueSkillTip;
-      } else if (typ === '5h-warn') {
-        diagMsg += I18N.alert.fiveHWarn + '\n';
-      } else if (typ === '5h-danger') {
-        diagMsg += I18N.alert.fiveHDanger + '\n';
-      } else if (typ === 'resume') {
-        diagMsg += I18N.alert.resume + '\n';
-      } else if (typ === 'compact') {
-        diagMsg += I18N.alert.compact + '\n';
+      } else if (typ === 'compact-manual') {
+        diagMsg += I18N.alert.compactManual + '\n';
+        if (a.acompactCost && a.acompactCost > 0) {
+          diagMsg += '\uD83D\uDCE6 compact summary call: $' + a.acompactCost.toFixed(4) + '\n';
+        }
+      } else if (typ === 'compact-auto') {
+        diagMsg += I18N.alert.compactAuto + '\n';
+        if (a.acompactCost && a.acompactCost > 0) {
+          diagMsg += '\uD83D\uDCE6 compact summary call: $' + a.acompactCost.toFixed(4) + '\n';
+        }
       } else if (typ === 'continue-1') {
         diagMsg += I18N.alert.continue1 + '\n';
       } else if (typ === 'continue-n') {
@@ -1940,11 +2351,15 @@ function renderAlertItems(alerts, container, sessionType) {
         // Find the dominant cost component (sorted by estimated cost, not token count)
         var cwTokens = (t.cc1h || 0) + (t.cc5m || 0);
         var cwCost = (t.cc1h || 0) * rCW1h + (t.cc5m || 0) * rCW5m;
+        var tCacheWrite = (I18N.alert.costTypeCacheWrite || 'cache write');
+        var tCacheRead = (I18N.alert.costTypeCacheRead || 'cache read');
+        var tOutput = (I18N.alert.costTypeOutput || 'output');
+        var tInput = (I18N.alert.costTypeInput || 'input');
         var costs = [
-          { name: 'cache write', val: cwCost, tokens: cwTokens, label: 'cache write ' + fmtTokens(cwTokens) },
-          { name: 'cache read', val: (t.cr || 0) * rCR, tokens: t.cr || 0, label: 'cache read ' + fmtTokens(t.cr||0) },
-          { name: 'output', val: (t.out || 0) * rOut, tokens: t.out || 0, label: 'output ' + fmtTokens(t.out||0) },
-          { name: 'input', val: (t.input || 0) * rIn, tokens: t.input || 0, label: 'input ' + fmtTokens(t.input||0) }
+          { name: 'cache write', val: cwCost, tokens: cwTokens, type: tCacheWrite, label: tCacheWrite + ' ' + fmtTokens(cwTokens) },
+          { name: 'cache read', val: (t.cr || 0) * rCR, tokens: t.cr || 0, type: tCacheRead, label: tCacheRead + ' ' + fmtTokens(t.cr||0) },
+          { name: 'output', val: (t.out || 0) * rOut, tokens: t.out || 0, type: tOutput, label: tOutput + ' ' + fmtTokens(t.out||0) },
+          { name: 'input', val: (t.input || 0) * rIn, tokens: t.input || 0, type: tInput, label: tInput + ' ' + fmtTokens(t.input||0) }
         ];
         costs.sort(function(a, b) { return b.val - a.val; });
         var top = costs[0];
@@ -1953,12 +2368,12 @@ function renderAlertItems(alerts, container, sessionType) {
           // Common prefix for all cache write cases
           var cwPrefix = i18nT(I18N.alert.cacheWritePrefix, { icon: icon, tokens: fmtTokens(top.tokens) });
           // Determine reason based on session markers
-          var hasResume = false, hasCompact = false, hasContinue = false, hasStartup = false, hasClear = false;
+          var hasCompactManual = false, hasCompactAuto = false, hasContinue = false, hasStartup = false, hasClear = false;
           var hasReload = false, hasModel = false, hasResumeHeuristic = false;
           for (var si = 0; si < types.length; si++) {
             var st = types[si];
-            if (st === 'resume') hasResume = true;
-            else if (st === 'compact') hasCompact = true;
+            if (st === 'compact-manual') hasCompactManual = true;
+            else if (st === 'compact-auto') hasCompactAuto = true;
             else if (st === 'continue-1' || st === 'continue-n') hasContinue = true;
             else if (st === 'startup') hasStartup = true;
             else if (st === 'clear') hasClear = true;
@@ -1966,10 +2381,10 @@ function renderAlertItems(alerts, container, sessionType) {
             else if (st === 'model-change') hasModel = true;
             else if (st === 'resume-heuristic') hasResumeHeuristic = true;
           }
-          if (hasResume) {
-            diagMsg += cwPrefix + I18N.alert.resumeReason + '\n';
-          } else if (hasCompact) {
-            diagMsg += cwPrefix + I18N.alert.compactReason + continueSkillTip;
+          if (hasCompactManual) {
+            diagMsg += cwPrefix + I18N.alert.compactManualReason + continueSkillTip;
+          } else if (hasCompactAuto) {
+            diagMsg += cwPrefix + I18N.alert.compactAutoReason + continueSkillTip;
           } else if (hasClear || hasStartup) {
             var startupTip = top.tokens >= 30000 ? I18N.alert.pluginOverload : '';
             var reason = hasClear ? I18N.alert.clearReasonClear : I18N.alert.clearReasonStartup;
@@ -1986,18 +2401,24 @@ function renderAlertItems(alerts, container, sessionType) {
             diagMsg += cwPrefix + I18N.alert.cacheExpiredReason + continueSkillTip;
           }
         } else if (top.name === 'cache read') {
-          // Cache read dominated — ctx warning usually covers this.
-          // Fallback to generic label if ctx warning is not present (rare: ctx < 35%)
+          // Cache read dominated — ctx warning (*#) usually covers this, so skip when ctx marker present.
+          // But when only cost marker (*) exists without ctx (#), show the reason.
           var hasCtx = types.indexOf('ctx-warn') >= 0 || types.indexOf('ctx-danger') >= 0;
           if (!hasCtx) {
-            diagMsg += i18nT(I18N.alert.costTopLabel, { icon: icon, label: top.label, cost: t.cost.toFixed(2) }) + '\n';
+            var hasResumeH = types.indexOf('resume-heuristic') >= 0;
+            if (hasResumeH) {
+              diagMsg += i18nT(I18N.alert.costTopLabel, { icon: icon, type: top.type, tokens: fmtTokens(top.tokens), cost: t.cost.toFixed(2) }) + '\n';
+              diagMsg += icon + ' ' + I18N.alert.resumeHeuristicReason + '\n';
+            } else {
+              diagMsg += i18nT(I18N.alert.costTopLabel, { icon: icon, type: top.type, tokens: fmtTokens(top.tokens), cost: t.cost.toFixed(2) }) + '\n';
+            }
           }
         } else if (top.name === 'output') {
           diagMsg += i18nT(I18N.alert.costOutputReason, { icon: icon, tokens: fmtTokens(top.tokens), cost: t.cost.toFixed(2) }) + '\n';
         } else if (top.name === 'input') {
           diagMsg += i18nT(I18N.alert.costInputReason, { icon: icon, tokens: fmtTokens(top.tokens), cost: t.cost.toFixed(2) }) + '\n';
         } else {
-          diagMsg += i18nT(I18N.alert.costTopLabel, { icon: icon, label: top.label, cost: t.cost.toFixed(2) }) + '\n';
+          diagMsg += i18nT(I18N.alert.costTopLabel, { icon: icon, type: top.type, tokens: fmtTokens(top.tokens), cost: t.cost.toFixed(2) }) + '\n';
         }
       }
     }
@@ -2023,6 +2444,7 @@ function getSessionAlerts(win, sessionIds) {
       if (allAlerts[i].isInfoOnly) continue;
       var at = (allAlerts[i].alertType || '').split('+');
       if (at.indexOf('continue-1') >= 0 || at.indexOf('continue-n') >= 0) continue;
+      if (!alertPassesCostFilter(allAlerts[i])) continue;
       filtered.push(allAlerts[i]);
     }
   }
@@ -2041,7 +2463,9 @@ function toggleAlerts(el) {
   }
 }
 
-function showWindowDetail(win) {
+function showWindowDetail(win, opts) {
+  opts = opts || {};
+  lastDetailRender = function() { showWindowDetail(win, { noScroll: true }); };
   var panel = document.getElementById('windowDetailPanel');
   var title = document.getElementById('detailTitle');
   var container = document.getElementById('detailCardContainer');
@@ -2191,10 +2615,11 @@ function showWindowDetail(win) {
   }
 
   panel.classList.add('visible');
-  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  if (!opts.noScroll) panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 function hideWindowDetail() {
+  lastDetailRender = null;
   document.getElementById('windowDetailPanel').classList.remove('visible');
   selectedWindowKey = null;
   updateWindowHighlights();
@@ -2309,7 +2734,7 @@ function renderCalendar() {
     if (!dateMap[key]) {
       dateMap[key] = [];
       for (var i = 0; i < 24; i++) {
-        dateMap[key].push({ cost: 0, isRateLimit: false, isActive: false, hasSkull: false, windowStart: null, windowEnd: null, windowDate: null, inWindow: false });
+        dateMap[key].push({ cost: 0, isRateLimit: false, isActive: false, hasSkull: false, hasAlert: false, windowStart: null, windowEnd: null, windowDate: null, inWindow: false });
       }
     }
   }
@@ -2358,6 +2783,27 @@ function renderCalendar() {
       var nextKey = dateToKey(nextDay);
       for (var h = 0; h < endHour; h++) {
         setSlot(nextKey, h, h);
+      }
+    }
+
+    // Map alert markers to calendar cells (skip same types as session detail rendering)
+    var alerts = w.alertMessages || [];
+    for (var ai = 0; ai < alerts.length; ai++) {
+      var a = alerts[ai];
+      if (a.isInfoOnly) continue;
+      var aAlertTypes = (a.alertType || '').split('+');
+      if (aAlertTypes.indexOf('continue-1') >= 0 || aAlertTypes.indexOf('continue-n') >= 0) continue;
+      // Skip rate-limit alerts — already shown as skull (💀) on calendar via rlHours
+      var isRateLimitOnly = aAlertTypes.every(function(t) { return t.startsWith('rate-limit-') || t === 'info'; });
+      if (isRateLimitOnly) continue;
+      if (!alertPassesCostFilter(a)) continue;
+      if (!a.time) continue;
+      var ah = parseInt(a.time.split(':')[0], 10);
+      // Determine which dateKey this hour belongs to
+      if (ah >= startHour || endHour <= startHour) {
+        var alertDateKey = (ah >= startHour) ? w.date : dateToKey(new Date(wDate.getTime() + 86400000));
+        ensureDate(alertDateKey);
+        if (dateMap[alertDateKey][ah]) dateMap[alertDateKey][ah].hasAlert = true;
       }
     }
 
@@ -2466,6 +2912,9 @@ function renderCalendar() {
 
       if (showSkull) {
         cell.appendChild(createEl('span', { className: 'skull', textContent: '\uD83D\uDC80' }));
+      } else if (slot.hasAlert) {
+        var isRedBg = slot.cost >= 30 || slot.isRateLimit;
+        cell.appendChild(createEl('span', { className: 'alert-icon' + (isRedBg ? ' on-red' : ''), textContent: '\u00B7' }));
       }
 
       // Click handler for window selection
@@ -2498,8 +2947,8 @@ function renderCalendar() {
         })(cell, slot, entry, h);
       }
 
-      // Tooltip on hover
-      if (slot.isActive) {
+      // Tooltip on hover — show for active cells, and also for all cells in a window (5h mode)
+      if (slot.isActive || slot.inWindow) {
         (function(cell, slot, entry, h) {
           cell.addEventListener('mouseenter', function() {
             var tip = createEl('div', { className: 'calendar-tooltip' });
@@ -2508,17 +2957,37 @@ function renderCalendar() {
             if (slot.windowStart) {
               lines.push('Window: ' + slot.windowStart + '~' + slot.windowEnd);
             }
-            lines.push('Cost: $' + slot.cost.toFixed(2));
+            if (calendarClickMode === 'window' && slot.inWindow) {
+              var win = findWindowByKey(getWindowKey(slot));
+              lines.push('Cost: $' + (win ? win.cost.toFixed(2) : slot.cost.toFixed(2)) + ' (window)');
+            } else {
+              lines.push('Cost: $' + slot.cost.toFixed(2));
+            }
+            if (!slot.isActive && slot.inWindow) {
+              lines.push('(no activity this hour)');
+            }
             if (slot.isRateLimit) {
               lines.push('Status: Rate limited \uD83D\uDC80');
             }
             tip.textContent = lines.join('\n');
             tip.style.whiteSpace = 'pre';
-            cell.appendChild(tip);
+            document.body.appendChild(tip);
+            // Position fixed tooltip above cell, centered horizontally
+            var cellRect = cell.getBoundingClientRect();
+            var tipRect = tip.getBoundingClientRect();
+            var left = cellRect.left + cellRect.width / 2 - tipRect.width / 2;
+            var top = cellRect.top - tipRect.height - 6;
+            // Flip below if overflows viewport top
+            if (top < 0) top = cellRect.bottom + 6;
+            // Clamp horizontal to viewport
+            if (left < 4) left = 4;
+            if (left + tipRect.width > window.innerWidth - 4) left = window.innerWidth - tipRect.width - 4;
+            tip.style.left = left + 'px';
+            tip.style.top = top + 'px';
           });
           cell.addEventListener('mouseleave', function() {
-            var tip = cell.querySelector('.calendar-tooltip');
-            if (tip) cell.removeChild(tip);
+            var tip = document.querySelector('.calendar-tooltip');
+            if (tip) tip.parentNode.removeChild(tip);
           });
         })(cell, slot, entry, h);
       }
@@ -2539,15 +3008,89 @@ document.getElementById('summaryDateSub').textContent = i18nT(I18N.header.daysDu
 
 renderTokenBreakdown();
 renderDonutChart();
+
+// ─── Cost-threshold slider: compute default + wire up ──────────
+(function initCostThresholdSlider() {
+  // Collect all alerts that would appear on the calendar at threshold=0
+  var calendarAlerts = [];
+  var wins = REPORT_DATA.windows || [];
+  for (var wi = 0; wi < wins.length; wi++) {
+    var alerts = wins[wi].alertMessages || [];
+    for (var ai = 0; ai < alerts.length; ai++) {
+      var a = alerts[ai];
+      if (a.isInfoOnly) continue;
+      var types = (a.alertType || '').split('+');
+      if (types.indexOf('continue-1') >= 0 || types.indexOf('continue-n') >= 0) continue;
+      var isRateLimitOnly = types.every(function(t) { return t.startsWith('rate-limit-') || t === 'info'; });
+      if (isRateLimitOnly) continue;
+      if (!a.tokens || typeof a.tokens.cost !== 'number') continue;
+      calendarAlerts.push(a);
+    }
+  }
+  calendarAlerts.sort(function(a, b) { return b.tokens.cost - a.tokens.cost; });
+
+  var def = 0.80;
+  if (calendarAlerts.length >= 100) {
+    def = Math.round(calendarAlerts[99].tokens.cost * 10) / 10;
+  }
+  if (def < 0.80) def = 0.80;
+  if (def > 10.00) def = 10.00;
+  defaultCostThreshold = def;
+  currentCostThreshold = def;
+
+  window.__allCalendarAlerts = calendarAlerts; // used by updateCostCount
+
+  var slider = document.getElementById('costThresholdSlider');
+  var valueEl = document.getElementById('costThresholdValue');
+  var countEl = document.getElementById('costThresholdCount');
+  if (slider) {
+    slider.value = String(def);
+  }
+  if (valueEl) valueEl.textContent = '$' + def.toFixed(2);
+
+  function updateCostCount() {
+    var n = 0;
+    for (var i = 0; i < calendarAlerts.length; i++) {
+      if (calendarAlerts[i].tokens.cost >= currentCostThreshold) n++;
+    }
+    if (countEl) {
+      var tpl = (I18N.calendar && I18N.calendar.costFilterCount) || '{n} shown';
+      countEl.textContent = '(' + i18nT(tpl, { n: n }) + ')';
+    }
+  }
+  updateCostCount();
+  window.__updateCostCount = updateCostCount;
+
+  if (slider) {
+    slider.addEventListener('input', function() {
+      currentCostThreshold = Number(slider.value);
+      if (valueEl) valueEl.textContent = '$' + currentCostThreshold.toFixed(2);
+      updateCostCount();
+      renderCalendar();
+      if (typeof updateWindowHighlights === 'function' && selectedWindowKey) updateWindowHighlights();
+      if (typeof lastDetailRender === 'function') {
+        try { lastDetailRender(); } catch (e) {}
+      }
+    });
+  }
+})();
+
 renderCalendar();
 
-// Current mode: hide daily/efficiency charts, auto-open session detail
+// Current mode or <3 days: hide daily/efficiency/ctx-cost charts — they all
+// need a multi-day span to show meaningful trends. Hide the .charts-grid
+// wrapper (not the inner .chart-container) so its 24px margin-bottom also
+// collapses — otherwise an empty wrapper leaves a visual gap.
+function hideChartsGrid(canvasId) {
+  var el = document.getElementById(canvasId);
+  if (!el) return;
+  var grid = el.closest('.charts-grid');
+  if (grid) grid.style.display = 'none';
+}
 if (REPORT_DATA.currentMode) {
-  // Hide charts that need 3+ days
-  var barSection = document.getElementById('barChart').closest('.chart-container');
-  var effSection = document.getElementById('efficiencyChart').closest('.chart-container');
-  if (barSection) barSection.style.display = 'none';
-  if (effSection) effSection.style.display = 'none';
+  hideChartsGrid('barChart');
+  hideChartsGrid('efficiencyChart');
+  hideChartsGrid('ctxCostAsstChart');
   renderHourlyChart();
   renderDowChart();
   // Auto-click the latest calendar cell to open detail
@@ -2558,12 +3101,15 @@ if (REPORT_DATA.currentMode) {
   renderHourlyChart();
   renderDowChart();
   renderEfficiencyChart();
-} else {
-  // Less than 3 days: hide daily/efficiency trend charts
-  var barSection = document.getElementById('barChart').closest('.chart-container');
-  var effSection = document.getElementById('efficiencyChart').closest('.chart-container');
-  if (barSection) barSection.style.display = 'none';
-  if (effSection) effSection.style.display = 'none';
+  renderContextCostCharts();
+}
+// Context distribution always renders (not dependent on days >= 3)
+renderCtxDistChart();
+if (!(REPORT_DATA.summary && REPORT_DATA.summary.days >= 3)) {
+  // Less than 3 days: hide daily/efficiency/ctx-cost trend charts
+  hideChartsGrid('barChart');
+  hideChartsGrid('efficiencyChart');
+  hideChartsGrid('ctxCostAsstChart');
   renderHourlyChart();
   renderDowChart();
 }

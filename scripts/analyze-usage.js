@@ -15,7 +15,7 @@
  *   timeline.csv   — per-API-call timeline
  *   subagents/{agentId}/summary.json, timeline.csv — agent sessions
  *
- * Timeline CSV columns (v9): ts,model,input,cc,cc5m,cc1h,cr,out,cost,win,rl,evt,line,markers
+ * Timeline CSV columns (v14): ts,model,input,cc,cc5m,cc1h,cr,out,cost,win,rl,evt,line,req
  *   win:     5h window start (sparse, simple hourFloor+5h per session)
  *   rl:      rate limit event (limit_hit_5h, limit_hit_weekly, limit_hit_opus, limit_hit_sonnet, limit_hit_extra, limit_hit_unknown) + reset info
  *   evt:     context/cost events, pipe-separated (startup, compact, cost_warn, ctx_danger, etc.)
@@ -50,7 +50,7 @@ const {
   migrateFromYYMM,
 } = require("./lib/cache-paths");
 const { MODEL_PRICING, DEFAULT_PRICING, calcCost } = require("./lib/pricing");
-const CACHE_VERSION = 13; // v13: preprocess.js v1.4.0 tag system + meta footer (compact-format 3)
+const CACHE_VERSION = 14; // v14: preprocess.js v6 self-managing cache format
 const PROJECTS_DIR = path.join(os.homedir(), ".claude", "projects");
 
 // v1.4.0: Per-row evt tags and structured rl column own all assistant-side
@@ -939,6 +939,7 @@ async function main() {
 
   process.stdout.write(JSON.stringify(output) + "\n");
 }
+
 
 main().catch((err) => {
   process.stderr.write(`Error: ${err.message}\n`);

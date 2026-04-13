@@ -51,7 +51,8 @@
       "Thu",
       "Fri",
       "Sat"
-    ]
+    ],
+    "ctxCostTitle": "Context Size vs High-Cost API Calls ($1+)"
   },
   "calendar": {
     "title": "Hourly Usage Calendar",
@@ -63,7 +64,10 @@
     "legendBlocked": "blocked",
     "legendPlugin": "Plugin installed",
     "note": "Click any cell to see session details. Default view is 5-hour window — toggle to 1-hour blocks with the button above.",
-    "noData": "No Data"
+    "noData": "No Data",
+    "_comment_costFilter": "TODO: translations pending for other locales — EN only for now",
+    "costFilterLabel": "💰 Cost ≥",
+    "costFilterCount": "{n} shown"
   },
   "session": {
     "detailExpand": "▶ Session Details",
@@ -91,16 +95,14 @@
   "alert": {
     "ctxWarn": "⚠️ Context window exceeded 35% — cache write/read cost increases with each call.",
     "ctxDanger": "🔴 Context window exceeded 70% — cache write/read cost is very high.",
-    "fiveHWarn": "⚠️ 5H session window at 70% — approaching subscription usage limit.",
-    "fiveHDanger": "🔴 5H session window at 90% — subscription usage may expire soon.",
-    "resume": "🔄 Session resumed — cache regenerated, cost incurred",
-    "compact": "📦 /compact restart — cache regenerated, cost incurred",
+    "compactManual": "📦 Manual /compact — cache regenerated, cost incurred",
+    "compactAuto": "📦 /compact fired automatically (context pressure).",
     "continue1": "💚 /continue skill restored 1 session",
     "continueN": "💚 /continue skill restored 2+ sessions",
     "continueSkillTip": " 💡 We recommend /continue skill after a new session.\n",
     "cacheWritePrefix": "{icon} In this call, cache write {tokens} tokens were newly cached — ",
-    "resumeReason": "Resuming a session with claude --continue or /resume uses a lot of tokens. Unless necessary, we recommend /continue skill after a new session.",
-    "compactReason": "/compact restart caused cache regeneration — large cost!",
+    "compactManualReason": "/compact manually invoked, cache regenerated — large cost! Consider /continue skill for lighter context restoration.",
+    "compactAutoReason": "/compact fired automatically due to context pressure. Cache was regenerated.",
     "clearReason": "{reason} caused cache creation (${cost})",
     "clearReasonClear": "/clear restart",
     "clearReasonStartup": "new session start",
@@ -109,7 +111,11 @@
     "modelReason": "/model change invalidated previous cache, regenerated (${cost})",
     "resumeHeuristicReason": "Resuming a session with claude --continue or /resume uses a lot of tokens. Unless necessary, we recommend /continue skill after a new session.",
     "cacheExpiredReason": "When context is large and over 1 hour has passed, new cache is generated — large cost!",
-    "costTopLabel": "{icon} {label} (${cost})",
+    "costTopLabel": "{icon} {type} tokens were significant. ({tokens}, ${cost})",
+    "costTypeCacheWrite": "cache write",
+    "costTypeCacheRead": "cache read",
+    "costTypeOutput": "output",
+    "costTypeInput": "input",
     "costOutputReason": "{icon} Output {tokens} dominated cost (${cost}) — consider using Edit (diff) instead of full file rewrites, and trim verbose explanations in your prompt.",
     "costInputReason": "{icon} Input {tokens} dominated cost (${cost}) — consider using text instead of images, reading only needed sections with offset/limit, or providing summarized context."
   },

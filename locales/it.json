@@ -51,7 +51,8 @@
       "Gio",
       "Ven",
       "Sab"
-    ]
+    ],
+    "ctxCostTitle": "Dimensione contesto vs Chiamate API costose ($1+)"
   },
   "calendar": {
     "title": "Calendario di utilizzo orario",
@@ -91,16 +92,14 @@
   "alert": {
     "ctxWarn": "⚠️ Context window ha superato il 35% — il costo di cache write/read aumenta ad ogni chiamata.",
     "ctxDanger": "🔴 Context window ha superato il 70% — il costo di cache write/read è molto alto.",
-    "fiveHWarn": "⚠️ Finestra sessione 5H al 70% — avvicinamento al limite di utilizzo dell'abbonamento.",
-    "fiveHDanger": "🔴 Finestra sessione 5H al 90% — l'utilizzo dell'abbonamento potrebbe esaurirsi presto.",
-    "resume": "🔄 Sessione ripresa — cache rigenerata, costo sostenuto",
-    "compact": "📦 /compact riavvio — cache rigenerata, costo sostenuto",
+    "compactManual": "📦 /compact manuale — cache rigenerata, costo sostenuto",
+    "compactAuto": "📦 /compact attivato automaticamente (pressione del context).",
     "continue1": "💚 /continue skill ha ripristinato 1 sessione",
     "continueN": "💚 /continue skill ha ripristinato 2+ sessioni",
     "continueSkillTip": " 💡 Raccomandiamo /continue skill dopo una nuova sessione.\n",
     "cacheWritePrefix": "{icon} In questa chiamata, cache write {tokens} token sono stati memorizzati — ",
-    "resumeReason": "Riprendere una sessione con claude --continue o /resume usa molti token. Se non necessario, raccomandiamo /continue skill dopo una nuova sessione.",
-    "compactReason": "/compact riavvio ha causato la rigenerazione della cache — costo elevato!",
+    "compactManualReason": "/compact è stato invocato manualmente, cache rigenerata — costo elevato! Considera /continue skill per un ripristino del context più leggero.",
+    "compactAutoReason": "/compact è stato attivato automaticamente a causa della pressione del context. La cache è stata rigenerata.",
     "clearReason": "{reason} ha causato la creazione della cache (${cost})",
     "clearReasonClear": "/clear riavvio",
     "clearReasonStartup": "avvio di una nuova sessione",
@@ -109,7 +108,11 @@
     "modelReason": "/model cambio ha invalidato la cache precedente, rigenerata (${cost})",
     "resumeHeuristicReason": "Riprendere una sessione con claude --continue o /resume usa molti token. Se non necessario, raccomandiamo /continue skill dopo una nuova sessione.",
     "cacheExpiredReason": "Quando il contesto è grande e è passata più di 1 ora, viene generata una nuova cache — costo elevato!",
-    "costTopLabel": "{icon} {label} (${cost})",
+    "costTopLabel": "{icon} Token {type} significativi generati. ({tokens}, ${cost})",
+    "costTypeCacheWrite": "scrittura cache",
+    "costTypeCacheRead": "lettura cache",
+    "costTypeOutput": "output",
+    "costTypeInput": "input",
     "costOutputReason": "{icon} L'output {tokens} ha dominato il costo (${cost}) — usa Edit (diff) invece di riscrivere interi file e riduci le spiegazioni prolisse nel prompt.",
     "costInputReason": "{icon} L'input {tokens} ha dominato il costo (${cost}) — usa testo invece di immagini, leggi solo le sezioni necessarie con offset/limit o fornisci un contesto riassunto."
   },

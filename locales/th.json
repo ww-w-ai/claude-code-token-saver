@@ -51,7 +51,8 @@
       "พฤ",
       "ศ",
       "ส"
-    ]
+    ],
+    "ctxCostTitle": "ขนาดคอนเท็กซ์ เทียบกับ การเรียก API ราคาสูง ($1+)"
   },
   "calendar": {
     "title": "ปฏิทินการใช้งานรายชั่วโมง",
@@ -91,16 +92,14 @@
   "alert": {
     "ctxWarn": "⚠️ Context window เกิน 35% — ค่าใช้จ่าย cache write/read เพิ่มขึ้นทุกการเรียก",
     "ctxDanger": "🔴 Context window เกิน 70% — ค่าใช้จ่าย cache write/read สูงมาก",
-    "fiveHWarn": "⚠️ หน้าต่างเซสชัน 5H อยู่ที่ 70% — ใกล้ถึงขีดจำกัดการใช้งานสมาชิก",
-    "fiveHDanger": "🔴 หน้าต่างเซสชัน 5H อยู่ที่ 90% — การใช้งานสมาชิกอาจหมดเร็วๆ นี้",
-    "resume": "🔄 เซสชันกลับมาทำงาน — cache สร้างใหม่ มีค่าใช้จ่าย",
-    "compact": "📦 /compact รีสตาร์ท — cache สร้างใหม่ มีค่าใช้จ่าย",
+    "compactManual": "📦 /compact ด้วยตนเอง — cache สร้างใหม่ มีค่าใช้จ่าย",
+    "compactAuto": "📦 /compact ถูกเรียกใช้อัตโนมัติ (แรงดัน context)",
     "continue1": "💚 /continue skill กู้คืน 1 เซสชัน",
     "continueN": "💚 /continue skill กู้คืน 2+ เซสชัน",
     "continueSkillTip": " 💡 แนะนำให้ใช้ /continue skill หลังเซสชันใหม่\n",
     "cacheWritePrefix": "{icon} ในการเรียกนี้ cache write {tokens} โทเค็นถูกแคชใหม่ — ",
-    "resumeReason": "การกลับมาเซสชันด้วย claude --continue หรือ /resume ใช้โทเค็นจำนวนมาก หากไม่จำเป็น แนะนำ /continue skill หลังเซสชันใหม่",
-    "compactReason": "/compact รีสตาร์ททำให้ cache สร้างใหม่ — ค่าใช้จ่ายสูง!",
+    "compactManualReason": "/compact ถูกเรียกใช้ด้วยตนเอง cache ถูกสร้างใหม่ — ค่าใช้จ่ายสูง! พิจารณาใช้ /continue skill เพื่อการกู้คืน context ที่เบากว่า",
+    "compactAutoReason": "/compact ถูกเรียกใช้อัตโนมัติเนื่องจากแรงดัน context cache ถูกสร้างใหม่",
     "clearReason": "{reason} ทำให้เกิดการสร้าง cache (${cost})",
     "clearReasonClear": "/clear รีสตาร์ท",
     "clearReasonStartup": "เริ่มเซสชันใหม่",
@@ -109,7 +108,11 @@
     "modelReason": "/model เปลี่ยนทำให้ cache ก่อนหน้าใช้ไม่ได้ สร้างใหม่ (${cost})",
     "resumeHeuristicReason": "การกลับมาเซสชันด้วย claude --continue หรือ /resume ใช้โทเค็นจำนวนมาก หากไม่จำเป็น แนะนำ /continue skill หลังเซสชันใหม่",
     "cacheExpiredReason": "เมื่อบริบทใหญ่และผ่านไปมากกว่า 1 ชั่วโมง cache ใหม่จะถูกสร้าง — ค่าใช้จ่ายสูง!",
-    "costTopLabel": "{icon} {label} (${cost})",
+    "costTopLabel": "{icon} มีโทเคน {type} จำนวนมาก ({tokens}, ${cost})",
+    "costTypeCacheWrite": "เขียนแคช",
+    "costTypeCacheRead": "อ่านแคช",
+    "costTypeOutput": "เอาต์พุต",
+    "costTypeInput": "อินพุต",
     "costOutputReason": "{icon} เอาต์พุต {tokens} เป็นสาเหตุหลักของค่าใช้จ่าย (${cost}) — ลองใช้ Edit (diff) แทนการเขียนไฟล์ใหม่ทั้งหมด และลดคำอธิบายที่ยืดยาวในพรอมต์ของคุณ",
     "costInputReason": "{icon} อินพุต {tokens} เป็นสาเหตุหลักของค่าใช้จ่าย (${cost}) — ลองใช้ข้อความแทนรูปภาพ อ่านเฉพาะส่วนที่ต้องการด้วย offset/limit หรือให้บริบทที่สรุปแล้ว"
   },

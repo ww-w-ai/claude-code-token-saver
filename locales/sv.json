@@ -51,7 +51,8 @@
       "Tor",
       "Fre",
       "Lör"
-    ]
+    ],
+    "ctxCostTitle": "Kontextstorlek vs Dyra API-anrop ($1+)"
   },
   "calendar": {
     "title": "Timvis användningskalender",
@@ -91,16 +92,14 @@
   "alert": {
     "ctxWarn": "⚠️ Context window översteg 35% — cache write/read-kostnaden ökar vid varje anrop.",
     "ctxDanger": "🔴 Context window översteg 70% — cache write/read-kostnaden är mycket hög.",
-    "fiveHWarn": "⚠️ 5H-sessionsfönster på 70% — närmar sig prenumerationens användningsgräns.",
-    "fiveHDanger": "🔴 5H-sessionsfönster på 90% — prenumerationsanvändningen kan snart ta slut.",
-    "resume": "🔄 Session återupptagen — cache återskapad, kostnad uppstod",
-    "compact": "📦 /compact omstart — cache återskapad, kostnad uppstod",
+    "compactManual": "📦 Manuell /compact — cache återskapad, kostnad uppstod",
+    "compactAuto": "📦 /compact utlöstes automatiskt (context-tryck).",
     "continue1": "💚 /continue skill återställde 1 session",
     "continueN": "💚 /continue skill återställde 2+ sessioner",
     "continueSkillTip": " 💡 Vi rekommenderar /continue skill efter en ny session.\n",
     "cacheWritePrefix": "{icon} I detta anrop cachades cache write {tokens} tokens — ",
-    "resumeReason": "Att återuppta en session med claude --continue eller /resume förbrukar många tokens. Om det inte är nödvändigt rekommenderar vi /continue skill efter en ny session.",
-    "compactReason": "/compact omstart orsakade cache-regenerering — hög kostnad!",
+    "compactManualReason": "/compact kördes manuellt, cache återskapad — hög kostnad! Överväg /continue skill för en lättare context-återställning.",
+    "compactAutoReason": "/compact utlöstes automatiskt på grund av context-tryck. Cachen återskapades.",
     "clearReason": "{reason} orsakade cache-skapande (${cost})",
     "clearReasonClear": "/clear omstart",
     "clearReasonStartup": "start av ny session",
@@ -109,7 +108,11 @@
     "modelReason": "/model ändring ogiltigförklarade tidigare cache, återskapad (${cost})",
     "resumeHeuristicReason": "Att återuppta en session med claude --continue eller /resume förbrukar många tokens. Om det inte är nödvändigt rekommenderar vi /continue skill efter en ny session.",
     "cacheExpiredReason": "När kontexten är stor och mer än 1 timme har passerat genereras ny cache — hög kostnad!",
-    "costTopLabel": "{icon} {label} (${cost})",
+    "costTopLabel": "{icon} Betydande antal {type}-tokens genererades. ({tokens}, ${cost})",
+    "costTypeCacheWrite": "cache-skrivning",
+    "costTypeCacheRead": "cache-läsning",
+    "costTypeOutput": "utdata",
+    "costTypeInput": "indata",
     "costOutputReason": "{icon} Utdata {tokens} dominerade kostnaden (${cost}) — överväg att använda Edit (diff) istället för att skriva om hela filer och korta ner utförliga förklaringar i din prompt.",
     "costInputReason": "{icon} Indata {tokens} dominerade kostnaden (${cost}) — överväg att använda text istället för bilder, läs bara nödvändiga avsnitt med offset/limit eller ge sammanfattad kontext."
   },

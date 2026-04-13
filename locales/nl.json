@@ -51,7 +51,8 @@
       "Do",
       "Vr",
       "Za"
-    ]
+    ],
+    "ctxCostTitle": "Contextgrootte vs Dure API-aanroepen ($1+)"
   },
   "calendar": {
     "title": "Uurlijkse gebruikskalender",
@@ -91,16 +92,14 @@
   "alert": {
     "ctxWarn": "⚠️ Context window heeft 35% overschreden — cache write/read kosten stijgen bij elke aanroep.",
     "ctxDanger": "🔴 Context window heeft 70% overschreden — cache write/read kosten zijn zeer hoog.",
-    "fiveHWarn": "⚠️ 5H-sessievenster op 70% — nadert de gebruikslimiet van het abonnement.",
-    "fiveHDanger": "🔴 5H-sessievenster op 90% — abonnementsgebruik kan binnenkort verlopen.",
-    "resume": "🔄 Sessie hervat — cache opnieuw gegenereerd, kosten gemaakt",
-    "compact": "📦 /compact herstart — cache opnieuw gegenereerd, kosten gemaakt",
+    "compactManual": "📦 Handmatige /compact — cache opnieuw gegenereerd, kosten gemaakt",
+    "compactAuto": "📦 /compact automatisch uitgevoerd (context-druk).",
     "continue1": "💚 /continue skill heeft 1 sessie hersteld",
     "continueN": "💚 /continue skill heeft 2+ sessies hersteld",
     "continueSkillTip": " 💡 Wij raden /continue skill aan na een nieuwe sessie.\n",
     "cacheWritePrefix": "{icon} In deze aanroep zijn cache write {tokens} tokens nieuw gecacht — ",
-    "resumeReason": "Een sessie hervatten met claude --continue of /resume verbruikt veel tokens. Tenzij noodzakelijk, raden wij /continue skill aan na een nieuwe sessie.",
-    "compactReason": "/compact herstart veroorzaakte cache-regeneratie — hoge kosten!",
+    "compactManualReason": "/compact is handmatig aangeroepen, cache opnieuw gegenereerd — hoge kosten! Overweeg /continue skill voor een lichter context-herstel.",
+    "compactAutoReason": "/compact is automatisch uitgevoerd vanwege context-druk. De cache is opnieuw gegenereerd.",
     "clearReason": "{reason} veroorzaakte cache-aanmaak (${cost})",
     "clearReasonClear": "/clear herstart",
     "clearReasonStartup": "start nieuwe sessie",
@@ -109,7 +108,11 @@
     "modelReason": "/model wijziging maakte vorige cache ongeldig, opnieuw gegenereerd (${cost})",
     "resumeHeuristicReason": "Een sessie hervatten met claude --continue of /resume verbruikt veel tokens. Tenzij noodzakelijk, raden wij /continue skill aan na een nieuwe sessie.",
     "cacheExpiredReason": "Bij grote context en meer dan 1 uur inactiviteit wordt nieuwe cache gegenereerd — hoge kosten!",
-    "costTopLabel": "{icon} {label} (${cost})",
+    "costTopLabel": "{icon} Aanzienlijk aantal {type}-tokens gegenereerd. ({tokens}, ${cost})",
+    "costTypeCacheWrite": "cache schrijven",
+    "costTypeCacheRead": "cache lezen",
+    "costTypeOutput": "uitvoer",
+    "costTypeInput": "invoer",
     "costOutputReason": "{icon} Uitvoer {tokens} domineerde de kosten (${cost}) — overweeg Edit (diff) te gebruiken in plaats van volledige bestanden te herschrijven en beperk uitgebreide uitleg in uw prompt.",
     "costInputReason": "{icon} Invoer {tokens} domineerde de kosten (${cost}) — overweeg tekst te gebruiken in plaats van afbeeldingen, lees alleen benodigde secties met offset/limit, of bied samengevatte context aan."
   },

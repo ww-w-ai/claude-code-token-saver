@@ -51,7 +51,8 @@
       "Kam",
       "Jum",
       "Sab"
-    ]
+    ],
+    "ctxCostTitle": "Ukuran Konteks vs Panggilan API Mahal ($1+)"
   },
   "calendar": {
     "title": "Kalender Penggunaan Per Jam",
@@ -91,16 +92,14 @@
   "alert": {
     "ctxWarn": "⚠️ Context window melebihi 35% — biaya cache write/read meningkat setiap panggilan.",
     "ctxDanger": "🔴 Context window melebihi 70% — biaya cache write/read sangat tinggi.",
-    "fiveHWarn": "⚠️ Jendela sesi 5H di 70% — mendekati batas penggunaan langganan.",
-    "fiveHDanger": "🔴 Jendela sesi 5H di 90% — penggunaan langganan mungkin segera habis.",
-    "resume": "🔄 Sesi dilanjutkan — cache diregenerasi, biaya terjadi",
-    "compact": "📦 /compact restart — cache diregenerasi, biaya terjadi",
+    "compactManual": "📦 /compact manual — cache diregenerasi, biaya terjadi",
+    "compactAuto": "📦 /compact terpicu otomatis (tekanan context).",
     "continue1": "💚 /continue skill memulihkan 1 sesi",
     "continueN": "💚 /continue skill memulihkan 2+ sesi",
     "continueSkillTip": " 💡 Kami merekomendasikan /continue skill setelah sesi baru.\n",
     "cacheWritePrefix": "{icon} Dalam panggilan ini, cache write {tokens} token baru di-cache — ",
-    "resumeReason": "Melanjutkan sesi dengan claude --continue atau /resume menggunakan banyak token. Kecuali diperlukan, kami merekomendasikan /continue skill setelah sesi baru.",
-    "compactReason": "/compact restart menyebabkan regenerasi cache — biaya besar!",
+    "compactManualReason": "/compact dipanggil secara manual, cache diregenerasi — biaya besar! Pertimbangkan /continue skill untuk pemulihan context yang lebih ringan.",
+    "compactAutoReason": "/compact terpicu otomatis karena tekanan context. Cache telah diregenerasi.",
     "clearReason": "{reason} menyebabkan pembuatan cache (${cost})",
     "clearReasonClear": "/clear restart",
     "clearReasonStartup": "mulai sesi baru",
@@ -109,7 +108,11 @@
     "modelReason": "/model perubahan membatalkan cache sebelumnya, diregenerasi (${cost})",
     "resumeHeuristicReason": "Melanjutkan sesi dengan claude --continue atau /resume menggunakan banyak token. Kecuali diperlukan, kami merekomendasikan /continue skill setelah sesi baru.",
     "cacheExpiredReason": "Saat konteks besar dan lebih dari 1 jam berlalu, cache baru dihasilkan — biaya besar!",
-    "costTopLabel": "{icon} {label} (${cost})",
+    "costTopLabel": "{icon} Token {type} cukup banyak dihasilkan. ({tokens}, ${cost})",
+    "costTypeCacheWrite": "tulis cache",
+    "costTypeCacheRead": "baca cache",
+    "costTypeOutput": "output",
+    "costTypeInput": "input",
     "costOutputReason": "{icon} Output {tokens} mendominasi biaya (${cost}) — pertimbangkan menggunakan Edit (diff) alih-alih menulis ulang seluruh file, dan kurangi penjelasan panjang di prompt Anda.",
     "costInputReason": "{icon} Input {tokens} mendominasi biaya (${cost}) — pertimbangkan menggunakan teks alih-alih gambar, baca hanya bagian yang diperlukan dengan offset/limit, atau berikan konteks yang diringkas."
   },

@@ -17,9 +17,11 @@ If the user provides "help" as argument, show usage summary and stop:
 
 Options:
   (nothing)       All projects, all time
-  current         Current 5-hour window only (session detail pre-opened)
+  current         Current 5-hour window only (fast, no AI analysis by default)
   last N days     Analyze last N days only
   locale XX       Force language (e.g. locale ja). Default: system language → en fallback
+  no ai           Skip AI analysis for faster rendering (no LLM cost)
+  ai              Force AI analysis (use with "current" to override its default)
   help            Show this help
 
 Supported locales:
@@ -27,7 +29,8 @@ Supported locales:
 
 Examples:
   /usage-view
-  /usage-view current
+  /usage-view current          (fast, no AI)
+  /usage-view current ai       (current + AI analysis)
   /usage-view last 7 days
   /usage-view locale ja
   /usage-view current locale fr
@@ -45,11 +48,15 @@ Users may provide these in natural language. Parse and map to script flags.
 | ---------------- | --------------------- | -------------------------- |
 | _(nothing)_      | _(no flags)_          | current project, all time  |
 | a number of days | `--days N`            | "last 7 days" → `--days 7` |
-| "current"        | `--days 1 --current`  | current 5H window only     |
+| "current"        | `--days 1 --current`  | current 5H window only (implies `--no-ai` for speed) |
 | "locale XX"      | `--locale XX`         | "locale ja" → `--locale ja` |
 | plan name        | `--plan XX`           | "max200" → `--plan max200` |
 | "project X"      | `--project X`         | specific project only      |
 | "all"            | `--all`               | aggregate all projects     |
+| "no ai"          | `--no-ai`             | skip AI analysis (fast)    |
+| "ai"             | `--ai`                | force AI analysis (override current's default) |
+
+**Note on `current`**: Defaults to no AI analysis because the main purpose is a quick snapshot. If the user explicitly says "current ai" or "current with analysis", add `--ai` to re-enable it.
 
 ### Plan parameter
 
@@ -106,6 +113,8 @@ Usage dashboard opened in browser.
 - Total cost: ${total}
 
 The HTML file is self-contained -- you can share it or re-open it anytime.
+💡 Tip: `/usage-view no ai` — skip AI analysis for a faster dashboard (no LLM cost).
+💡 Tip: `/usage-view current` — quick snapshot of your 5H window (no AI by default). Add "ai" to include analysis.
 ```
 
 ## Important Notes

@@ -51,7 +51,8 @@
       "木",
       "金",
       "土"
-    ]
+    ],
+    "ctxCostTitle": "コンテキストサイズ対 高コストAPIコール ($1以上)"
   },
   "calendar": {
     "title": "時間帯別使用カレンダー",
@@ -91,16 +92,14 @@
   "alert": {
     "ctxWarn": "⚠️ Context windowが35%を超えました — 呼び出しごとにcache write/readコストが増加します。",
     "ctxDanger": "🔴 Context windowが70%を超えました — cache write/readコストが非常に高くなっています。",
-    "fiveHWarn": "⚠️ 5Hセッションウィンドウが70% — サブスクリプション使用量の上限に近づいています。",
-    "fiveHDanger": "🔴 5Hセッションウィンドウが90% — サブスクリプション使用量がまもなく上限に達します。",
-    "resume": "🔄 セッション再開 — cacheが再生成され、コストが発生しました",
-    "compact": "📦 /compact 再起動 — cacheが再生成され、コストが発生しました",
+    "compactManual": "📦 手動 /compact — cacheが再生成され、コストが発生しました",
+    "compactAuto": "📦 /compact が自動実行されました (contextプレッシャー)。",
     "continue1": "💚 /continue スキルが1セッションを復元しました",
     "continueN": "💚 /continue スキルが2つ以上のセッションを復元しました",
     "continueSkillTip": " 💡 新しいセッション開始後は /continue スキルの使用を推奨します。\n",
     "cacheWritePrefix": "{icon} この呼び出しで、cache write {tokens} トークンが新たにキャッシュされました — ",
-    "resumeReason": "claude --continue または /resume でのセッション再開は大量のトークンを使用します。必要でなければ、新しいセッション開始後に /continue スキルを推奨します。",
-    "compactReason": "/compact 再起動によりcacheが再生成されました — 大きなコスト！",
+    "compactManualReason": "/compact を手動実行してcacheが再生成されました — 大きなコスト！ 軽量な復元には /continue スキルを検討してください。",
+    "compactAutoReason": "contextプレッシャーにより /compact が自動実行されました。cacheが再生成されました。",
     "clearReason": "{reason} によりcacheが作成されました (${cost})",
     "clearReasonClear": "/clear 再起動",
     "clearReasonStartup": "新規セッション開始",
@@ -109,7 +108,11 @@
     "modelReason": "/model 変更により以前のcacheが無効化され、再生成されました (${cost})",
     "resumeHeuristicReason": "claude --continue または /resume でのセッション再開は大量のトークンを使用します。必要でなければ、新しいセッション開始後に /continue スキルを推奨します。",
     "cacheExpiredReason": "コンテキストが大きく1時間以上経過すると、新しいcacheが生成されます — 大きなコスト！",
-    "costTopLabel": "{icon} {label} (${cost})",
+    "costTopLabel": "{icon} {type} トークンが多く発生しました。({tokens}, ${cost})",
+    "costTypeCacheWrite": "キャッシュ書き込み",
+    "costTypeCacheRead": "キャッシュ読み込み",
+    "costTypeOutput": "出力",
+    "costTypeInput": "入力",
     "costOutputReason": "{icon} 出力 {tokens} がコストの大部分を占めました (${cost}) — ファイル全体の書き直しではなく Edit (diff) の使用を検討し、プロンプトの冗長な説明を減らしてください。",
     "costInputReason": "{icon} 入力 {tokens} がコストの大部分を占めました (${cost}) — 画像ではなくテキストの使用、offset/limit で必要な部分のみの読み取り、または要約されたコンテキストの提供を検討してください。"
   },

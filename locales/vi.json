@@ -51,7 +51,8 @@
       "T5",
       "T6",
       "T7"
-    ]
+    ],
+    "ctxCostTitle": "Kích thước ngữ cảnh vs Lệnh gọi API đắt ($1+)"
   },
   "calendar": {
     "title": "Lịch sử dụng theo giờ",
@@ -91,16 +92,14 @@
   "alert": {
     "ctxWarn": "⚠️ Context window vượt quá 35% — chi phí cache write/read tăng với mỗi lần gọi.",
     "ctxDanger": "🔴 Context window vượt quá 70% — chi phí cache write/read rất cao.",
-    "fiveHWarn": "⚠️ Cửa sổ phiên 5H ở 70% — đang tiến gần giới hạn sử dụng đăng ký.",
-    "fiveHDanger": "🔴 Cửa sổ phiên 5H ở 90% — sử dụng đăng ký có thể hết sớm.",
-    "resume": "🔄 Phiên được tiếp tục — cache được tạo lại, phát sinh chi phí",
-    "compact": "📦 /compact khởi động lại — cache được tạo lại, phát sinh chi phí",
+    "compactManual": "📦 /compact thủ công — cache được tạo lại, phát sinh chi phí",
+    "compactAuto": "📦 /compact được kích hoạt tự động (áp lực context).",
     "continue1": "💚 /continue skill khôi phục 1 phiên",
     "continueN": "💚 /continue skill khôi phục 2+ phiên",
     "continueSkillTip": " 💡 Chúng tôi khuyên dùng /continue skill sau phiên mới.\n",
     "cacheWritePrefix": "{icon} Trong lần gọi này, cache write {tokens} token đã được cache mới — ",
-    "resumeReason": "Tiếp tục phiên với claude --continue hoặc /resume sử dụng rất nhiều token. Trừ khi cần thiết, chúng tôi khuyên dùng /continue skill sau phiên mới.",
-    "compactReason": "/compact khởi động lại gây ra tái tạo cache — chi phí lớn!",
+    "compactManualReason": "/compact được gọi thủ công, cache được tạo lại — chi phí lớn! Hãy cân nhắc /continue skill để khôi phục context nhẹ hơn.",
+    "compactAutoReason": "/compact được kích hoạt tự động do áp lực context. Cache đã được tạo lại.",
     "clearReason": "{reason} gây ra tạo cache (${cost})",
     "clearReasonClear": "/clear khởi động lại",
     "clearReasonStartup": "bắt đầu phiên mới",
@@ -109,7 +108,11 @@
     "modelReason": "/model thay đổi làm vô hiệu cache trước đó, được tạo lại (${cost})",
     "resumeHeuristicReason": "Tiếp tục phiên với claude --continue hoặc /resume sử dụng rất nhiều token. Trừ khi cần thiết, chúng tôi khuyên dùng /continue skill sau phiên mới.",
     "cacheExpiredReason": "Khi ngữ cảnh lớn và đã qua hơn 1 giờ, cache mới được tạo — chi phí lớn!",
-    "costTopLabel": "{icon} {label} (${cost})",
+    "costTopLabel": "{icon} Token {type} đáng kể đã được tạo. ({tokens}, ${cost})",
+    "costTypeCacheWrite": "ghi cache",
+    "costTypeCacheRead": "đọc cache",
+    "costTypeOutput": "đầu ra",
+    "costTypeInput": "đầu vào",
     "costOutputReason": "{icon} Đầu ra {tokens} chiếm phần lớn chi phí (${cost}) — hãy dùng Edit (diff) thay vì viết lại toàn bộ file và giảm bớt giải thích dài dòng trong prompt.",
     "costInputReason": "{icon} Đầu vào {tokens} chiếm phần lớn chi phí (${cost}) — hãy dùng văn bản thay vì hình ảnh, chỉ đọc phần cần thiết với offset/limit, hoặc cung cấp ngữ cảnh tóm tắt."
   },

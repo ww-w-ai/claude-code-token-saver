@@ -51,7 +51,8 @@
       "ה'",
       "ו'",
       "ש'"
-    ]
+    ],
+    "ctxCostTitle": "גודל הקשר לעומת קריאות API יקרות ($1+)"
   },
   "calendar": {
     "title": "לוח שנה של שימוש שעתי",
@@ -91,16 +92,14 @@
   "alert": {
     "ctxWarn": "⚠️ ‎Context window‏ חרג מ-35% — עלות ‎cache write/read‏ עולה עם כל קריאה.",
     "ctxDanger": "🔴 ‎Context window‏ חרג מ-70% — עלות ‎cache write/read‏ גבוהה מאוד.",
-    "fiveHWarn": "⚠️ חלון הפעלה ‎5H‏ ב-70% — מתקרב למגבלת השימוש במנוי.",
-    "fiveHDanger": "🔴 חלון הפעלה ‎5H‏ ב-90% — השימוש במנוי עלול להסתיים בקרוב.",
-    "resume": "🔄 הפעלה חודשה — ‎cache‏ נוצר מחדש, נוצרה עלות",
-    "compact": "📦 ‎/compact‏ הפעלה מחדש — ‎cache‏ נוצר מחדש, נוצרה עלות",
+    "compactManual": "📦 ‎/compact‏ ידני — ‎cache‏ נוצר מחדש, נוצרה עלות",
+    "compactAuto": "📦 ‎/compact‏ הופעל אוטומטית (לחץ ‎context‏).",
     "continue1": "💚 ‎/continue skill‏ שחזר הפעלה אחת",
     "continueN": "💚 ‎/continue skill‏ שחזר 2+ הפעלות",
     "continueSkillTip": " 💡 אנו ממליצים על ‎/continue skill‏ לאחר הפעלה חדשה.\n",
     "cacheWritePrefix": "{icon} בקריאה זו, ‎cache write‏ {tokens} טוקנים נשמרו במטמון — ",
-    "resumeReason": "חידוש הפעלה עם ‎claude --continue‏ או ‎/resume‏ צורך הרבה טוקנים. אלא אם כן הכרחי, אנו ממליצים על ‎/continue skill‏ לאחר הפעלה חדשה.",
-    "compactReason": "‎/compact‏ הפעלה מחדש גרמה ליצירה מחדש של ‎cache‏ — עלות גבוהה!",
+    "compactManualReason": "‎/compact‏ הופעל ידנית, ‎cache‏ נוצר מחדש — עלות גבוהה! שקול את ‎/continue skill‏ לשחזור ‎context‏ קל יותר.",
+    "compactAutoReason": "‎/compact‏ הופעל אוטומטית בגלל לחץ ‎context‏. ה-‎cache‏ נוצר מחדש.",
     "clearReason": "{reason} גרם ליצירת ‎cache‏ (${cost})",
     "clearReasonClear": "‎/clear‏ הפעלה מחדש",
     "clearReasonStartup": "התחלת הפעלה חדשה",
@@ -109,7 +108,11 @@
     "modelReason": "‎/model‏ שינוי ביטל ‎cache‏ קודם, נוצר מחדש (${cost})",
     "resumeHeuristicReason": "חידוש הפעלה עם ‎claude --continue‏ או ‎/resume‏ צורך הרבה טוקנים. אלא אם כן הכרחי, אנו ממליצים על ‎/continue skill‏ לאחר הפעלה חדשה.",
     "cacheExpiredReason": "כאשר ההקשר גדול ועברה יותר משעה, נוצר ‎cache‏ חדש — עלות גבוהה!",
-    "costTopLabel": "{icon} {label} (${cost})",
+    "costTopLabel": "{icon} נוצרו טוקני {type} במספר משמעותי. ({tokens}, ${cost})",
+    "costTypeCacheWrite": "כתיבת מטמון",
+    "costTypeCacheRead": "קריאת מטמון",
+    "costTypeOutput": "פלט",
+    "costTypeInput": "קלט",
     "costOutputReason": "{icon} הפלט {tokens} שלט בעלות (${cost}) — שקול להשתמש ב-Edit (diff) במקום לשכתב קבצים שלמים, וקצר הסברים מפורטים בפרומפט.",
     "costInputReason": "{icon} הקלט {tokens} שלט בעלות (${cost}) — שקול להשתמש בטקסט במקום תמונות, לקרוא רק חלקים נדרשים עם offset/limit, או לספק הקשר מסוכם."
   },

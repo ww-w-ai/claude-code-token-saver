@@ -70,7 +70,7 @@ Use the Cache Pricing Guide above to interpret cache data correctly:
 9. Per-session average cost as work unit measure
 10. Main vs subtask cost distribution characteristics
 
-## section2 (10-11 sentences): Work Pattern Analysis
+## section2 (14-16 sentences): Work Pattern Analysis
 
 - Time-of-day: focus on most active hours only. Don't mention low-activity hours
   - If late night/early morning focus: warm advice ("take care of yourself", "you're the type to pull all-nighters with AI")
@@ -82,6 +82,10 @@ Use the Cache Pricing Guide above to interpret cache data correctly:
   2. Efficiency Trend (Total/Output ratio): Before vs After values. Add "averages may vary by task but X% improvement"
   3. If pre-install shows high variability, mention possible cache utilization inefficiency
 - If <20% improvement or insufficient data, skip that metric and say "not enough data yet to draw conclusions"
+- Autonomous Runs list (≥20 min long-running prompts): analyze what kinds of prompts triggered these long runs — refactors, multi-step debugging, Ralph-loop style automation, research? Are they cost-effective compared to interactive back-and-forth, or do they show runaway cost patterns? Comment on whether autonomous runs dominate the top costs or are a small tail.
+- Empathize warmly with users who lean on autonomous runs — this is a legitimate workflow (especially for solo devs leveraging AI for long tasks), not a misuse. Never judgemental. Frame as "you trust the AI to run long" with practical tips only.
+- Per-API-Call Cost vs Context scatter (cost ≥ $1 filter): interpret whether cost grows with context size using the small vs large context averages. If the slope is steep, the practical implication is that aggressive context pruning (/continue, /clear) saves real money on every call. If the slope is flat, the cost is driven more by output volume than context size — different optimization strategy.
+- Context Size Distribution: interpret the 4-bucket distribution (~250K, 250~350K, 350~500K, 500K+). If most calls are in ~250K, the user is managing context well. If 500K+ has significant share, context is growing large before resets — suggest more frequent /clear or /continue. Compare avg cost per call between buckets to show the concrete cost difference. Frame positively: "X% of your calls stay under 250K — that's efficient" or "your 500K+ calls cost $Y avg vs $Z at ~250K — there's room to save".
 
 ## section3 (10 sentences): Window & Session Analysis
 

@@ -7,7 +7,10 @@
  * analyze-usage.js or build-report.js directly — always go through this runner.
  *
  * Modes:
- *   --gen-agent-prompt [--days N] [--current] [--locale XX] [--plan <plan>] [--project <name>] [--all]
+ *   --gen-agent-prompt [--days N] [--current] [--locale XX] [--plan <plan>] [--project <name>] [--all] [--no-ai|--ai]
+ *
+ * Note: --current implies --no-ai by default (fast rendering for quick check).
+ *       Pass --ai to re-enable AI analysis in current mode.
  *     → Run full pipeline: analyze → build REPORT_DATA → export AI prompt → write agent instructions
  *     → Outputs JSON: { agentPromptFile: "/tmp/..." }
  *     → Agent reads that file and follows instructions (AI analysis → finalize)
@@ -53,7 +56,7 @@ const args = process.argv.slice(2);
 let mode = null;
 let days = null, current = false, locale = null, plan = null;
 let reportDataPath = null, aiDataPath = null, outputPath = null;
-let projectArg = null, allProjects = false;
+let projectArg = null, allProjects = false, noAi = false, forceAi = false;
 
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--prepare') mode = 'prepare';
@@ -68,10 +71,15 @@ for (let i = 0; i < args.length; i++) {
   else if (args[i] === '--plan' && args[i + 1]) plan = args[++i];
   else if (args[i] === '--project' && args[i + 1]) projectArg = args[++i];
   else if (args[i] === '--all') allProjects = true;
+  else if (args[i] === '--no-ai') noAi = true;
+  else if (args[i] === '--ai') forceAi = true;
 }
 
-// Resolve project: --project > --all > derive from CWD
-const resolvedProject = projectArg || (allProjects ? null : projectNameFromCwd(process.cwd()));
+// --current defaults to --no-ai for fast rendering. Opt in with --ai.
+if (current && !forceAi) noAi = true;
+
+// Resolve project: --project > default (all projects)
+const resolvedProject = projectArg || null;
 
 if (!mode) {
   console.error('Usage:\n  node run-usage-view.js --prepare [--days N] [--current]\n  node run-usage-view.js --finalize --report-data <path> --ai-data <path> --output <path>\n  node run-usage-view.js --gen-agent-prompt [--days N] [--current] [--locale XX]');
@@ -80,6 +88,51 @@ if (!mode) {
 
 // ── Generate agent prompt mode ────────────────────────────────
 if (mode === 'gen-agent-prompt') {
+  // --no-ai: run entire pipeline directly (no LLM needed), output same format as finalize
+  if (noAi) {
+    // 1. Prepare (analyze + build-report → JSON)
+    const resultsFile = path.join(tmpDir, `cc-usage-data-${pid}.json`);
+    const analyzeArgs = [path.join(SCRIPTS_DIR, 'analyze-usage.js')];
+    if (days) analyzeArgs.push('--days', days);
+    if (resolvedProject) analyzeArgs.push('--project', resolvedProject);
+    const analyzeOutput = execFileSync('node', analyzeArgs, {
+      stdio: ['pipe', 'pipe', 'inherit'],
+      maxBuffer: 100 * 1024 * 1024,
+    });
+    fs.writeFileSync(resultsFile, analyzeOutput);
+
+    const reportDataFile = path.join(tmpDir, `cc-report-data-${pid}.json`);
+    const outputFile = path.join(tmpDir, `cc-usage-report-${Math.floor(Date.now() / 1000)}.html`);
+    const buildArgs = [
+      path.join(SCRIPTS_DIR, 'build-report.js'),
+      '--data', resultsFile,
+      '--export-data', reportDataFile,
+      '--output', outputFile,
+    ];
+    if (current) buildArgs.push('--current');
+    if (locale) buildArgs.push('--locale', locale);
+    if (plan) buildArgs.push('--plan', plan);
+    if (resolvedProject) buildArgs.push('--project', resolvedProject);
+    execFileSync('node', buildArgs, {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      maxBuffer: 100 * 1024 * 1024,
+    });
+
+    // 2. Open browser
+    try { execFileSync('open', [outputFile]); } catch (_) {}
+
+    // 3. Output summary (same as finalize)
+    const data = JSON.parse(fs.readFileSync(reportDataFile, 'utf8'));
+    const s = data.summary;
+    console.log(JSON.stringify({
+      outputFile,
+      sessions: `${s.sessionCount} main + ${s.subtaskCount || 0} subtasks`,
+      dateRange: `${s.dateFrom} ~ ${s.dateTo}`,
+      totalCost: `$${s.totalCost}`,
+    }));
+    process.exit(0);
+  }
+
   const templatePath = path.join(PLUGIN_ROOT, 'skills', 'usage-view', 'agent-prompt-template.txt');
   let template = fs.readFileSync(templatePath, 'utf8');
 

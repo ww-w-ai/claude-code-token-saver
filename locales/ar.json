@@ -51,7 +51,8 @@
       "خميس",
       "جمعة",
       "سبت"
-    ]
+    ],
+    "ctxCostTitle": "حجم السياق مقابل استدعاءات API الباهظة ($1+)"
   },
   "calendar": {
     "title": "تقويم الاستخدام بالساعة",
@@ -91,16 +92,14 @@
   "alert": {
     "ctxWarn": "⚠️ تجاوز ‎Context window‏ نسبة 35% — تكلفة ‎cache write/read‏ تزداد مع كل استدعاء.",
     "ctxDanger": "🔴 تجاوز ‎Context window‏ نسبة 70% — تكلفة ‎cache write/read‏ مرتفعة جداً.",
-    "fiveHWarn": "⚠️ نافذة جلسة ‎5H‏ عند 70% — اقتراب من حد استخدام الاشتراك.",
-    "fiveHDanger": "🔴 نافذة جلسة ‎5H‏ عند 90% — قد ينتهي استخدام الاشتراك قريباً.",
-    "resume": "🔄 تم استئناف الجلسة — أُعيد توليد ‎cache‏، تكلفة مُتكبَّدة",
-    "compact": "📦 ‎/compact‏ إعادة تشغيل — أُعيد توليد ‎cache‏، تكلفة مُتكبَّدة",
+    "compactManual": "📦 ‎/compact‏ يدوي — أُعيد توليد ‎cache‏، تكلفة مُتكبَّدة",
+    "compactAuto": "📦 ‎/compact‏ تم تشغيله تلقائياً (ضغط ‎context‏).",
     "continue1": "💚 ‎/continue skill‏ استعاد جلسة واحدة",
     "continueN": "💚 ‎/continue skill‏ استعاد جلستين أو أكثر",
     "continueSkillTip": " 💡 نوصي باستخدام ‎/continue skill‏ بعد جلسة جديدة.\n",
     "cacheWritePrefix": "{icon} في هذا الاستدعاء، ‎cache write‏ {tokens} توكن تم تخزينها مؤقتاً — ",
-    "resumeReason": "استئناف جلسة باستخدام ‎claude --continue‏ أو ‎/resume‏ يستهلك الكثير من التوكنات. ما لم يكن ضرورياً، نوصي باستخدام ‎/continue skill‏ بعد جلسة جديدة.",
-    "compactReason": "‎/compact‏ إعادة التشغيل تسببت في إعادة توليد ‎cache‏ — تكلفة عالية!",
+    "compactManualReason": "تم استدعاء ‎/compact‏ يدوياً، وأُعيد توليد ‎cache‏ — تكلفة كبيرة! فكّر في استخدام ‎/continue skill‏ لاستعادة سياق أخف.",
+    "compactAutoReason": "تم تشغيل ‎/compact‏ تلقائياً بسبب ضغط ‎context‏. تم إعادة توليد ‎cache‏.",
     "clearReason": "{reason} تسبب في إنشاء ‎cache‏ (${cost})",
     "clearReasonClear": "‎/clear‏ إعادة تشغيل",
     "clearReasonStartup": "بدء جلسة جديدة",
@@ -109,7 +108,11 @@
     "modelReason": "‎/model‏ التغيير أبطل ‎cache‏ السابق، أُعيد توليده (${cost})",
     "resumeHeuristicReason": "استئناف جلسة باستخدام ‎claude --continue‏ أو ‎/resume‏ يستهلك الكثير من التوكنات. ما لم يكن ضرورياً، نوصي باستخدام ‎/continue skill‏ بعد جلسة جديدة.",
     "cacheExpiredReason": "عندما يكون السياق كبيراً ومر أكثر من ساعة، يتم توليد ‎cache‏ جديد — تكلفة عالية!",
-    "costTopLabel": "{icon} {label} (${cost})",
+    "costTopLabel": "{icon} تم توليد عدد كبير من رموز {type}. ({tokens}, ${cost})",
+    "costTypeCacheWrite": "كتابة ذاكرة التخزين المؤقت",
+    "costTypeCacheRead": "قراءة ذاكرة التخزين المؤقت",
+    "costTypeOutput": "الإخراج",
+    "costTypeInput": "الإدخال",
     "costOutputReason": "{icon} الإخراج {tokens} هيمن على التكلفة (${cost}) — جرّب استخدام Edit (diff) بدلاً من إعادة كتابة الملفات بالكامل، واختصر التوضيحات المطوّلة في تعليماتك.",
     "costInputReason": "{icon} الإدخال {tokens} هيمن على التكلفة (${cost}) — جرّب استخدام النص بدلاً من الصور، وقراءة الأقسام المطلوبة فقط باستخدام offset/limit، أو تقديم سياق ملخّص."
   },

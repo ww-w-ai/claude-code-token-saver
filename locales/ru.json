@@ -51,7 +51,8 @@
       "Чт",
       "Пт",
       "Сб"
-    ]
+    ],
+    "ctxCostTitle": "Размер контекста vs Дорогие API-вызовы ($1+)"
   },
   "calendar": {
     "title": "Почасовой календарь использования",
@@ -91,16 +92,14 @@
   "alert": {
     "ctxWarn": "⚠️ Context window превысило 35% — стоимость cache write/read растёт с каждым вызовом.",
     "ctxDanger": "🔴 Context window превысило 70% — стоимость cache write/read очень высока.",
-    "fiveHWarn": "⚠️ 5H-окно сессии на 70% — приближение к лимиту подписки.",
-    "fiveHDanger": "🔴 5H-окно сессии на 90% — лимит подписки может скоро исчерпаться.",
-    "resume": "🔄 Сессия возобновлена — cache перегенерирован, расход начислен",
-    "compact": "📦 /compact перезапуск — cache перегенерирован, расход начислен",
+    "compactManual": "📦 Ручной /compact — cache перегенерирован, расход начислен",
+    "compactAuto": "📦 /compact запущен автоматически (давление context).",
     "continue1": "💚 /continue skill восстановил 1 сессию",
     "continueN": "💚 /continue skill восстановил 2+ сессий",
     "continueSkillTip": " 💡 Рекомендуем /continue skill после новой сессии.\n",
     "cacheWritePrefix": "{icon} В этом вызове cache write {tokens} токенов было закешировано — ",
-    "resumeReason": "Возобновление сессии через claude --continue или /resume потребляет много токенов. Если не необходимо, рекомендуем /continue skill после новой сессии.",
-    "compactReason": "/compact перезапуск вызвал перегенерацию cache — высокая стоимость!",
+    "compactManualReason": "/compact был вызван вручную, cache перегенерирован — высокая стоимость! Рассмотрите /continue skill для более лёгкого восстановления context.",
+    "compactAutoReason": "/compact запустился автоматически из-за давления context. Cache был перегенерирован.",
     "clearReason": "{reason} вызвал создание cache (${cost})",
     "clearReasonClear": "/clear перезапуск",
     "clearReasonStartup": "запуск новой сессии",
@@ -109,7 +108,11 @@
     "modelReason": "/model смена модели аннулировала предыдущий cache, перегенерирован (${cost})",
     "resumeHeuristicReason": "Возобновление сессии через claude --continue или /resume потребляет много токенов. Если не необходимо, рекомендуем /continue skill после новой сессии.",
     "cacheExpiredReason": "При большом контексте и бездействии более 1 часа генерируется новый cache — высокая стоимость!",
-    "costTopLabel": "{icon} {label} (${cost})",
+    "costTopLabel": "{icon} Сгенерировано значительное количество токенов {type}. ({tokens}, ${cost})",
+    "costTypeCacheWrite": "запись кэша",
+    "costTypeCacheRead": "чтение кэша",
+    "costTypeOutput": "вывод",
+    "costTypeInput": "ввод",
     "costOutputReason": "{icon} Вывод {tokens} преобладал в стоимости (${cost}) — используйте Edit (diff) вместо полной перезаписи файлов и сократите подробные объяснения в промпте.",
     "costInputReason": "{icon} Ввод {tokens} преобладал в стоимости (${cost}) — используйте текст вместо изображений, читайте только нужные разделы с offset/limit или предоставьте сжатый контекст."
   },

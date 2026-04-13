@@ -87,8 +87,11 @@ Do not modify any settings. Just display the help text and stop.
      [RUN🟢] ＄0.10/＄12.23 | [CTX🟢] 22%
 
    Fields:
-   - [RUN]  ＄0.10/＄12.23 — Last API call cost / cumulative cost since `claude` started.
-                        Resets when you exit and restart claude.
+   - [RUN]  ＄0.10/＄12.23 — **Current user turn cost** / cumulative cost since `claude` started.
+                        The turn cost accumulates across follow-up tool calls so a $1.43 warning
+                        stays visible until you start a new prompt. A new turn is detected when
+                        no API call happens for 60 seconds (tunable via
+                        `CC_TOKEN_SAVER_TURN_IDLE_SEC`). Resets when you exit and restart claude.
    - [5H]  9% ⏳1h32m — Anthropic 5-hour rate limit usage (subscribers only).
                         ⏳ shows time until the window resets.
    - [W]   65% ⏳1d3h — 7-day weekly rate limit. Only shown when ≥60%.

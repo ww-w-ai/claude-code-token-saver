@@ -106,9 +106,13 @@ function _readHoursFromCsv(csvPath, hoursSet) {
   if (!fs.existsSync(csvPath)) return;
   const content = fs.readFileSync(csvPath, 'utf8').trim();
   const lines = content.split('\n');
+  // Header: ts,model,input,cc,cc5m,cc1h,cr,out,cost,...
   for (let i = 1; i < lines.length; i++) {
-    const ts = Number(lines[i].split(',')[0]);
-    if (ts > 0) hoursSet.add(Math.floor(ts / 3600) * 3600);
+    const cols = lines[i].split(',');
+    const ts = Number(cols[0]);
+    const cost = Number(cols[8]) || 0;
+    // Skip zero-cost rows (e.g. /clear events) — they don't represent real API usage
+    if (ts > 0 && cost > 0) hoursSet.add(Math.floor(ts / 3600) * 3600);
   }
 }
 
@@ -150,6 +154,25 @@ function buildHourToWindowMap(activeHours, rlWindows) {
   return hourToWin;
 }
 
+/**
+ * Build global 5h window map from ALL projects' timeline + ratelimit data.
+ * Always scans every project regardless of any project filter.
+ * Use this for 5h window boundary calculation — never scope this to a single project.
+ *
+ * IMPORTANT: Anthropic's 5h rate limit is account-wide, not per-project.
+ * If you only use one project's data, the window boundaries will be wrong
+ * because other projects' usage contributes to the same 5h window.
+ * Always use this function (not buildHourToWindowMap directly) for window calculation.
+ *
+ * @returns {Map<number, number>} hourFloor → 5h window start mapping (account-wide)
+ */
+function buildGlobalWindowMap() {
+  const allHours = collectActiveHours(/* no filter — all projects */);
+  const rlStarts = scanRatelimitWindows();
+  const rlWindows = mergeWindows(rlStarts, FIVE_HOURS_S);
+  return buildHourToWindowMap(allHours, rlWindows);
+}
+
 module.exports = {
   FIVE_HOURS_S,
   scanRatelimitWindows,
@@ -157,4 +180,5 @@ module.exports = {
   detectAndMergeWindows,
   collectActiveHours,
   buildHourToWindowMap,
+  buildGlobalWindowMap,
 };

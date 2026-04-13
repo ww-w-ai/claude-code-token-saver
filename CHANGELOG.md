@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.4.0] - unreleased
+## [1.4.0] - 2026-04-13
 
 ### /continue skill improvements
 
@@ -43,6 +43,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Session-level comparison between auto-compact summary and `/continue` raw restoration informed the design
 - Validated that auto-compact requires "All user messages: List ALL user messages" per CC source prompt (`services/compact/prompt.ts:73`)
 
+### usage-view: Context Size Distribution chart
+
+- New bar chart showing API call distribution across 4 context size buckets (~250K, 250~350K, 350~500K, 500K+)
+- Tooltip shows count, percentage, total cost, and avg cost per call for each bucket
+- AI section2 prompt includes context distribution data for efficiency analysis
+- Chart renders in all modes (not gated by days >= 3)
+
+### report-limit: Date-specific reporting
+
+- New `--date YYYY-MM-DD` flag: report all 5h windows overlapping a specific date (not just rate-limited ones)
+- Scans `dayStart - 5h` to `dayEnd` to catch windows crossing midnight boundaries
+- SKILL.md updated with date argument support (e.g. `/report-limit 2026-04-01`)
+
 ### Changed
 
 - usage-view: Replaced "Top 20 user prompts" with "Autonomous Runs" list (>=20 min runs)
@@ -61,6 +74,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **ISO date parsing bug in build-report.js**: v6 compact.txt uses full `YYYY-MM-DDTHH:MM:SSZ` timestamps, but the alert parser only handled `MM-DDTHH:MM` format — parsed year as month, placing all alerts in 2194. This caused calendar dots (alert indicators) to disappear entirely. Now handles both `YYYY-MM-DD` and `MM-DD` date formats.
+- **Chart.js hardcoded colors**: All 6 charts (bar, hourly, dow, efficiency, ctxCost, ctxDist) now use CSS variable-derived `GRID_COLOR`/`TICK_COLOR` constants instead of hardcoded `#21262d`/`#8b949e`. Enables future theme support.
+- **$0 window filter blocking alerts**: `finalSessions.length === 0` check was placed before alertMessages construction, causing windows with cost data but no "final sessions" to skip alert building entirely. Moved filter to after alert construction.
 - `/resume` detection was never working (CC uses `display:'skip'` for resume command, so no transcript entry is ever written). `?` heuristic marker continues to detect 1h-inside cache_creation as the intended resume proxy.
 - `preprocess.js`: removed legacy `+ → ++` dedup replace logic (no longer needed after semantic rename).
 - **`****` cost marker accumulation bug**: the retroactive regex `$1${markers}` in `preprocess.js` kept re-marking the same user line on each of N assistant turns in a tool-heavy chain, producing literal `****` / `##**##` artefacts. Cost markers are now emitted once per API call into `timeline.csv` instead.

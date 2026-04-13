@@ -37,7 +37,7 @@ Requires Node.js (Claude Code already requires it).
 | Boilerplate | Stripped (bkit usage, insight blocks, system tags) |
 | Short confirmations | Skipped (Done, Updated, etc.) |
 
-Each line includes `[L{n}]` markers referencing the original JSONL line number.
+Each turn header includes `[Session:{sid} {ISO} L{n}]` — the session ID, timestamp, and original JSONL line number for direct seek.
 
 ## Caching
 

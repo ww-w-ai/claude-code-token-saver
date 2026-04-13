@@ -16,10 +16,20 @@
 #   API key:    [RUN🟢] $0.10/$12.23 | [CTX🟢] 22%
 #
 #   Color thresholds:
-#     RUN: 🟢 <$0.30, 🟡 ≥$0.30,  🔴 ≥$1.00 (per-call delta)
-#     5H:  🟢 <70%,   🟡 ≥70%,    🔴 ≥90%
-#     W:              🟡 ≥60%,    🔴 ≥90%  (hidden below 60%)
-#     CTX: 🟢 <35%,   🟡 ≥35%,    🔴 ≥70%
+#     RUN: 🟢 <$0.30, 🟡 ≥$0.30, 🔴 ≥$1.00 (PER-TURN accumulated cost)
+#     5H:  🟢 <70%,   🟡 ≥70%,   🔴 ≥90%
+#     W:              🟡 ≥60%,   🔴 ≥90%  (hidden below 60%)
+#     CTX: 🟢 <35%,   🟡 ≥35%,   🔴 ≥70%
+#
+# v1.4.0 turn accumulation:
+#   RUN indicator shows cost accumulated across the current user turn, not per
+#   single API call. Previously a $1.43 cost spike was immediately overwritten
+#   by the next cheap tool_result call — user never saw the red warning.
+#   Now the turn accumulator resets only when the user starts a new prompt
+#   (detected via idle threshold: no calls for > TURN_IDLE_SEC seconds).
+#
+#   TURN_IDLE_SEC default: 60 seconds. A long tool call (> 60s) could false-reset
+#   the turn; this is acceptable because power users can tune via env var.
 #
 #   Hints: 5H🔴 → /report-limit, other warnings → /usage-view current
 #
@@ -53,11 +63,16 @@ const sevenDReset = rl.seven_day ? rl.seven_day.resets_at : null;
 const cost = d.cost ? Math.round(d.cost.total_cost_usd * 10000) / 10000 : null;
 const session = d.session_id || null;
 
-// Read last state to calculate delta cost
+// v1.4.0 turn accumulation — state file columns: cost,lastDelta,turnStartCost,lastCallTs
+// New turn detected when idle gap since last call > TURN_IDLE_SEC (default 60s).
+// RUN indicator shows cost accumulated within the current user turn, not per call.
 const dir = '$LOG_DIR';
 const stateFile = session ? require('os').tmpdir() + '/cc-token-saver-state-' + session + '.csv' : null;
+const TURN_IDLE_SEC = Number(process.env.CC_TOKEN_SAVER_TURN_IDLE_SEC) || 60;
 let lastCost = null;
 let lastValidDelta = null;
+let turnStartCost = null;
+let lastCallTs = null;
 if (stateFile) {
   try {
     const lines = fs.readFileSync(stateFile, 'utf8').trim().split('\n');
@@ -65,16 +80,28 @@ if (stateFile) {
       const parts = lines[1].split(',');
       lastCost = parseFloat(parts[0]) || null;
       lastValidDelta = parseFloat(parts[1]) || null;
+      turnStartCost = (parts[2] !== undefined && parts[2] !== '') ? parseFloat(parts[2]) : null;
+      lastCallTs = (parts[3] !== undefined && parts[3] !== '') ? parseInt(parts[3], 10) : null;
     }
   } catch {}
 }
 const deltaCost = (lastCost !== null && cost !== null) ? Math.round((cost - lastCost) * 10000) / 10000 : null;
 const currentDelta = (deltaCost !== null && deltaCost > 0) ? deltaCost : lastValidDelta;
 
+// Detect turn boundary — start a new turn on idle or first call
+const isNewTurn = (lastCallTs === null) || (ts - lastCallTs > TURN_IDLE_SEC);
+if (isNewTurn || turnStartCost === null) {
+  turnStartCost = lastCost !== null ? lastCost : (cost !== null ? Math.max(0, cost - (currentDelta || 0)) : 0);
+}
+const turnCost = (cost !== null && turnStartCost !== null)
+  ? Math.round((cost - turnStartCost) * 10000) / 10000
+  : currentDelta;
+
 // Save last state (per-session, no cross-session interference)
 fs.mkdirSync(dir, { recursive: true });
 if (stateFile) {
-  fs.writeFileSync(stateFile, 'cost,lastDelta\n' + cost + ',' + (currentDelta || ''));
+  fs.writeFileSync(stateFile, 'cost,lastDelta,turnStartCost,lastCallTs\n' +
+    cost + ',' + (currentDelta || '') + ',' + (turnStartCost !== null ? turnStartCost : '') + ',' + ts);
 }
 
 // Append to rate limit CSV (per-session, project/session folder)
@@ -85,7 +112,7 @@ if ((fiveH !== null || sevenD !== null) && deltaCost !== 0 && session) {
   fs.mkdirSync(csvDir, { recursive: true });
   let lastFiveH = null, lastFiveHReset = null, lastSevenD = null, lastSevenDReset = null;
   if (!fs.existsSync(csvFile)) {
-    fs.writeFileSync(csvFile, 'ts,5h,5h_reset,7d,7d_reset,alert\n');
+    fs.writeFileSync(csvFile, 'ts,5h,5h_reset,7d,7d_reset,alert,version\n');
   } else {
     try {
       const rows = fs.readFileSync(csvFile, 'utf8').trimEnd().split('\n');
@@ -131,7 +158,9 @@ if ((fiveH !== null || sevenD !== null) && deltaCost !== 0 && session) {
     const curr5h = Number(f5) || 0;
     if (curr5h >= 90 && prev5h < 90) alert = 'danger';
     else if (curr5h >= 70 && prev5h < 70) alert = 'warn';
-    fs.appendFileSync(csvFile, [ts, f5, r5, f7, r7, alert].join(',') + '\n');
+    // version column: write "1" on first data row only (after header)
+    const isFirstRow = fs.readFileSync(csvFile, 'utf8').trimEnd().split('\n').length === 1;
+    fs.appendFileSync(csvFile, [ts, f5, r5, f7, r7, alert, isFirstRow ? '1' : ''].join(',') + '\n');
   }
 }
 
@@ -140,11 +169,13 @@ const parts = [];
 const isSubscriber = fiveH !== null;
 const runCost = d.cost ? d.cost.total_cost_usd : null;
 
-// RUN: last delta / cumulative (single combined field)
-if (currentDelta !== null && currentDelta > 0 && runCost !== null) {
+// RUN: per-turn accumulated cost / cumulative session cost
+// turnCost persists across follow-up tool calls within the same turn so a
+// warning stays visible. Resets on idle > TURN_IDLE_SEC or new session.
+if (turnCost !== null && turnCost > 0 && runCost !== null) {
   const isFirstReq = lastCost === null;
-  const dIcon = isFirstReq ? '🟢' : currentDelta >= 1.0 ? '🔴' : currentDelta >= 0.3 ? '🟡' : '🟢';
-  parts.push('[RUN' + dIcon + '] \$' + currentDelta.toFixed(2) + '/\$' + runCost.toFixed(2));
+  const dIcon = isFirstReq ? '🟢' : turnCost >= 1.0 ? '🔴' : turnCost >= 0.3 ? '🟡' : '🟢';
+  parts.push('[RUN' + dIcon + '] \$' + turnCost.toFixed(2) + '/\$' + runCost.toFixed(2));
 } else if (runCost !== null) {
   parts.push('[RUN] \$' + runCost.toFixed(2));
 }

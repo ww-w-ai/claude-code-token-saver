@@ -9,6 +9,16 @@
  * Win correction: Uses actual 5h window boundaries from ratelimit CSVs
  * (5h_reset column) to correct hourFloor-based wins in timeline CSVs.
  *
+ * v1.4.0 compact-timeline-separation — user-turn aggregation:
+ *   1. compact.txt (preprocess.js) supplies user-side markers only
+ *   2. timeline.csv (analyze-usage.js) supplies per-API-call cost + markers
+ *   3. buildAlertsFromUserTurns joins the two streams by JSONL line number,
+ *      aggregating ALL assistant rows between user line Lu and Lu+1 into a
+ *      single alert with totalCost, turnCount, and turnBreakdown. This fixes
+ *      the nearest-timestamp 1:1 underreporting bug for tool-heavy turns.
+ *   4. generateMissingCompacts now checks mtime (not just existence) so
+ *      stale compact.txt from mid-session runs is regenerated.
+ *
  * ALERT_LINE_RE: Simplified regex — all markers captured as one group,
  * then parsed individually via string matching.
  *
@@ -43,7 +53,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { scanRatelimitWindows, mergeWindows, buildHourToWindowMap, FIVE_HOURS_S } = require('./lib/window-utils');
+const { buildGlobalWindowMap, FIVE_HOURS_S } = require('./lib/window-utils');
 const { listProjects, listSessions, listSubagents, getTimelinePath, getSummaryPath, getRatelimitPath, getSubagentTimelinePath, getSubagentSummaryPath, getCompactPath, migrateFromYYMM, CACHE_BASE: CACHE_DIR } = require('./lib/cache-paths');
 const { PLAN_INFO: PLAN_INFO_ALL } = require('./lib/plan-info');
 const { round2 } = require('./lib/format');
@@ -154,6 +164,16 @@ function isProgrammatic(session) {
   return patterns.some(p => p.test(session.firstUserMsg));
 }
 
+// Acompact: auto-compact runs as a separate subagent under the parent session's
+// subagents/ dir. Its directory name starts with "acompact-" (no "agent-" prefix).
+// The transcript file name is agent-acompact-<id>.jsonl.
+function isAcompactAgent(agentDirName) {
+  return !!(agentDirName && agentDirName.startsWith('acompact-'));
+}
+function isAcompactSessionId(sessionId) {
+  return !!(sessionId && (sessionId.startsWith('agent-acompact-') || sessionId.startsWith('acompact-')));
+}
+
 // ── Import mode: skip all processing, just inject into template ─
 if (importDataPath) {
   const reportData = JSON.parse(fs.readFileSync(importDataPath, 'utf8'));
@@ -198,6 +218,45 @@ const raw = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
 // sessionId may be passed with project context via _sessionProjectMap
 const _sessionProjectMap = new Map(); // sessionId|agentId → { proj, parentSessionId? }
 
+// Acompact cost attribution:
+//   acompactCostByParent: Map<parentSessionId, Map<ctxSize, {cost, input, cc5m, cc1h, cr, out, callCount}>>
+// Populated BEFORE main parent timelines are read so that compact:auto:<ctx> marker
+// rows in parent timeline.csv can be enriched with the acompact subagent's total.
+const acompactCostByParent = new Map();
+// Fallback: parentSessionId -> [{firstTs, lastTs, totals, agentDirName}] for acompact
+// subagents whose ctxSize couldn't be extracted. These are matched to parent marker
+// rows by timestamp proximity during readTimelineCsv enrichment.
+const acompactByParentNoCtx = new Map();
+
+// ── Universal subagent cost dedup (v1.4.x) ─────────────────────
+// CC's runForkedAgent writes parent conversation history into the subagent's
+// sidechain. Replayed rows retain their ORIGINAL requestId, causing cost
+// double-counting when subagents are summed. We drop any subagent timeline row
+// whose requestId already appears in its parent's timeline. Handles acompact,
+// aside_question, agentSummary, worktree forks uniformly.
+// parentReqIdSets: Map<parentSessionId, Set<reqId>>  — populated lazily.
+const parentReqIdSets = new Map();
+function getParentReqIds(parentSessionId) {
+  if (parentReqIdSets.has(parentSessionId)) return parentReqIdSets.get(parentSessionId);
+  const info = _sessionProjectMap.get(parentSessionId);
+  if (!info) { parentReqIdSets.set(parentSessionId, null); return null; }
+  const csvPath = getTimelinePath(info.proj, parentSessionId);
+  if (!csvPath || !fs.existsSync(csvPath)) { parentReqIdSets.set(parentSessionId, null); return null; }
+  const set = new Set();
+  try {
+    const content = fs.readFileSync(csvPath, 'utf8');
+    const lines = content.split('\n');
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(',');
+      if (cols.length < 14) continue;
+      const req = cols[13];
+      if (req) set.add(req);
+    }
+  } catch {}
+  parentReqIdSets.set(parentSessionId, set);
+  return set;
+}
+
 function readTimelineCsv(sessionId) {
   // New structure: look up project from _sessionProjectMap
   const info = _sessionProjectMap.get(sessionId);
@@ -237,10 +296,165 @@ function readTimelineCsv(sessionId) {
       cost: Number(cols[8]),
       win: Number(win),
       rl: cols[10] || '',
-      evt: cols[11] || ''
+      evt: cols[11] || '',
+      // v10: line column — no markers column (all event info lives in evt + rl).
+      line: cols[12] ? Number(cols[12]) : 0,
+      // v11: req column — API requestId used for universal subagent cost dedup.
+      req: cols[13] || ''
     });
   }
+
+  // Universal subagent cost dedup: drop rows whose requestId already appears
+  // in the parent session's timeline. Zero-cost rows (events like compact
+  // markers, rate limits) are ALWAYS kept since they have no req. Independent
+  // subagents have 0 reqId overlap → no-op. Replay forks (acompact, aside_q,
+  // worktree) retain only their NEW calls.
+  if (info.parentSessionId) {
+    const parentSet = getParentReqIds(info.parentSessionId);
+    if (parentSet && parentSet.size > 0) {
+      const kept = [];
+      for (const r of rows) {
+        if (r.req && parentSet.has(r.req)) continue;
+        kept.push(r);
+      }
+      rows.length = 0;
+      for (const r of kept) rows.push(r);
+    }
+  }
+
+  // Enrich parent timeline rows: merge acompact subagent cost into
+  // compact:auto:<ctxSize> marker rows (which have cost=0 in the parent).
+  // Only runs for non-subagent reads. Subagent timelines are parsed as-is.
+  if (!info.parentSessionId) {
+    const byCtx = acompactCostByParent.get(sessionId);
+    const noCtxList = acompactByParentNoCtx.get(sessionId);
+    const usedNoCtx = new Set();
+    const markerRe = /^compact:(?:auto|manual):(\d+)/;
+
+    function mergeAgg(row, agg) {
+      row.input += agg.input;
+      row.cc += (agg.cc5m + agg.cc1h);
+      row.cc5m += agg.cc5m;
+      row.cc1h += agg.cc1h;
+      row.cr += agg.cr;
+      row.out += agg.out;
+      row.cost += agg.cost;
+      row.model = row.model || agg.model;
+      row.mergedFromAcompact = true;
+      row.acompactCallCount = (row.acompactCallCount || 0) + agg.callCount;
+      row.acompactCost = (row.acompactCost || 0) + agg.cost;
+    }
+
+    // Pass 1: ctxSize-keyed exact match
+    for (const row of rows) {
+      if (!row.evt) continue;
+      const m = row.evt.match(markerRe);
+      if (!m) continue;
+      if (byCtx) {
+        const ctxSize = Number(m[1]);
+        const agg = byCtx.get(ctxSize);
+        if (agg) { mergeAgg(row, agg); continue; }
+      }
+    }
+
+    // Pass 2: timestamp-proximity fallback for acompact agents with no ctxSize.
+    // For each unmerged compact:auto row, pick the nearest no-ctx acompact
+    // whose firstTs is within ±5min of the marker row's ts.
+    if (noCtxList && noCtxList.length > 0) {
+      for (const row of rows) {
+        if (row.mergedFromAcompact) continue;
+        if (!row.evt || !markerRe.test(row.evt)) continue;
+        let bestIdx = -1, bestDelta = Infinity;
+        for (let i = 0; i < noCtxList.length; i++) {
+          if (usedNoCtx.has(i)) continue;
+          const entry = noCtxList[i];
+          const delta = Math.abs((entry.firstTs || 0) - row.ts);
+          if (delta < bestDelta) { bestDelta = delta; bestIdx = i; }
+        }
+        if (bestIdx >= 0 && bestDelta <= 600) {
+          mergeAgg(row, noCtxList[bestIdx]);
+          usedNoCtx.add(bestIdx);
+        }
+      }
+      // Pass 3: any remaining unmatched no-ctx entries — attach to the closest
+      // real timeline row by timestamp (any row, not just compact markers).
+      // This preserves cost totals even when the parent has no marker row.
+      for (let i = 0; i < noCtxList.length; i++) {
+        if (usedNoCtx.has(i)) continue;
+        const entry = noCtxList[i];
+        if (!entry.firstTs) continue;
+        let bestIdx = -1, bestDelta = Infinity;
+        for (let r = 0; r < rows.length; r++) {
+          const delta = Math.abs(rows[r].ts - entry.firstTs);
+          if (delta < bestDelta) { bestDelta = delta; bestIdx = r; }
+        }
+        if (bestIdx >= 0) {
+          mergeAgg(rows[bestIdx], entry);
+          usedNoCtx.add(i);
+        }
+      }
+    }
+  }
   return rows;
+}
+
+// Read a subagent's timeline.csv and return {ctxSize, model, totals}.
+// Used for acompact attribution: aggregates the subagent's deduped cost and
+// attaches it to the parent session's compact:auto:<ctxSize> marker row so
+// the dashboard shows "compact summary call: $X.XX" on the compact event.
+//
+// v1.4.x: universal subagent cost dedup runs via parent reqId filtering in
+// readTimelineCsv. Here we apply the same filter to eliminate parent-replay
+// rows (CC's runForkedAgent writes FULL parent history into acompact sidechain).
+// Remaining rows = genuinely new calls (usually the single summary call).
+function readAcompactAggregate(proj, parentSessionId, agentDirName) {
+  const csvPath = getSubagentTimelinePath(proj, parentSessionId, agentDirName);
+  if (!csvPath || !fs.existsSync(csvPath)) return null;
+  const content = fs.readFileSync(csvPath, 'utf8').trim();
+  const lines = content.split('\n');
+  if (lines.length < 2) return null;
+  const parentSet = getParentReqIds(parentSessionId);
+  let ctxSize = null;
+  let model = '';
+  let firstTs = null, lastTs = null;
+  const markerRe = /^compact:(?:auto|manual):(\d+)/;
+  let input = 0, cc5m = 0, cc1h = 0, cr = 0, out = 0, cost = 0, callCount = 0;
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(',');
+    if (cols.length < 11) continue;
+    const evt = cols[11] || '';
+    if (ctxSize === null) {
+      const m = evt.match(markerRe);
+      if (m) ctxSize = Number(m[1]);
+    }
+    if (cols[1]) model = cols[1];
+    const ts = Number(cols[0]);
+    if (ts) {
+      if (firstTs === null || ts < firstTs) firstTs = ts;
+      if (lastTs === null || ts > lastTs) lastTs = ts;
+    }
+    const req = cols[13] || '';
+    // Drop parent-replay rows via reqId dedup.
+    if (req && parentSet && parentSet.has(req)) continue;
+    const rowCost = Number(cols[8]) || 0;
+    const rowInput = Number(cols[2]) || 0;
+    if (rowCost <= 0 && rowInput <= 0) continue; // skip event-only rows
+    input += rowInput;
+    cc5m += Number(cols[4]) || 0;
+    cc1h += Number(cols[5]) || 0;
+    cr += Number(cols[6]) || 0;
+    out += Number(cols[7]) || 0;
+    cost += rowCost;
+    callCount++;
+  }
+  if (callCount === 0) return { ctxSize, model, totals: null, firstTs, lastTs };
+  return {
+    ctxSize,
+    model,
+    totals: { input, cc5m, cc1h, cr, out, cost, callCount },
+    firstTs,
+    lastTs,
+  };
 }
 
 // Build session lookup
@@ -267,14 +481,49 @@ migrateFromYYMM();
         const info = { proj, parentSessionId: sess, agentDirName: agent };
         _sessionProjectMap.set(agent, info);
         _sessionProjectMap.set('agent-' + agent, info);
+
+        // Acompact aggregation: for each acompact-* subagent, sum its timeline
+        // totals and key by (parentSessionId, ctxSize) so readTimelineCsv can
+        // merge this into the parent's compact:auto:<ctxSize> marker row.
+        if (isAcompactAgent(agent)) {
+          const agg = readAcompactAggregate(proj, sess, agent);
+          if (agg && agg.totals && agg.totals.callCount > 0) {
+            const entry = {
+              input: agg.totals.input,
+              cc5m: agg.totals.cc5m,
+              cc1h: agg.totals.cc1h,
+              cr: agg.totals.cr,
+              out: agg.totals.out,
+              cost: agg.totals.cost,
+              callCount: agg.totals.callCount,
+              model: agg.model,
+              agentDirName: agent,
+              firstTs: agg.firstTs,
+              lastTs: agg.lastTs
+            };
+            if (agg.ctxSize !== null) {
+              if (!acompactCostByParent.has(sess)) acompactCostByParent.set(sess, new Map());
+              const byCtx = acompactCostByParent.get(sess);
+              const existing = byCtx.get(agg.ctxSize);
+              if (!existing || agg.totals.cost > existing.cost) byCtx.set(agg.ctxSize, entry);
+            } else {
+              // Fallback: no ctxSize — match by timestamp proximity later
+              if (!acompactByParentNoCtx.has(sess)) acompactByParentNoCtx.set(sess, []);
+              acompactByParentNoCtx.get(sess).push(entry);
+            }
+          }
+        }
       }
     }
   }
 }
 
 // Collect all timeline rows, keyed by sessionId
+// Skip acompact subagent sessions — their cost is now attributed to the
+// parent's compact:auto marker row (merged in readTimelineCsv).
 const allTimelines = new Map();
 for (const s of raw.sessions) {
+  if (isAcompactSessionId(s.sessionId)) continue;
   const rows = readTimelineCsv(s.sessionId);
   if (rows.length > 0) allTimelines.set(s.sessionId, rows);
 }
@@ -288,30 +537,29 @@ for (const [, rows] of allTimelines) {
 // ── Scan compact caches for alert messages ─────────────────────
 // Simplified format: [L{n} User HH:MM:SS]{allMarkers} {text}
 // Groups: 1=lineNum, 2=time (HH:MM or HH:MM:SS, optionally prefixed MM-DDT), 3=allMarkers (entire marker string), 4=text
-// Individual markers are parsed from group 3 via string matching.
-// Marker chars: @ (startup/clear) * (cost) # (context) + (resume/compact) ~ (reload-plugins)
-//   ! (model-change) ? (resume-heuristic) ^ (/continue skill) % (rate-limit)
-const ALERT_LINE_RE = /^\[L(\d+) User ((?:\d{2}-\d{2}T)?\d+:\d+(?::\d+)?)\]([^\s]*)\s*(.*)/;
+// v1.4.0 compact-timeline-separation: compact.txt holds ONLY user-side markers:
+//   @ / @@ (startup/clear)  + / ++ (manual/auto compact)  ~ (reload-plugins)
+//   ! (model-change)        ^ / ^^ (/continue skill)
+// Cost * / **, ctx # / ##, heuristic ?, rate-limit % are in timeline.csv's
+// `markers` column and joined here by buildAlertsFromUserTurns.
+// v6 compact format: [Session:{sid8} {ISO} L{lineNum}]{markers} User: "{text}"
+// Groups: 1=ISO timestamp, 2=lineNum, 3=markers, 4=text (may contain inner quotes)
+const ALERT_LINE_RE = /^\[Session:\w+ (\S+) L(\d+)\]([^\s]*)\s+User:\s*"(.*)/;
 
 const { execFile } = require('child_process');
 const PREPROCESS_PATH = path.join(__dirname, 'preprocess.js');
 const PARALLEL_LIMIT = 5;
 
-// Batch-generate missing compact caches in parallel
-function generateMissingCompacts(sessionIds) {
+// Ensure compact caches are fresh. preprocess.js self-manages (version + mtime
+// check, skip if fresh, write to cache if stale). We just call it for each session.
+function ensureCompactCaches(sessionIds) {
   const tasks = [];
   for (const sid of sessionIds) {
     const sess = sessionMap.get(sid);
     if (!sess) continue;
-    const isSubagent = sess.filePath && sess.filePath.includes('/subagents/');
-    if (isSubagent) continue;
+    if (sess.filePath && sess.filePath.includes('/subagents/')) continue;
     if (!sess.filePath || !fs.existsSync(sess.filePath)) continue;
-    const info = _sessionProjectMap.get(sid);
-    if (!info) continue;
-    const compactFilePath = getCompactPath(info.proj, sid, false);
-    if (fs.existsSync(compactFilePath)) continue;
-    fs.mkdirSync(path.dirname(compactFilePath), { recursive: true });
-    tasks.push({ sid, filePath: sess.filePath, compactPath: compactFilePath });
+    tasks.push(sess.filePath);
   }
   if (tasks.length === 0) return Promise.resolve();
 
@@ -320,12 +568,9 @@ function generateMissingCompacts(sessionIds) {
   return new Promise((resolve) => {
     function next() {
       while (running < PARALLEL_LIMIT && idx < tasks.length) {
-        const t = tasks[idx++];
+        const fp = tasks[idx++];
         running++;
-        execFile('node', [PREPROCESS_PATH, t.filePath], { timeout: 30000 }, (err, stdout) => {
-          if (!err && stdout) {
-            try { fs.writeFileSync(t.compactPath, stdout); } catch(e) {}
-          }
+        execFile('node', [PREPROCESS_PATH, fp], { timeout: 30000 }, () => {
           running--;
           if (idx >= tasks.length && running === 0) resolve();
           else next();
@@ -344,88 +589,448 @@ function readCompactAlerts(sessionId) {
   const compactPath = getCompactPath(info.proj, sessionId, false);
   if (!fs.existsSync(compactPath)) return [];
 
+  // Old-format compacts are regenerated by generateMissingCompacts (version check).
   const content = fs.readFileSync(compactPath, 'utf8');
   const lines = content.split('\n');
   const alerts = [];
 
+  // v1.4.0 compact-timeline-separation: compact.txt now holds only USER-SIDE
+  // markers (@ @@ + ++ ~ ! ^ ^^). We emit ONE alert per USER line (even unmarked
+  // ones) so that buildAlertsFromUserTurns can attach aggregated cost data from
+  // timeline.csv. Unmarked user turns with no interesting cost aggregation are
+  // filtered out inside buildAlertsFromUserTurns (it returns a pruned list).
   for (const line of lines) {
     const m = ALERT_LINE_RE.exec(line);
     if (!m) continue;
-    // Groups: 1=lineNum, 2=time, 3=allMarkers, 4=text
+    // v6 groups: 1=ISO timestamp, 2=lineNum, 3=markers, 4=text (trailing quote stripped)
     const markers = m[3] || '';
     const sessionMark = (markers.match(/@{1,2}/) || [''])[0];
-    const costMark = (markers.match(/\*{1,2}/) || [''])[0];
-    const ctxMark = (markers.match(/#{1,2}/) || [''])[0];
-    const resumeMark = (markers.match(/\+{1,2}/) || [''])[0];
+    const compactMark = (markers.match(/\+{1,2}/) || [''])[0];
     const reloadMark = markers.includes('~') ? '~' : '';
     const modelMark = markers.includes('!') ? '!' : '';
-    const heuristicMark = markers.includes('?') ? '?' : '';
     const contMark = (markers.match(/\^{1,2}/) || [''])[0];
-    const rlMark = (markers.match(/%[%5WOSX](?:\{[^}]+\})?/) || [''])[0];
-    const text = m[4] || '';
-    if (!markers) continue;
-    const isInfoOnly = !costMark && !ctxMark && !contMark && !rlMark;
+    const text = (m[4] || '').replace(/"$/, '');
 
     const alertTypes = [];
-    if (costMark === '**') alertTypes.push('cost-danger');
-    else if (costMark === '*') alertTypes.push('cost-warn');
-    if (ctxMark === '##') alertTypes.push('ctx-danger');
-    else if (ctxMark === '#') alertTypes.push('ctx-warn');
-    if (resumeMark === '+') alertTypes.push('resume');
-    else if (resumeMark === '++') alertTypes.push('compact');
+    if (compactMark === '+') alertTypes.push('compact-manual');
+    else if (compactMark === '++') alertTypes.push('compact-auto');
     if (reloadMark === '~') alertTypes.push('reload-plugins');
     if (modelMark === '!') alertTypes.push('model-change');
-    if (heuristicMark === '?') alertTypes.push('resume-heuristic');
     if (contMark === '^') alertTypes.push('continue-1');
     else if (contMark === '^^') alertTypes.push('continue-n');
     if (sessionMark === '@') alertTypes.push('startup');
     else if (sessionMark === '@@') alertTypes.push('clear');
-    if (rlMark) {
-      if (rlMark.startsWith('%%')) alertTypes.push('rate-limit-unknown');
-      else if (rlMark.startsWith('%5')) alertTypes.push('rate-limit-5h');
-      else if (rlMark.startsWith('%W')) alertTypes.push('rate-limit-weekly');
-      else if (rlMark.startsWith('%O')) alertTypes.push('rate-limit-opus');
-      else if (rlMark.startsWith('%S')) alertTypes.push('rate-limit-sonnet');
-      else if (rlMark.startsWith('%X')) alertTypes.push('rate-limit-extra');
-    }
 
     alerts.push({
       sessionId,
-      lineNum: Number(m[1]),
-      time: m[2],
+      lineNum: Number(m[2]),
+      time: m[1],
       markers: markers,
       text: text.slice(0, 120),
       alertType: alertTypes.join('+') || 'info',
       tokens: null,
-      isInfoOnly
+      isInfoOnly: true,
+      turnBreakdown: null,
+      hasUserSideMarker: alertTypes.length > 0
     });
   }
   return alerts;
 }
 
-function matchAlertWithTimeline(alert, timelineRows) {
-  if (!timelineRows || timelineRows.length === 0 || !alert.ts) return;
-  let bestRow = null;
-  let bestDiff = Infinity;
+// v1.4.0 compact-timeline-separation — per user-turn aggregation.
+//
+// Joins user-side alerts (from compact.txt, via readCompactAlerts) with
+// timeline.csv rows that fall into the same user turn (line-number range).
+//
+// For a user alert at JSONL line Lu, aggregates ALL timeline rows with
+// row.line in [Lu+1, nextUserLine-1]. Total cost/tokens and the union of
+// assistant-side markers are applied to the alert.
+//
+// This replaces the old nearest-timestamp 1:1 match that underreported
+// multi-turn prompts (see docs/01-plan/features/compact-timeline-separation.plan.md).
+// Per-session user turn aggregation cache.
+// Key: sessionId. Value: Map<lineNum, turnAggregate> where turnAggregate has
+// the aggregated tokens/cost/flags for one user turn.
+// Single source of truth shared by buildAlertsFromUserTurns (alerts/badges) and
+// buildContextCostScatters (per-user-turn chart). Computed once per session.
+const _sessionUserTurnCache = new Map();
+
+function computeSessionUserTurns(sessionId, userAlerts, timelineRows) {
+  if (_sessionUserTurnCache.has(sessionId)) return _sessionUserTurnCache.get(sessionId);
+  if (!userAlerts || userAlerts.length === 0 || !timelineRows || timelineRows.length === 0) {
+    _sessionUserTurnCache.set(sessionId, { sortedAlerts: userAlerts || [], aggregates: new Map() });
+    return _sessionUserTurnCache.get(sessionId);
+  }
+  const sortedAlerts = userAlerts.slice().sort((a, b) => a.lineNum - b.lineNum);
+  const turnIdx = new Map();
+  for (const a of sortedAlerts) turnIdx.set(a.lineNum, []);
+
+  // For each timeline row, find the user alert that owns its turn via binary search.
+  // Special case: compact:auto marker rows (merged from acompact) are emitted at
+  // the line BEFORE the triggering user turn. Attribute them to the NEXT user
+  // alert (the continuation prompt) so acompact cost shows up on the right turn.
   for (const row of timelineRows) {
-    if (row.evt && row.cost <= 0 && row.input <= 0) continue; // skip event-only rows (no real token data)
-    const diff = Math.abs(row.ts - alert.ts);
-    if (diff < bestDiff) {
-      bestDiff = diff;
-      bestRow = row;
+    let rline = row.line || 0;
+    if (rline <= 0) continue;
+    if (row.mergedFromAcompact) rline = rline + 1;
+    let lo = 0, hi = sortedAlerts.length - 1, found = -1;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      if (sortedAlerts[mid].lineNum <= rline) { found = mid; lo = mid + 1; }
+      else hi = mid - 1;
+    }
+    if (found < 0) continue;
+    turnIdx.get(sortedAlerts[found].lineNum).push(row);
+  }
+
+  const aggregates = new Map();
+  for (const alert of sortedAlerts) {
+    const rows = turnIdx.get(alert.lineNum) || [];
+    if (rows.length === 0) continue;
+    const agg = { input: 0, cc: 0, cc5m: 0, cc1h: 0, cr: 0, out: 0, cost: 0 };
+    let hasCtxWarn = false, hasCtxDanger = false, hasHeuristic = false;
+    const rlTypes = new Set();
+    const breakdown = [];
+    let acompactCostSum = 0, acompactCallSum = 0;
+    let firstCtx = null;
+    for (const row of rows) {
+      if (row.mergedFromAcompact) {
+        acompactCostSum += row.acompactCost || 0;
+        acompactCallSum += row.acompactCallCount || 0;
+      }
+      if (row.cost > 0 || row.input > 0) {
+        if (firstCtx === null) {
+          firstCtx = (row.input || 0) + (row.cc || 0) + (row.cr || 0);
+        }
+        agg.input += row.input || 0;
+        agg.cc += row.cc || 0;
+        agg.cc5m += row.cc5m || 0;
+        agg.cc1h += row.cc1h || 0;
+        agg.cr += row.cr || 0;
+        agg.out += row.out || 0;
+        agg.cost += row.cost || 0;
+        breakdown.push({ line: row.line, ts: row.ts, cost: row.cost, evt: row.evt || '', rl: row.rl || '' });
+      }
+      const evt = row.evt || '';
+      if (evt.includes('ctx_danger')) hasCtxDanger = true;
+      else if (evt.includes('ctx_warn')) hasCtxWarn = true;
+      if (evt.includes('heuristic_resume')) hasHeuristic = true;
+      if (row.rl) {
+        const m = row.rl.match(/^limit_hit_(5h|weekly|opus|sonnet|extra|unknown)/);
+        if (m) rlTypes.add(m[1]);
+      }
+    }
+    aggregates.set(alert.lineNum, {
+      alert, agg, hasCtxWarn, hasCtxDanger, hasHeuristic, rlTypes,
+      breakdown, acompactCostSum, acompactCallSum, firstCtx
+    });
+  }
+  const result = { sortedAlerts, aggregates };
+  _sessionUserTurnCache.set(sessionId, result);
+  return result;
+}
+
+function buildAlertsFromUserTurns(sessionId, userAlerts, timelineRows) {
+  if (!userAlerts || userAlerts.length === 0) return userAlerts || [];
+  if (!timelineRows || timelineRows.length === 0) {
+    return userAlerts.filter(a => a.hasUserSideMarker);
+  }
+  const { sortedAlerts, aggregates } = computeSessionUserTurns(sessionId, userAlerts, timelineRows);
+
+  for (const alert of sortedAlerts) {
+    const turn = aggregates.get(alert.lineNum);
+    if (!turn) continue;
+    const { agg, hasCtxWarn, hasCtxDanger, hasHeuristic, rlTypes, breakdown, acompactCostSum, acompactCallSum } = turn;
+
+    // Per-user-turn aggregated cost thresholds (higher than per-row because a
+    // single user prompt can fan out to many assistant turns; $0.80/$2.50 cuts
+    // noise vs the per-row $0.50/$1.00 banding).
+    const TURN_COST_WARN = 0.80;
+    const TURN_COST_DANGER = 2.50;
+    let hasCostWarn = false, hasCostDanger = false;
+    if (agg.cost >= TURN_COST_DANGER) hasCostDanger = true;
+    else if (agg.cost >= TURN_COST_WARN) hasCostWarn = true;
+
+    const types = alert.alertType === 'info' ? [] : alert.alertType.split('+');
+    if (hasCostDanger) types.push('cost-danger');
+    else if (hasCostWarn) types.push('cost-warn');
+    if (hasCtxDanger) types.push('ctx-danger');
+    else if (hasCtxWarn) types.push('ctx-warn');
+    if (hasHeuristic) types.push('resume-heuristic');
+    for (const rl of rlTypes) types.push('rate-limit-' + rl);
+    if (types.length > 0) {
+      alert.alertType = types.join('+');
+      if (hasCostWarn || hasCostDanger || hasCtxWarn || hasCtxDanger || rlTypes.size > 0) {
+        alert.isInfoOnly = false;
+      }
+    }
+
+    alert.tokens = {
+      input: agg.input,
+      cc: agg.cc,
+      cc5m: agg.cc5m,
+      cc1h: agg.cc1h,
+      cr: agg.cr,
+      out: agg.out,
+      cost: Math.round(agg.cost * 10000) / 10000
+    };
+    alert.turnBreakdown = breakdown;
+    alert.turnCount = breakdown.length;
+    if (acompactCostSum > 0) {
+      alert.acompactCost = Math.round(acompactCostSum * 10000) / 10000;
+      alert.acompactCallCount = acompactCallSum;
+    }
+
+    // Build short-form badge string from aggregated evt/rl state for template
+    // rendering. alert.markers originally held compact.txt user-side markers
+    // only; we append the assistant-side display badges here.
+    const rlBadgeMap = { '5h':'%5', 'weekly':'%W', 'opus':'%O', 'sonnet':'%S', 'extra':'%X', 'unknown':'%%' };
+    const assistMarks = [];
+    if (hasCostDanger) assistMarks.push('**');
+    else if (hasCostWarn) assistMarks.push('*');
+    if (hasCtxDanger) assistMarks.push('##');
+    else if (hasCtxWarn) assistMarks.push('#');
+    if (hasHeuristic) assistMarks.push('?');
+    for (const rl of rlTypes) assistMarks.push(rlBadgeMap[rl] || '%%');
+    if (assistMarks.length > 0) {
+      alert.markers = (alert.markers || '') + assistMarks.join('');
+    }
+
+    // Build readable prefix from both user-side and assistant-side markers.
+    // Dual-encoding: short-form markers stay in alert.markers for rule-based
+    // processing; readablePrefix provides human/LLM-readable labels for display.
+    const prefixParts = [];
+    // Re-parse user-side markers from alert.markers (set by readCompactAlerts)
+    const um = alert.markers || '';
+    if (um.includes('@@')) prefixParts.push('/clear');
+    else if (um.includes('@')) prefixParts.push('(session start)');
+    if (um.includes('++')) prefixParts.push('(autocompact)');
+    else if (um.includes('+')) prefixParts.push('/compact');
+    if (um.includes('~')) prefixParts.push('/reload-plugins');
+    if (um.includes('!')) prefixParts.push('/model');
+    if (um.includes('^^')) prefixParts.push('/continue (multi)');
+    else if (um.includes('^') && !um.includes('^^')) prefixParts.push('/continue');
+    // Assistant-side markers (from aggregated timeline data)
+    if (hasCostDanger) prefixParts.push('💸$2.50+');
+    else if (hasCostWarn) prefixParts.push('💸$0.80+');
+    if (hasCtxDanger) prefixParts.push('📏ctx70%+');
+    else if (hasCtxWarn) prefixParts.push('📏ctx35%+');
+    if (hasHeuristic) prefixParts.push('?resume');
+    for (const rl of rlTypes) {
+      prefixParts.push('%' + ({ '5h':'5h', 'weekly':'W', 'opus':'O', 'sonnet':'S', 'extra':'X' }[rl] || rl));
+    }
+    if (prefixParts.length > 0) {
+      alert.readablePrefix = prefixParts.join(' & ');
     }
   }
-  if (bestRow && bestDiff < 7200) {
-    alert.tokens = {
-      input: bestRow.input,
-      cc: bestRow.cc,
-      cc5m: bestRow.cc5m,
-      cc1h: bestRow.cc1h,
-      cr: bestRow.cr,
-      out: bestRow.out,
-      cost: bestRow.cost
-    };
+
+  // Prune: keep an alert if it has a user-side marker OR if aggregation
+  // produced a cost/ctx/heuristic/rate-limit marker (isInfoOnly=false).
+  // Unmarked turns with no interesting cost would otherwise flood the dashboard.
+  return sortedAlerts.filter(a => a.hasUserSideMarker || a.isInfoOnly === false);
+}
+
+// Deprecated — replaced by buildAlertsFromUserTurns. Kept as a no-op shim
+// because the window-building loop calls this per-alert; enrichment now
+// happens in a single batch call earlier in the pipeline.
+function matchAlertWithTimeline(_alert, _timelineRows) {
+  // No-op: alerts are already enriched by buildAlertsFromUserTurns.
+  return;
+}
+
+// Build context-vs-cost analysis data:
+//   perAssistant    — scatter of every API call with cost >= $1 (shows clear slope)
+//   perUserTurn     — scatter of every user turn with aggregated cost >= $4
+//                     (shows the same pattern at turn-level granularity)
+// dominantBreakdown — counts of $1+ API calls by dominant cost contributor,
+//                     used by the AI prompt to highlight that cache_write drives
+//                     nearly 100% of expensive calls.
+//
+// Each point carries marker badge, time, sid, text, token breakdown.
+function buildContextCostScatters(allTimelines, sessionMap) {
+  const ASST_COST_FLOOR = 1.0;
+  const USER_TURN_COST_FLOOR = 4.0;
+  const points = [];        // per assistant API call
+  const userTurnPoints = [];  // per user turn (aggregated)
+  // Dominant-type counts across ALL $1+ calls (used by AI prompt, not chart).
+  const dominantBreakdown = { input: 0, output: 0, cacheCreate: 0, cacheRead: 0 };
+  let maxX = 0;
+
+  // Compose a short badge string from evt + rl for display (mirrors template.html).
+  function evtRlToBadge(evt, rl) {
+    const parts = (evt || '').split('|').filter(Boolean);
+    let s = '';
+    if (parts.indexOf('cost_danger') >= 0) s += '**';
+    else if (parts.indexOf('cost_warn') >= 0) s += '*';
+    if (parts.indexOf('ctx_danger') >= 0) s += '##';
+    else if (parts.indexOf('ctx_warn') >= 0) s += '#';
+    if (parts.indexOf('heuristic_resume') >= 0) s += '?';
+    if (rl) {
+      const m = rl.match(/^limit_hit_(5h|weekly|opus|sonnet|extra|unknown)/);
+      if (m) {
+        const map = { '5h':'%5','weekly':'%W','opus':'%O','sonnet':'%S','extra':'%X','unknown':'%%' };
+        s += map[m[1]] || '%%';
+      }
+    }
+    return s;
   }
+
+  // Format MM-DD HH:MM from epoch seconds (local time).
+  function fmtLocalTime(epochSec) {
+    if (!epochSec) return '';
+    const d = new Date(epochSec * 1000);
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mi = String(d.getMinutes()).padStart(2, '0');
+    return `${mm}-${dd} ${hh}:${mi}`;
+  }
+
+  for (const [sessionId, rows] of allTimelines) {
+    const sess = sessionMap.get(sessionId);
+    if (!sess) continue;
+    const shortSid = sessionId.replace(/^agent-/, '').slice(0, 8);
+
+    // For per-assistant tooltips we want the enclosing user prompt's text
+    // so the user can see "what prompt triggered this expensive call".
+    // Subagents have no compact.txt → we'll fall back to the row's own data.
+    const isSubagent = sess.filePath && sess.filePath.includes('/subagents/');
+    let sortedUsers = [];
+    let userAlerts = [];
+    if (!isSubagent) {
+      userAlerts = readCompactAlerts(sessionId) || [];
+      sortedUsers = userAlerts.slice().sort((a, b) => a.lineNum - b.lineNum);
+    }
+
+    function findEnclosingUser(rline) {
+      if (!sortedUsers.length || rline <= 0) return null;
+      let lo = 0, hi = sortedUsers.length - 1, found = -1;
+      while (lo <= hi) {
+        const mid = (lo + hi) >> 1;
+        if (sortedUsers[mid].lineNum <= rline) { found = mid; lo = mid + 1; }
+        else hi = mid - 1;
+      }
+      return found >= 0 ? sortedUsers[found] : null;
+    }
+
+    // Per-assistant: every real-turn row with cost >= $1 becomes a scatter point.
+    // Separately, we count the dominant cost contributor for AI reporting.
+    for (const row of rows) {
+      if (row.cost <= 0 || row.input <= 0) continue;
+      // Skip merged acompact rows — they aggregate 100-200 subagent calls into
+      // a single synthetic row, which breaks the "cost per API call" semantics
+      // (produces billion-token x-axis and hundreds-of-dollars y-axis outliers).
+      if (row.mergedFromAcompact) continue;
+      const ctx = (row.input || 0) + (row.cc || 0) + (row.cr || 0);
+      if (ctx <= 0) continue;
+      if (ctx > maxX) maxX = ctx;
+      if (row.cost < ASST_COST_FLOOR) continue;
+
+      // Compute cost breakdown per token type using model pricing to classify
+      // the dominant contributor — used ONLY for the breakdown counts fed to AI.
+      const rates = getRates(row.model);
+      const inputCost = (row.input || 0) * rates.input / 1e6;
+      const outputCost = (row.out || 0) * rates.output / 1e6;
+      const ccWriteCost =
+        (row.cc5m || 0) * rates.cacheCreate5m / 1e6 +
+        (row.cc1h || 0) * rates.cacheCreate1h / 1e6;
+      const crReadCost = (row.cr || 0) * rates.cacheRead / 1e6;
+      let dom = 'input', domCost = inputCost;
+      if (outputCost > domCost) { dom = 'output'; domCost = outputCost; }
+      if (ccWriteCost > domCost) { dom = 'cacheCreate'; domCost = ccWriteCost; }
+      if (crReadCost > domCost) { dom = 'cacheRead'; domCost = crReadCost; }
+      dominantBreakdown[dom]++;
+
+      const parent = findEnclosingUser(row.line || 0);
+      points.push({
+        x: ctx,
+        y: Math.round(row.cost * 10000) / 10000,
+        badge: evtRlToBadge(row.evt, row.rl),
+        // Always use row.ts for accurate local-time conversion (parent.time is UTC text from compact.txt)
+        time: fmtLocalTime(row.ts),
+        sid: shortSid,
+        text: parent ? (parent.text || '') : '',
+        input: row.input,
+        out: row.out,
+        cc: (row.cc5m || 0) + (row.cc1h || 0),
+        cr: row.cr
+      });
+    }
+
+    // Per-user-turn chart points — reuse the shared cache (single source of
+    // truth with buildAlertsFromUserTurns). Avoids re-computing the same
+    // per-user-turn aggregates twice.
+    if (isSubagent || sortedUsers.length === 0) continue;
+    const sessionTurns = computeSessionUserTurns(sessionId, userAlerts, rows);
+    for (const turn of sessionTurns.aggregates.values()) {
+      if (turn.agg.cost < USER_TURN_COST_FLOOR) continue;
+      if (turn.firstCtx === null || turn.firstCtx <= 0) continue;
+      // Build display badge from per-turn aggregated state (mirrors what
+      // buildAlertsFromUserTurns puts on alert.markers).
+      const cost = turn.agg.cost;
+      const badgeParts = [];
+      if (cost >= 10.0) badgeParts.push('**');
+      else if (cost >= USER_TURN_COST_FLOOR) badgeParts.push('*');
+      if (turn.hasCtxDanger) badgeParts.push('##');
+      else if (turn.hasCtxWarn) badgeParts.push('#');
+      if (turn.hasHeuristic) badgeParts.push('?');
+      for (const rl of turn.rlTypes) {
+        const map = { '5h':'%5','weekly':'%W','opus':'%O','sonnet':'%S','extra':'%X','unknown':'%%' };
+        badgeParts.push(map[rl] || '%%');
+      }
+      // Use the FIRST row's epoch ts for accurate local-time conversion.
+      // turn.alert.time is the raw UTC text from compact.txt — not displayable.
+      const firstRowTs = (turn.breakdown[0] && turn.breakdown[0].ts) || 0;
+      userTurnPoints.push({
+        x: turn.firstCtx,
+        y: Math.round(turn.agg.cost * 10000) / 10000,
+        badge: badgeParts.join(''),
+        time: fmtLocalTime(firstRowTs),
+        sid: shortSid,
+        text: turn.alert.text || '',
+        input: turn.agg.input,
+        out: turn.agg.out,
+        cc: turn.agg.cc,
+        cr: turn.agg.cr,
+        callCount: turn.breakdown.length
+      });
+    }
+  }
+
+  // Simple least-squares linear regression over a point list.
+  // Returns { slope, intercept, x0, x1 } for frontend to plot as a 2-point line.
+  function linearTrend(points) {
+    if (!points || points.length < 2) return null;
+    let n = 0, sx = 0, sy = 0, sxx = 0, sxy = 0;
+    let x0 = Infinity, x1 = -Infinity;
+    for (const p of points) {
+      n++; sx += p.x; sy += p.y; sxx += p.x * p.x; sxy += p.x * p.y;
+      if (p.x < x0) x0 = p.x;
+      if (p.x > x1) x1 = p.x;
+    }
+    const denom = n * sxx - sx * sx;
+    if (denom === 0) return null;
+    const slope = (n * sxy - sx * sy) / denom;
+    const intercept = (sy - slope * sx) / n;
+    return { slope, intercept, x0, x1 };
+  }
+
+  return {
+    perAssistant: {
+      points,
+      trend: linearTrend(points),
+      totalCount: points.length,
+      costFloor: ASST_COST_FLOOR,
+      dominantBreakdown
+    },
+    perUserTurn: {
+      points: userTurnPoints,
+      trend: linearTrend(userTurnPoints),
+      totalCount: userTurnPoints.length,
+      costFloor: USER_TURN_COST_FLOOR
+    },
+    maxX: Math.ceil(maxX * 1.1)
+  };
 }
 
 // ── Build REPORT_DATA ───────────────────────────────────────────
@@ -438,7 +1043,8 @@ const toD = new Date(sm.dateRange.to);
 const fromDate = new Date(fromD.getFullYear(), fromD.getMonth(), fromD.getDate());
 const toDate = new Date(toD.getFullYear(), toD.getMonth(), toD.getDate());
 const days = Math.round((toDate - fromDate) / 86400000) + 1;
-const subCount = raw.sessions.filter(s => s.filePath && s.filePath.includes('/subagents/')).length;
+// Exclude acompact subagents from subCount — they're attributed to parent's compact marker.
+const subCount = raw.sessions.filter(s => s.filePath && s.filePath.includes('/subagents/') && !isAcompactSessionId(s.sessionId)).length;
 const summary = {
   totalCost: sm.totalCost,
   sessionCount: sm.sessionCount,
@@ -501,9 +1107,9 @@ try {
   fiveHAlerts.sort((a, b) => a.ts - b.ts);
 } catch {}
 
-// 2c. Pre-generate missing compact caches (parallel, skip subagents)
+// 2c. Ensure compact caches are fresh (parallel, skip subagents)
 const allSessionIds = [...sessionMap.keys()];
-await generateMissingCompacts(allSessionIds);
+await ensureCompactCaches(allSessionIds);
 
 // 3. windows
 
@@ -519,15 +1125,9 @@ for (const [, rows] of allTimelines) {
   }
 }
 
-// Collect active hours, get ratelimit windows, build mapping (shared lib)
-const activeHours = new Set();
-for (const [, rows] of allTimelines) {
-  for (const row of rows) activeHours.add(row.win);
-}
-const sortedHours = [...activeHours].sort((a, b) => a - b);
-const rlStarts = scanRatelimitWindows(CACHE_DIR);
-const rlWindows = mergeWindows(rlStarts, FIVE_HOURS_S);
-const hourToWin = buildHourToWindowMap(sortedHours, rlWindows);
+// Build 5h window map from ALL projects (account-wide, not project-scoped).
+// Anthropic's 5h rate limit spans all projects, so window boundaries must be global.
+const hourToWin = buildGlobalWindowMap();
 
 // Assign each row's win to its 5h window start
 for (const [, rows] of allTimelines) {
@@ -565,7 +1165,7 @@ for (const winStart of winStarts) {
   for (const { row } of entries) {
     const h = new Date(row.ts * 1000).getHours();
     hourlyCosts[h] = (hourlyCosts[h] || 0) + row.cost;
-    activeHoursSet.add(h);
+    if (row.cost > 0) activeHoursSet.add(h);
     if (row.rl && (row.rl.startsWith('limit_hit') || row.rl.startsWith('limit_warning'))) {
       rlHoursSet.add(h);
     }
@@ -849,8 +1449,8 @@ for (const winStart of winStarts) {
       return b.cost - a.cost;
     });
 
-  // Filter out $0 windows
-  if (finalSessions.length === 0) continue;
+  // Note: do NOT skip here — alertMessages need to be built even for $0-cost
+  // windows. Filter happens after alertMessages are constructed.
 
   // Build alertMessages for this window
   const alertMessages = [];
@@ -860,24 +1460,39 @@ for (const winStart of winStarts) {
     if (seenSessionIds.has(sessionId)) continue;
     seenSessionIds.add(sessionId);
     if (!compactAlertCache.has(sessionId)) {
-      compactAlertCache.set(sessionId, readCompactAlerts(sessionId));
+      const userAlerts = readCompactAlerts(sessionId);
+      // v1.4.0: join with timeline rows for per user-turn aggregation (pruned list returned)
+      const tl = allTimelines.get(sessionId) || [];
+      const joined = buildAlertsFromUserTurns(sessionId, userAlerts, tl);
+      compactAlertCache.set(sessionId, joined);
     }
     const compactAlerts = compactAlertCache.get(sessionId);
     const tlRows = allTimelines.get(sessionId) || [];
-    for (const alert of compactAlerts) {
+    for (const srcAlert of compactAlerts) {
+      // Clone alert to prevent mutation across windows (alert.time gets overwritten to local HH:MM)
+      const alert = { ...srcAlert };
       // Alert time is UTC. New format: MM-DDTHH:MM, old format: HH:MM
       const sessMeta = sessionMap.get(sessionId);
       const sessDate = new Date(sessMeta ? sessMeta.firstTs : Date.now());
       const timeParts = alert.time.split('T');
       let alertDate;
       if (timeParts.length === 2) {
-        // New format: MM-DDTHH:MM or MM-DDTHH:MM:SS — use exact date
+        // v6 format: YYYY-MM-DDTHH:MM:SSZ or MM-DDTHH:MM:SS
         const [md, hm] = timeParts;
-        const [mon, day] = md.split('-').map(Number);
-        const hmParts = hm.split(':').map(Number);
+        const dateParts = md.split('-').map(Number);
+        let year, mon, day;
+        if (dateParts.length === 3) {
+          // Full ISO: YYYY-MM-DD
+          [year, mon, day] = dateParts;
+        } else {
+          // Short: MM-DD (use session year)
+          [mon, day] = dateParts;
+          year = sessDate.getUTCFullYear();
+        }
+        const hmParts = hm.replace('Z', '').split(':').map(Number);
         const [ah, am] = hmParts;
         const as = hmParts[2] || 0;
-        alertDate = new Date(Date.UTC(sessDate.getUTCFullYear(), mon - 1, day, ah, am, as));
+        alertDate = new Date(Date.UTC(year, mon - 1, day, ah, am, as));
       } else {
         // Old format: HH:MM or HH:MM:SS — reconstruct from session date, try ±1 day for midnight-crossing sessions
         const hmParts = alert.time.split(':').map(Number);
@@ -983,6 +1598,9 @@ for (const winStart of winStarts) {
     }
   }
 
+  // Skip windows with no sessions AND no alerts (pure $0 windows with no user activity)
+  if (finalSessions.length === 0 && alertMessages.length === 0 && continueEvents.length === 0) continue;
+
   windows.push({
     date: fsd(winDate),
     start: ft(winDate),
@@ -1041,6 +1659,7 @@ if (currentMode && windows.length > 0) {
     }
     let mainCount = 0, subCount2 = 0;
     for (const sid of windowSessionIds) {
+      if (isAcompactSessionId(sid)) continue;
       const sess = sessionMap.get(sid);
       if (sess && sess.filePath && sess.filePath.includes('/subagents/')) subCount2++;
       else mainCount++;
@@ -1170,6 +1789,29 @@ for (const p of pluginJsonPaths) {
 const PLAN_INFO = PLAN_INFO_ALL;
 const planData = planArg && PLAN_INFO[planArg] ? PLAN_INFO[planArg] : null;
 
+// Context-vs-cost scatter data (two charts: per-assistant, per-user-turn)
+const contextCostScatter = buildContextCostScatters(allTimelines, sessionMap);
+
+// Context size distribution — how efficiently is the user managing context?
+const ctxBuckets = [
+  { label: '~250K', min: 0, max: 250000, count: 0, cost: 0 },
+  { label: '250~350K', min: 250000, max: 350000, count: 0, cost: 0 },
+  { label: '350~500K', min: 350000, max: 500000, count: 0, cost: 0 },
+  { label: '500K+', min: 500000, max: Infinity, count: 0, cost: 0 },
+];
+for (const row of allRows) {
+  const ctx = (row.input || 0) + (row.cc || 0) + (row.cr || 0);
+  const cost = row.cost || 0;
+  for (const b of ctxBuckets) {
+    if (ctx >= b.min && ctx < b.max) { b.count++; b.cost += cost; break; }
+  }
+}
+const ctxDistribution = ctxBuckets.map(b => ({
+  label: b.label, count: b.count, cost: round2(b.cost),
+  avgCost: b.count > 0 ? round2(b.cost / b.count) : 0,
+  pct: allRows.length > 0 ? round2(b.count / allRows.length * 100) : 0,
+}));
+
 // ── Assemble REPORT_DATA ────────────────────────────────────────
 const reportData = {
   summary,
@@ -1180,10 +1822,50 @@ const reportData = {
   hourlyStats,
   dowStats,
   fiveHAlerts,
+  contextCostScatter,
+  ctxDistribution,
   pluginInstalledAt,
   currentMode,
   plan: planData ? { key: planData.key, name: planData.name, price: planData.price } : null
 };
+
+// Compute before/after plugin install cost averages (must be before export)
+if (reportData.pluginInstalledAt && reportData.dailyTokens) {
+  const installDate = new Date(reportData.pluginInstalledAt).toISOString().slice(0, 10);
+  const installIdx = reportData.dailyCosts.findIndex(d => {
+    const parts = d.date.split('/');
+    if (parts.length === 2) {
+      const m = parseInt(parts[0]), dy = parseInt(parts[1]);
+      const year = toD.getFullYear();
+      const dStr = year + '-' + String(m).padStart(2, '0') + '-' + String(dy).padStart(2, '0');
+      return dStr >= installDate;
+    }
+    return false;
+  });
+  if (installIdx > 0 && installIdx < reportData.dailyTokens.length) {
+    // Cost averages
+    let beforeCost = 0, afterCost = 0, beforeDays = 0, afterDays = 0;
+    for (let i = 0; i < reportData.dailyCosts.length; i++) {
+      const dc = reportData.dailyCosts[i];
+      const dayCost = round2(dc.input + dc.cacheCreate + dc.cacheRead + dc.output);
+      if (i < installIdx) { beforeCost += dayCost; beforeDays++; }
+      else { afterCost += dayCost; afterDays++; }
+    }
+    if (beforeDays > 0) reportData._costAvgBefore = round2(beforeCost / beforeDays);
+    if (afterDays > 0) reportData._costAvgAfter = round2(afterCost / afterDays);
+    // Efficiency: weighted average (sum total / sum output)
+    let beforeTotal = 0, beforeOut = 0, afterTotal = 0, afterOut = 0;
+    for (let i = 0; i < reportData.dailyTokens.length; i++) {
+      const dt = reportData.dailyTokens[i];
+      if (dt.out < 1000) continue;
+      if (i < installIdx) { beforeTotal += dt.total; beforeOut += dt.out; }
+      else { afterTotal += dt.total; afterOut += dt.out; }
+    }
+    if (beforeOut > 0) reportData._effBefore = round2(beforeTotal / beforeOut);
+    if (afterOut > 0) reportData._effAfter = round2(afterTotal / afterOut);
+    reportData._installIdx = installIdx;
+  }
+}
 
 if (exportDataPath) {
   fs.writeFileSync(exportDataPath, JSON.stringify(reportData));
@@ -1299,44 +1981,9 @@ if (exportPromptPath) {
     }
   }
 
-  // Efficiency before/after plugin install
-  let effBefore = '', effAfter = '';
-  if (reportData.pluginInstalledAt && reportData.dailyTokens) {
-    const installDate = new Date(reportData.pluginInstalledAt).toISOString().slice(0, 10);
-    const installIdx = reportData.dailyCosts.findIndex(d => {
-      // Match by finding the first date >= install date
-      const parts = d.date.split('/');
-      if (parts.length === 2) {
-        const m = parseInt(parts[0]), dy = parseInt(parts[1]);
-        const year = toD.getFullYear();
-        const dStr = year + '-' + String(m).padStart(2, '0') + '-' + String(dy).padStart(2, '0');
-        return dStr >= installDate;
-      }
-      return false;
-    });
-    if (installIdx > 0 && installIdx < reportData.dailyTokens.length) {
-      // Compute avg efficiency (total/output) before and after
-      let beforeTotal = 0, beforeOut = 0, afterTotal = 0, afterOut = 0;
-      for (let i = 0; i < reportData.dailyTokens.length; i++) {
-        const dt = reportData.dailyTokens[i];
-        if (dt.out < 1000) continue; // skip low-output days
-        if (i < installIdx) { beforeTotal += dt.total; beforeOut += dt.out; }
-        else { afterTotal += dt.total; afterOut += dt.out; }
-      }
-      if (beforeOut > 0) effBefore = round2(beforeTotal / beforeOut).toString();
-      if (afterOut > 0) effAfter = round2(afterTotal / afterOut).toString();
-      // Daily avg cost before/after
-      let beforeCost = 0, afterCost = 0, beforeDays = 0, afterDays = 0;
-      for (let i = 0; i < reportData.dailyCosts.length; i++) {
-        const dc = reportData.dailyCosts[i];
-        const dayCost = round2(dc.input + dc.cacheCreate + dc.cacheRead + dc.output);
-        if (i < installIdx) { beforeCost += dayCost; beforeDays++; }
-        else { afterCost += dayCost; afterDays++; }
-      }
-      if (beforeDays > 0) reportData._costAvgBefore = round2(beforeCost / beforeDays);
-      if (afterDays > 0) reportData._costAvgAfter = round2(afterCost / afterDays);
-    }
-  }
+  // Efficiency before/after plugin install (already computed above, before export)
+  const effBefore = reportData._effBefore ? reportData._effBefore.toString() : '';
+  const effAfter = reportData._effAfter ? reportData._effAfter.toString() : '';
   const costComparison = (reportData._costAvgBefore && reportData._costAvgAfter)
     ? `Daily avg cost — Before plugin: $${reportData._costAvgBefore}/day, After plugin: $${reportData._costAvgAfter}/day` +
       (reportData._costAvgBefore > reportData._costAvgAfter
@@ -1388,6 +2035,48 @@ ${weeks.join('\n')}
 ## Plugin Before/After Comparison
 Cost: ${costComparison}
 Efficiency (Total/Output ratio, lower = better): ${effComparison}
+
+## Expensive API Calls ($1+ cost) — Dominant Token Type Breakdown
+${(() => {
+  const pa = reportData.contextCostScatter && reportData.contextCostScatter.perAssistant;
+  if (!pa || !pa.points || pa.points.length === 0) return 'Total: 0 calls above $1';
+  const bd = pa.dominantBreakdown || { input:0, output:0, cacheCreate:0, cacheRead:0 };
+  const total = pa.totalCount;
+  function pct(n) { return total > 0 ? (100 * n / total).toFixed(1) + '%' : '0%'; }
+  const pts = pa.points;
+  let maxCost = 0;
+  for (const p of pts) if (p.y > maxCost) maxCost = p.y;
+  let smallSum = 0, smallN = 0, largeSum = 0, largeN = 0;
+  for (const p of pts) {
+    if (p.x < 100000) { smallSum += p.y; smallN++; }
+    else if (p.x > 500000) { largeSum += p.y; largeN++; }
+  }
+  const smallAvg = smallN > 0 ? (smallSum / smallN).toFixed(2) : 'n/a';
+  const largeAvg = largeN > 0 ? (largeSum / largeN).toFixed(2) : 'n/a';
+  return 'Total calls >= $1: ' + total + '\n'
+    + 'Max single call: $' + maxCost.toFixed(2) + '\n'
+    + 'Avg cost at small context (<100K): $' + smallAvg + ' (n=' + smallN + ')\n'
+    + 'Avg cost at large context (>500K): $' + largeAvg + ' (n=' + largeN + ')\n'
+    + '\nBreakdown by dominant cost contributor:\n'
+    + '- input dominant:        ' + bd.input        + ' calls (' + pct(bd.input) + ')\n'
+    + '- output dominant:       ' + bd.output       + ' calls (' + pct(bd.output) + ')\n'
+    + '- cache_write dominant:  ' + bd.cacheCreate  + ' calls (' + pct(bd.cacheCreate) + ')\n'
+    + '- cache_read dominant:   ' + bd.cacheRead    + ' calls (' + pct(bd.cacheRead) + ')\n'
+    + '\nKEY INSIGHT TO EMPHASIZE: Nearly all $1+ API calls are driven by cache_write '
+    + '(cache regeneration events). This is the single biggest cost lever — '
+    + 'frequent /compact, /resume, or /clear causes cache to be rewritten from scratch, '
+    + 'which is where expensive calls come from. The AI analysis should state the '
+    + 'cache_write share (e.g. "' + pct(bd.cacheCreate) + ' of expensive calls") and '
+    + 'explain WHY: because cache_read at $0.30/MTok is 25-33x cheaper than cache_write '
+    + 'at $6.25-$10/MTok, so a single cache regeneration event costs as much as many '
+    + 'ordinary messages combined.';
+})()}
+
+## Context Size Efficiency
+${reportData.ctxDistribution.map(b =>
+  b.label + ': ' + b.count + ' calls (' + b.pct + '%), total $' + b.cost + ', avg $' + b.avgCost + '/call'
+).join('\n')}
+KEY INSIGHT: Lower context = cheaper per call. Calls at 500K+ cost far more per call than at ~250K due to cache_write pricing. Frequent /clear or /continue to reset context keeps most calls in the cheapest bucket. Mention the user's distribution shape — is it concentrated in ~250K (good) or spread into 500K+ (expensive)?
 
 ## Top Cost Sessions
 ${top10}

@@ -51,7 +51,8 @@
       "四",
       "五",
       "六"
-    ]
+    ],
+    "ctxCostTitle": "上下文大小 vs 高成本 API 调用 ($1+)"
   },
   "calendar": {
     "title": "每小时使用日历",
@@ -91,16 +92,14 @@
   "alert": {
     "ctxWarn": "⚠️ Context window 超过35% — 每次调用的 cache write/read 费用都在增加。",
     "ctxDanger": "🔴 Context window 超过70% — cache write/read 费用非常高。",
-    "fiveHWarn": "⚠️ 5H 会话窗口已达70% — 接近订阅使用上限。",
-    "fiveHDanger": "🔴 5H 会话窗口已达90% — 订阅使用量即将耗尽。",
-    "resume": "🔄 会话已恢复 — cache 已重新生成，产生了费用",
-    "compact": "📦 /compact 重启 — cache 已重新生成，产生了费用",
+    "compactManual": "📦 手动 /compact — cache 已重新生成，产生了费用",
+    "compactAuto": "📦 /compact 自动触发 (context 压力)。",
     "continue1": "💚 /continue 技能恢复了1个会话",
     "continueN": "💚 /continue 技能恢复了2个以上会话",
     "continueSkillTip": " 💡 建议在新会话开始后使用 /continue 技能。\n",
     "cacheWritePrefix": "{icon} 本次调用中，cache write {tokens} 个 token 被新缓存 — ",
-    "resumeReason": "使用 claude --continue 或 /resume 恢复会话会消耗大量 token。如非必要，建议在新会话开始后使用 /continue 技能。",
-    "compactReason": "/compact 重启导致 cache 重新生成 — 费用很高！",
+    "compactManualReason": "/compact 被手动调用，cache 重新生成 — 费用很高！如需更轻量的 context 恢复，建议使用 /continue 技能。",
+    "compactAutoReason": "由于 context 压力，/compact 自动触发。cache 已重新生成。",
     "clearReason": "{reason} 导致 cache 创建 (${cost})",
     "clearReasonClear": "/clear 重启",
     "clearReasonStartup": "新会话启动",
@@ -109,7 +108,11 @@
     "modelReason": "/model 切换使之前的 cache 失效，已重新生成 (${cost})",
     "resumeHeuristicReason": "使用 claude --continue 或 /resume 恢复会话会消耗大量 token。如非必要，建议在新会话开始后使用 /continue 技能。",
     "cacheExpiredReason": "上下文较大且超过1小时未使用时，会生成新的 cache — 费用很高！",
-    "costTopLabel": "{icon} {label} (${cost})",
+    "costTopLabel": "{icon} {type} 令牌使用量较大。({tokens}, ${cost})",
+    "costTypeCacheWrite": "缓存写入",
+    "costTypeCacheRead": "缓存读取",
+    "costTypeOutput": "输出",
+    "costTypeInput": "输入",
     "costOutputReason": "{icon} 输出 {tokens} 是费用的主要来源 (${cost}) — 考虑使用 Edit (diff) 而非完整重写文件，并减少 prompt 中冗长的解释。",
     "costInputReason": "{icon} 输入 {tokens} 是费用的主要来源 (${cost}) — 考虑使用文本而非图片，通过 offset/limit 只读取所需部分，或提供精简的上下文。"
   },

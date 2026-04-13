@@ -13,15 +13,16 @@
  * Cache structure: ~/.claude/cc-token-saver-data/{projectName}/{sessionId}/
  *   timeline.csv, ratelimit.csv, summary.json, subagents/{agentId}/...
  *
- * Usage: node report-limit.js [--plan <plan>]
+ * Usage: node report-limit.js [--plan <plan>] [--date <YYYY-MM-DD>]
  *   --plan  pro|max100|max200|team|team_premium|enterprise|bedrock|foundry|vertex
+ *   --date  Report a specific date's 5h windows (not just rate-limited ones)
  */
 
 const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { scanRatelimitWindows, mergeWindows, collectActiveHours, buildHourToWindowMap, FIVE_HOURS_S } = require('./lib/window-utils');
+const { buildGlobalWindowMap, FIVE_HOURS_S } = require('./lib/window-utils');
 const { listProjects, listSessions, listSubagents, getTimelinePath, getSubagentTimelinePath, getRatelimitPath, hashId, CACHE_BASE: CACHE_DIR, migrateFromYYMM } = require('./lib/cache-paths');
 const { PLAN_INFO, VALID_PLANS } = require('./lib/plan-info');
 const { fmtTokens, fmtDate, fmtTime } = require('./lib/format');
@@ -46,6 +47,19 @@ if (planIdx !== -1 && process.argv[planIdx + 1]) {
     log('Invalid plan: ' + val + '. Valid: ' + VALID_PLANS.join(', '));
     process.exit(1);
   }
+}
+
+// Parse --date argument (report specific date, not just rate-limited windows)
+let targetDate = null;
+const dateIdx = process.argv.indexOf('--date');
+if (dateIdx !== -1 && process.argv[dateIdx + 1]) {
+  const val = process.argv[dateIdx + 1];
+  const parsed = new Date(val + 'T00:00:00');
+  if (isNaN(parsed.getTime())) {
+    log('Invalid date: ' + val + '. Use YYYY-MM-DD format.');
+    process.exit(1);
+  }
+  targetDate = parsed;
 }
 
 // ── Step 1: Run analyze-usage.js to ensure timeline CSVs exist ──
@@ -130,20 +144,56 @@ for (const proj of projects) {
   }
 }
 
+// ── Step 2b: If --date specified, add all 5h windows overlapping that date ──
+// A 5h window overlaps the target date if: winStart < dayEnd AND winStart + 5h > dayStart
+// Scan rows in [dayStart - 5h, dayEnd) to catch windows starting before midnight
+if (targetDate) {
+  const dayStart = Math.floor(targetDate.getTime() / 1000);
+  const dayEnd = dayStart + 86400;
+  const scanStart = dayStart - FIVE_HOURS_S; // catch windows starting up to 5h before midnight
+  for (const proj of projects) {
+    const sessions = listSessions(proj);
+    for (const sess of sessions) {
+      const csvPath = getTimelinePath(proj, sess);
+      if (!fs.existsSync(csvPath)) continue;
+      const content = fs.readFileSync(csvPath, 'utf8').trim();
+      if (!content) continue;
+      const lines = content.split('\n');
+      let prevWin = '';
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(',');
+        if (cols.length < 11) continue;
+        const ts = Number(cols[0]);
+        const win = cols[9] !== '' ? cols[9] : prevWin;
+        if (cols[9] !== '') prevWin = cols[9];
+        if (ts >= scanStart && ts < dayEnd) {
+          const winTs = win || String(Math.floor(ts / 3600) * 3600);
+          const winNum = Number(winTs);
+          // Include if the 5h window overlaps the target date
+          if (winNum < dayEnd && winNum + FIVE_HOURS_S > dayStart) {
+            if (!windowMap.has(winTs)) windowMap.set(winTs, { sessions: new Set(), hasUnknown: false });
+            windowMap.get(winTs).sessions.add(sess);
+          }
+        }
+      }
+    }
+  }
+}
+
 if (windowMap.size === 0) {
-  log('No rate-limited windows found in cached data. Run /usage-view first to analyze all sessions, then try again.');
+  if (targetDate) {
+    log('No data found for ' + targetDate.toISOString().slice(0, 10) + '. Run /usage-view first.');
+  } else {
+    log('No rate-limited windows found in cached data. Run /usage-view first to analyze all sessions, then try again.');
+  }
   process.exit(0);
 }
 
-log('Found ' + windowMap.size + ' raw rate-limited window(s).');
+log('Found ' + windowMap.size + ' raw window(s)' + (targetDate ? ' (date filter: ' + targetDate.toISOString().slice(0, 10) + ')' : '') + '.');
 
 // ── Step 3: Build 5h windows from all active hours + ratelimit data ──
-// Timeline win column is hourFloor (1h boundary). Use shared library to
-// construct proper 5h windows, then keep only those containing rate limits.
-const allActiveHours = collectActiveHours();
-const rlStarts = scanRatelimitWindows(CACHE_DIR);
-const rlWindows = mergeWindows(rlStarts, FIVE_HOURS_S);
-const hourToWin = buildHourToWindowMap(allActiveHours, rlWindows);
+// Uses buildGlobalWindowMap which scans ALL projects (account-wide).
+const hourToWin = buildGlobalWindowMap();
 
 // Regroup windowMap (keyed by hourFloor) → 5h window starts
 const fiveHWindowMap = new Map(); // 5h winStart → { sessions, hasUnknown }
@@ -424,7 +474,7 @@ if (allRatelimitFiles.size > 0) {
     }
   }
   fs.writeFileSync(path.join(reportDir, 'ratelimit.csv'),
-    'ts,5h,5h_reset,7d,7d_reset,alert\n' + deduped.join('\n') + '\n');
+    'ts,5h,5h_reset,7d,7d_reset,alert,version\n' + deduped.join('\n') + '\n');
 }
 
 // ── Step 7: Compress files into zip ─────────────────────────────
