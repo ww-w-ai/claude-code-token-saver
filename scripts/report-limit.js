@@ -94,50 +94,54 @@ const windowMap = new Map();
 // Track sessionId → projectName for sessions.csv
 const sessionProjectMap = new Map();
 
-for (const proj of projects) {
-  const sessions = listSessions(proj);
-  for (const sess of sessions) {
-    sessionProjectMap.set(sess, proj);
-    const csvPath = getTimelinePath(proj, sess);
-    if (!fs.existsSync(csvPath)) continue;
-    const content = fs.readFileSync(csvPath, 'utf8').trim();
-    if (!content) continue;
-    const lines = content.split('\n');
-    let prevWin = '';
+// ── Step 2a: Scan for rate-limited windows (skip when --date is specified) ──
+// When --date is given, we report ALL windows for that date regardless of rate limit status.
+if (!targetDate) {
+  for (const proj of projects) {
+    const sessions = listSessions(proj);
+    for (const sess of sessions) {
+      sessionProjectMap.set(sess, proj);
+      const csvPath = getTimelinePath(proj, sess);
+      if (!fs.existsSync(csvPath)) continue;
+      const content = fs.readFileSync(csvPath, 'utf8').trim();
+      if (!content) continue;
+      const lines = content.split('\n');
+      let prevWin = '';
 
-    for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split(',');
-      if (cols.length < 11) continue;
-      const win = cols[9] !== '' ? cols[9] : prevWin;
-      if (cols[9] !== '') prevWin = cols[9];
-      const rl = cols[10] || '';
-      if (rl.startsWith('limit_hit_5h') || rl.startsWith('limit_hit_unknown')) {
-        if (!windowMap.has(win)) windowMap.set(win, { sessions: new Set(), hasUnknown: false });
-        windowMap.get(win).sessions.add(sess);
-        if (rl.startsWith('limit_hit_unknown')) windowMap.get(win).hasUnknown = true;
-      }
-    }
-
-    // Also scan subagent timelines
-    const agents = listSubagents(proj, sess);
-    for (const agent of agents) {
-      sessionProjectMap.set('agent-' + agent, proj);
-      const agentCsvPath = getSubagentTimelinePath(proj, sess, agent);
-      if (!fs.existsSync(agentCsvPath)) continue;
-      const agentContent = fs.readFileSync(agentCsvPath, 'utf8').trim();
-      if (!agentContent) continue;
-      const agentLines = agentContent.split('\n');
-      let agentPrevWin = '';
-      for (let i = 1; i < agentLines.length; i++) {
-        const cols = agentLines[i].split(',');
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(',');
         if (cols.length < 11) continue;
-        const win = cols[9] !== '' ? cols[9] : agentPrevWin;
-        if (cols[9] !== '') agentPrevWin = cols[9];
+        const win = cols[9] !== '' ? cols[9] : prevWin;
+        if (cols[9] !== '') prevWin = cols[9];
         const rl = cols[10] || '';
         if (rl.startsWith('limit_hit_5h') || rl.startsWith('limit_hit_unknown')) {
           if (!windowMap.has(win)) windowMap.set(win, { sessions: new Set(), hasUnknown: false });
-          windowMap.get(win).sessions.add('agent-' + agent);
+          windowMap.get(win).sessions.add(sess);
           if (rl.startsWith('limit_hit_unknown')) windowMap.get(win).hasUnknown = true;
+        }
+      }
+
+      // Also scan subagent timelines
+      const agents = listSubagents(proj, sess);
+      for (const agent of agents) {
+        sessionProjectMap.set('agent-' + agent, proj);
+        const agentCsvPath = getSubagentTimelinePath(proj, sess, agent);
+        if (!fs.existsSync(agentCsvPath)) continue;
+        const agentContent = fs.readFileSync(agentCsvPath, 'utf8').trim();
+        if (!agentContent) continue;
+        const agentLines = agentContent.split('\n');
+        let agentPrevWin = '';
+        for (let i = 1; i < agentLines.length; i++) {
+          const cols = agentLines[i].split(',');
+          if (cols.length < 11) continue;
+          const win = cols[9] !== '' ? cols[9] : agentPrevWin;
+          if (cols[9] !== '') agentPrevWin = cols[9];
+          const rl = cols[10] || '';
+          if (rl.startsWith('limit_hit_5h') || rl.startsWith('limit_hit_unknown')) {
+            if (!windowMap.has(win)) windowMap.set(win, { sessions: new Set(), hasUnknown: false });
+            windowMap.get(win).sessions.add('agent-' + agent);
+            if (rl.startsWith('limit_hit_unknown')) windowMap.get(win).hasUnknown = true;
+          }
         }
       }
     }
@@ -154,6 +158,7 @@ if (targetDate) {
   for (const proj of projects) {
     const sessions = listSessions(proj);
     for (const sess of sessions) {
+      sessionProjectMap.set(sess, proj);
       const csvPath = getTimelinePath(proj, sess);
       if (!fs.existsSync(csvPath)) continue;
       const content = fs.readFileSync(csvPath, 'utf8').trim();
@@ -175,6 +180,11 @@ if (targetDate) {
             windowMap.get(winTs).sessions.add(sess);
           }
         }
+      }
+      // Also index subagent sessions
+      const agents = listSubagents(proj, sess);
+      for (const agent of agents) {
+        sessionProjectMap.set('agent-' + agent, proj);
       }
     }
   }
@@ -220,7 +230,7 @@ for (const merged of mergedWindows) {
   const winStart = merged.start;
   const winEnd = merged.end;
   const rows = [];
-  const touchedFiles = { timeline: new Set(), ratelimit: new Set() };
+  const touchedFiles = { timeline: new Set() };
   // Token aggregation per window
   let sumInput = 0, sumOutput = 0, sumCacheWrite = 0, sumCacheRead = 0;
 
@@ -261,8 +271,6 @@ for (const merged of mergedWindows) {
       const filePath = getTimelinePath(proj, sess);
       if (collectFromCsv(filePath, sess)) {
         touchedFiles.timeline.add(filePath);
-        const rlPath = getRatelimitPath(proj, sess);
-        if (fs.existsSync(rlPath)) touchedFiles.ratelimit.add(rlPath);
       }
       const agents = listSubagents(proj, sess);
       for (const agent of agents) {
@@ -335,6 +343,8 @@ for (const merged of mergedWindows) {
 
   results.push({
     winTs: String(winStart),
+    winStart,
+    winEnd,
     date: fmtD(startD),
     start: fmtT(startD),
     end: fmtT(endD),
@@ -346,7 +356,7 @@ for (const merged of mergedWindows) {
     cacheWrite: sumCacheWrite,
     cacheRead: sumCacheRead,
     metrics,
-    csvHeader: 'ts,model,input,cc,cc5m,cc1h,cr,out,cost,win,rl,evt,session',
+    csvHeader: 'ts,model,input,cc,cc5m,cc1h,cr,out,cost,win,rl,evt,line,req,session',
     csvRows: rows,
     touchedFiles,
     hasUnknown,
@@ -354,7 +364,7 @@ for (const merged of mergedWindows) {
 }
 
 // ── Step 5: Build session index & write per-window CSV files ────
-const reportDir = path.join(os.tmpdir(), 'report-limit-' + new Date().toISOString().replace(/[:.]/g, '').slice(0, 15));
+const reportDir = path.join(os.tmpdir(), 'report-limit-' + new Date().toISOString().replace(/[:.]/g, '').slice(0, 19));
 fs.mkdirSync(reportDir, { recursive: true });
 log('Report directory: ' + reportDir);
 
@@ -421,60 +431,77 @@ for (const w of results) {
 }
 
 // ── Step 6: Copy relevant timeline and ratelimit CSVs ───────────
-const allRatelimitFiles = new Set();
+// NOTE: timeline.csv copy is legacy (zip-only, not uploaded to gist).
+// All sessions share the filename "timeline.csv" so only the first is copied.
+// If reviving this feature, must rename files (e.g. timeline-{sessionHash}.csv)
+// and validate that the merged output covers all windows correctly.
 for (const w of results) {
   for (const f of w.touchedFiles.timeline) {
     const dest = path.join(reportDir, path.basename(f));
     if (!fs.existsSync(dest)) fs.copyFileSync(f, dest);
   }
-  for (const f of w.touchedFiles.ratelimit) {
-    if (!allRatelimitFiles.has(f)) allRatelimitFiles.add(f);
+}
+
+// Merge ratelimit CSVs from ALL projects (account-wide, independent of timeline).
+// ratelimit.csv only exists for sessions after setup-statusline; absence is normal.
+// Multiple concurrent sessions record the same /usage snapshots, so we merge all
+// source files, sort by timestamp, and keep only the first row where % changes.
+const rlTimeStart = Math.min(...results.map(w => w.winStart));
+const rlTimeEnd = Math.max(...results.map(w => w.winEnd));
+
+const allRows = new Set();
+for (const proj of projects) {
+  const sessions = listSessions(proj);
+  for (const sess of sessions) {
+    const rlPath = getRatelimitPath(proj, sess);
+    if (!fs.existsSync(rlPath)) continue;
+    const content = fs.readFileSync(rlPath, 'utf8').trim();
+    if (!content) continue;
+    const lines = content.split('\n');
+    for (let i = 1; i < lines.length; i++) {
+      if (!lines[i]) continue;
+      const ts = Number(lines[i].split(',')[0]);
+      if (ts >= rlTimeStart && ts < rlTimeEnd) allRows.add(lines[i]);
+    }
   }
 }
 
-// Merge all ratelimit CSVs into a single ratelimit.csv (dedup + sort by ts)
-if (allRatelimitFiles.size > 0) {
-  const allRows = new Set();
-  for (const f of allRatelimitFiles) {
-    const lines = fs.readFileSync(f, 'utf8').trim().split('\n');
-    for (let i = 1; i < lines.length; i++) {
-      if (lines[i]) allRows.add(lines[i]);
-    }
-  }
+if (allRows.size > 0) {
   const sorted = [...allRows].sort((a, b) => Number(a.split(',')[0]) - Number(b.split(',')[0]));
-  // Dedup: keep only rows where 5h or 7d changed from previous
+  // Dedup: keep only rows where 5h or 7d % changed from previous
   const deduped = [];
   let prev5h = null, prev7d = null;
   for (const row of sorted) {
     const cols = row.split(',');
-    const cur5h = cols[1] || '';
-    const cur7d = cols[3] || '';
+    const cur5h = cols[1] !== '' ? cols[1] : null;
+    const cur7d = cols[3] !== '' ? cols[3] : null;
     if (cur5h !== prev5h || cur7d !== prev7d) {
       deduped.push(row);
-      if (cur5h) prev5h = cur5h;
-      if (cur7d) prev7d = cur7d;
+      if (cur5h !== null) prev5h = cur5h;
+      if (cur7d !== null) prev7d = cur7d;
     }
   }
   // Fill first row's missing reset values (window cut may start mid-stream)
+  // Scan ALL sorted source rows (not just before firstTs) for nearest reset values
   if (deduped.length > 0) {
     const cols = deduped[0].split(',');
     if (!cols[2] || !cols[4]) {
-      // Scan all source rows for nearest reset values before first row's ts
-      const firstTs = Number(cols[0]);
       let best5h = '', best7d = '';
       for (const row of sorted) {
         const rc = row.split(',');
-        if (Number(rc[0]) > firstTs) break;
         if (rc[2]) best5h = rc[2];
         if (rc[4]) best7d = rc[4];
+        if (best5h && best7d) break;
       }
       if (!cols[2] && best5h) cols[2] = best5h;
       if (!cols[4] && best7d) cols[4] = best7d;
       deduped[0] = cols.join(',');
     }
   }
-  fs.writeFileSync(path.join(reportDir, 'ratelimit.csv'),
-    'ts,5h,5h_reset,7d,7d_reset,alert,version\n' + deduped.join('\n') + '\n');
+  if (deduped.length > 0) {
+    fs.writeFileSync(path.join(reportDir, 'ratelimit.csv'),
+      'ts,5h,5h_reset,7d,7d_reset,alert,version\n' + deduped.join('\n') + '\n');
+  }
 }
 
 // ── Step 7: Compress files into zip ─────────────────────────────

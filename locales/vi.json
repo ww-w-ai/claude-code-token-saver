@@ -109,6 +109,7 @@
     "resumeHeuristicReason": "Tiếp tục phiên với claude --continue hoặc /resume sử dụng rất nhiều token. Trừ khi cần thiết, chúng tôi khuyên dùng /continue skill sau phiên mới.",
     "cacheExpiredReason": "Khi ngữ cảnh lớn và đã qua hơn 1 giờ, cache mới được tạo — chi phí lớn!",
     "costTopLabel": "{icon} Token {type} đáng kể đã được tạo. ({tokens}, ${cost})",
+    "costCacheReadLabel": "{icon} Chi phí đọc cache cao. Ngữ cảnh lớn ({ctx}) với nhiều lượt gọi tool liên tiếp ({calls}) làm tăng chi phí. (${cost})",
     "costTypeCacheWrite": "ghi cache",
     "costTypeCacheRead": "đọc cache",
     "costTypeOutput": "đầu ra",

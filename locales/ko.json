@@ -109,6 +109,7 @@
     "resumeHeuristicReason": "claude --continue 또는 /resume으로 세션을 이어 나가는 건 토큰을 많이 사용합니다. 꼭 필요한 경우가 아니라면 새 세션 후 /continue 스킬을 권장합니다.",
     "cacheExpiredReason": "콘텍스트 크기가 클 때 1시간이 지난 후 실행하면 새로운 캐시가 발생하면서 큰 비용 발생!",
     "costTopLabel": "{icon} {type} 토큰이 많이 발생하였습니다. ({tokens}, ${cost})",
+    "costCacheReadLabel": "{icon} 캐시 읽기 비용이 큽니다. 콘텍스트({ctx})가 클 때 연속 tool 호출({calls}회)이 많으면 비용이 급증합니다. (${cost})",
     "costTypeCacheWrite": "캐시 쓰기",
     "costTypeCacheRead": "캐시 읽기",
     "costTypeOutput": "출력",

@@ -109,6 +109,7 @@
     "resumeHeuristicReason": "Возобновление сессии через claude --continue или /resume потребляет много токенов. Если не необходимо, рекомендуем /continue skill после новой сессии.",
     "cacheExpiredReason": "При большом контексте и бездействии более 1 часа генерируется новый cache — высокая стоимость!",
     "costTopLabel": "{icon} Сгенерировано значительное количество токенов {type}. ({tokens}, ${cost})",
+    "costCacheReadLabel": "{icon} Стоимость чтения кэша высокая. Большой контекст ({ctx}) с множеством последовательных вызовов ({calls}) умножает стоимость. (${cost})",
     "costTypeCacheWrite": "запись кэша",
     "costTypeCacheRead": "чтение кэша",
     "costTypeOutput": "вывод",

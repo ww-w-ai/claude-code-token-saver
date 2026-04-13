@@ -109,6 +109,7 @@
     "resumeHeuristicReason": "claude --continue या /resume से सत्र फिर से शुरू करने में बहुत सारे टोकन लगते हैं। आवश्यक न हो तो नए सत्र के बाद /continue skill की सिफारिश करते हैं।",
     "cacheExpiredReason": "जब संदर्भ बड़ा हो और 1 घंटे से अधिक बीत चुका हो, तो नया cache उत्पन्न होता है — उच्च लागत!",
     "costTopLabel": "{icon} {type} टोकन काफी अधिक थे। ({tokens}, ${cost})",
+    "costCacheReadLabel": "{icon} Cache read की लागत अधिक है। बड़ा context ({ctx}) और लगातार tool calls ({calls}) से लागत बढ़ती है। (${cost})",
     "costTypeCacheWrite": "कैश राइट",
     "costTypeCacheRead": "कैश रीड",
     "costTypeOutput": "आउटपुट",

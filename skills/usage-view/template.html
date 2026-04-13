@@ -2405,12 +2405,14 @@ function renderAlertItems(alerts, container, sessionType) {
           // But when only cost marker (*) exists without ctx (#), show the reason.
           var hasCtx = types.indexOf('ctx-warn') >= 0 || types.indexOf('ctx-danger') >= 0;
           if (!hasCtx) {
+            // Show peak single-call context size + API call count instead of aggregated tokens
+            var peak = a.peak || {};
+            var callCount = a.apiCallCount || 1;
+            var peakCtx = peak.ctx ? fmtTokens(peak.ctx) : fmtTokens(top.tokens);
+            diagMsg += i18nT(I18N.alert.costCacheReadLabel || '{icon} {type} (${cost}, context: {ctx}, API calls: {calls})', { icon: icon, type: top.type, cost: t.cost.toFixed(2), ctx: peakCtx, calls: callCount }) + '\n';
             var hasResumeH = types.indexOf('resume-heuristic') >= 0;
             if (hasResumeH) {
-              diagMsg += i18nT(I18N.alert.costTopLabel, { icon: icon, type: top.type, tokens: fmtTokens(top.tokens), cost: t.cost.toFixed(2) }) + '\n';
               diagMsg += icon + ' ' + I18N.alert.resumeHeuristicReason + '\n';
-            } else {
-              diagMsg += i18nT(I18N.alert.costTopLabel, { icon: icon, type: top.type, tokens: fmtTokens(top.tokens), cost: t.cost.toFixed(2) }) + '\n';
             }
           }
         } else if (top.name === 'output') {

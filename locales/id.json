@@ -109,6 +109,7 @@
     "resumeHeuristicReason": "Melanjutkan sesi dengan claude --continue atau /resume menggunakan banyak token. Kecuali diperlukan, kami merekomendasikan /continue skill setelah sesi baru.",
     "cacheExpiredReason": "Saat konteks besar dan lebih dari 1 jam berlalu, cache baru dihasilkan — biaya besar!",
     "costTopLabel": "{icon} Token {type} cukup banyak dihasilkan. ({tokens}, ${cost})",
+    "costCacheReadLabel": "{icon} Biaya cache read tinggi. Konteks besar ({ctx}) dengan panggilan tool berturut-turut ({calls}) melipatgandakan biaya. (${cost})",
     "costTypeCacheWrite": "tulis cache",
     "costTypeCacheRead": "baca cache",
     "costTypeOutput": "output",

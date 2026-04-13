@@ -109,6 +109,7 @@
     "resumeHeuristicReason": "استئناف جلسة باستخدام ‎claude --continue‏ أو ‎/resume‏ يستهلك الكثير من التوكنات. ما لم يكن ضرورياً، نوصي باستخدام ‎/continue skill‏ بعد جلسة جديدة.",
     "cacheExpiredReason": "عندما يكون السياق كبيراً ومر أكثر من ساعة، يتم توليد ‎cache‏ جديد — تكلفة عالية!",
     "costTopLabel": "{icon} تم توليد عدد كبير من رموز {type}. ({tokens}, ${cost})",
+    "costCacheReadLabel": "{icon} تكلفة قراءة الكاش مرتفعة. السياق الكبير ({ctx}) مع استدعاءات أدوات متتالية ({calls}) يضاعف التكلفة. (${cost})",
     "costTypeCacheWrite": "كتابة ذاكرة التخزين المؤقت",
     "costTypeCacheRead": "قراءة ذاكرة التخزين المؤقت",
     "costTypeOutput": "الإخراج",

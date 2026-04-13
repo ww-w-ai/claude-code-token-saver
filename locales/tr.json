@@ -109,6 +109,7 @@
     "resumeHeuristicReason": "claude --continue veya /resume ile oturum devam ettirmek çok token kullanır. Gerekli değilse, yeni oturumdan sonra /continue skill öneririz.",
     "cacheExpiredReason": "Bağlam büyük olduğunda ve 1 saatten fazla geçtiğinde yeni cache oluşturulur — yüksek maliyet!",
     "costTopLabel": "{icon} Belirgin miktarda {type} token oluşturuldu. ({tokens}, ${cost})",
+    "costCacheReadLabel": "{icon} Cache okuma maliyeti yüksek. Büyük bağlam ({ctx}) ile ardışık tool çağrıları ({calls}) maliyeti katlar. (${cost})",
     "costTypeCacheWrite": "önbellek yazma",
     "costTypeCacheRead": "önbellek okuma",
     "costTypeOutput": "çıktı",

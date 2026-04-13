@@ -109,6 +109,7 @@
     "resumeHeuristicReason": "Retomar uma sessão com claude --continue ou /resume usa muitos tokens. A menos que necessário, recomendamos /continue skill após uma nova sessão.",
     "cacheExpiredReason": "Quando o contexto é grande e mais de 1 hora se passou, novo cache é gerado — custo alto!",
     "costTopLabel": "{icon} Tokens de {type} significativos gerados. ({tokens}, ${cost})",
+    "costCacheReadLabel": "{icon} O custo de leitura de cache é alto. Contexto grande ({ctx}) com muitas chamadas consecutivas ({calls}) multiplica o custo. (${cost})",
     "costTypeCacheWrite": "escrita de cache",
     "costTypeCacheRead": "leitura de cache",
     "costTypeOutput": "saída",

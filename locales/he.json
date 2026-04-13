@@ -109,6 +109,7 @@
     "resumeHeuristicReason": "חידוש הפעלה עם ‎claude --continue‏ או ‎/resume‏ צורך הרבה טוקנים. אלא אם כן הכרחי, אנו ממליצים על ‎/continue skill‏ לאחר הפעלה חדשה.",
     "cacheExpiredReason": "כאשר ההקשר גדול ועברה יותר משעה, נוצר ‎cache‏ חדש — עלות גבוהה!",
     "costTopLabel": "{icon} נוצרו טוקני {type} במספר משמעותי. ({tokens}, ${cost})",
+    "costCacheReadLabel": "{icon} עלות קריאת cache גבוהה. הקשר גדול ({ctx}) עם קריאות כלים רצופות ({calls}) מכפיל את העלות. (${cost})",
     "costTypeCacheWrite": "כתיבת מטמון",
     "costTypeCacheRead": "קריאת מטמון",
     "costTypeOutput": "פלט",

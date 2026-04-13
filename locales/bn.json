@@ -109,6 +109,7 @@
     "resumeHeuristicReason": "claude --continue বা /resume দিয়ে সেশন পুনরায় শুরু করলে অনেক টোকেন খরচ হয়। প্রয়োজন না হলে নতুন সেশনের পরে /continue skill সুপারিশ করি।",
     "cacheExpiredReason": "কনটেক্সট বড় হলে এবং ১ ঘণ্টার বেশি সময় পার হলে নতুন cache তৈরি হয় — উচ্চ খরচ!",
     "costTopLabel": "{icon} {type} টোকেন উল্লেখযোগ্যভাবে বেশি ছিল। ({tokens}, ${cost})",
+    "costCacheReadLabel": "{icon} Cache read খরচ বেশি। বড় context ({ctx}) এবং পরপর tool call ({calls}) খরচ বাড়ায়। (${cost})",
     "costTypeCacheWrite": "ক্যাশে রাইট",
     "costTypeCacheRead": "ক্যাশে রিড",
     "costTypeOutput": "আউটপুট",

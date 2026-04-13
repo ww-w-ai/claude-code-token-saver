@@ -109,6 +109,7 @@
     "resumeHeuristicReason": "使用 claude --continue 或 /resume 恢复会话会消耗大量 token。如非必要，建议在新会话开始后使用 /continue 技能。",
     "cacheExpiredReason": "上下文较大且超过1小时未使用时，会生成新的 cache — 费用很高！",
     "costTopLabel": "{icon} {type} 令牌使用量较大。({tokens}, ${cost})",
+    "costCacheReadLabel": "{icon} 缓存读取成本较高。上下文较大({ctx})时连续tool调用({calls}次)会使成本急增。(${cost})",
     "costTypeCacheWrite": "缓存写入",
     "costTypeCacheRead": "缓存读取",
     "costTypeOutput": "输出",

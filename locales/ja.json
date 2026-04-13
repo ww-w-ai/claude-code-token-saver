@@ -109,6 +109,7 @@
     "resumeHeuristicReason": "claude --continue または /resume でのセッション再開は大量のトークンを使用します。必要でなければ、新しいセッション開始後に /continue スキルを推奨します。",
     "cacheExpiredReason": "コンテキストが大きく1時間以上経過すると、新しいcacheが生成されます — 大きなコスト！",
     "costTopLabel": "{icon} {type} トークンが多く発生しました。({tokens}, ${cost})",
+    "costCacheReadLabel": "{icon} キャッシュ読み取りコストが大きいです。コンテキスト({ctx})が大きい時に連続tool呼出({calls}回)が多いとコストが急増します。(${cost})",
     "costTypeCacheWrite": "キャッシュ書き込み",
     "costTypeCacheRead": "キャッシュ読み込み",
     "costTypeOutput": "出力",

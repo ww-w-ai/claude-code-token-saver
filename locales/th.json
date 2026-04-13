@@ -109,6 +109,7 @@
     "resumeHeuristicReason": "การกลับมาเซสชันด้วย claude --continue หรือ /resume ใช้โทเค็นจำนวนมาก หากไม่จำเป็น แนะนำ /continue skill หลังเซสชันใหม่",
     "cacheExpiredReason": "เมื่อบริบทใหญ่และผ่านไปมากกว่า 1 ชั่วโมง cache ใหม่จะถูกสร้าง — ค่าใช้จ่ายสูง!",
     "costTopLabel": "{icon} มีโทเคน {type} จำนวนมาก ({tokens}, ${cost})",
+    "costCacheReadLabel": "{icon} ค่าอ่าน cache สูง บริบทใหญ่ ({ctx}) กับ tool calls ต่อเนื่อง ({calls} ครั้ง) ทำให้ค่าใช้จ่ายเพิ่มขึ้นมาก (${cost})",
     "costTypeCacheWrite": "เขียนแคช",
     "costTypeCacheRead": "อ่านแคช",
     "costTypeOutput": "เอาต์พุต",

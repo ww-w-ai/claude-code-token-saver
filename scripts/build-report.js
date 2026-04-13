@@ -626,7 +626,7 @@ function readCompactAlerts(sessionId) {
       lineNum: Number(m[2]),
       time: m[1],
       markers: markers,
-      text: text.slice(0, 120),
+      text: text.slice(0, 300),
       alertType: alertTypes.join('+') || 'info',
       tokens: null,
       isInfoOnly: true,
@@ -693,12 +693,15 @@ function computeSessionUserTurns(sessionId, userAlerts, timelineRows) {
     const breakdown = [];
     let acompactCostSum = 0, acompactCallSum = 0;
     let firstCtx = null;
+    let maxCrRow = null; // track single API call with largest cache read
+    let apiCallCount = 0;
     for (const row of rows) {
       if (row.mergedFromAcompact) {
         acompactCostSum += row.acompactCost || 0;
         acompactCallSum += row.acompactCallCount || 0;
       }
       if (row.cost > 0 || row.input > 0) {
+        apiCallCount++;
         if (firstCtx === null) {
           firstCtx = (row.input || 0) + (row.cc || 0) + (row.cr || 0);
         }
@@ -709,6 +712,11 @@ function computeSessionUserTurns(sessionId, userAlerts, timelineRows) {
         agg.cr += row.cr || 0;
         agg.out += row.out || 0;
         agg.cost += row.cost || 0;
+        // Track the single API call with the largest context (input + cc + cr)
+        const rowCtx = (row.input || 0) + (row.cc || 0) + (row.cr || 0);
+        if (!maxCrRow || rowCtx > maxCrRow.ctx) {
+          maxCrRow = { ctx: rowCtx, cr: row.cr || 0, cost: row.cost || 0 };
+        }
         breakdown.push({ line: row.line, ts: row.ts, cost: row.cost, evt: row.evt || '', rl: row.rl || '' });
       }
       const evt = row.evt || '';
@@ -722,7 +730,7 @@ function computeSessionUserTurns(sessionId, userAlerts, timelineRows) {
     }
     aggregates.set(alert.lineNum, {
       alert, agg, hasCtxWarn, hasCtxDanger, hasHeuristic, rlTypes,
-      breakdown, acompactCostSum, acompactCallSum, firstCtx
+      breakdown, acompactCostSum, acompactCallSum, firstCtx, apiCallCount, maxCrRow
     });
   }
   const result = { sortedAlerts, aggregates };
@@ -740,7 +748,7 @@ function buildAlertsFromUserTurns(sessionId, userAlerts, timelineRows) {
   for (const alert of sortedAlerts) {
     const turn = aggregates.get(alert.lineNum);
     if (!turn) continue;
-    const { agg, hasCtxWarn, hasCtxDanger, hasHeuristic, rlTypes, breakdown, acompactCostSum, acompactCallSum } = turn;
+    const { agg, hasCtxWarn, hasCtxDanger, hasHeuristic, rlTypes, breakdown, acompactCostSum, acompactCallSum, apiCallCount, maxCrRow } = turn;
 
     // Per-user-turn aggregated cost thresholds (higher than per-row because a
     // single user prompt can fan out to many assistant turns; $0.80/$2.50 cuts
@@ -774,6 +782,10 @@ function buildAlertsFromUserTurns(sessionId, userAlerts, timelineRows) {
       out: agg.out,
       cost: Math.round(agg.cost * 10000) / 10000
     };
+    alert.apiCallCount = apiCallCount;
+    if (maxCrRow) {
+      alert.peak = { ctx: maxCrRow.ctx, cr: maxCrRow.cr, cost: Math.round(maxCrRow.cost * 10000) / 10000 };
+    }
     alert.turnBreakdown = breakdown;
     alert.turnCount = breakdown.length;
     if (acompactCostSum > 0) {
@@ -1743,8 +1755,8 @@ for (let h = 0; h < 24; h++) {
     continue;
   }
   const costs = Object.values(hourCostsByDay[h]);
-  const totalDays = days > 0 ? days : 1;
-  const avg = round2(costs.reduce((s, c) => s + c, 0) / totalDays);
+  const activeDays = daySetByHour[h].size || 1;
+  const avg = round2(costs.reduce((s, c) => s + c, 0) / activeDays);
   const max = round2(Math.max(...costs));
   hourlyStats.push({ hour: h, avg, max });
 }

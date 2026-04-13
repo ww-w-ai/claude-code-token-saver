@@ -112,6 +112,7 @@
     "resumeHeuristicReason": "Resuming a session with claude --continue or /resume uses a lot of tokens. Unless necessary, we recommend /continue skill after a new session.",
     "cacheExpiredReason": "When context is large and over 1 hour has passed, new cache is generated — large cost!",
     "costTopLabel": "{icon} {type} tokens were significant. ({tokens}, ${cost})",
+    "costCacheReadLabel": "{icon} Cache read cost is high. Large context ({ctx}) with many consecutive tool calls ({calls}) multiplies cost. (${cost})",
     "costTypeCacheWrite": "cache write",
     "costTypeCacheRead": "cache read",
     "costTypeOutput": "output",
