@@ -150,7 +150,14 @@ What's included:
 - Token breakdown (input, output, cache write, cache read) — see what's driving costs
 - Per-session cost analysis — pinpoint which tasks were expensive
 - 5-hour window timeline (Max Plan subscribers) — trace rate limit triggers
-- AI-powered insight analysis — interprets data and suggests improvements
+- Context size distribution chart — 4-bucket breakdown of where your tokens land
+- Cost by Context Size bubble chart — density clustering reveals cost hotspots
+- Model-based coloring (Opus/Sonnet/Haiku) matching API pricing lines
+- Theoretical pricing lines (1h/5m cache write, cache read) per model
+- Dual average toggle: Avg (active days) / Avg (all days) / Max
+- Per-user-turn cost view with $50 cap and star markers for outliers
+- Cache read alert with context size and API call count
+- AI-powered insight analysis — interprets data with API pricing reference for accurate insights
 - 23 languages supported (RTL included; charts/tables stay LTR)
 
 ```

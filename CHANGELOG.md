@@ -90,6 +90,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `preprocess.js` cost/ctx/heuristic/rate-limit marker emission (moved to `analyze-usage.js`).
 - `preprocess.js` now no longer imports `model-pricing.json` or computes `calcCost` — all pricing logic lives in `analyze-usage.js`.
 
+## [1.4.4] - 2026-04-14
+
+### Changed
+
+- Translated hardcoded Korean text to English in preprocess.js, continue/SKILL.md, report-limit/SKILL.md
+- LLM prompt: enforced "context size" terminology across all 3 sections
+- LLM prompt: detailed resume/compact cost explanation (re-cache vs read+summarize+re-cache)
+- LLM prompt: praise mode when entire period is post-plugin-install
+- LLM prompt: corrected cost warning thresholds ($0.80/$2.50)
+- LLM prompt: each data section annotated with corresponding chart name
+
+## [1.4.3] - 2026-04-14
+
+### Added
+
+- Hourly/DOW charts: dual average toggle — Avg (active days) / Avg (all days) / Max
+- Partial-hour normalization at data boundaries (≤14 days)
+- DOW: first+last day same DOW merged as one in calendar count
+
+### Changed
+
+- Cost thresholds (TURN_COST_WARN/DANGER, DEFAULT_COST_FILTER) centralized at file top
+- costThresholds injected into REPORT_DATA for template and AI prompt use
+- Default cutoff: exact time (not midnight) for 1-month-ago
+- Month boundary fix: 3/31 → 2/28 via setDate(0)
+- Context distribution: returns "NO DATA" when empty to prevent LLM fabrication
+
+## [1.4.2] - 2026-04-13
+
+### Added
+
+- Bubble chart: grid-based density clustering (50×50) replaces scatter plot
+- Model-based colors: Opus (red), Sonnet (blue), Haiku (green) with z-ordering
+- CW/Non-CW/User Turn 3-mode toggle with per-model datasets
+- Theoretical pricing lines per model with 3 dash styles (1h/5m/CR)
+- CW mode: model checkboxes to toggle price lines on/off
+- User Turn: $50 cap with red star markers for exceeded turns
+- Cluster tooltip: top 3 entries with token breakdown + call count
+- API pricing table added to AI prompt for accurate cost references
+
+### Changed
+
+- ASST_COST_FLOOR=0.05 for CW, no floor for Non-CW
+- USER_TURN_COST_FLOOR=0 (include all turns)
+- AI prompt section1 scoped to summary numbers only
+- AI prompt section2 CW/Non-CW/Distribution consolidated
+
+## [1.4.1] - 2026-04-13
+
+### Fixed
+
+- report-limit: --date filter now only includes windows for specified date
+- report-limit: ratelimit.csv collected account-wide from all projects
+- report-limit: ratelimit.csv filtered by window time range
+- report-limit: dedup '0' falsy bug fixed in ratelimit processing
+- report-limit: 7d_reset first row fill logic improved
+- report-limit: window CSV header corrected (13→15 columns)
+- hourlyStats avg: divide by actual active days per hour (not total days)
+
+### Added
+
+- Cache read alert: descriptive i18n message with context size and API call count (23 locales)
+- report-limit: directory name includes milliseconds to prevent collision
+- Alert: peak context size and apiCallCount per user turn
+- Alert text: preserve up to 300 chars (was 120)
+
 ## [1.3.0] - 2026-04-09
 
 ### Fixed

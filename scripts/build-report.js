@@ -47,6 +47,11 @@
  *     - windows[].rlHours: hours within window where limit_hit occurred (renders as skulls on calendar)
  *     - windows[].alertMessages: from ratelimit CSVs (5h threshold crossings)
  *
+ * v1.4.1: report-limit fixes, hourly avg by active days, cache read alert i18n
+ * v1.4.2: bubble chart, model colors, price lines, dual avg
+ * v1.4.3: partial-hour normalization, DOW boundary merge, cost thresholds centralized
+ * v1.4.4: Korean text translated, LLM prompt accuracy improvements
+ *
  * Supported locales (23): en ko ja zh es fr de pt it ru ar hi bn id ms th vi tr pl nl he sv no
  */
 

@@ -150,7 +150,14 @@ SubTask는 Main 대비 **37.5% 저렴한 cache write** 비용이 적용된다. �
 - Token breakdown (input, output, cache write, cache read) — 비용의 원인이 보인다
 - 세션별 비용 분석 — 어떤 작업이 비쌌는지 특정할 수 있다
 - 5시간 윈도우 타임라인 (Max Plan subscriber) — rate limit 원인을 역추적할 수 있다
-- AI 기반 인사이트 분석 — 데이터를 해석해서 개선 방향을 제안한다
+- Context 크기 분포 차트 — 4단계 버킷으로 토큰이 어디에 집중되는지 한눈에 파악
+- Context 크기별 비용 버블 차트 — 밀집 클러스터링으로 비용 핫스팟 시각화
+- 모델별 색상 구분 (Opus/Sonnet/Haiku) + API 가격 라인 매칭
+- 이론적 가격 라인 (1h/5m cache write, cache read) 모델별 표시
+- 이중 평균 토글: Avg (활동일) / Avg (전체일) / Max
+- 사용자 턴별 비용 뷰 — $50 상한선 + 이상치 별표 마커
+- Cache read 경고 — context 크기 및 API 호출 횟수 포함
+- AI 기반 인사이트 분석 — API 가격 참조를 포함해 정확한 인사이트 제공
 - 23개 언어 지원 (RTL 포함, charts/tables는 LTR 유지)
 
 ```
