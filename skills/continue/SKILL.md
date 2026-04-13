@@ -91,7 +91,7 @@ Enter:
   - "more" for pagination
   - (empty) for default
 
-💡 주제 검색은 LLM 단계가 추가되어 더 오래 걸리지만 특정 내용의 기억을 더 정확히 복원합니다.
+💡 Topic search adds an LLM step so it takes longer, but restores specific memories more accurately.
 ```
 
 Use `--limit N` and `--offset N` for pagination. When the user types "more", re-run list-sessions with `--offset` increased by 10 (the limit). Numbers continue sequentially across pages.
@@ -356,11 +356,11 @@ You MUST review the last 5 messages from the restored context and provide a "Las
 {2-4 bullet points — what was accomplished, open items, pending decisions or in-progress tasks.}
 
 ---
-💡 **기억 검색 프롬프트**: 특정 주제에 대한 기억이 흐릿하면 다음과 같이 지시하세요:
-> ___ 에 대해 이전에 나눈 대화가 있을 거야. 텍스트에서 관련 메시지를 찾고, 잘린 부분이 있으면 세션ID 와 라인번호를 참고해서 원본 트랜스크립트에서 전문을 가져와서 기억해내.
+💡 **Memory search prompt**: If your memory of a specific topic is vague, try this:
+> There should be a previous conversation about ___. Find related messages in the text, and if any parts are truncated, use the session ID and line number to retrieve the full text from the original transcript.
 ```
 
-The 기억 검색 프롬프트 block goes at the VERY END (after Last messages and Session summary), so it's the last thing the LLM/user sees.
+The Memory search prompt block goes at the VERY END (after Last messages and Session summary), so it's the last thing the LLM/user sees.
 
 ## Output Rules
 
@@ -368,4 +368,4 @@ The 기억 검색 프롬프트 block goes at the VERY END (after Last messages a
 - Do NOT output emoji status lines, cost calculations, token counts, or savings estimates.
 - Do NOT improvise additional statistics like "Restored context: X tokens" or "Estimated /compact cost".
 - The Step 6 format is the ONLY permitted final output. Follow it exactly.
-- The 기억 검색 프롬프트 block must be in Korean exactly as specified — do not translate.
+- The Memory search prompt block must appear exactly as specified above.

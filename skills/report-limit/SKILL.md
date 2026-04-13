@@ -39,7 +39,7 @@ Before running, ask the user's plan if not already known. The prompt message MUS
 
 > Select your current Claude plan. The report will be generated based on your plan type.
 >
-> (Translate the above message naturally into the user's language. Example: Korean → "현재 Claude 플랜을 선택해주세요. 선택한 플랜을 기반으로 리포트를 생성합니다.")
+> (Translate the above message naturally into the user's language. Example Korean translation → "현재 Claude 플랜을 선택해주세요. 선택한 플랜을 기반으로 리포트를 생성합니다.")
 >
 > | # | Plan | Price |
 > |---|------|-------|

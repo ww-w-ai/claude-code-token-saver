@@ -246,7 +246,7 @@ function truncateUser(text) {
   const tail = flat.slice(tailStart).trim();
   // Approximate omitted line count
   const omittedLines = Math.max(1, originalLineCount - 2);
-  return head + ` ..[${omittedLines}라인 축약됨].. ` + tail;
+  return head + ` ..[${omittedLines}lines omitted].. ` + tail;
 }
 
 // Truncate assistant preview per v5 rules (simple HEAD + TAIL)
