@@ -715,12 +715,18 @@
     <div class="chart-container">
       <h3 style="display:flex;align-items:center;gap:12px">Hourly Cost Pattern
         <span id="hourlyToggle" style="display:inline-flex;gap:4px;font-size:12px;cursor:pointer">
-          <span id="btnHourAvg" style="padding:2px 8px;border-radius:4px;background:#58a6ff;color:#0d1117">Avg</span>
-          <span id="btnHourMax" style="padding:2px 8px;border-radius:4px;background:var(--bg-tertiary);color:var(--text-secondary)">Max</span>
+          <span id="btnHourAvg" style="padding:2px 8px;border-radius:4px;background:#58a6ff;color:#0d1117;cursor:pointer">Avg (active days)</span>
+          <span id="btnHourCal" style="padding:2px 8px;border-radius:4px;background:var(--bg-tertiary);color:var(--text-secondary);cursor:pointer">Avg (all days)</span>
+          <span id="btnHourMax" style="padding:2px 8px;border-radius:4px;background:var(--bg-tertiary);color:var(--text-secondary);cursor:pointer">Max</span>
         </span>
       </h3>
       <div class="chart-wrapper">
         <canvas id="hourlyChart"></canvas>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:6px;padding-left:4px">
+        <div>* Active days: average cost only on days you actually used this hour.</div>
+        <div>* All days: spread across every calendar day in the period (including days off).</div>
+        <div>* Partial hours at the start/end of the period are normalized to a full hour.</div>
       </div>
     </div>
   </div>
@@ -729,12 +735,18 @@
     <div class="chart-container">
       <h3 style="display:flex;align-items:center;gap:12px">Day-of-Week Cost Pattern
         <span id="dowToggle" style="display:inline-flex;gap:4px;font-size:12px;cursor:pointer">
-          <span id="btnDowAvg" style="padding:2px 8px;border-radius:4px;background:#58a6ff;color:#0d1117">Avg</span>
-          <span id="btnDowMax" style="padding:2px 8px;border-radius:4px;background:var(--bg-tertiary);color:var(--text-secondary)">Max</span>
+          <span id="btnDowAvg" style="padding:2px 8px;border-radius:4px;background:#58a6ff;color:#0d1117;cursor:pointer">Avg (active days)</span>
+          <span id="btnDowCal" style="padding:2px 8px;border-radius:4px;background:var(--bg-tertiary);color:var(--text-secondary);cursor:pointer">Avg (all days)</span>
+          <span id="btnDowMax" style="padding:2px 8px;border-radius:4px;background:var(--bg-tertiary);color:var(--text-secondary);cursor:pointer">Max</span>
         </span>
       </h3>
       <div class="chart-wrapper">
         <canvas id="dowChart"></canvas>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:6px;padding-left:4px">
+        <div>* Active days: average only on weeks you worked that day.</div>
+        <div>* All days: divided by every occurrence of that weekday in the period.</div>
+        <div>* Partial days at boundaries are normalized.</div>
       </div>
     </div>
   </div>
@@ -1154,11 +1166,7 @@ function i18nT(template, vars) {
     ctxCostTitle.textContent = '\uD83D\uDCB8 ' + I18N.chart.ctxCostTitle;
   }
 
-  // Toggle button text
-  document.getElementById('btnHourAvg').textContent = I18N.chart.avg;
-  document.getElementById('btnHourMax').textContent = I18N.chart.max;
-  document.getElementById('btnDowAvg').textContent = I18N.chart.avg;
-  document.getElementById('btnDowMax').textContent = I18N.chart.max;
+  // Toggle button text — keep English labels (technical terms)
 
   // Efficiency select options
   var effSelect = document.getElementById('efficiencyMetricSelect');
@@ -1570,13 +1578,13 @@ function renderBarChart() {
 // ─── Render: Hourly Cost Pattern Chart ──────────────────────
 
 var hourlyChart = null;
-var hourlyMode = 'avg'; // 'avg' or 'max'
+var hourlyMode = 'avg'; // 'avg', 'max', or 'calAvg'
 
 function renderHourlyChart() {
   if (hourlyChart) { hourlyChart.destroy(); hourlyChart = null; }
 
-  var dataKey = hourlyMode === 'avg' ? 'avg' : 'max';
-  var label = hourlyMode === 'avg' ? I18N.chart.avgCost : I18N.chart.maxCost;
+  var dataKey = hourlyMode;
+  var label = hourlyMode === 'avg' ? I18N.chart.avgCost : hourlyMode === 'calAvg' ? 'Cal Avg' : I18N.chart.maxCost;
   var sorted = REPORT_DATA.hourlyStats.filter(function(d) { return d[dataKey] > 0; }).sort(function(a, b) { return b[dataKey] - a[dataKey]; });
   var topN = REPORT_DATA.currentMode ? 1 : 3;
   var top3Hours = new Set(sorted.slice(0, topN).map(function(d) { return d.hour; }));
@@ -1631,14 +1639,17 @@ function renderHourlyChart() {
   // Update toggle buttons
   var btnAvg = document.getElementById('btnHourAvg');
   var btnMax = document.getElementById('btnHourMax');
+  var btnCal = document.getElementById('btnHourCal');
   btnAvg.style.background = hourlyMode === 'avg' ? '#58a6ff' : 'var(--bg-tertiary)';
   btnAvg.style.color = hourlyMode === 'avg' ? '#0d1117' : 'var(--text-secondary)';
   btnMax.style.background = hourlyMode === 'max' ? '#58a6ff' : 'var(--bg-tertiary)';
   btnMax.style.color = hourlyMode === 'max' ? '#0d1117' : 'var(--text-secondary)';
+  if (btnCal) { btnCal.style.background = hourlyMode === 'calAvg' ? '#58a6ff' : 'var(--bg-tertiary)'; btnCal.style.color = hourlyMode === 'calAvg' ? '#0d1117' : 'var(--text-secondary)'; }
 }
 
 document.getElementById('btnHourAvg').addEventListener('click', function() { hourlyMode = 'avg'; renderHourlyChart(); });
 document.getElementById('btnHourMax').addEventListener('click', function() { hourlyMode = 'max'; renderHourlyChart(); });
+document.getElementById('btnHourCal').addEventListener('click', function() { hourlyMode = 'calAvg'; renderHourlyChart(); });
 
 // ─── Render: Day-of-Week Chart ─────────────────────────────
 
@@ -1647,8 +1658,8 @@ var dowMode = 'avg';
 
 function renderDowChart() {
   if (dowChart) { dowChart.destroy(); dowChart = null; }
-  var dataKey = dowMode === 'avg' ? 'avg' : 'max';
-  var label = dowMode === 'avg' ? I18N.chart.avgCost : I18N.chart.maxCost;
+  var dataKey = dowMode;
+  var label = dowMode === 'avg' ? I18N.chart.avgCost : dowMode === 'calAvg' ? 'Cal Avg' : I18N.chart.maxCost;
   var sorted = REPORT_DATA.dowStats.filter(function(d) { return d[dataKey] > 0; }).sort(function(a, b) { return b[dataKey] - a[dataKey]; });
   var top1Dow = sorted.length > 0 ? sorted[0].dow : -1;
 
@@ -1693,14 +1704,17 @@ function renderDowChart() {
 
   var btnA = document.getElementById('btnDowAvg');
   var btnM = document.getElementById('btnDowMax');
+  var btnDC = document.getElementById('btnDowCal');
   btnA.style.background = dowMode === 'avg' ? '#58a6ff' : 'var(--bg-tertiary)';
   btnA.style.color = dowMode === 'avg' ? '#0d1117' : 'var(--text-secondary)';
   btnM.style.background = dowMode === 'max' ? '#58a6ff' : 'var(--bg-tertiary)';
   btnM.style.color = dowMode === 'max' ? '#0d1117' : 'var(--text-secondary)';
+  if (btnDC) { btnDC.style.background = dowMode === 'calAvg' ? '#58a6ff' : 'var(--bg-tertiary)'; btnDC.style.color = dowMode === 'calAvg' ? '#0d1117' : 'var(--text-secondary)'; }
 }
 
 document.getElementById('btnDowAvg').addEventListener('click', function() { dowMode = 'avg'; renderDowChart(); });
 document.getElementById('btnDowMax').addEventListener('click', function() { dowMode = 'max'; renderDowChart(); });
+document.getElementById('btnDowCal').addEventListener('click', function() { dowMode = 'calAvg'; renderDowChart(); });
 
 // ─── Render: Efficiency Trend Chart ───────────────────────────
 
@@ -2403,7 +2417,7 @@ function updateModelSelectVisibility() {
 
 var selectedWindowKey = null;
 // Cost-threshold filter state (see slider in calendar section)
-var defaultCostThreshold = 0.80;
+var defaultCostThreshold = (REPORT_DATA.costThresholds && REPORT_DATA.costThresholds.defaultFilter) || 0.80;
 var currentCostThreshold = 0.80;
 var lastDetailRender = null; // thunk to re-render the currently-open detail panel
 function alertPassesCostFilter(a) {

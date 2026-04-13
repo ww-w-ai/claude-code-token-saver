@@ -89,13 +89,17 @@ SCOPE: Section1 uses ONLY the top-level summary numbers (total cost, token break
 - If <20% improvement or insufficient data, skip that metric and say "not enough data yet to draw conclusions"
 - Autonomous Runs list (≥20 min long-running prompts): analyze what kinds of prompts triggered these long runs — refactors, multi-step debugging, Ralph-loop style automation, research? Are they cost-effective compared to interactive back-and-forth, or do they show runaway cost patterns? Comment on whether autonomous runs dominate the top costs or are a small tail.
 - Empathize warmly with users who lean on autonomous runs — this is a legitimate workflow (especially for solo devs leveraging AI for long tasks), not a misuse. Never judgemental. Frame as "you trust the AI to run long" with practical tips only.
-- Cost by Context Size + Context Size Distribution — CONSOLIDATE into 1-2 paragraphs:
-  Write ONE unified analysis covering CW (cache write dominant calls), Non-CW (cache read/output dominant), User Turn, and the 4-bucket context distribution together. Do NOT repeat similar points across separate paragraphs. Key points to weave together:
-  - Opus cache write is the most expensive per-call cost. It happens when cache expires (1h+ idle) or after /resume, --continue.
-  - Non-CW calls: context size drives cache read cost. Keeping context small = cheaper calls.
-  - 500K+ bucket is disproportionately expensive vs ~250K. Guide: /clear then /continue before context grows past 350K.
-  - User Turn: high-cost turns from autonomous runs (Ralph Loop etc.) are legitimate, but running them at large context (500K+) multiplies cost.
-  Combine all this into a coherent flow — don't list them separately.
+- Cost by Context Size + Context Size Distribution — ONE clear paragraph with this structure:
+  STEP 1: State the simple fact from context distribution data — what % of calls are in the cheapest bucket, and how much more expensive is the 500K+ bucket (cite exact avg cost per call numbers from the data).
+  STEP 2: Explain WHY in plain language — every time you send a message, the AI re-reads the entire conversation history. The longer the conversation, the more it costs per message. That's it. No jargon needed.
+  STEP 3: Give ONE actionable tip — when the conversation gets long, use /clear to start fresh and /continue to bring back what you need. This keeps most of your messages in the cheap zone.
+
+  RULES for this paragraph:
+  - Do NOT mention CW/Non-CW/cache write/cache read/cache regeneration here. Those are separate concepts already covered.
+  - Do NOT repeat the same advice that appeared earlier in the analysis.
+  - Do NOT list multiple scenarios or edge cases. Keep it simple.
+  - Use ONLY the context distribution numbers from the data. If the data says "NO DATA", skip this entirely.
+  - Write as if explaining to someone who has never seen a token or API before.
 
 ## section3 (10 sentences): Window & Session Analysis
 
@@ -105,7 +109,7 @@ SCOPE: Section1 uses ONLY the top-level summary numbers (total cost, token break
 - Usage limit hits (skull marks in calendar = "You've hit your limit"): express as N "times" not "hours". Distinguish before/after installation, advise proactive context management (/clear then /continue to restore)
 - Session Activity Summary data (don't mention marker symbols — they're internal):
   - Skip session start counts. Only mention clear counts if meaningful
-  - Cost markers: individual messages costing $0.50+. Two levels: * = "cost warning" (≥$0.50), ** = "cost danger" (≥$1.00). Explain most are due to growing context, frame as "each one signaled a good time to clean up context". Guide: "click that time point in the hourly usage calendar for details". Never say "alert" — say "warning" or "danger"
+  - Cost markers: per-user-turn aggregated cost. Two levels: * = "cost warning" (≥$0.80), ** = "cost danger" (≥$2.50). These are NOT always caused by large context — they reflect the combined cost of cache read + cache write + output + input for all API calls in that turn. Common causes: (1) large context → high cache read per call, (2) cache regeneration → expensive cache write, (3) many consecutive tool calls → cost multiplied, (4) long AI output. Analyze the actual token breakdown before attributing cause. Guide: "click that time point in the hourly usage calendar for details". Never say "alert" — say "warning" or "danger"
   - Context size markers: two levels: # = "context size warning" (context window ≥35%), ## = "context size danger" (≥70%). If many, advise context cleanup needed. Never say "alert" or "conversation size" — say "context size"
   - resume/compact vs /continue — CONSOLIDATE into one concise paragraph:
     resume/compact both re-cache the entire context (costly). /continue skill costs zero. Mention resume/compact count, /continue count, and the contrast in ONE paragraph. Don't separate them into multiple blocks.

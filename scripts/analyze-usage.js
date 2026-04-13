@@ -745,10 +745,15 @@ async function main() {
     cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - opts.days);
   } else if (opts.days === -1) {
-    // Default: 1 month ago (same date last month)
+    // Default: 1 month ago from now (exact time)
+    // Handle month boundary: 3/31 → setMonth(2) → JS makes 3/3, fix to 2/28
     cutoff = new Date();
+    const origDate = cutoff.getDate();
     cutoff.setMonth(cutoff.getMonth() - 1);
-    cutoff.setHours(0, 0, 0, 0);
+    if (cutoff.getDate() !== origDate) {
+      // Month overflow: go to last day of previous month
+      cutoff.setDate(0); // day 0 = last day of previous month
+    }
   } else {
     // --days 0 = all
     cutoff = new Date(0);

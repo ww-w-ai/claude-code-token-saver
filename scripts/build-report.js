@@ -62,6 +62,11 @@ const { MODEL_PRICING, DEFAULT_PRICING, getRates } = require('./lib/pricing');
 const TEMPLATE_PATH = path.join(__dirname, '..', 'skills', 'usage-view', 'template.html');
 const LOCALES_DIR = path.join(__dirname, '..', 'locales');
 
+// ── Cost thresholds (used in alerts + AI prompt) ────────────────
+const TURN_COST_WARN = 0.80;   // per-user-turn cost warning
+const TURN_COST_DANGER = 2.50; // per-user-turn cost danger
+const DEFAULT_COST_FILTER = 0.80; // calendar detail panel default filter
+
 // ── Args ────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
 let dataPath = null, outputPath = null, currentMode = false, aiDataPath = null, exportPromptPath = null, exportDataPath = null, importDataPath = null, localeArg = null, planArg = null, projectFilter = null;
@@ -753,8 +758,7 @@ function buildAlertsFromUserTurns(sessionId, userAlerts, timelineRows) {
     // Per-user-turn aggregated cost thresholds (higher than per-row because a
     // single user prompt can fan out to many assistant turns; $0.80/$2.50 cuts
     // noise vs the per-row $0.50/$1.00 banding).
-    const TURN_COST_WARN = 0.80;
-    const TURN_COST_DANGER = 2.50;
+    // TURN_COST_WARN, TURN_COST_DANGER defined at file top
     let hasCostWarn = false, hasCostDanger = false;
     if (agg.cost >= TURN_COST_DANGER) hasCostDanger = true;
     else if (agg.cost >= TURN_COST_WARN) hasCostWarn = true;
@@ -1841,6 +1845,7 @@ for (const row of allRows) {
 }
 
 // Boundary timestamps for partial-hour weighting
+// Note: uses local time (getHours). DST transitions may cause ±1h per year — negligible.
 const firstTs = allRows.length > 0 ? Math.min(...allRows.map(r => r.ts)) : 0;
 const lastTs = allRows.length > 0 ? Math.max(...allRows.map(r => r.ts)) : 0;
 const firstD = new Date(firstTs * 1000);
@@ -1871,23 +1876,27 @@ for (let h = 0; h < 24; h++) {
     hourlyStats.push({ hour: h, avg: 0, max: 0, calAvg: 0 });
     continue;
   }
-  // Active avg with partial-hour weighting at boundaries
-  const weightedCosts = Object.entries(hourCostsByDay[h]).map(([dateKey, cost]) => {
+  // Normalize partial-hour costs at boundaries to full-hour equivalent
+  // e.g., if only 30 min of data in that hour → cost * 60/30
+  // Skip normalization for long periods (30+ days) where boundary effect is negligible
+  const shouldNormalize = days <= 14;
+  const normalizedCosts = Object.entries(hourCostsByDay[h]).map(([dateKey, cost]) => {
+    if (!shouldNormalize) return cost;
     if (h === firstHour && dateKey === firstDateKey && firstMin > 0) {
-      const minutesActive = Math.max(60 - firstMin, 1);
-      return cost * 60 / minutesActive;
+      return cost * 60 / Math.max(60 - firstMin, 1);
     }
-    if (h === lastHour && dateKey === lastDateKey) {
-      return cost * 60 / (lastMin || 1);
+    if (h === lastHour && dateKey === lastDateKey && lastMin < 60) {
+      return cost * 60 / Math.max(lastMin, 1);
     }
     return cost;
   });
-  const activeAvg = round2(weightedCosts.reduce((s, c) => s + c, 0) / weightedCosts.length);
-  const max = round2(Math.max(...Object.values(hourCostsByDay[h])));
-  // Calendar avg: raw total / calendar days for this hour
-  const rawTotal = Object.values(hourCostsByDay[h]).reduce((s, c) => s + c, 0);
+  const activeDays = daySetByHour[h].size || 1;
+  const activeAvg = round2(normalizedCosts.reduce((s, c) => s + c, 0) / activeDays);
+  const max = round2(Math.max(...normalizedCosts));
+  // Calendar avg: normalized total / calendar days for this hour
+  const normalizedTotal = normalizedCosts.reduce((s, c) => s + c, 0);
   const calDays = calendarDaysForHour(h);
-  const calAvg = round2(rawTotal / calDays);
+  const calAvg = round2(normalizedTotal / calDays);
   hourlyStats.push({ hour: h, avg: activeAvg, max, calAvg });
 }
 
@@ -1906,6 +1915,10 @@ for (const row of allRows) {
 }
 
 // Count calendar occurrences of each DOW in [fromDate, toDate]
+// If first and last day are the same DOW, they represent partial days
+// that together make ~24h, so count them as 1 instead of 2.
+const firstDow = firstD.getDay();
+const lastDow = lastD.getDay();
 function calendarDowCount(dow) {
   let count = 0;
   const d = new Date(fromDate);
@@ -1913,7 +1926,9 @@ function calendarDowCount(dow) {
     if (d.getDay() === dow) count++;
     d.setDate(d.getDate() + 1);
   }
-  return count;
+  // First+last day same DOW: partial days combine to ~1 full day
+  if (firstDow === lastDow && dow === firstDow && count >= 2) count--;
+  return Math.max(count, 1);
 }
 
 const dowStats = [];
@@ -1922,7 +1937,17 @@ for (let dow = 0; dow < 7; dow++) {
     dowStats.push({ dow, label: dowLabels[dow], avg: 0, max: 0, calAvg: 0 });
     continue;
   }
-  const costs = Object.values(dowCostsByWeek[dow]);
+  // If first+last day are same DOW, merge their week entries into one
+  const weekEntries = { ...dowCostsByWeek[dow] };
+  if (firstDow === lastDow && dow === firstDow) {
+    const firstWeekKey = Math.floor(firstTs / (7 * 86400));
+    const lastWeekKey = Math.floor(lastTs / (7 * 86400));
+    if (firstWeekKey !== lastWeekKey && weekEntries[firstWeekKey] != null && weekEntries[lastWeekKey] != null) {
+      weekEntries[lastWeekKey] += weekEntries[firstWeekKey];
+      delete weekEntries[firstWeekKey];
+    }
+  }
+  const costs = Object.values(weekEntries);
   const avg = round2(costs.reduce((s, c) => s + c, 0) / costs.length);
   const max = round2(Math.max(...costs));
   const calCount = Math.max(calendarDowCount(dow), 1);
@@ -1983,7 +2008,8 @@ const reportData = {
   ctxDistribution,
   pluginInstalledAt,
   currentMode,
-  plan: planData ? { key: planData.key, name: planData.name, price: planData.price } : null
+  plan: planData ? { key: planData.key, name: planData.name, price: planData.price } : null,
+  costThresholds: { turnWarn: TURN_COST_WARN, turnDanger: TURN_COST_DANGER, defaultFilter: DEFAULT_COST_FILTER }
 };
 
 // Compute before/after plugin install cost averages (must be before export)
@@ -2159,44 +2185,53 @@ if (exportPromptPath) {
     .join('\n');
 
   const prompt = `## Usage Data (THESE ARE THE ONLY NUMBERS YOU MAY USE)
+(Summary stats shown at the top of the dashboard)
 - Period: ${s.dateFrom} ~ ${s.dateTo} (${s.days} days)
 - Total cost: $${s.totalCost}, Sessions: ${s.sessionCount} main + ${s.subtaskCount || 0} subtasks
 - Plan: ${pi.label}
 
-## API Pricing (per million tokens, use these exact numbers)
+## API Pricing (per million tokens — use these exact numbers when discussing costs)
+(Reference pricing for the models used. Shown as price lines in the "Cost by Context Size" chart)
 ${pricingTable}
 - RULE: Monthly cost extrapolation is ONLY allowed when report period <= 15 days. This report covers ${reportDays} days${shouldExtrapolate ? ' — extrapolation is allowed.' : ' (>15) — do NOT extrapolate or mention monthly projections at all. Simply omit it — do NOT say "extrapolation is not needed" or similar.'}
 ${planLine}
 - Plugin installed: ${reportData.pluginInstalledAt ? new Date(reportData.pluginInstalledAt).toISOString().slice(0, 10) : 'not detected'}
 
 ## Token Breakdown
-- Input: ${tb.input.tokens.toLocaleString()} tokens ($${tb.input.cost})
-- Output: ${tb.output.tokens.toLocaleString()} tokens ($${tb.output.cost})
-- Cache Create 1h: ${tb.cacheCreate1h.tokens.toLocaleString()} tokens ($${tb.cacheCreate1h.cost})
-- Cache Create 5m: ${tb.cacheCreate5m.tokens.toLocaleString()} tokens ($${tb.cacheCreate5m.cost})
-- Cache Read: ${tb.cacheRead.tokens.toLocaleString()} tokens ($${tb.cacheRead.cost})
+(Shown in the "Token Details" table and "Cost Breakdown" pie chart)
+- Input (non-cached new tokens): ${tb.input.tokens.toLocaleString()} tokens ($${tb.input.cost})
+- Output (AI response tokens): ${tb.output.tokens.toLocaleString()} tokens ($${tb.output.cost})
+- Cache Create 1h (re-storing conversation, 1h tier — main sessions): ${tb.cacheCreate1h.tokens.toLocaleString()} tokens ($${tb.cacheCreate1h.cost})
+- Cache Create 5m (re-storing conversation, 5m tier — subtasks): ${tb.cacheCreate5m.tokens.toLocaleString()} tokens ($${tb.cacheCreate5m.cost})
+- Cache Read (reusing previously stored conversation): ${tb.cacheRead.tokens.toLocaleString()} tokens ($${tb.cacheRead.cost})
 
-## Hourly Cost Pattern (avg per day)
+## Hourly Cost Pattern
+(Shown in the "Hourly Cost Pattern" bar chart. Avg = active days only, CalAvg = all calendar days)
 ${hourly}
 
-## Day-of-Week Cost Pattern (avg per week)
+## Day-of-Week Cost Pattern
+(Shown in the "Day-of-Week Cost Pattern" bar chart)
 ${dow}
 
-## Weekly Costs (same data as the daily chart)
+## Weekly Costs
+(Same data as the "Daily Cost Trend" line chart, grouped by week)
 ${weeks.join('\n')}
 
 ## Rate Limit & Blocking
-- Rate-limited windows (skulls on calendar): ${markerCounts.blockedWindows}
+(Skull icons on the calendar heatmap = rate limit hit)
+- Rate-limited windows: ${markerCounts.blockedWindows}
 - 5H window alerts: ${rlCount}
 
 ## /continue Skill Usage
+(cc-token-saver plugin feature — restores previous sessions with ZERO API cost)
 - Times used: ${markerCounts.continue}
 
 ## Session Activity Summary
+(Event counts detected from calendar alert markers)
 - Session starts/clears: ${markerCounts.startup}
-- Cost alerts triggered: ${markerCounts.cost}
-- Context size alerts triggered: ${markerCounts.context}
-- Resume/compact events: ${markerCounts.resume}
+- Cost warnings (per-user-turn ≥$${TURN_COST_WARN}): ${markerCounts.cost}
+- Context size warnings (context window ≥35%): ${markerCounts.context}
+- Resume/compact events (cache regeneration): ${markerCounts.resume}
 - Model changes: ${markerCounts.modelChange}
 
 ## Plugin Before/After Comparison
@@ -2204,6 +2239,7 @@ Cost: ${costComparison}
 Efficiency (Total/Output ratio, lower = better): ${effComparison}
 
 ## API Calls — Dominant Token Type Breakdown
+(From the "Cost by Context Size" bubble chart. Each API call is classified by its most expensive token type)
 ${(() => {
   const pa = reportData.contextCostScatter && reportData.contextCostScatter.perAssistant;
   if (!pa) return 'No scatter data available';
@@ -2235,10 +2271,19 @@ ${(() => {
 })()}
 
 ## Context Size Efficiency
-${reportData.ctxDistribution.map(b =>
-  b.label + ': ' + b.count + ' calls (' + b.pct + '%), total $' + b.cost + ', avg $' + b.avgCost + '/call'
-).join('\n')}
-KEY INSIGHT: Lower context = cheaper per call. Calls at 500K+ cost far more per call than at ~250K due to cache_write pricing. Frequent /clear or /continue to reset context keeps most calls in the cheapest bucket. Mention the user's distribution shape — is it concentrated in ~250K (good) or spread into 500K+ (expensive)?
+(From the "Context Size Distribution" bar chart. Shows how many API calls fall into each context size bucket)
+${(() => {
+  const dist = reportData.ctxDistribution;
+  if (!dist || dist.length === 0 || dist.every(b => b.count === 0)) return 'NO DATA — do not mention context distribution in the analysis.';
+  return dist.map(b =>
+    b.label + ': ' + b.count + ' calls (' + b.pct + '%), total $' + b.cost + ', avg $' + b.avgCost + '/call'
+  ).join('\n') + '\nKEY INSIGHT: Lower context = cheaper per call. 500K+ calls are disproportionately expensive. Guide users to /clear then /continue before context grows past 350K.';
+})()}
+
+## Calendar Cost Threshold
+- Cost warnings shown in calendar use per-user-turn threshold: ≥$${TURN_COST_WARN} (warning), ≥$${TURN_COST_DANGER} (danger)
+- Calendar default filter: $${DEFAULT_COST_FILTER} (adjustable by user via slider)
+- IMPORTANT: Only mention data that IS shown in the report. If a section says "NO DATA", do NOT fabricate numbers or analysis for it.
 
 ## Top Cost Sessions
 ${top10}
