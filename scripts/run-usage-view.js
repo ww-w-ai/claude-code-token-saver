@@ -62,7 +62,7 @@ for (let i = 0; i < args.length; i++) {
   if (args[i] === '--prepare') mode = 'prepare';
   else if (args[i] === '--finalize') mode = 'finalize';
   else if (args[i] === '--gen-agent-prompt') mode = 'gen-agent-prompt';
-  else if (args[i] === '--days' && args[i + 1]) days = args[++i];
+  else if (args[i] === '--days' && args[i + 1]) { days = args[++i]; if (days === 'all') days = '0'; }
   else if (args[i] === '--current') current = true;
   else if (args[i] === '--locale' && args[i + 1]) locale = args[++i];
   else if (args[i] === '--report-data' && args[i + 1]) reportDataPath = args[++i];
@@ -253,6 +253,11 @@ if (mode === 'finalize') {
     dateRange: `${summary.dateFrom || '?'} ~ ${summary.dateTo || '?'}`,
     totalCost: summary.totalCost ? `$${summary.totalCost.toLocaleString()}` : '?',
   };
+  // Optional tip pointing to /setup-git-lite (only when native is active + not dismissed)
+  try {
+    const tip = require('./lib/git-lite-state.js').getRecommendationTip();
+    if (tip) result.tip = tip;
+  } catch (_) { /* state lib optional */ }
   console.log(JSON.stringify(result));
   process.exit(0);
 }

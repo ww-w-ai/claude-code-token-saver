@@ -16,7 +16,7 @@ If the user provides "help" as argument, show usage summary and stop:
 /usage-view — Interactive HTML usage dashboard
 
 Options:
-  (nothing)       All projects, all time
+  (nothing)       All projects, last ~1 month
   current         Current 5-hour window only (fast, no AI analysis by default)
   last N days     Analyze last N days only
   locale XX       Force language (e.g. locale ja). Default: system language → en fallback
@@ -46,15 +46,18 @@ Users may provide these in natural language. Parse and map to script flags.
 
 | User input       | Script flag           | Example                    |
 | ---------------- | --------------------- | -------------------------- |
-| _(nothing)_      | _(no flags)_          | current project, all time  |
+| _(nothing)_      | _(no flags)_          | all projects, last ~1 month |
 | a number of days | `--days N`            | "last 7 days" → `--days 7` |
+| "all time"       | `--days all`          | no time limit, load all available data (see note below) |
 | "current"        | `--days 1 --current`  | current 5H window only (implies `--no-ai` for speed) |
 | "locale XX"      | `--locale XX`         | "locale ja" → `--locale ja` |
 | plan name        | `--plan XX`           | "max200" → `--plan max200` |
-| "project X"      | `--project X`         | specific project only      |
+| "project X"      | `--project X`         | specific project only (X = hashed CWD, e.g. `-Users-foo-myproject`. Derive via `echo "$PWD" \| sed 's/[^a-zA-Z0-9]/-/g'`) |
 | "all"            | `--all`               | aggregate all projects     |
 | "no ai"          | `--no-ai`             | skip AI analysis (fast)    |
 | "ai"             | `--ai`                | force AI analysis (override current's default) |
+
+**Note on `--days all`**: Claude Code deletes transcripts older than ~1 month. Data beyond that range comes from previously cached timeline CSVs and session summaries at `~/.claude/cc-token-saver-data/`. Original transcripts cannot be recovered — only already-analyzed sessions are available. Tell the user: "Transcripts older than ~1 month are deleted by Claude Code. This loads previously cached analysis data — sessions that were never analyzed won't appear."
 
 **Note on `current`**: Defaults to no AI analysis because the main purpose is a quick snapshot. If the user explicitly says "current ai" or "current with analysis", add `--ai` to re-enable it.
 
@@ -115,6 +118,7 @@ Usage dashboard opened in browser.
 The HTML file is self-contained -- you can share it or re-open it anytime.
 💡 Tip: `/usage-view no ai` — skip AI analysis for a faster dashboard (no LLM cost).
 💡 Tip: `/usage-view current` — quick snapshot of your 5H window (no AI by default). Add "ai" to include analysis.
+{If the finalize JSON includes a `tip` field, append it verbatim as one extra line}
 ```
 
 ## Important Notes
@@ -125,5 +129,6 @@ The HTML file is self-contained -- you can share it or re-open it anytime.
 4. **Timezone**: All displayed dates/times use the user's local timezone via `new Date()`.
 5. **Cost formula**: Per-model pricing from `scripts/model-pricing.json`. Falls back to default model if unknown.
 6. **Self-contained HTML**: The output file works standalone -- inline CSS/JS, CDN for Chart.js, no external dependencies.
-7. **stderr**: The analyze script writes progress to stderr. Always use `2>/dev/null` when redirecting stdout to a file, never `2>&1`.
+7. **stderr**: The analyze script writes progress to stderr. Always use `2>/dev/null` when redirecting stdout to a file, never `2>&1`. Exception: Tool Call 1 in the background agent captures stderr to a logfile so `ERROR:UNKNOWN_MODEL` (exit code 2) can be inspected on failure.
 8. **Runner script**: `scripts/run-usage-view.js` consolidates all deterministic steps. The agent should NEVER run analyze-usage.js or build-report.js directly.
+9. **Unknown model handling**: When `scripts/analyze-usage.js` encounters a model missing from `scripts/model-pricing.json`, it fails fast with exit code 2 and emits `ERROR:UNKNOWN_MODEL` on stderr. The background agent handles this inline — WebFetch the Anthropic pricing page, Edit the JSON with exact values (no guessing), and re-run Tool Call 1. If the page lacks required fields, the agent guides the user to update the plugin instead of patching with derived values. Full procedure lives in `agent-prompt-template.txt` Tool Call 1.

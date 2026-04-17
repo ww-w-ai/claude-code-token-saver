@@ -2,11 +2,25 @@ Execute EXACTLY these 4 tool calls in order. No extra reads, no exploration, no 
 
 ### Tool Call 1: Prepare (Bash)
 
-Run the deterministic pipeline — analyze sessions, build report data, extract AI prompt:
+Run the deterministic pipeline — analyze sessions, build report data, extract AI prompt. stderr is captured to a logfile so unknown-model errors can be inspected on failure:
 
-node {{PLUGIN_ROOT}}/scripts/run-usage-view.js --prepare {{FLAGS}} 2>/dev/null
+STDERR_LOG={{TMPDIR}}/cc-prepare-stderr-$(date +%s).log; node {{PLUGIN_ROOT}}/scripts/run-usage-view.js --prepare {{FLAGS}} 2>"$STDERR_LOG"; EXIT=$?; if [ $EXIT -eq 2 ]; then cat "$STDERR_LOG" >&2; exit 2; fi; if [ $EXIT -ne 0 ]; then cat "$STDERR_LOG" >&2; exit $EXIT; fi
 
-The script outputs a JSON object to stdout with `promptFile`, `reportDataFile`, and `locale` (resolved 2-letter code). Parse these for use in subsequent steps.
+On exit 0: stdout has a JSON object with `promptFile`, `reportDataFile`, and `locale` (resolved 2-letter code). Parse these for use in subsequent steps.
+
+On exit 2 (`ERROR:UNKNOWN_MODEL` in stderr): handle inline — do NOT stop the skill.
+  1. Parse the `models:` line from stderr to get the unknown model names.
+  2. WebFetch `https://platform.claude.com/docs/en/about-claude/pricing#model-pricing` and read each unknown model's `input` / `output` / `cacheCreate5m` / `cacheCreate1h` / `cacheRead` / `contextWindow`.
+  3. **If all 6 fields are present on the page**: Read `{{PLUGIN_ROOT}}/scripts/model-pricing.json`, Edit to add one entry per model using the existing row format `{ "input": N, "cacheCreate5m": N, "cacheCreate1h": N, "cacheRead": N, "output": N, "contextWindow": N }`. Never derive/guess values. Then re-run this exact Tool Call 1 (no `--force` needed).
+  4. **If any field is missing from the page**: do NOT patch the JSON. Stop and output this message to the user, then exit:
+     ```
+     ⚠️ 미등록 모델 {모델명}의 전체 가격 정보(특히 5m/1h 캐시 티어)를 공식 페이지에서 확인할 수 없습니다.
+     플러그인을 최신 버전으로 업데이트해 주세요:
+       /plugin update cc-token-saver
+     업데이트 후에도 문제가 지속되면 https://github.com/ww-w-ai/cc-token-saver/issues 에 제보 부탁드립니다.
+     ```
+
+On other non-zero exits: report the stderr content and stop.
 
 ### Tool Call 2: Read AI Prompt
 

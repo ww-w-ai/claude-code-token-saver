@@ -17,25 +17,22 @@ function getRates(model) {
   return MODEL_PRICING[model] || DEFAULT_PRICING;
 }
 
-const _unknownModels = new Set();
-function calcCost(input, cc5m, cc1h, cacheRead, output, model) {
-  const rates = MODEL_PRICING[model];
-  if (!rates && model && model !== 'unknown' && model !== '<synthetic>' && !_unknownModels.has(model)) {
-    _unknownModels.add(model);
-    const pricingPath = path.join(__dirname, '..', 'model-pricing.json');
-    process.stderr.write(
-`\u26A0\uFE0F  Unknown model "${model}" \u2014 using default pricing (${PRICING_DATA.default}).
-
-   Paste this into Claude Code to fix:
-
-   Read ${pricingPath} and add "${model}" to the "models" object.
-   Match the existing row format: { "input": N, "cacheCreate5m": N, "cacheCreate1h": N, "cacheRead": N, "output": N, "contextWindow": N }
-   Look up pricing at ${PRICING_DATA._source}
-   Then re-run /usage-view with --force to regenerate caches.
-
-`);
+class UnknownModelError extends Error {
+  constructor(model) {
+    super(`UNKNOWN_MODEL:${model}`);
+    this.name = 'UnknownModelError';
+    this.model = model;
   }
-  const r = rates || DEFAULT_PRICING;
+}
+
+function calcCost(input, cc5m, cc1h, cacheRead, output, model) {
+  if (model === 'unknown' || model === '<synthetic>' || !model) {
+    return 0;
+  }
+  const r = MODEL_PRICING[model];
+  if (!r) {
+    throw new UnknownModelError(model);
+  }
   return (
     (input * r.input +
       cc5m * r.cacheCreate5m +
@@ -46,4 +43,4 @@ function calcCost(input, cc5m, cc1h, cacheRead, output, model) {
   );
 }
 
-module.exports = { PRICING_DATA, MODEL_PRICING, DEFAULT_PRICING, getRates, calcCost };
+module.exports = { PRICING_DATA, MODEL_PRICING, DEFAULT_PRICING, getRates, calcCost, UnknownModelError };

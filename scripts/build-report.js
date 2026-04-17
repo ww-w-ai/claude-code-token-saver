@@ -1960,16 +1960,45 @@ for (let dow = 0; dow < 7; dow++) {
   dowStats.push({ dow, label: dowLabels[dow], avg, max, calAvg });
 }
 
-// 7. Plugin installed date (birthtime of plugin.json, most stable indicator)
-const pluginJsonPaths = [
-  path.join(__dirname, '..', '.claude-plugin', 'plugin.json'),
-  path.join(__dirname, '..', 'plugin.json'),
-  path.join(os.homedir(), '.claude', 'plugins', 'cc-token-saver', 'plugin.json'),
-  path.join(os.homedir(), '.claude', 'cc-token-saver', 'plugin.json'),
-];
+// 7. Plugin installed date (oldest birthtime across all cached versions)
 let pluginInstalledAt = null;
-for (const p of pluginJsonPaths) {
-  try { pluginInstalledAt = fs.statSync(p).birthtime.toISOString(); break; } catch(e) {}
+// Scan all version directories in plugin cache for oldest birthtime
+// Cache path: ~/.claude/plugins/cache/{org}/{name}/{version}/
+// Derive org/name from repository URL in plugin.json
+try {
+  const pluginMeta = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '.claude-plugin', 'plugin.json'), 'utf8'));
+  const repoUrl = pluginMeta.repository || '';
+  const repoMatch = repoUrl.match(/github\.com\/([^/]+\/[^/]+)/);
+  if (repoMatch) {
+    const cacheBase = path.join(os.homedir(), '.claude', 'plugins', 'cache', ...repoMatch[1].split('/'));
+    if (fs.existsSync(cacheBase)) {
+      for (const ver of fs.readdirSync(cacheBase)) {
+        const verDir = path.join(cacheBase, ver);
+        try {
+          if (!fs.statSync(verDir).isDirectory() && !fs.lstatSync(verDir).isSymbolicLink()) continue;
+        } catch(e) { continue; }
+        // Check plugin.json in each version
+        for (const candidate of ['.claude-plugin/plugin.json', 'plugin.json']) {
+          try {
+            const bt = fs.statSync(path.join(verDir, candidate)).birthtime.toISOString();
+            if (!pluginInstalledAt || bt < pluginInstalledAt) pluginInstalledAt = bt;
+          } catch(e) {}
+        }
+      }
+    }
+  }
+} catch(e) {}
+// Fallback: check local paths if cache scan found nothing
+if (!pluginInstalledAt) {
+  for (const p of [
+    path.join(__dirname, '..', '.claude-plugin', 'plugin.json'),
+    path.join(__dirname, '..', 'plugin.json'),
+  ]) {
+    try {
+      const bt = fs.statSync(p).birthtime.toISOString();
+      if (!pluginInstalledAt || bt < pluginInstalledAt) pluginInstalledAt = bt;
+    } catch(e) {}
+  }
 }
 
 // ── Plan info for REPORT_DATA and AI prompt ────────────────────

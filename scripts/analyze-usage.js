@@ -49,7 +49,27 @@ const {
   getSubagentSummaryPath,
   migrateFromYYMM,
 } = require("./lib/cache-paths");
-const { MODEL_PRICING, DEFAULT_PRICING, calcCost } = require("./lib/pricing");
+const { MODEL_PRICING, DEFAULT_PRICING, calcCost, UnknownModelError } = require("./lib/pricing");
+
+const PRICING_JSON_PATH = path.join(__dirname, "model-pricing.json");
+const PRICING_SOURCE_URL = "https://platform.claude.com/docs/en/about-claude/pricing#model-pricing";
+
+function emitUnknownModelError(models) {
+  const list = Array.from(models).sort().join(", ");
+  process.stderr.write(
+    "ERROR:UNKNOWN_MODEL\n" +
+    `models: ${list}\n` +
+    `source: ${PRICING_SOURCE_URL}\n` +
+    `file: ${PRICING_JSON_PATH}\n` +
+    "action: fetch pricing -> edit file -> re-run the same command\n"
+  );
+}
+
+function writeFileAtomic(filePath, content) {
+  const tmp = filePath + ".tmp." + process.pid;
+  fs.writeFileSync(tmp, content);
+  fs.renameSync(tmp, filePath);
+}
 const CACHE_VERSION = 14; // v14: preprocess.js v6 self-managing cache format
 const PROJECTS_DIR = path.join(os.homedir(), ".claude", "projects");
 
@@ -65,7 +85,7 @@ function parseArgs(argv) {
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--days" && i + 1 < args.length) {
-      days = parseInt(args[i + 1], 10);
+      days = args[i + 1] === 'all' ? 0 : parseInt(args[i + 1], 10);
       if (isNaN(days)) days = -1;
       i++;
     } else if (args[i] === "--project" && i + 1 < args.length) {
@@ -210,7 +230,7 @@ function writeCache(summaryPath, timelinePath, data) {
     // Split: JSON metadata (without usageTimeline)
     const { usageTimeline, ...metadata } = data;
     metadata.cacheVersion = CACHE_VERSION;
-    fs.writeFileSync(summaryPath, JSON.stringify(metadata));
+    writeFileAtomic(summaryPath, JSON.stringify(metadata));
 
     // CSV timeline (v11: add req column for subagent cost dedup)
     const header = "ts,model,input,cc,cc5m,cc1h,cr,out,cost,win,rl,evt,line,req";
@@ -229,7 +249,7 @@ function writeCache(summaryPath, timelinePath, data) {
       if (e.model) prevModel = e.model;
       if (e.win != null) prevWin = e.win;
     }
-    fs.writeFileSync(timelinePath, lines.join("\n") + "\n");
+    writeFileAtomic(timelinePath, lines.join("\n") + "\n");
   } catch (err) {
     process.stderr.write(`Warning: failed to write cache: ${err.message}\n`);
   }
@@ -785,6 +805,7 @@ async function main() {
   migrateFromYYMM();
 
   const sessions = [];
+  const unknownModels = new Set();
 
   for (const file of files) {
     const paths = resolveSessionPaths(file.path);
@@ -798,8 +819,19 @@ async function main() {
       }
     }
 
-    // Analyze and cache
-    const result = await analyzeSession(file.path);
+    // Analyze and cache. Fail-fast on unknown model: skip this session's
+    // cache write, record the model, continue to next session so we collect
+    // ALL unknowns in a single pass.
+    let result;
+    try {
+      result = await analyzeSession(file.path);
+    } catch (err) {
+      if (err instanceof UnknownModelError) {
+        unknownModels.add(err.model);
+        continue;
+      }
+      throw err;
+    }
 
     // For agent sessions, read CC's meta.json if available
     if (paths.isAgent && paths.mainSessionId && paths.agentId) {
@@ -931,6 +963,14 @@ async function main() {
   const dateRange = dates.length > 0
     ? { from: dates[0], to: dates[dates.length - 1] }
     : { from: null, to: null };
+
+  // Fail-fast: if any unknown models were encountered, refuse to emit
+  // (possibly-wrong) cost data. Exit(2) with structured stderr so the
+  // skill LLM can look up prices, update model-pricing.json, and re-run.
+  if (unknownModels.size > 0) {
+    emitUnknownModelError(unknownModels);
+    process.exit(2);
+  }
 
   const output = {
     sessions: valid,

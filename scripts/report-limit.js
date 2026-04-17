@@ -70,6 +70,11 @@ try {
     maxBuffer: 100 * 1024 * 1024,
   });
 } catch (e) {
+  // Exit 2 = UnknownModelError (structured stderr already emitted by analyze-usage.js).
+  // Pass through so the skill LLM can handle it inline (update pricing JSON, re-run).
+  if (e.status === 2) {
+    process.exit(2);
+  }
   log('Warning: analyze-usage.js failed, continuing with existing CSVs');
 }
 
@@ -662,6 +667,13 @@ if (!gistUrl) {
 }
 
 // ── Step 12: Print JSON summary to stdout ───────────────────────
+// Include an optional tip pointing to /setup-git-lite when the user
+// still has CC's built-in git instructions active and hasn't dismissed.
+let gitLiteTip = null;
+try {
+  gitLiteTip = require('./lib/git-lite-state.js').getRecommendationTip();
+} catch (_) { /* state lib optional */ }
+
 const summary = {
   windows: results.map(w => ({
     date: w.date,
@@ -682,6 +694,7 @@ const summary = {
   zipFile: zipCreated ? zipFile : null,
   reportDir: reportDir,
   discussionOpened: discussionOpened,
+  tip: gitLiteTip,
 };
 
 console.log(JSON.stringify(summary, null, 2));
