@@ -172,6 +172,106 @@ Apabila anda kena rate limit, jalankan `/report-limit`. Data penggunaan semasa a
 
 ---
 
+## ✂️ Ciri 5: /setup-git-lite — Pangkas Arahan Git Terbina dalam CC
+
+**2,200 token tersembunyi setiap session yang tidak anda sedar anda bayar.**
+
+### Penemuan
+
+Pada 2026-04-12, sebuah [isu GitHub](https://github.com/anthropics/claude-code/issues/47107) mendedahkan bahawa tetapan `includeGitInstructions` terbina dalam Claude Code secara senyap membakar token setiap session. Pengesahan bebas melalui [gist ini (spilist)](https://gist.github.com/spilist/b0db92a859192f5ec6199d3f35a81b98) mengesahkan angkanya: **+6,031 token dalam cache write** setiap session selepas setiap git commit, **+1,690 token dalam cache read** pada setiap panggilan API.
+
+### Analisis sumber CC — ke mana token pergi
+
+Kami mengesan token ke dua titik suntikan bebas dalam sumber Claude Code (v2.1.88):
+
+**1. Syot `gitStatus` (~500 tok) — system prompt**
+- `context.ts:36-111` `getGitStatus()` mengumpul branch + main branch + user.name + status penuh (sehingga 2000 aksara) + **5 commit terbaru**
+- Digabung dan ditambah ke system prompt melalui `appendSystemContext` (`utils/api.ts:437`)
+- Setiap commit baharu, setiap fail diubah suai, setiap pertukaran branch mengubah teks → prefix cache invalidation
+
+**2. Arahan aliran kerja Commit/PR (~1,700 tok) — penerangan alat Bash**
+- `tools/BashTool/prompt.ts:53` menambah 60+ baris protokol keselamatan, prosedur commit langkah demi langkah, contoh HEREDOC, dan templat penciptaan PR ke penerangan alat `Bash`
+- Di-cache bersama system prompt, tetapi dihantar sebagai parameter `tools[]`
+
+### Sebab ia mahal
+
+Struktur cache (`utils/api.ts:321` `splitSysPromptPrefix`) mempunyai tiga laluan berdasarkan sama ada anda mempunyai alat MCP aktif:
+
+- **Path A** (MCP aktif — kebanyakan pengguna): `gitStatus` berada dalam blok `cacheScope: 'org'`. Sebarang perubahan → keseluruhan blok di-cache semula pada permulaan session seterusnya → 6K tok `cache_create` miss.
+- **Path B** (tiada MCP): `gitStatus` ke blok dinamik `cacheScope: null`, bermakna ia dihantar semula sebagai `input_tokens` segar pada setiap panggilan API — tiada cache miss, tetapi tiada penjimatan cache juga.
+- **Path C** (penyedia 3P / beta eksperimental dilumpuhkan): sama seperti Path A.
+
+Dalam session interaktif biasa, arahan commit/PR (1.7K tok) terkumpul **pada setiap panggilan API** melalui `cache_read`. Sepanjang session 100 panggilan pada harga Opus 4.7, itu kira-kira **$0.08 setiap session** hanya untuk arahan yang latihan Claude sudah sebahagian besarnya merangkumi.
+
+### Cara cc-token-saver mengendalikannya
+
+`/setup-git-lite` melumpuhkan laluan natif dan menyuntik **penggantian 280-token yang diperhalus** melalui hook SessionStart. Kami mengekalkan tepat perkara yang mengatasi tingkah laku lalai Claude (peraturan keselamatan), dan membuang semua yang Claude sudah tahu daripada latihan (aliran kerja langkah demi langkah, templat PR, corak penggunaan gh).
+
+**Dikekalkan — 11 peraturan penggantian kritikal** (yang menukar pertolongan lalai Claude kepada berhati-hati):
+- Jangan sekali-kali commit/push/amend/PR/tag/merge tanpa permintaan pengguna yang jelas
+- Jangan sekali-kali langkau hooks, force-push ke main/master, jalankan operasi merosakkan, ubah suai git config
+- Jangan sekali-kali commit fail yang sepadan dengan `.env`, `credentials`, `*.pem`, `secret.*`
+- Elakkan `git add -A` / `git add .`
+- HEREDOC untuk mesej commit berbilang baris + trailer `Co-Authored-By: Claude`
+- Jangan sekali-kali gunakan bendera interaktif (-i), tiada commit kosong
+- Jika hook pra-commit gagal → buat commit BAHARU (bukan `--amend`)
+
+**Dibuang** — aliran kerja commit langkah demi langkah (3 langkah), aliran kerja PR langkah demi langkah (3 langkah), templat tajuk/badan PR, rujukan perintah `gh`, amaran bendera `-uall`, amaran `--no-edit` dengan rebase, kekangan `JANGAN gunakan alat TodoWrite atau Agent semasa commit`. Ini adalah keverbosan aliran kerja yang Claude hasilkan dengan betul daripada latihan sahaja.
+
+**Ditambah** — baris keadaan git ringkas: branch + HEAD short-sha + subjek + status semasa (sehingga 20 fail diubah suai, atau kiraan jika melebihi). Tiada senarai commit terbaru (Claude boleh jalankan `git log` atas permintaan).
+
+### Jangkaan penjimatan (harga Opus 4.7, $25/MTok output, $5/MTok input, $0.50/MTok cache read)
+
+| Item | Asal | Dengan setup-git-lite | Dijimatkan |
+| ---- | ---- | --------------------- | ---------- |
+| Muatan system prompt (setiap session baharu) | ~2,200 tok cache_create | ~280 tok cache_create | ~1,920 tok |
+| Panggilan berulang dalam session yang sama | ~1,700 tok cache_read/panggilan | ~280 tok cache_read/panggilan | ~1,420 tok/panggilan |
+| Session 100 panggilan (Opus 4.7) | — | — | **~$0.11 dijimatkan** |
+| 20 session/hari × 22 hari bekerja | — | — | **~$48 dijimatkan/bulan** |
+
+### Penggunaan
+
+```bash
+/setup-git-lite status     # Diagnostik baca sahaja — keadaan semasa + apa yang akan berubah
+/setup-git-lite install    # Lumpuhkan CC natif + aktifkan hook minimal kami
+/setup-git-lite revert     # Pulihkan lalai (agresif; lihat di bawah)
+/setup-git-lite dismiss    # Senyapkan tip cadangan sesekali
+/setup-git-lite undismiss  # Aktifkan semula tip
+/setup-git-lite help       # Penggunaan penuh
+```
+
+### Semantik pemasangan
+
+`install` mengubah suai **dua** tempat untuk keteguhan:
+
+1. `~/.claude/settings.json` — menambah `"includeGitInstructions": false`
+2. Profil shell (`~/.zshrc`, `~/.bashrc`, dsb.) — menambah blok penanda yang mengeksport `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS=1`
+
+Mana-mana satu sahaja sudah cukup untuk melumpuhkan CC natif; kami menetapkan kedua-duanya supaya penggantian persekitaran tidak secara tidak sengaja mengaktifkan semula tingkah laku natif. Perubahan shell berkuat kuasa dalam shell baharu sahaja.
+
+### Semantik revert — agresif
+
+`revert` **mengalih keluar SEMUA eksport `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS` daripada profil shell anda**, termasuk yang mungkin anda tambah secara manual sebelum memasang skill ini. Ini disengajakan — anda menjalankan `revert`, jadi kami memulihkan lalai yang bersih. Kami sentiasa membuat sandaran profil shell berstempel masa terlebih dahulu.
+
+Jika anda memerlukan pemboleh ubah persekitaran itu untuk sebab yang tidak berkaitan, catat sebelum menjalankan `revert` dan tambah semula selepasnya.
+
+### Sebelum menyahpasang cc-token-saver
+
+**Jalankan `/setup-git-lite revert` dahulu**, atau anda akan ditinggalkan dengan `includeGitInstructions: false` dalam settings.json tetapi tiada hook penggantian (Claude langsung tidak mendapat panduan git). Claude Code pada masa ini tidak mempunyai hook kitaran hayat penyahpasangan plugin, jadi kami tidak dapat mengautomasikan ini.
+
+### Pertukaran niaga
+
+Apa yang anda kehilangan (dan mengapa ia biasanya tidak mengapa):
+- Claude tidak lagi menerima `git status` / `git log -n 5` pra-dikira pada permulaan session. Jika anda bertanya "apa yang berubah?" dalam session baharu, Claude akan menjalankan perintah tersebut sendiri (satu panggilan alat tambahan, ~300 tok).
+- Claude tidak lagi melihat prosedur commit 3-langkah canonical CC. Dalam ujian kami merentasi beratus aliran commit, pengetahuan peringkat latihan mengendalikan kes kritikal (pemformatan HEREDOC, tiada `--amend`, tiada force-push) kerana kami mengekalkan peraturan tersebut secara eksplisit.
+- Templat badan PR (`## Summary` + `## Test plan`) tidak disuntik. Jika anda mengambil berat tentang format tepat itu, letakkan dalam CLAUDE.md projek anda.
+
+### Sepanduk cadangan
+
+Apabila arahan git natif CC masih aktif pada mesin anda, cc-token-saver menunjukkan tip satu perenggan pada permulaan session **~20% daripada masa** (ditambah dalam output `/usage-view` dan `/report-limit`). Senyapkan secara kekal dengan `/setup-git-lite dismiss`.
+
+---
+
 ## 💡 Cara Cache Sebenarnya Berfungsi
 
 Claude Code menghantar keseluruhan sejarah perbualan kepada model pada setiap panggilan API. "Panggilan API" bukan bermaksud "satu mesej yang anda taip." Satu prompt mencetuskan panggilan alat dalaman — Grep, Read, Edit, Write — dan setiap satu adalah panggilan API berasingan. Satu prompt boleh menyebabkan 10+ panggilan API dengan mudah.

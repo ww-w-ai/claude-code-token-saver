@@ -179,14 +179,30 @@ function ourMarkerPresent() {
 function isInstalled() { return shouldInjectReplacement(); }
 
 // ── Recommendation tip string (single source of truth) ─────────
-function getRecommendationTip() {
+// Fallback in case the locale file is missing or unreadable.
+const TIP_FALLBACK_EN =
+  "Tip: CC's built-in git instructions consume ~2,200 tok/session + " +
+  '~1,700 tok/call. `/setup-git-lite install` replaces them with a ' +
+  'curated 280-tok minimum. `/setup-git-lite dismiss` hides this tip.';
+
+function getRecommendationTip(locale) {
   if (shouldInjectReplacement()) return null;
   if (isRecommendationDismissed()) return null;
-  return (
-    "Tip: CC's built-in git instructions consume ~2,200 tok/session + " +
-    '~1,700 tok/call. `/setup-git-lite install` replaces them with a ' +
-    'curated 280-tok minimum. `/setup-git-lite dismiss` hides this tip.'
-  );
+  let resolved;
+  try {
+    const { resolveLocale } = require('./locale');
+    resolved = resolveLocale(locale);
+  } catch {
+    resolved = 'en';
+  }
+  try {
+    const localePath = path.join(__dirname, '..', '..', 'locales', `${resolved}.json`);
+    const data = JSON.parse(fs.readFileSync(localePath, 'utf8'));
+    if (data && data.gitLite && typeof data.gitLite.tip === 'string') {
+      return data.gitLite.tip;
+    }
+  } catch { /* fall through to English fallback */ }
+  return TIP_FALLBACK_EN;
 }
 
 // ── Shell profile marker operations ────────────────────────────

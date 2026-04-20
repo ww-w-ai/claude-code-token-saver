@@ -172,6 +172,106 @@ Wenn du ein Rate Limit erreichst, führe `/report-limit` aus. Deine Nutzungsdate
 
 ---
 
+## ✂️ Feature 5: /setup-git-lite — CC's eingebaute Git-Anweisungen kürzen
+
+**Die versteckten 2.200 Token pro Session, von denen du nicht wusstest, dass du sie bezahlst.**
+
+### Die Entdeckung
+
+Am 2026-04-12 enthüllte ein [GitHub-Issue](https://github.com/anthropics/claude-code/issues/47107), dass Claude Codes eingebaute `includeGitInstructions`-Einstellung still und heimlich bei jeder Session Token verbrennt. Eine unabhängige Reproduktion via [diesem Gist (spilist)](https://gist.github.com/spilist/b0db92a859192f5ec6199d3f35a81b98) bestätigte die Zahlen: **+6.031 Token in cache_create** pro Session nach jedem git commit, **+1.690 Token in cache_read** bei jedem API-Aufruf.
+
+### CC-Quellcode-Analyse — wo die Token hingehen
+
+Wir haben die Token auf zwei unabhängige Injektionspunkte im Claude Code-Quellcode (v2.1.88) zurückverfolgt:
+
+**1. `gitStatus`-Snapshot (~500 Tok) — System-Prompt**
+- `context.ts:36-111` `getGitStatus()` sammelt Branch + Main-Branch + user.name + vollständigen Status (bis zu 2000 Zeichen) + **letzte 5 Commits**
+- Zusammengeführt und via `appendSystemContext` (`utils/api.ts:437`) an den System-Prompt angehängt
+- Jeder neue Commit, jede neue geänderte Datei, jeder Branch-Wechsel ändert den Text → Prefix-Cache-Invalidierung
+
+**2. Commit/PR-Workflow-Anweisungen (~1.700 Tok) — Bash-Tool-Beschreibung**
+- `tools/BashTool/prompt.ts:53` hängt 60+ Zeilen Sicherheitsprotokoll, schrittweise Commit-Prozedur, HEREDOC-Beispiele und PR-Erstellungs-Templates an die Beschreibung des `Bash`-Tools an
+- Zusammen mit dem System-Prompt gecacht, aber als `tools[]`-Parameter übertragen
+
+### Warum es teuer ist
+
+Die Cache-Struktur (`utils/api.ts:321` `splitSysPromptPrefix`) hat drei Pfade, je nachdem ob aktive MCP-Tools vorhanden sind:
+
+- **Path A** (MCP aktiv — die meisten Nutzer): `gitStatus` sitzt in einem `cacheScope: 'org'`-Block. Jede Änderung → gesamter Block wird beim nächsten Session-Start neu gecacht → 6K Tok `cache_create` Miss.
+- **Path B** (kein MCP): `gitStatus` geht in einen `cacheScope: null` dynamischen Block — wird bei jedem API-Aufruf als frische `input_tokens` gesendet. Kein Cache-Miss, aber auch keine Cache-Einsparungen.
+- **Path C** (3P-Provider / experimentelle Betas deaktiviert): wie Path A.
+
+In typischen interaktiven Sessions akkumulieren sich die Commit/PR-Anweisungen (1,7K Tok) **bei jedem API-Aufruf** via `cache_read`. Über eine 100-Aufruf-Session mit Opus 4.7-Preisen sind das grob **~$0,08 pro Session** — nur für Anweisungen, die Claude aus dem Training bereits größtenteils kennt.
+
+### Wie cc-token-saver damit umgeht
+
+`/setup-git-lite` deaktiviert den nativen Pfad und injiziert einen **kuratierten 280-Token-Ersatz** via einem SessionStart-Hook. Wir haben genau das behalten, was Claudes Standardverhalten überschreibt (Sicherheitsregeln), und alles weggelassen, was Claude bereits aus dem Training kennt (schrittweise Workflows, PR-Templates, gh-Nutzungsmuster).
+
+**Behalten — 11 kritische Override-Regeln** (die, die Claudes Standard-Hilfsbereitschaft in Vorsicht umwandeln):
+- Niemals committen/pushen/amenden/PR/taggen/mergen ohne explizite Nutzeranforderung
+- Niemals Hooks überspringen, force-push zu main/master, destruktive Ops ausführen, git config ändern
+- Niemals Dateien committen, die `.env`, `credentials`, `*.pem`, `secret.*` entsprechen
+- `git add -A` / `git add .` vermeiden
+- HEREDOC für mehrzeilige Commit-Nachrichten + `Co-Authored-By: Claude`-Trailer
+- Niemals interaktive Flags (-i) verwenden, keine leeren Commits
+- Wenn pre-commit-Hook fehlschlägt → einen NEUEN Commit erstellen (nicht `--amend`)
+
+**Weggelassen** — schrittweiser Commit-Workflow (3 Schritte), schrittweiser PR-Workflow (3 Schritte), PR-Titel/Body-Template, `gh`-Befehlsreferenzen, `-uall`-Flag-Warnung, `--no-edit`-mit-rebase-Warnung, `NEVER use TodoWrite or Agent tools during commit`-Constraint. Das ist Workflow-Wortreichtum, den Claude aus dem Training allein korrekt zusammensetzt.
+
+**Hinzugefügt** — kompakte Git-Statuszeile: Branch + HEAD-Kurz-SHA + Betreff + aktueller Status (bis zu 20 geänderte Dateien, sonst eine Zählung). Keine Liste der letzten Commits (Claude kann `git log` bei Bedarf ausführen).
+
+### Erwartete Einsparungen (Opus 4.7-Preise, $25/MTok Output, $5/MTok Input, $0,50/MTok Cache Read)
+
+| Element | Original | Mit setup-git-lite | Gespart |
+| ------- | -------- | ------------------- | ------- |
+| System-Prompt-Laden (pro neue Session) | ~2.200 Tok cache_create | ~280 Tok cache_create | ~1.920 Tok |
+| Wiederholte Aufrufe in derselben Session | ~1.700 Tok cache_read/Aufruf | ~280 Tok cache_read/Aufruf | ~1.420 Tok/Aufruf |
+| 100-Aufruf-Session (Opus 4.7) | — | — | **~$0,11 gespart** |
+| 20 Sessions/Tag × 22 Arbeitstage | — | — | **~$48 gespart/Monat** |
+
+### Verwendung
+
+```bash
+/setup-git-lite status     # Nur-Lese-Diagnose — aktueller Zustand + was sich ändern würde
+/setup-git-lite install    # CC-Nativ deaktivieren + unseren minimalen Hook aktivieren
+/setup-git-lite revert     # Standard wiederherstellen (aggressiv; siehe unten)
+/setup-git-lite dismiss    # Den gelegentlichen Empfehlungshinweis stummschalten
+/setup-git-lite undismiss  # Den Hinweis wieder aktivieren
+/setup-git-lite help       # Vollständige Verwendung
+```
+
+### Install-Semantik
+
+`install` modifiziert **zwei** Stellen für Robustheit:
+
+1. `~/.claude/settings.json` — fügt `"includeGitInstructions": false` hinzu
+2. Shell-Profil (`~/.zshrc`, `~/.bashrc`, etc.) — hängt einen Marker-Block an, der `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS=1` exportiert
+
+Jedes allein reicht aus, um CC-Nativ zu deaktivieren; wir setzen beide, damit ein Umgebungs-Override das native Verhalten nicht versehentlich wieder aktiviert. Die Shell-Änderung tritt nur in neuen Shells in Kraft.
+
+### Revert-Semantik — aggressiv
+
+`revert` **entfernt ALLE `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS`-Exporte aus deinem Shell-Profil**, einschließlich solcher, die du möglicherweise vor der Installation manuell hinzugefügt hast. Das ist beabsichtigt — du hast `revert` ausgeführt, also stellen wir den sauberen Standard wieder her. Wir erstellen immer zuerst ein zeitgestempeltes Backup des Shell-Profils.
+
+Wenn du die Umgebungsvariable aus unabhängigen Gründen benötigst, notiere sie dir vor dem Ausführen von `revert` und füge sie danach wieder hinzu.
+
+### Vor dem Deinstallieren von cc-token-saver
+
+**Führe zuerst `/setup-git-lite revert` aus**, sonst bleibt `includeGitInstructions: false` in deiner settings.json, aber ohne Ersatz-Hook (Claude erhält keinerlei Git-Anleitung). Claude Code hat derzeit keinen Plugin-Uninstall-Lifecycle-Hook, daher können wir das nicht automatisieren.
+
+### Kompromisse
+
+Was du verlierst (und warum es meistens in Ordnung ist):
+- Claude erhält keinen vorberechneten `git status` / `git log -n 5` beim Session-Start. Wenn du in einer neuen Session fragst „Was hat sich geändert?", führt Claude diese Befehle selbst aus (ein zusätzlicher Tool-Aufruf, ~300 Tok).
+- Claude sieht CCs kanonische 3-Schritt-Commit-Prozedur nicht mehr. In unseren Tests über Hunderte von Commit-Abläufen bewältigt das Training-Wissen die kritischen Fälle (HEREDOC-Formatierung, kein `--amend`, kein force-push), weil wir diese als explizite Regeln behalten.
+- PR-Body-Template (`## Summary` + `## Test plan`) wird nicht injiziert. Wenn dir genau dieses Format wichtig ist, füge es in die CLAUDE.md deines Projekts ein.
+
+### Empfehlungs-Banner
+
+Wenn CC-native Git-Anweisungen auf deinem Rechner noch aktiv sind, zeigt cc-token-saver beim Session-Start **~20 % der Zeit** einen einzeiligen Hinweis an (zusätzlich in `/usage-view`- und `/report-limit`-Ausgaben). Dauerhaft deaktivieren mit `/setup-git-lite dismiss`.
+
+---
+
 ## 💡 Wie Cache tatsächlich funktioniert
 
 Claude Code sendet bei jedem API-Aufruf den gesamten Konversationsverlauf an das Modell. "API-Aufruf" bedeutet nicht "eine Nachricht, die du getippt hast." Ein einzelner Prompt löst interne Tool-Aufrufe aus — Grep, Read, Edit, Write — und jeder davon ist ein separater API-Aufruf. Ein Prompt kann leicht 10+ API-Aufrufe verursachen.

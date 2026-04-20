@@ -179,6 +179,106 @@ Rate limit에 걸렸을 때 `/report-limit`를 실행하면 해당 시점의 사
 
 ---
 
+## ✂️ Feature 5: /setup-git-lite — CC 내장 Git 지침 다이어트
+
+**당신이 모르고 냈던 세션당 숨겨진 2,200 토큰.**
+
+### 발견 경위
+
+2026년 4월 12일, [GitHub 이슈](https://github.com/anthropics/claude-code/issues/47107)를 통해 Claude Code의 내장 `includeGitInstructions` 설정이 매 세션마다 조용히 토큰을 소모하고 있다는 사실이 밝혀졌다. [이 gist (spilist)](https://gist.github.com/spilist/b0db92a859192f5ec6199d3f35a81b98)로 독립 재현한 결과 수치가 확인됐다: git commit 이후 매 세션마다 **cache write +6,031 토큰**, 모든 API 호출마다 **cache read +1,690 토큰**.
+
+### CC 소스 분석 — 토큰이 어디로 가는가
+
+토큰은 Claude Code 소스(v2.1.88)의 독립된 두 주입 지점에서 발생한다:
+
+**1. `gitStatus` 스냅샷 (~500 tok) — system prompt**
+- `context.ts:36-111` `getGitStatus()`가 branch + main branch + user.name + 전체 status (최대 2000자) + **최근 커밋 5개**를 수집
+- `appendSystemContext` (`utils/api.ts:437`)를 통해 system prompt에 추가
+- 새 커밋, 수정 파일, branch 전환 시마다 텍스트가 바뀌어 prefix cache가 무효화됨
+
+**2. Commit/PR 워크플로우 지침 (~1,700 tok) — Bash tool description**
+- `tools/BashTool/prompt.ts:53`에서 안전 규칙 60줄 이상, 단계별 commit 절차, HEREDOC 예시, PR 생성 템플릿을 `Bash` tool description에 추가
+- system prompt와 함께 cache되지만 `tools[]` 파라미터로 전송됨
+
+### 왜 비싼가
+
+cache 구조 (`utils/api.ts:321` `splitSysPromptPrefix`)는 MCP tool 활성화 여부에 따라 세 경로로 나뉜다:
+
+- **Path A** (MCP 활성 — 대부분의 사용자): `gitStatus`가 `cacheScope: 'org'` 블록에 위치. 변경 시 → 다음 세션 시작 시 블록 전체 재캐시 → 6K tok `cache_create` 미스.
+- **Path B** (MCP 없음): `gitStatus`가 `cacheScope: null` 동적 블록으로 이동. 매 API 호출마다 신규 `input_tokens`으로 전송 — cache 미스 없지만, cache 절약도 없음.
+- **Path C** (3P provider / experimental betas 비활성): Path A와 동일.
+
+일반적인 인터랙티브 세션에서 commit/PR 지침 (1.7K tok)은 `cache_read`를 통해 **모든 API 호출마다** 누적된다. Opus 4.7 가격 기준 100회 호출 세션이면, Claude의 훈련 데이터로 이미 대부분 커버되는 지침에 **세션당 ~$0.08**을 쓰는 셈이다.
+
+### cc-token-saver의 해결 방식
+
+`/setup-git-lite`는 CC 기본 경로를 비활성화하고, SessionStart hook을 통해 **280토큰짜리 교체 지침**을 주입한다. Claude의 기본 동작을 오버라이드하는 안전 규칙은 유지하고, 훈련 데이터로 이미 아는 내용(단계별 워크플로우, PR 템플릿, gh 사용 패턴 등)은 제거했다.
+
+**유지됨 — 핵심 오버라이드 규칙 11개** (Claude의 기본 친절함을 신중함으로 전환하는 규칙들):
+- 명시적 요청 없이 commit/push/amend/PR/tag/merge 금지
+- hooks 생략, main/master force-push, 파괴적 명령, git config 수정 금지
+- `.env`, `credentials`, `*.pem`, `secret.*` 파일 commit 금지
+- `git add -A` / `git add .` 지양
+- 여러 줄 commit message에 HEREDOC + `Co-Authored-By: Claude` trailer
+- interactive 플래그(-i) 금지, 빈 commit 금지
+- pre-commit hook 실패 시 → `--amend` 말고 새 commit 생성
+
+**제거됨** — 단계별 commit 워크플로우 (3단계), 단계별 PR 워크플로우 (3단계), PR title/body 템플릿, `gh` 명령 참조, `-uall` 플래그 경고, rebase의 `--no-edit` 경고, `NEVER use TodoWrite or Agent tools during commit` 제약. 훈련 데이터만으로 Claude가 충분히 올바르게 수행하는 워크플로우 설명들이다.
+
+**추가됨** — 간결한 git 상태 한 줄: branch + HEAD short-sha + subject + 현재 status (수정 파일 최대 20개, 초과 시 개수만 표시). 최근 commit 목록 없음 (필요 시 Claude가 `git log`를 직접 실행).
+
+### 예상 절감 효과 (Opus 4.7 기준, output $25/MTok, input $5/MTok, cache read $0.50/MTok)
+
+| 항목 | 기존 | setup-git-lite 적용 후 | 절감 |
+| ---- | ---- | --------------------- | ---- |
+| System prompt 로드 (새 세션마다) | ~2,200 tok cache_create | ~280 tok cache_create | ~1,920 tok |
+| 같은 세션 내 반복 호출 | ~1,700 tok cache_read/call | ~280 tok cache_read/call | ~1,420 tok/call |
+| 100회 호출 세션 (Opus 4.7) | — | — | **~$0.11 절감** |
+| 20 sessions/day × 22 근무일 | — | — | **월 ~$48 절감** |
+
+### 사용법
+
+```bash
+/setup-git-lite status     # 읽기 전용 진단 — 현재 상태 + 변경될 내용 확인
+/setup-git-lite install    # CC 기본 비활성화 + 최소화 hook 활성화
+/setup-git-lite revert     # 기본값 복원 (공격적 방식, 아래 참조)
+/setup-git-lite dismiss    # 가끔 표시되는 권장 팁 숨기기
+/setup-git-lite undismiss  # 팁 다시 활성화
+/setup-git-lite help       # 전체 사용법
+```
+
+### install 동작 방식
+
+`install`은 안정성을 위해 **두 곳**을 수정한다:
+
+1. `~/.claude/settings.json` — `"includeGitInstructions": false` 추가
+2. Shell 프로필 (`~/.zshrc`, `~/.bashrc` 등) — `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS=1` export 마커 블록 추가
+
+둘 중 하나만으로도 CC 기본을 비활성화할 수 있지만, 환경 변수 오버라이드로 기본 동작이 실수로 재활성화되지 않도록 둘 다 설정한다. Shell 변경은 새 shell에서만 적용된다.
+
+### revert 동작 방식 — 공격적
+
+`revert`는 **shell 프로필에서 `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS` export를 모두 제거한다**. 이 설치 전에 수동으로 추가한 것도 포함된다. 의도된 동작이다 — `revert`를 실행했다는 건 초기 상태로 복원하겠다는 뜻이다. shell 프로필의 타임스탬프 백업은 항상 먼저 생성된다.
+
+이 환경 변수가 다른 용도로 필요하다면, `revert` 실행 전에 따로 메모해두고 이후에 다시 추가하면 된다.
+
+### cc-token-saver 제거 전에
+
+**먼저 `/setup-git-lite revert`를 실행하자.** 그렇지 않으면 settings.json에 `includeGitInstructions: false`만 남고 교체 hook은 없는 상태가 된다 (Claude가 git 안내를 전혀 받지 못함). Claude Code에는 현재 플러그인 제거 lifecycle hook이 없어서 자동화가 불가능하다.
+
+### 트레이드오프
+
+잃는 것 (그리고 대체로 괜찮은 이유):
+- Claude가 세션 시작 시 미리 계산된 `git status` / `git log -n 5`를 받지 않는다. 새 세션에서 "뭐가 바뀌었지?"라고 물으면 Claude가 직접 해당 명령을 실행한다 (tool call 1회 추가, ~300 tok).
+- Claude가 CC의 정식 3단계 commit 절차를 받지 않는다. 수백 건의 commit 플로우 테스트 결과, 핵심 케이스 (HEREDOC 포맷, `--amend` 금지, force-push 금지)는 명시적 규칙으로 유지하기 때문에 훈련 지식으로 충분히 처리된다.
+- PR body 템플릿 (`## Summary` + `## Test plan`)이 주입되지 않는다. 해당 포맷이 꼭 필요하다면 프로젝트의 CLAUDE.md에 직접 추가하면 된다.
+
+### 권장 배너
+
+CC 기본 git 지침이 아직 활성화된 상태라면, cc-token-saver가 세션 시작 시 **약 20% 확률**로 안내 문구를 표시한다 (`/usage-view`와 `/report-limit` 출력에도 표시됨). `/setup-git-lite dismiss`로 영구적으로 숨길 수 있다.
+
+---
+
 ## 💡 Cache는 어떻게 작동하는가
 
 Claude Code는 매 API 호출마다 전체 대화 기록을 모델에 전송한다. "API 호출"은 사용자가 보낸 메시지 하나가 아니다. 프롬프트 하나에 Grep, Read, Edit, Write 같은 내부 tool call이 발생하고, 각각이 별도의 API 호출이다. 프롬프트 하나가 10번 이상의 API 호출을 유발하기도 한다.

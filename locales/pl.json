@@ -120,5 +120,8 @@
   "ai": {
     "analysis": "✨ Analiza AI",
     "tips": "💡 Wskazówki — Przewodnik po cc-token-saver"
+  },
+  "gitLite": {
+    "tip": "Wskazówka: Wbudowane instrukcje git w CC zużywają ~2 200 tok/sesję + ~1 700 tok/wywołanie. `/setup-git-lite install` zastępuje je wyselekcjonowanym minimum 280 tok. `/setup-git-lite dismiss` ukrywa tę wskazówkę."
   }
 }

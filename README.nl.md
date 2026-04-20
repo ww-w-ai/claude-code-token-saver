@@ -172,6 +172,106 @@ Wanneer je een rate limit raakt, voer je `/report-limit` uit. Je huidige gebruik
 
 ---
 
+## ✂️ Feature 5: /setup-git-lite — Verwijder CC's ingebouwde Git-instructies
+
+**De verborgen 2.200 tokens per sessie die je zonder het te weten betaalt.**
+
+### De ontdekking
+
+Op 2026-04-12 onthulde een [GitHub issue](https://github.com/anthropics/claude-code/issues/47107) dat de ingebouwde `includeGitInstructions`-instelling van Claude Code bij elke sessie stilletjes tokens verbrandt. Onafhankelijke reproductie via [deze gist (spilist)](https://gist.github.com/spilist/b0db92a859192f5ec6199d3f35a81b98) bevestigde de cijfers: **+6.031 tokens in cache writes** per sessie na elke git commit, **+1.690 tokens in cache reads** bij elke API call.
+
+### CC broncode-analyse — waar de tokens naartoe gaan
+
+We hebben de tokens herleid naar twee onafhankelijke injectiepunten in de Claude Code broncode (v2.1.88):
+
+**1. `gitStatus` snapshot (~500 tok) — system prompt**
+- `context.ts:36-111` `getGitStatus()` verzamelt branch + main branch + user.name + volledige status (tot 2000 tekens) + **recente 5 commits**
+- Samengevoegd en toegevoegd aan de system prompt via `appendSystemContext` (`utils/api.ts:437`)
+- Elke nieuwe commit, elk nieuw gewijzigd bestand, elke branch-wissel verandert de tekst → prefix cache invalidatie
+
+**2. Commit/PR workflow-instructies (~1.700 tok) — Bash tool-omschrijving**
+- `tools/BashTool/prompt.ts:53` voegt 60+ regels veiligheidsprotocol, stapsgewijze commitprocedure, HEREDOC-voorbeelden en PR-aanmaaktemplates toe aan de omschrijving van de `Bash`-tool
+- Samen met de system prompt gecached, maar meegestuurd als `tools[]`-parameter
+
+### Waarom het duur is
+
+De cachestructuur (`utils/api.ts:321` `splitSysPromptPrefix`) heeft drie paden afhankelijk van of je actieve MCP-tools hebt:
+
+- **Path A** (MCP actief — de meeste gebruikers): `gitStatus` zit in een `cacheScope: 'org'`-blok. Elke wijziging → heel blok opnieuw gecached bij volgende sessiestart → 6K tok `cache_create` miss.
+- **Path B** (geen MCP): `gitStatus` gaat naar een `cacheScope: null` dynamisch blok, wat betekent dat het bij elke API call opnieuw wordt verstuurd als verse `input_tokens` — geen cache miss, maar ook geen cachebesparing.
+- **Path C** (externe provider / experimentele bèta's uitgeschakeld): zelfde als Path A.
+
+In typische interactieve sessies accumuleren de commit/PR-instructies (1,7K tok) **bij elke API call** via `cache_read`. Over een sessie van 100 calls bij Opus 4.7-prijzen is dat ruwweg **$0,08 per sessie** puur voor instructies die Claude's training al grotendeels dekt.
+
+### Hoe cc-token-saver dit aanpakt
+
+`/setup-git-lite` schakelt het native pad uit en injecteert een **gecureerde vervanging van 280 tokens** via een SessionStart hook. We hebben precies de dingen bewaard die Claudes standaardgedrag overschrijven (veiligheidsregels), en alles weggelaten wat Claude al van training kent (stapsgewijze workflows, PR-templates, gh-gebruikspatronen).
+
+**Bewaard — 11 cruciale overschrijfregels** (de regels die Claudes standaard behulpzaamheid omzetten in voorzichtigheid):
+- Nooit committen/pushen/amenden/PR/taggen/mergen zonder expliciete gebruikersaanvraag
+- Nooit hooks overslaan, force-pushen naar main/master, destructieve bewerkingen uitvoeren, git config wijzigen
+- Nooit bestanden committen die overeenkomen met `.env`, `credentials`, `*.pem`, `secret.*`
+- Vermijd `git add -A` / `git add .`
+- HEREDOC voor meervoudige commit-berichten + `Co-Authored-By: Claude`-trailer
+- Nooit interactieve vlaggen gebruiken (-i), geen lege commits
+- Als een pre-commit hook faalt → maak een NIEUWE commit (niet `--amend`)
+
+**Weggelaten** — stapsgewijze commitworkflow (3 stappen), stapsgewijze PR-workflow (3 stappen), PR-titel/body-template, `gh`-commandoverwijzingen, `-uall`-vlagwaarschuwing, `--no-edit` met rebase-waarschuwing, `NEVER use TodoWrite or Agent tools during commit`-beperking. Dit is workflow-uitgebreidheid die Claude vanuit training alleen al correct samenstelt.
+
+**Toegevoegd** — compacte git-statusregel: branch + HEAD short-sha + onderwerp + huidige status (tot 20 gewijzigde bestanden, anders een telling). Geen lijst van recente commits (Claude kan `git log` op aanvraag uitvoeren).
+
+### Verwachte besparingen (Opus 4.7-prijzen, $25/MTok output, $5/MTok input, $0,50/MTok cache read)
+
+| Item | Origineel | Met setup-git-lite | Bespaard |
+| ---- | --------- | ------------------ | -------- |
+| System prompt laden (per nieuwe sessie) | ~2.200 tok cache_create | ~280 tok cache_create | ~1.920 tok |
+| Herhaalde calls in dezelfde sessie | ~1.700 tok cache_read/call | ~280 tok cache_read/call | ~1.420 tok/call |
+| Sessie van 100 calls (Opus 4.7) | — | — | **~$0,11 bespaard** |
+| 20 sessies/dag × 22 werkdagen | — | — | **~$48 bespaard/maand** |
+
+### Gebruik
+
+```bash
+/setup-git-lite status     # Alleen-lezen diagnose — huidige staat + wat er zou veranderen
+/setup-git-lite install    # CC native uitschakelen + onze minimale hook inschakelen
+/setup-git-lite revert     # Standaard herstellen (agressief; zie hieronder)
+/setup-git-lite dismiss    # De occasionele aanbevelingstip stilleggen
+/setup-git-lite undismiss  # De tip opnieuw inschakelen
+/setup-git-lite help       # Volledig gebruik
+```
+
+### Install-semantiek
+
+`install` wijzigt **twee** plaatsen voor robuustheid:
+
+1. `~/.claude/settings.json` — voegt `"includeGitInstructions": false` toe
+2. Shell-profiel (`~/.zshrc`, `~/.bashrc`, enz.) — voegt een markerblok toe dat `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS=1` exporteert
+
+Elk afzonderlijk is voldoende om CC native uit te schakelen; we stellen beide in zodat een omgevingsoverschrijving het native gedrag niet per ongeluk opnieuw inschakelt. De shell-wijziging wordt pas van kracht in nieuwe shells.
+
+### Revert-semantiek — agressief
+
+`revert` **verwijdert ALLE `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS`-exports uit je shell-profiel**, inclusief eventuele die je handmatig had toegevoegd vóór installatie van deze skill. Dit is opzettelijk — je hebt `revert` uitgevoerd, dus herstellen we de schone standaard. We maken altijd eerst een tijdgestempelde back-up van het shell-profiel.
+
+Als je de omgevingsvariabele om andere redenen nodig hebt, noteer die dan vóór `revert` en voeg hem daarna opnieuw toe.
+
+### Vóór het verwijderen van cc-token-saver
+
+**Voer eerst `/setup-git-lite revert` uit**, anders blijf je achter met `includeGitInstructions: false` in je settings.json maar zonder vervangingshook (Claude krijgt helemaal geen git-begeleiding). Claude Code heeft momenteel geen plugin-uninstall lifecycle hook, dus we kunnen dit niet automatiseren.
+
+### Afwegingen
+
+Wat je verliest (en waarom dat meestal prima is):
+- Claude ontvangt niet langer een voorberekende `git status` / `git log -n 5` bij sessiestart. Als je in een nieuwe sessie vraagt "wat is er gewijzigd?", voert Claude die commando's zelf uit (één extra tool call, ~300 tok).
+- Claude ziet niet langer CC's canonieke 3-staps commitprocedure. In onze tests over honderden commit-flows handelt trainingsniveau kennis de kritieke gevallen af (HEREDOC-opmaak, geen `--amend`, geen force-push) omdat we die als expliciete regels bewaren.
+- PR-body-template (`## Summary` + `## Test plan`) wordt niet geïnjecteerd. Als je precies dat formaat wilt, zet het dan in de CLAUDE.md van je project.
+
+### Aanbevelingsbanner
+
+Wanneer CC native git-instructies nog actief zijn op je machine, toont cc-token-saver een alinealange tip bij sessiestart **~20% van de tijd** (plus in `/usage-view`- en `/report-limit`-uitvoer). Permanent stilleggen met `/setup-git-lite dismiss`.
+
+---
+
 ## 💡 Hoe Cache echt werkt
 
 Claude Code stuurt de volledige gespreksgeschiedenis naar het model bij elke API call. "API call" betekent niet "een bericht dat je hebt getypt." Een enkele prompt triggert interne tool calls — Grep, Read, Edit, Write — en elk daarvan is een aparte API call. Een prompt kan makkelijk 10+ API calls veroorzaken.

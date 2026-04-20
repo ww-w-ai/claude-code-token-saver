@@ -253,11 +253,6 @@ if (mode === 'finalize') {
     dateRange: `${summary.dateFrom || '?'} ~ ${summary.dateTo || '?'}`,
     totalCost: summary.totalCost ? `$${summary.totalCost.toLocaleString()}` : '?',
   };
-  // Optional tip pointing to /setup-git-lite (only when native is active + not dismissed)
-  try {
-    const tip = require('./lib/git-lite-state.js').getRecommendationTip();
-    if (tip) result.tip = tip;
-  } catch (_) { /* state lib optional */ }
   console.log(JSON.stringify(result));
   process.exit(0);
 }

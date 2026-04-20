@@ -96,7 +96,6 @@ The script outputs JSON to stdout. Parse the result and show the user a brief su
 {If gistUrl: "📎 Data uploaded: {gistUrl}"}
 {If no gistUrl: "⚠️ GitHub CLI not authenticated. Run `gh auth login` first, or manually attach the zip file."}
 {If zipFile: "📎 Zip ready: {zipFile}"}
-{If tip: append the `tip` field as a final line, verbatim}
 
 Discussion opened in browser. Review and submit.
 ```

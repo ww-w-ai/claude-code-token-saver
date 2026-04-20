@@ -172,6 +172,106 @@ Anthropic 没有公开 5 小时窗口的确切公式。让我们一起把它搞�
 
 ---
 
+## ✂️ 功能 5：/setup-git-lite — 精简 CC 内置 Git 指令
+
+**你每个 session 都在默默支付的 2,200 个隐藏 token。**
+
+### 发现过程
+
+2026-04-12，一个 [GitHub issue](https://github.com/anthropics/claude-code/issues/47107) 揭示了 Claude Code 内置的 `includeGitInstructions` 设置会在每个 session 中悄悄消耗 token。通过[这个 gist（spilist）](https://gist.github.com/spilist/b0db92a859192f5ec6199d3f35a81b98)独立复现后确认了数据：每次 git commit 后每个 session **cache 写入多消耗 +6,031 token**，每次 API 调用 **cache 读取多消耗 +1,690 token**。
+
+### CC 源码分析 — token 去了哪里
+
+我们将这些 token 追踪到 Claude Code 源码（v2.1.88）中两个独立的注入点：
+
+**1. `gitStatus` 快照（约 500 tok）— system prompt**
+- `context.ts:36-111` 中的 `getGitStatus()` 收集分支 + 主分支 + user.name + 完整状态（最多 2000 字符）+ **最近 5 条 commit**
+- 通过 `appendSystemContext`（`utils/api.ts:437`）拼接后追加至 system prompt
+- 每次新 commit、每个新修改文件、每次切换分支都会改变文本 → prefix cache 失效
+
+**2. Commit/PR 工作流指令（约 1,700 tok）— Bash 工具描述**
+- `tools/BashTool/prompt.ts:53` 向 `Bash` 工具的描述中追加了 60 多行安全协议、逐步 commit 流程、HEREDOC 示例和 PR 创建模板
+- 与 system prompt 一起缓存，但作为 `tools[]` 参数发送
+
+### 为什么这很贵
+
+cache 结构（`utils/api.ts:321` 中的 `splitSysPromptPrefix`）根据是否有活跃 MCP 工具分为三条路径：
+
+- **Path A**（MCP 启用 — 多数用户）：`gitStatus` 位于 `cacheScope: 'org'` 块内。任何变更 → 下次 session 启动时整块重新缓存 → 6K tok 的 `cache_create` miss。
+- **Path B**（无 MCP）：`gitStatus` 进入 `cacheScope: null` 动态块，即每次 API 调用都作为新鲜的 `input_tokens` 重新发送——没有 cache miss，但也没有 cache 节省。
+- **Path C**（第三方 provider / 实验性 beta 功能禁用）：同 Path A。
+
+在典型的交互式 session 中，commit/PR 指令（1.7K tok）会**在每次 API 调用时**通过 `cache_read` 累积。以 Opus 4.7 定价计算，100 次调用的 session 光这些指令就要消耗约 **$0.08**——而 Claude 的训练数据本已大部分覆盖了这些内容。
+
+### cc-token-saver 的处理方式
+
+`/setup-git-lite` 禁用原生路径，并通过 SessionStart hook 注入一个**精简版 280 token 替代方案**。我们保留了能覆盖 Claude 默认行为的内容（安全规则），去除了 Claude 训练已掌握的内容（逐步工作流、PR 模板、gh 使用模式）。
+
+**保留 — 11 条关键覆盖规则**（能将 Claude 默认的"帮忙"倾向转变为谨慎的规则）：
+- 未经用户明确要求，绝不 commit/push/amend/PR/tag/merge
+- 绝不跳过 hooks，不向 main/master 强制推送，不执行破坏性操作，不修改 git config
+- 绝不 commit 匹配 `.env`、`credentials`、`*.pem`、`secret.*` 的文件
+- 避免 `git add -A` / `git add .`
+- 多行 commit 信息使用 HEREDOC + `Co-Authored-By: Claude` 尾注
+- 禁用交互式 flag（-i），不创建空 commit
+- pre-commit hook 失败时 → 创建新 commit（而非 `--amend`）
+
+**移除** — 逐步 commit 工作流（3 步）、逐步 PR 工作流（3 步）、PR 标题/正文模板、`gh` 命令参考、`-uall` flag 警告、rebase 使用 `--no-edit` 警告、`commit 期间绝不使用 TodoWrite 或 Agent 工具` 约束。这些工作流细节 Claude 仅凭训练就能正确组合。
+
+**新增** — 紧凑 git 状态行：分支 + HEAD 短 sha + 主题 + 当前状态（最多 20 个修改文件，超出则显示数量）。不包含最近 commit 列表（Claude 可按需运行 `git log`）。
+
+### 预期节省（Opus 4.7 定价，output $25/MTok，input $5/MTok，cache read $0.50/MTok）
+
+| 项目 | 原始 | 使用 setup-git-lite | 节省 |
+| ---- | ---- | ------------------- | ---- |
+| System prompt 加载（每个新 session） | 约 2,200 tok cache_create | 约 280 tok cache_create | 约 1,920 tok |
+| 同一 session 中的重复调用 | 约 1,700 tok cache_read/次 | 约 280 tok cache_read/次 | 约 1,420 tok/次 |
+| 100 次调用的 session（Opus 4.7） | — | — | **约节省 $0.11** |
+| 每天 20 个 session × 22 个工作日 | — | — | **约节省 $48/月** |
+
+### 用法
+
+```bash
+/setup-git-lite status     # 只读诊断 — 当前状态 + 会有哪些变化
+/setup-git-lite install    # 禁用 CC 原生 + 启用我们的精简 hook
+/setup-git-lite revert     # 恢复默认（激进；见下文）
+/setup-git-lite dismiss    # 屏蔽偶尔出现的推荐提示
+/setup-git-lite undismiss  # 重新启用提示
+/setup-git-lite help       # 完整用法
+```
+
+### 安装语义
+
+`install` 为确保稳健性会修改**两个**地方：
+
+1. `~/.claude/settings.json` — 添加 `"includeGitInstructions": false`
+2. Shell 配置文件（`~/.zshrc`、`~/.bashrc` 等）— 追加一个导出 `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS=1` 的标记块
+
+两者单独任一都足以禁用 CC 原生；我们同时设置两处，以防环境变量覆盖意外重新启用原生行为。Shell 配置的变更仅在新 shell 中生效。
+
+### 还原语义 — 激进
+
+`revert` 会**从你的 shell 配置文件中删除所有 `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS` 导出**，包括你在安装此 skill 之前手动添加的内容。这是有意为之——你运行了 `revert`，所以我们恢复干净的默认状态。操作前会先创建 shell 配置文件的带时间戳备份。
+
+如果你出于其他原因需要该环境变量，请在运行 `revert` 前记下，之后再重新添加。
+
+### 卸载 cc-token-saver 前
+
+**请先运行 `/setup-git-lite revert`**，否则你的 settings.json 中会残留 `includeGitInstructions: false`，但没有替代 hook（Claude 将完全得不到任何 git 指导）。Claude Code 目前没有插件卸载生命周期 hook，因此无法自动处理。
+
+### 权衡
+
+你会失去什么（以及为什么通常没关系）：
+- Claude 不再在 session 启动时接收预计算的 `git status` / `git log -n 5`。如果你在新 session 中问"有什么变化？"，Claude 会自行运行这些命令（多一次工具调用，约 300 tok）。
+- Claude 不再看到 CC 标准的 3 步 commit 流程。在我们对数百个 commit 流程的测试中，训练层面的知识能处理关键场景（HEREDOC 格式、不 `--amend`、不强制推送），因为我们将这些保留为明确规则。
+- PR 正文模板（`## Summary` + `## Test plan`）不再注入。如果你需要严格遵循该格式，请将其写入项目的 CLAUDE.md。
+
+### 推荐提示横幅
+
+当你的机器上 CC 原生 git 指令仍处于启用状态时，cc-token-saver 会在 session 启动时**约 20% 的概率**显示一段提示（另外在 `/usage-view` 和 `/report-limit` 输出中也会显示）。可通过 `/setup-git-lite dismiss` 永久屏蔽。
+
+---
+
 ## 💡 Cache 的实际工作原理
 
 Claude Code 每次 API 调用都会发送完整的对话历史。"API 调用"不等于"你输入的一条消息"。一条 prompt 会触发内部工具调用——Grep、Read、Edit、Write——每一个都是独立的 API 调用。一条 prompt 轻松产生 10+ 次 API 调用。

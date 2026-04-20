@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-04-20
+
+### New: `/setup-git-lite` skill
+
+- Skips Claude Code's built-in git instructions (~2,200 tok/session + ~1,700 tok/commit) and injects a compact, locale-aware replacement via SessionStart hook
+- Adoption tip surfaces at ~20% sampling rate in SessionStart only (single owner — removed from `/usage-view` and other commands to avoid duplicate nagging)
+- New helper: `scripts/lib/git-lite-state.js` (`getRecommendationTip()` is locale-aware)
+- Pricing fail-fast: unknown models now error out instead of silently assuming costs
+
+### Full i18n for `/setup-git-lite`
+
+- All 22 translated READMEs updated with the new Feature 5 section
+- All 23 `locales/*.json` files gain a `gitLite.tip` key
+- SessionStart hook now detects `LANG` and loads the localized tip from the JSON — no hard-coded translations in Bash
+
+### Hook architecture: `session-architecture.md` redesign
+
+- Restored `claude -p` guidance (removed in 1.4.0) — parallel design work goes through `claude -p` (1h cache tier, thinking active), execution work goes through SubTask (5m cache tier, Sonnet default)
+- Sonnet weekly-limit caveat softened (not confirmed by Anthropic; likely falls back to Opus based on prior source evidence)
+- Tighter size budget: 29 lines / 1.8KB despite added content
+
+### Research report: Opus 4.7 vs 4.6 cost analysis
+
+- New `research/opus-4-7-vs-4-6-cost-analysis.md` (EN) and `.ko.md` (KO)
+- Based on 8,563 real API calls across two projects + 100-turn simulation
+- Key finding: 4.7 costs ~1.43x of 4.6 on English/code workloads (23% on mixed, 12% on Korean-heavy), driven by tokenizer shift, 3.5× thinking frequency in main sessions, and 27~34% verbosity increase
+- Includes methodology, simulation scripts, CC source analysis, and recommended mitigation (`/model claude-opus-4-6[1m]`)
+
+### usage-view refactor
+
+- Split into `analyze-usage.js` (per-session CSV) and `build-report.js` (HTML) with cleaner dependency boundary
+- Unknown model detection surfaces as hard error with guidance to update `model-pricing.json`
+- `--days all` support for full-history reports
+- Plugin install-date detection fixed: now uses oldest cached version's birthtime instead of latest (which got overwritten on updates)
+
 ## [1.4.0] - 2026-04-13
 
 ### /continue skill improvements

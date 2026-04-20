@@ -172,6 +172,106 @@ Khi bạn bị rate limit, chạy `/report-limit`. Dữ liệu sử dụng hiệ
 
 ---
 
+## ✂️ Tính năng 5: /setup-git-lite — Cắt bỏ Hướng dẫn Git Tích hợp của CC
+
+**2.200 token ẩn mỗi session mà bạn không biết mình đang trả.**
+
+### Phát hiện
+
+Ngày 2026-04-12, một [GitHub issue](https://github.com/anthropics/claude-code/issues/47107) tiết lộ rằng cài đặt `includeGitInstructions` tích hợp của Claude Code âm thầm đốt token mỗi session. Tái hiện độc lập qua [gist này (spilist)](https://gist.github.com/spilist/b0db92a859192f5ec6199d3f35a81b98) xác nhận con số: **+6.031 token trong cache writes** mỗi session sau mỗi git commit, **+1.690 token trong cache reads** ở mỗi lần gọi API.
+
+### Phân tích source CC — token đi đâu
+
+Chúng tôi truy nguồn token tới hai điểm chèn độc lập trong source Claude Code (v2.1.88):
+
+**1. Snapshot `gitStatus` (~500 tok) — system prompt**
+- `context.ts:36-111` `getGitStatus()` thu thập branch + main branch + user.name + full status (tối đa 2000 ký tự) + **5 commit gần nhất**
+- Được nối và thêm vào system prompt qua `appendSystemContext` (`utils/api.ts:437`)
+- Mỗi commit mới, file sửa đổi mới, chuyển branch đều thay đổi nội dung → vô hiệu hóa prefix cache
+
+**2. Hướng dẫn quy trình commit/PR (~1.700 tok) — mô tả Bash tool**
+- `tools/BashTool/prompt.ts:53` thêm 60+ dòng quy trình an toàn, hướng dẫn commit từng bước, ví dụ HEREDOC, và template tạo PR vào mô tả của `Bash` tool
+- Được cache cùng system prompt, nhưng gửi dưới dạng tham số `tools[]`
+
+### Tại sao lại tốn kém
+
+Cấu trúc cache (`utils/api.ts:321` `splitSysPromptPrefix`) có ba path tùy theo việc bạn có MCP tools đang hoạt động hay không:
+
+- **Path A** (MCP đang chạy — đa số người dùng): `gitStatus` nằm trong block `cacheScope: 'org'`. Bất kỳ thay đổi nào → toàn bộ block được cache lại ở lần khởi đầu session tiếp theo → 6K tok `cache_create` miss.
+- **Path B** (không có MCP): `gitStatus` vào block dynamic `cacheScope: null`, nghĩa là nó được gửi lại dưới dạng `input_tokens` mới ở mỗi lần gọi API — không miss cache, nhưng cũng không có cache savings.
+- **Path C** (nhà cung cấp 3P / experimental betas bị tắt): giống Path A.
+
+Trong các session tương tác thông thường, hướng dẫn commit/PR (1,7K tok) tích lũy **ở mỗi lần gọi API** qua `cache_read`. Qua 100 lần gọi với giá Opus 4.7, đó là khoảng **$0,08 mỗi session** chỉ cho những hướng dẫn mà training của Claude đã phần lớn bao phủ.
+
+### cc-token-saver xử lý thế nào
+
+`/setup-git-lite` vô hiệu hóa path tích hợp và chèn một **bản thay thế 280 token được tinh chỉnh** qua SessionStart hook. Chúng tôi giữ lại đúng những gì ghi đè hành vi mặc định của Claude (quy tắc an toàn), và bỏ đi những gì Claude đã biết từ training (quy trình từng bước, PR template, pattern sử dụng gh).
+
+**Giữ lại — 11 quy tắc ghi đè quan trọng** (những quy tắc chuyển tính hữu ích mặc định của Claude thành thận trọng):
+- Không bao giờ commit/push/amend/PR/tag/merge nếu không có yêu cầu rõ ràng từ người dùng
+- Không bao giờ bỏ qua hooks, force-push lên main/master, chạy các lệnh destructive, sửa git config
+- Không bao giờ commit file khớp với `.env`, `credentials`, `*.pem`, `secret.*`
+- Tránh `git add -A` / `git add .`
+- HEREDOC cho commit message nhiều dòng + trailer `Co-Authored-By: Claude`
+- Không dùng interactive flags (-i), không commit rỗng
+- Nếu pre-commit hook thất bại → tạo commit MỚI (không dùng `--amend`)
+
+**Bỏ đi** — quy trình commit từng bước (3 bước), quy trình PR từng bước (3 bước), template tiêu đề/nội dung PR, tham chiếu lệnh `gh`, cảnh báo flag `-uall`, cảnh báo `--no-edit` với rebase, ràng buộc `NEVER use TodoWrite or Agent tools during commit`. Đây là những quy trình dài dòng mà Claude tổng hợp đúng từ training.
+
+**Thêm vào** — dòng trạng thái git compact: branch + HEAD short-sha + subject + trạng thái hiện tại (tối đa 20 file sửa đổi, hoặc một số đếm). Không có danh sách commit gần đây (Claude có thể chạy `git log` khi cần).
+
+### Tiết kiệm dự kiến (giá Opus 4.7, $25/MTok output, $5/MTok input, $0,50/MTok cache read)
+
+| Mục | Gốc | Với setup-git-lite | Tiết kiệm |
+| ---- | -------- | ------------------- | ----- |
+| Tải system prompt (mỗi session mới) | ~2.200 tok cache_create | ~280 tok cache_create | ~1.920 tok |
+| Các lần gọi lặp lại trong cùng session | ~1.700 tok cache_read/lần | ~280 tok cache_read/lần | ~1.420 tok/lần |
+| Session 100 lần gọi (Opus 4.7) | — | — | **~$0,11 tiết kiệm** |
+| 20 session/ngày × 22 ngày làm việc | — | — | **~$48 tiết kiệm/tháng** |
+
+### Cách dùng
+
+```bash
+/setup-git-lite status     # Chẩn đoán chỉ đọc — trạng thái hiện tại + những gì sẽ thay đổi
+/setup-git-lite install    # Vô hiệu hóa CC native + bật hook tối giản của chúng tôi
+/setup-git-lite revert     # Khôi phục mặc định (aggressive; xem bên dưới)
+/setup-git-lite dismiss    # Tắt gợi ý đề xuất thỉnh thoảng xuất hiện
+/setup-git-lite undismiss  # Bật lại gợi ý
+/setup-git-lite help       # Toàn bộ hướng dẫn sử dụng
+```
+
+### Ngữ nghĩa install
+
+`install` sửa đổi **hai** nơi để đảm bảo tính ổn định:
+
+1. `~/.claude/settings.json` — thêm `"includeGitInstructions": false`
+2. Shell profile (`~/.zshrc`, `~/.bashrc`, v.v.) — thêm vào một marker block export `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS=1`
+
+Chỉ một trong hai là đủ để vô hiệu hóa CC native; chúng tôi đặt cả hai để env override không vô tình bật lại hành vi native. Thay đổi shell chỉ có hiệu lực ở shell mới.
+
+### Ngữ nghĩa revert — aggressive
+
+`revert` **xóa TẤT CẢ export `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS` khỏi shell profile của bạn**, bao gồm cả những cái bạn có thể đã thêm thủ công trước khi cài skill này. Điều này là cố ý — bạn đã chạy `revert`, vậy chúng tôi khôi phục về mặc định sạch. Chúng tôi luôn tạo backup có timestamp của shell profile trước.
+
+Nếu bạn cần biến env này cho lý do không liên quan, hãy ghi chú lại trước khi chạy `revert` và thêm lại sau.
+
+### Trước khi gỡ cài đặt cc-token-saver
+
+**Chạy `/setup-git-lite revert` trước**, nếu không bạn sẽ bị kẹt với `includeGitInstructions: false` trong settings.json nhưng không có hook thay thế (Claude không nhận được hướng dẫn git nào cả). Claude Code hiện không có lifecycle hook gỡ cài đặt plugin, nên chúng tôi không thể tự động hóa điều này.
+
+### Đánh đổi
+
+Những gì bạn mất (và tại sao thường không sao):
+- Claude không còn nhận `git status` / `git log -n 5` được tính toán sẵn khi bắt đầu session. Nếu bạn hỏi "có gì thay đổi?" trong session mới, Claude sẽ tự chạy các lệnh đó (thêm một lần gọi tool, ~300 tok).
+- Claude không còn thấy quy trình commit 3 bước chính thức của CC. Qua thử nghiệm của chúng tôi trên hàng trăm commit flow, kiến thức training-level xử lý được các trường hợp quan trọng (định dạng HEREDOC, không `--amend`, không force-push) vì chúng tôi giữ những cái đó như quy tắc rõ ràng.
+- Template nội dung PR (`## Summary` + `## Test plan`) không được chèn. Nếu bạn quan tâm đến đúng định dạng đó, hãy đặt nó trong CLAUDE.md của project.
+
+### Banner khuyến nghị
+
+Khi hướng dẫn git native của CC vẫn đang hoạt động trên máy bạn, cc-token-saver hiển thị một đoạn gợi ý khi bắt đầu session **~20% số lần** (cộng thêm trong các output `/usage-view` và `/report-limit`). Tắt vĩnh viễn bằng `/setup-git-lite dismiss`.
+
+---
+
 ## 💡 Cache hoạt động thế nào
 
 Claude Code gửi toàn bộ lịch sử hội thoại cho model ở mỗi lần gọi API. "Gọi API" không có nghĩa là "một tin nhắn bạn gõ." Một prompt kích hoạt các tool call nội bộ — Grep, Read, Edit, Write — và mỗi cái là một lần gọi API riêng. Một prompt dễ dàng gây ra 10+ lần gọi API.

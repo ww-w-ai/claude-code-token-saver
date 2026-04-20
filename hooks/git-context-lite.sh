@@ -124,18 +124,14 @@ if [ "$RAND" -ge 20 ]; then
   exit 0
 fi
 
-cat <<'TIP_EOF'
-💡 cc-token-saver tip (shown ~20% of sessions; dismiss: `/setup-git-lite dismiss`)
+# Locale-aware short tip — pulls from locales/{LANG}.json via shared lib.
+# Returns English fallback if the locale file is missing/unreadable.
+TIP=$(node -e "
+  const s = require('${CLAUDE_PLUGIN_ROOT}/scripts/lib/git-lite-state.js');
+  const t = s.getRecommendationTip();
+  if (t) process.stdout.write(t);
+" 2>/dev/null)
 
-Claude Code's built-in git instructions consume ~2,200 tokens in cache writes
-per session and ~1,700 tokens in cache reads per API call. cc-token-saver
-can replace them with a curated 280-token minimum that keeps the critical
-safety rules (no force-push, no --amend, no secret commits, HEREDOC format,
-etc.) plus a compact git state snapshot.
-
-Estimated savings (Opus 4.7 pricing, 100-call session):
-  ~$0.11/session · ~$48/month at 20 sessions/day
-
-Run `/setup-git-lite help` to see what changes, or `/setup-git-lite install`
-to enable. Details in cc-token-saver README.
-TIP_EOF
+if [ -n "$TIP" ]; then
+  printf '💡 %s\n' "$TIP"
+fi

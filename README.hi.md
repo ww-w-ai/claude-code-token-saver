@@ -172,6 +172,106 @@ Anthropic 5-घंटे window का सटीक फ़ॉर्मूला 
 
 ---
 
+## ✂️ फ़ीचर 5: /setup-git-lite — CC की बिल्ट-इन Git Instructions को छोटा करें
+
+**वो छुपे हुए 2,200 token प्रति session जिनके बारे में आपको पता नहीं था।**
+
+### खोज
+
+2026-04-12 को एक [GitHub issue](https://github.com/anthropics/claude-code/issues/47107) से पता चला कि Claude Code की बिल्ट-इन `includeGitInstructions` सेटिंग हर session में चुपचाप token जलाती है। [इस gist (spilist)](https://gist.github.com/spilist/b0db92a859192f5ec6199d3f35a81b98) के ज़रिए स्वतंत्र रूप से इसकी पुष्टि हुई: हर git commit के बाद प्रति session **cache writes में +6,031 token**, और हर API call पर **cache reads में +1,690 token**।
+
+### CC सोर्स विश्लेषण — token कहाँ जाते हैं
+
+हमने token को Claude Code source (v2.1.88) के दो स्वतंत्र injection points तक ट्रेस किया:
+
+**1. `gitStatus` snapshot (~500 tok) — system prompt**
+- `context.ts:36-111` `getGitStatus()` branch + main branch + user.name + full status (2000 chars तक) + **हाल के 5 commits** इकट्ठा करता है
+- `appendSystemContext` (`utils/api.ts:437`) के ज़रिए system prompt में जोड़ा जाता है
+- हर नया commit, हर नई modified file, हर branch switch text बदलता है → prefix cache invalidation
+
+**2. Commit/PR workflow instructions (~1,700 tok) — Bash tool description**
+- `tools/BashTool/prompt.ts:53` `Bash` tool की description में 60+ lines का safety protocol, step-by-step commit procedure, HEREDOC examples, और PR creation templates जोड़ता है
+- System prompt के साथ cache होता है, लेकिन `tools[]` parameter के रूप में भेजा जाता है
+
+### यह महंगा क्यों है
+
+Cache structure (`utils/api.ts:321` `splitSysPromptPrefix`) में MCP tools की सक्रियता के आधार पर तीन paths हैं:
+
+- **Path A** (MCP active — ज़्यादातर users): `gitStatus` एक `cacheScope: 'org'` block में होता है। कोई भी बदलाव → अगले session start पर पूरा block दोबारा cache → 6K tok `cache_create` miss।
+- **Path B** (no MCP): `gitStatus` एक `cacheScope: null` dynamic block में जाता है, यानी हर API call पर fresh `input_tokens` के रूप में भेजा जाता है — कोई cache miss नहीं, लेकिन कोई cache बचत भी नहीं।
+- **Path C** (3P provider / experimental betas disabled): Path A जैसा।
+
+सामान्य interactive sessions में, commit/PR instructions (1.7K tok) हर API call पर `cache_read` के ज़रिए जमा होते हैं। Opus 4.7 pricing पर 100-call session में, यह सिर्फ़ instructions के लिए **~$0.08 प्रति session** है — जो Claude की training पहले से ज़्यादातर जानती है।
+
+### cc-token-saver इसे कैसे संभालता है
+
+`/setup-git-lite` native path को disable करके एक SessionStart hook के ज़रिए **280-token का curated replacement** inject करता है। हमने सिर्फ़ वही चीज़ें रखी हैं जो Claude के default behavior को override करती हैं (safety rules), और वो सब हटा दिया जो Claude training से पहले से जानता है (step-by-step workflows, PR templates, gh usage patterns)।
+
+**रखे गए — 11 critical override rules** (जो Claude की default helpfulness को सावधानी में बदलते हैं):
+- बिना explicit user request के commit/push/amend/PR/tag/merge कभी नहीं
+- Hooks कभी skip नहीं, force-push to main/master नहीं, destructive ops नहीं, git config modify नहीं
+- `.env`, `credentials`, `*.pem`, `secret.*` से मिलती files कभी commit नहीं
+- `git add -A` / `git add .` से बचें
+- Multi-line commit messages के लिए HEREDOC + `Co-Authored-By: Claude` trailer
+- Interactive flags (-i) कभी नहीं, empty commits नहीं
+- Pre-commit hook fail हो → NEW commit बनाएँ (`--amend` नहीं)
+
+**हटाए गए** — step-by-step commit workflow (3 steps), step-by-step PR workflow (3 steps), PR title/body template, `gh` command references, `-uall` flag warning, `--no-edit` with rebase warning, `NEVER use TodoWrite or Agent tools during commit` constraint। ये workflow verbosity है जो Claude training से खुद सही तरीके से compose करता है।
+
+**जोड़ा गया** — compact git state line: branch + HEAD short-sha + subject + current status (20 modified files तक, वरना count)। Recent commits list नहीं (Claude ज़रूरत पर `git log` खुद चला सकता है)।
+
+### अपेक्षित बचत (Opus 4.7 pricing, $25/MTok output, $5/MTok input, $0.50/MTok cache read)
+
+| Item | मूल | setup-git-lite के साथ | बचत |
+| ---- | --- | --------------------- | --- |
+| System prompt load (प्रति नया session) | ~2,200 tok cache_create | ~280 tok cache_create | ~1,920 tok |
+| Same session में repeat calls | ~1,700 tok cache_read/call | ~280 tok cache_read/call | ~1,420 tok/call |
+| 100-call session (Opus 4.7) | — | — | **~$0.11 बचत** |
+| 20 sessions/day × 22 workdays | — | — | **~$48 बचत/महीना** |
+
+### उपयोग
+
+```bash
+/setup-git-lite status     # Read-only diagnostic — वर्तमान स्थिति + क्या बदलेगा
+/setup-git-lite install    # CC native disable + हमारा minimal hook enable करें
+/setup-git-lite revert     # Default वापस लाएँ (aggressive; नीचे देखें)
+/setup-git-lite dismiss    # कभी-कभार आने वाला recommendation tip बंद करें
+/setup-git-lite undismiss  # Tip दोबारा चालू करें
+/setup-git-lite help       # पूरा उपयोग
+```
+
+### Install semantics
+
+`install` मज़बूती के लिए **दो** जगह बदलाव करता है:
+
+1. `~/.claude/settings.json` — `"includeGitInstructions": false` जोड़ता है
+2. Shell profile (`~/.zshrc`, `~/.bashrc`, आदि) — `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS=1` export करने वाला marker block जोड़ता है
+
+कोई भी एक अकेला native disable करने के लिए काफ़ी है; हम दोनों सेट करते हैं ताकि environment override गलती से native behavior दोबारा चालू न करे। Shell का बदलाव नए shells में ही लागू होगा।
+
+### Revert semantics — aggressive
+
+`revert` **आपके shell profile से सभी `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS` exports हटा देता है**, चाहे वो इस skill को install करने से पहले मैन्युअली जोड़े गए हों। यह जानबूझकर है — आपने `revert` चलाया, तो हम clean default वापस लाते हैं। Shell profile का timestamped backup पहले बना लिया जाता है।
+
+अगर यह env var किसी और कारण से चाहिए, तो `revert` चलाने से पहले नोट कर लें और बाद में वापस जोड़ें।
+
+### cc-token-saver uninstall करने से पहले
+
+**पहले `/setup-git-lite revert` चलाएँ**, वरना आपके settings.json में `includeGitInstructions: false` रह जाएगा लेकिन replacement hook नहीं होगा (Claude को कोई git guidance नहीं मिलेगी)। Claude Code में फ़िलहाल कोई plugin uninstall lifecycle hook नहीं है, इसलिए हम इसे automate नहीं कर सकते।
+
+### Trade-offs
+
+क्या खोते हैं (और क्यों आमतौर पर ठीक है):
+- Session शुरू होने पर Claude को pre-computed `git status` / `git log -n 5` नहीं मिलता। नए session में "क्या बदला है?" पूछने पर Claude खुद वो commands चलाएगा (एक extra tool call, ~300 tok)।
+- Claude को CC का canonical 3-step commit procedure नहीं मिलता। सैकड़ों commit flows में हमारे testing से पता चला कि training-level knowledge critical cases संभाल लेती है (HEREDOC formatting, no `--amend`, no force-push) क्योंकि वो rules हम explicit रखते हैं।
+- PR body template (`## Summary` + `## Test plan`) inject नहीं होता। अगर आपको exactly वही format चाहिए, तो अपने project के CLAUDE.md में डालें।
+
+### Recommendation banner
+
+जब आपकी machine पर CC native git instructions अभी भी active हों, cc-token-saver session start पर **~20% बार** एक paragraph का tip दिखाता है (साथ ही `/usage-view` और `/report-limit` outputs में भी)। `/setup-git-lite dismiss` से स्थायी रूप से बंद करें।
+
+---
+
 ## 💡 Cache असल में कैसे काम करता है
 
 Claude Code हर API call पर पूरा बातचीत इतिहास model को भेजता है। "API call" का मतलब "आपका एक मैसेज" नहीं है। एक prompt आंतरिक tool calls ट्रिगर करता है — Grep, Read, Edit, Write — और हर एक अलग API call है। एक prompt आसानी से 10+ API call करता है।

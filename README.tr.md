@@ -172,6 +172,106 @@ Rate limit'e çarptığınızda `/report-limit` çalıştırın. Mevcut kullanı
 
 ---
 
+## ✂️ Özellik 5: /setup-git-lite — CC'nin Yerleşik Git Talimatlarını Kırp
+
+**Her session için farkında olmadan ödediğiniz gizli 2.200 token.**
+
+### Keşif
+
+2026-04-12'de bir [GitHub issue](https://github.com/anthropics/claude-code/issues/47107), Claude Code'un yerleşik `includeGitInstructions` ayarının her session'da sessizce token yaktığını ortaya koydu. [Bu gist (spilist)](https://gist.github.com/spilist/b0db92a859192f5ec6199d3f35a81b98) aracılığıyla bağımsız olarak doğrulanan sayılar: her git commit sonrasında session başına **cache write'ta +6.031 token**, her API çağrısında **cache read'de +1.690 token**.
+
+### CC kaynak analizi — tokenlar nereye gidiyor
+
+Tokenları Claude Code kaynağındaki (v2.1.88) iki bağımsız enjeksiyon noktasına kadar izledik:
+
+**1. `gitStatus` anlık görüntüsü (~500 tok) — sistem promptu**
+- `context.ts:36-111` `getGitStatus()`: branch + main branch + user.name + tam durum (2000 karaktere kadar) + **son 5 commit** toplar
+- `appendSystemContext` (`utils/api.ts:437`) aracılığıyla sistem promptuna eklenir
+- Her yeni commit, her yeni değiştirilmiş dosya, her branch değişikliği metni değiştirir → prefix cache geçersiz kılınması
+
+**2. Commit/PR iş akışı talimatları (~1.700 tok) — Bash araç açıklaması**
+- `tools/BashTool/prompt.ts:53`, `Bash` aracının açıklamasına 60'tan fazla satır güvenlik protokolü, adım adım commit prosedürü, HEREDOC örnekleri ve PR oluşturma şablonları ekler
+- Sistem promptuyla birlikte önbelleğe alınır, ancak `tools[]` parametresi olarak gönderilir
+
+### Neden pahalı
+
+Cache yapısı (`utils/api.ts:321` `splitSysPromptPrefix`), aktif MCP araçlarınızın olup olmadığına göre üç yol izler:
+
+- **Path A** (MCP aktif — çoğu kullanıcı): `gitStatus`, `cacheScope: 'org'` bloğunun içindedir. Herhangi bir değişiklik → bir sonraki session başlangıcında tüm blok yeniden önbelleğe alınır → 6K tok `cache_create` kaçırma.
+- **Path B** (MCP yok): `gitStatus`, `cacheScope: null` dinamik bloğuna gider; bu, her API çağrısında taze `input_tokens` olarak yeniden gönderildiği anlamına gelir — cache kaçırma yok, ama cache tasarrufu da yok.
+- **Path C** (3. taraf sağlayıcı / deneysel beta devre dışı): Path A ile aynı.
+
+Tipik interaktif session'larda commit/PR talimatları (1.7K tok), `cache_read` aracılığıyla **her API çağrısında** birikir. Opus 4.7 fiyatlandırmasıyla 100 çağrılık bir session'da bu, Claude'un eğitiminden zaten büyük ölçüde bildiği talimatlar için yaklaşık **session başına $0,08** eder.
+
+### cc-token-saver nasıl ele alır
+
+`/setup-git-lite`, yerel yolu devre dışı bırakır ve SessionStart hook'u aracılığıyla **280 tokenlik özenle seçilmiş bir yedek** enjekte eder. Claude'un varsayılan davranışını geçersiz kılan şeyleri koruduk (güvenlik kuralları), Claude'un eğitimden zaten bildiği her şeyi çıkardık (adım adım iş akışları, PR şablonları, gh kullanım kalıpları).
+
+**Korunanlar — 11 kritik geçersiz kılma kuralı** (Claude'un varsayılan yardımseverliğini ihtiyata çeviren kurallar):
+- Açık kullanıcı isteği olmadan asla commit/push/amend/PR/tag/merge yapma
+- Asla hook'ları atlama, main/master'a force-push yapma, yıkıcı işlemler çalıştırma, git config'i değiştirme
+- `.env`, `credentials`, `*.pem`, `secret.*` ile eşleşen dosyaları asla commit etme
+- `git add -A` / `git add .` kullanmaktan kaçın
+- Çok satırlı commit mesajları için HEREDOC + `Co-Authored-By: Claude` eki
+- Asla interaktif flag'ler (-i) kullanma, boş commit oluşturma
+- Pre-commit hook başarısız olursa → YENİ bir commit oluştur (`--amend` değil)
+
+**Çıkarılanlar** — adım adım commit iş akışı (3 adım), adım adım PR iş akışı (3 adım), PR başlık/gövde şablonu, `gh` komut referansları, `-uall` flag uyarısı, rebase ile `--no-edit` uyarısı, `commit sırasında asla TodoWrite veya Agent araçları kullanma` kısıtlaması. Bunlar, Claude'un yalnızca eğitiminden doğru biçimde oluşturduğu iş akışı ayrıntısıdır.
+
+**Eklenenler** — kompakt git durum satırı: branch + HEAD kısa-sha + konu + mevcut durum (en fazla 20 değiştirilmiş dosya, aksi hâlde sayı). Son commit listesi yok (Claude talep üzerine `git log` çalıştırabilir).
+
+### Beklenen tasarruf (Opus 4.7 fiyatlandırması, $25/MTok çıktı, $5/MTok giriş, $0,50/MTok cache okuma)
+
+| Öğe | Orijinal | setup-git-lite ile | Tasarruf |
+| ---- | -------- | ------------------- | ----- |
+| Sistem promptu yüklemesi (yeni session başına) | ~2.200 tok cache_create | ~280 tok cache_create | ~1.920 tok |
+| Aynı session'da tekrar çağrılar | ~1.700 tok cache_read/çağrı | ~280 tok cache_read/çağrı | ~1.420 tok/çağrı |
+| 100 çağrılık session (Opus 4.7) | — | — | **~$0,11 tasarruf** |
+| Günde 20 session × 22 iş günü | — | — | **~$48 tasarruf/ay** |
+
+### Kullanım
+
+```bash
+/setup-git-lite status     # Salt okunur tanılama — mevcut durum + ne değişeceği
+/setup-git-lite install    # CC yerelini devre dışı bırak + minimal hook'u etkinleştir
+/setup-git-lite revert     # Varsayılana geri yükle (agresif; aşağıya bakın)
+/setup-git-lite dismiss    # Ara sıra gösterilen tavsiye ipucunu sessize al
+/setup-git-lite undismiss  # İpucunu yeniden etkinleştir
+/setup-git-lite help       # Tam kullanım
+```
+
+### Kurulum semantiği
+
+`install`, sağlamlık için **iki** yeri değiştirir:
+
+1. `~/.claude/settings.json` — `"includeGitInstructions": false` ekler
+2. Shell profili (`~/.zshrc`, `~/.bashrc`, vb.) — `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS=1` dışa aktaran bir işaret bloğu ekler
+
+Her biri tek başına CC yerelini devre dışı bırakmaya yeterlidir; bir ortam geçersiz kılmanın yanlışlıkla yerel davranışı yeniden etkinleştirmemesi için ikisini de ayarlarız. Shell değişikliği yalnızca yeni shell'lerde geçerli olur.
+
+### Geri alma semantiği — agresif
+
+`revert`, **shell profilinizden TÜM `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS` dışa aktarmalarını kaldırır**; bu skill'i kurmadan önce manuel olarak eklemiş olduklarınız dahil. Bu kasıtlıdır — `revert` çalıştırdınız, dolayısıyla temiz varsayılanı geri yüklüyoruz. Shell profilinin zaman damgalı yedeğini her seferinde önce oluşturuyoruz.
+
+Env değişkenine ilgisiz nedenlerle ihtiyacınız varsa, `revert` çalıştırmadan önce not edin ve sonra yeniden ekleyin.
+
+### cc-token-saver'ı kaldırmadan önce
+
+**Önce `/setup-git-lite revert` çalıştırın**; aksi takdirde settings.json'da `includeGitInstructions: false` kalır ama yedek hook olmaz (Claude hiç git rehberliği almaz). Claude Code'un şu anda bir plugin kaldırma yaşam döngüsü hook'u yoktur, bu yüzden bunu otomatikleştiremiyoruz.
+
+### Ödünleşimler
+
+Kaybettikleriniz (ve neden genellikle sorun olmadığı):
+- Claude artık session başlangıcında önceden hesaplanmış `git status` / `git log -n 5` almaz. Yeni bir session'da "ne değişti?" diye sorarsanız, Claude bu komutları kendisi çalıştırır (bir ekstra araç çağrısı, ~300 tok).
+- Claude artık CC'nin standart 3 adımlı commit prosedürünü görmez. Yüzlerce commit akışı üzerinde yaptığımız testlerde, kritik durumları (HEREDOC biçimlendirmesi, `--amend` yok, force-push yok) eğitim düzeyindeki bilgi karşılar; çünkü bunları açık kurallar olarak saklarız.
+- PR gövde şablonu (`## Summary` + `## Test plan`) enjekte edilmez. Bu biçimi önemsiyorsanız, projenizin CLAUDE.md dosyasına ekleyin.
+
+### Tavsiye banner'ı
+
+Makinenizde CC yerel git talimatları hâlâ aktifken cc-token-saver, session başlangıcında **yaklaşık %20 oranında** (ayrıca `/usage-view` ve `/report-limit` çıktılarında) tek paragraflık bir ipucu gösterir. Kalıcı olarak kapatmak için `/setup-git-lite dismiss`.
+
+---
+
 ## 💡 Cache Gerçekte Nasıl Çalışır
 
 Claude Code, her API çağrısında tüm konuşma geçmişini modele gönderir. "API çağrısı" demek "yazdığınız tek mesaj" demek değil. Tek bir prompt dahili araç çağrılarını tetikler — Grep, Read, Edit, Write — ve her biri ayrı bir API çağrısıdır. Tek bir prompt kolayca 10'dan fazla API çağrısına neden olabilir.

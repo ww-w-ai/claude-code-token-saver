@@ -118,7 +118,6 @@ Usage dashboard opened in browser.
 The HTML file is self-contained -- you can share it or re-open it anytime.
 💡 Tip: `/usage-view no ai` — skip AI analysis for a faster dashboard (no LLM cost).
 💡 Tip: `/usage-view current` — quick snapshot of your 5H window (no AI by default). Add "ai" to include analysis.
-{If the finalize JSON includes a `tip` field, append it verbatim as one extra line}
 ```
 
 ## Important Notes

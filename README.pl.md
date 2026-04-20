@@ -172,6 +172,106 @@ Gdy trafisz na rate limit, uruchom `/report-limit`. Twoje bieżące dane użycia
 
 ---
 
+## ✂️ Funkcja 5: /setup-git-lite — Przytnij wbudowane instrukcje Git CC
+
+**Ukryte 2 200 tokenów na sesję, za które płacisz, nie wiedząc o tym.**
+
+### Odkrycie
+
+12 kwietnia 2026 r. [zgłoszenie na GitHubie](https://github.com/anthropics/claude-code/issues/47107) ujawniło, że wbudowane ustawienie `includeGitInstructions` w Claude Code po cichu spala tokeny w każdej sesji. Niezależna reprodukcja za pomocą [tego gista (spilist)](https://gist.github.com/spilist/b0db92a859192f5ec6199d3f35a81b98) potwierdziła liczby: **+6 031 tokenów w zapisach cache** na sesję po każdym commicie git, **+1 690 tokenów w odczytach cache** przy każdym wywołaniu API.
+
+### Analiza źródła CC — gdzie trafiają tokeny
+
+Prześledziliśmy tokeny do dwóch niezależnych punktów wstrzyknięcia w źródle Claude Code (v2.1.88):
+
+**1. Migawka `gitStatus` (~500 tok) — system prompt**
+- `context.ts:36-111` `getGitStatus()` zbiera gałąź + główną gałąź + user.name + pełny status (do 2000 znaków) + **ostatnie 5 commitów**
+- Łączone i dołączane do system prompt przez `appendSystemContext` (`utils/api.ts:437`)
+- Każdy nowy commit, każdy nowy zmodyfikowany plik, każde przełączenie gałęzi zmienia tekst → unieważnienie prefix cache
+
+**2. Instrukcje workflow commit/PR (~1 700 tok) — opis narzędzia Bash**
+- `tools/BashTool/prompt.ts:53` dołącza ponad 60 linii protokołu bezpieczeństwa, krok po kroku procedurę commitowania, przykłady HEREDOC i szablony tworzenia PR do opisu narzędzia `Bash`
+- Buforowane razem z system prompt, ale przesyłane jako parametr `tools[]`
+
+### Dlaczego to jest kosztowne
+
+Struktura cache (`utils/api.ts:321` `splitSysPromptPrefix`) ma trzy ścieżki w zależności od tego, czy masz aktywne narzędzia MCP:
+
+- **Path A** (aktywne MCP — większość użytkowników): `gitStatus` znajduje się wewnątrz bloku `cacheScope: 'org'`. Każda zmiana → cały blok jest ponownie buforowany przy następnym starcie sesji → chybienie `cache_create` na 6K tok.
+- **Path B** (brak MCP): `gitStatus` trafia do dynamicznego bloku `cacheScope: null`, co oznacza, że jest przesyłany jako świeże `input_tokens` przy każdym wywołaniu API — brak chybień cache, ale też brak oszczędności cache.
+- **Path C** (dostawca 3P / eksperymentalne bety wyłączone): tak samo jak Path A.
+
+W typowych sesjach interaktywnych instrukcje commit/PR (1,7K tok) narastają **przy każdym wywołaniu API** przez `cache_read`. Przez sesję ze 100 wywołaniami przy cenniku Opus 4.7 to z grubsza **~$0,08 na sesję** tylko za instrukcje, które trening Claude i tak w większości obejmuje.
+
+### Jak cc-token-saver to obsługuje
+
+`/setup-git-lite` wyłącza natywną ścieżkę i wstrzykuje **starannie dobrany zamiennik o 280 tokenach** przez hook SessionStart. Zachowaliśmy dokładnie to, co nadpisuje domyślne zachowanie Claude (zasady bezpieczeństwa), i usunęliśmy wszystko, co Claude już wie z treningu (krok po kroku workflow, szablony PR, wzorce użycia gh).
+
+**Zachowane — 11 krytycznych reguł nadpisujących** (te, które zamieniają domyślną pomocność Claude w ostrożność):
+- Nigdy nie commituj/pushuj/amend/PR/tag/merge bez wyraźnej prośby użytkownika
+- Nigdy nie pomijaj hooków, nie wykonuj force-push do main/master, nie uruchamiaj destrukcyjnych operacji, nie modyfikuj git config
+- Nigdy nie commituj plików pasujących do `.env`, `credentials`, `*.pem`, `secret.*`
+- Unikaj `git add -A` / `git add .`
+- HEREDOC dla wieloliniowych komunikatów commit + trailer `Co-Authored-By: Claude`
+- Nigdy nie używaj interaktywnych flag (-i), brak pustych commitów
+- Jeśli pre-commit hook nie powiedzie się → utwórz NOWY commit (nie `--amend`)
+
+**Usunięte** — krok po kroku workflow commitowania (3 kroki), krok po kroku workflow PR (3 kroki), szablon tytułu/treści PR, odwołania do poleceń `gh`, ostrzeżenie o fladze `-uall`, ostrzeżenie o `--no-edit` z rebase, ograniczenie `NEVER use TodoWrite or Agent tools during commit`. To jest gadatliwość workflow, którą Claude poprawnie składa z samego treningu.
+
+**Dodane** — zwięzła linia stanu git: gałąź + skrócone SHA HEAD + treść + bieżący status (do 20 zmodyfikowanych plików, w przeciwnym razie liczba). Brak listy ostatnich commitów (Claude może uruchomić `git log` na żądanie).
+
+### Oczekiwane oszczędności (cennik Opus 4.7, $25/MTok output, $5/MTok input, $0,50/MTok cache read)
+
+| Element | Oryginał | Z setup-git-lite | Zaoszczędzono |
+| ------- | -------- | ---------------- | ------------- |
+| Ładowanie system prompt (na nową sesję) | ~2 200 tok cache_create | ~280 tok cache_create | ~1 920 tok |
+| Powtarzające się wywołania w tej samej sesji | ~1 700 tok cache_read/wywołanie | ~280 tok cache_read/wywołanie | ~1 420 tok/wywołanie |
+| 100 wywołań na sesję (Opus 4.7) | — | — | **~$0,11 zaoszczędzone** |
+| 20 sesji/dzień × 22 dni robocze | — | — | **~$48 zaoszczędzone/mies.** |
+
+### Użycie
+
+```bash
+/setup-git-lite status     # Diagnostyka tylko do odczytu — bieżący stan + co by się zmieniło
+/setup-git-lite install    # Wyłącz natywne CC + włącz nasz minimalny hook
+/setup-git-lite revert     # Przywróć domyślne (agresywne; patrz niżej)
+/setup-git-lite dismiss    # Wycisz okazjonalną wskazówkę z rekomendacją
+/setup-git-lite undismiss  # Ponownie włącz wskazówkę
+/setup-git-lite help       # Pełne użycie
+```
+
+### Semantyka instalacji
+
+`install` modyfikuje **dwa** miejsca dla niezawodności:
+
+1. `~/.claude/settings.json` — dodaje `"includeGitInstructions": false`
+2. Profil powłoki (`~/.zshrc`, `~/.bashrc` itp.) — dołącza blok znacznikowy eksportujący `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS=1`
+
+Każde z nich osobno wystarczy do wyłączenia natywnego CC; ustawiamy oba, żeby nadpisanie przez zmienną środowiskową nie przywróciło przypadkowo natywnego zachowania. Zmiana powłoki obowiązuje tylko w nowych powłokach.
+
+### Semantyka przywracania — agresywna
+
+`revert` **usuwa WSZYSTKIE eksporty `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS` z Twojego profilu powłoki**, w tym te, które mogłeś dodać ręcznie przed instalacją tego skilla. Jest to celowe — uruchomiłeś `revert`, więc przywracamy czyste domyślne. Zawsze najpierw tworzymy kopię zapasową profilu powłoki z sygnaturą czasową.
+
+Jeśli potrzebujesz tej zmiennej środowiskowej z niezwiązanych powodów, zanotuj ją przed uruchomieniem `revert` i dodaj ponownie po nim.
+
+### Przed odinstalowaniem cc-token-saver
+
+**Najpierw uruchom `/setup-git-lite revert`**, inaczej zostanie Ci `includeGitInstructions: false` w settings.json, ale bez zastępczego hooka (Claude nie otrzymuje żadnych wskazówek git). Claude Code nie ma obecnie hooka cyklu życia do odinstalowywania pluginów, więc nie możemy tego zautomatyzować.
+
+### Kompromisy
+
+Co tracisz (i dlaczego zazwyczaj jest to w porządku):
+- Claude nie otrzymuje już wstępnie obliczonego `git status` / `git log -n 5` przy starcie sesji. Jeśli zapytasz „co się zmieniło?" w nowej sesji, Claude uruchomi te polecenia samodzielnie (jedno dodatkowe wywołanie narzędzia, ~300 tok).
+- Claude nie widzi już kanonicznej 3-krokowej procedury commitowania CC. W naszych testach na setkach przepływów commitowania wiedza na poziomie treningu radzi sobie z krytycznymi przypadkami (formatowanie HEREDOC, brak `--amend`, brak force-push), ponieważ zachowujemy te jako jawne reguły.
+- Szablon treści PR (`## Summary` + `## Test plan`) nie jest wstrzykiwany. Jeśli zależy Ci dokładnie na tym formacie, umieść go w CLAUDE.md swojego projektu.
+
+### Baner rekomendacji
+
+Gdy natywne instrukcje git CC są nadal aktywne na Twoim komputerze, cc-token-saver pokazuje jednoparagrafową wskazówkę przy starcie sesji **~20% czasu** (plus w wynikach `/usage-view` i `/report-limit`). Wycisz na stałe za pomocą `/setup-git-lite dismiss`.
+
+---
+
 ## 💡 Jak naprawdę działa cache
 
 Claude Code wysyła całą historię konwersacji do modelu przy każdym wywołaniu API. „Wywołanie API" nie oznacza „jednej wiadomości, którą wpisałeś". Pojedynczy prompt wywołuje wewnętrzne narzędzia — Grep, Read, Edit, Write — a każde z nich to osobne wywołanie API. Jeden prompt może łatwo wygenerować 10+ wywołań API.

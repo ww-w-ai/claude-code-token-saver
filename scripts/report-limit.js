@@ -667,13 +667,6 @@ if (!gistUrl) {
 }
 
 // ── Step 12: Print JSON summary to stdout ───────────────────────
-// Include an optional tip pointing to /setup-git-lite when the user
-// still has CC's built-in git instructions active and hasn't dismissed.
-let gitLiteTip = null;
-try {
-  gitLiteTip = require('./lib/git-lite-state.js').getRecommendationTip();
-} catch (_) { /* state lib optional */ }
-
 const summary = {
   windows: results.map(w => ({
     date: w.date,
@@ -694,7 +687,6 @@ const summary = {
   zipFile: zipCreated ? zipFile : null,
   reportDir: reportDir,
   discussionOpened: discussionOpened,
-  tip: gitLiteTip,
 };
 
 console.log(JSON.stringify(summary, null, 2));
