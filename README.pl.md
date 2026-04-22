@@ -235,8 +235,8 @@ W typowych sesjach interaktywnych instrukcje commit/PR (1,7K tok) narastają **p
 /setup-git-lite status     # Diagnostyka tylko do odczytu — bieżący stan + co by się zmieniło
 /setup-git-lite install    # Wyłącz natywne CC + włącz nasz minimalny hook
 /setup-git-lite revert     # Przywróć domyślne (agresywne; patrz niżej)
-/setup-git-lite dismiss    # Wycisz okazjonalną wskazówkę z rekomendacją
-/setup-git-lite undismiss  # Ponownie włącz wskazówkę
+/setup-git-lite dismiss-banner    # Wycisz okazjonalną wskazówkę z rekomendacją
+/setup-git-lite undismiss-banner  # Ponownie włącz wskazówkę
 /setup-git-lite help       # Pełne użycie
 ```
 
@@ -268,7 +268,7 @@ Co tracisz (i dlaczego zazwyczaj jest to w porządku):
 
 ### Baner rekomendacji
 
-Gdy natywne instrukcje git CC są nadal aktywne na Twoim komputerze, cc-token-saver pokazuje jednoparagrafową wskazówkę przy starcie sesji **~20% czasu** (plus w wynikach `/usage-view` i `/report-limit`). Wycisz na stałe za pomocą `/setup-git-lite dismiss`.
+Gdy natywne instrukcje git CC są nadal aktywne na Twoim komputerze, cc-token-saver pokazuje jednoparagrafową wskazówkę przy starcie sesji **~20% czasu** (plus w wynikach `/usage-view` i `/report-limit`). Wycisz na stałe za pomocą `/setup-git-lite dismiss-banner`.
 
 ---
 

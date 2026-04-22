@@ -235,8 +235,8 @@ En sesiones interactivas típicas, las instrucciones de commit/PR (1,7K tok) se 
 /setup-git-lite status     # Diagnóstico de solo lectura — estado actual + qué cambiaría
 /setup-git-lite install    # Desactiva CC nativo + activa nuestro hook mínimo
 /setup-git-lite revert     # Restaura el comportamiento predeterminado (agresivo; ver abajo)
-/setup-git-lite dismiss    # Silencia el aviso de recomendación ocasional
-/setup-git-lite undismiss  # Reactiva el aviso
+/setup-git-lite dismiss-banner    # Silencia el aviso de recomendación ocasional
+/setup-git-lite undismiss-banner  # Reactiva el aviso
 /setup-git-lite help       # Uso completo
 ```
 
@@ -268,7 +268,7 @@ Lo que pierdes (y por qué normalmente no importa):
 
 ### Banner de recomendación
 
-Cuando las instrucciones git nativas de CC todavía están activas en tu máquina, cc-token-saver muestra un aviso de un párrafo al inicio de la sesión **~20% de las veces** (además en las salidas de `/usage-view` y `/report-limit`). Descarta permanentemente con `/setup-git-lite dismiss`.
+Cuando las instrucciones git nativas de CC todavía están activas en tu máquina, cc-token-saver muestra un aviso de un párrafo al inicio de la sesión **~20% de las veces** (además en las salidas de `/usage-view` y `/report-limit`). Descarta permanentemente con `/setup-git-lite dismiss-banner`.
 
 ---
 

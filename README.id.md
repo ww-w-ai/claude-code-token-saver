@@ -235,8 +235,8 @@ Dalam session interaktif biasa, instruksi commit/PR (1,7K tok) terakumulasi **di
 /setup-git-lite status     # Diagnostik read-only — status saat ini + apa yang akan berubah
 /setup-git-lite install    # Nonaktifkan native CC + aktifkan hook minimal kami
 /setup-git-lite revert     # Pulihkan default (agresif; lihat di bawah)
-/setup-git-lite dismiss    # Sembunyikan tip rekomendasi sesekali
-/setup-git-lite undismiss  # Aktifkan kembali tip
+/setup-git-lite dismiss-banner    # Sembunyikan tip rekomendasi sesekali
+/setup-git-lite undismiss-banner  # Aktifkan kembali tip
 /setup-git-lite help       # Penggunaan lengkap
 ```
 
@@ -268,7 +268,7 @@ Yang Anda kehilangan (dan mengapa biasanya tidak masalah):
 
 ### Banner rekomendasi
 
-Saat instruksi git native CC masih aktif di mesin Anda, cc-token-saver menampilkan tip satu paragraf saat session dimulai **~20% dari waktu** (plus di output `/usage-view` dan `/report-limit`). Nonaktifkan permanen dengan `/setup-git-lite dismiss`.
+Saat instruksi git native CC masih aktif di mesin Anda, cc-token-saver menampilkan tip satu paragraf saat session dimulai **~20% dari waktu** (plus di output `/usage-view` dan `/report-limit`). Nonaktifkan permanen dengan `/setup-git-lite dismiss-banner`.
 
 ---
 

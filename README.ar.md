@@ -235,8 +235,8 @@ Anthropic لا تنشر الصيغة الدقيقة لنافذة 5 ساعات. �
 /setup-git-lite status     # تشخيص للقراءة فقط — الحالة الحالية + ما سيتغير
 /setup-git-lite install    # تعطيل CC native + تفعيل hook المصغّر الخاص بنا
 /setup-git-lite revert     # استعادة الإعداد الافتراضي (عدواني؛ انظر أدناه)
-/setup-git-lite dismiss    # إخفاء نصيحة التوصية العرضية
-/setup-git-lite undismiss  # إعادة تفعيل النصيحة
+/setup-git-lite dismiss-banner    # إخفاء نصيحة التوصية العرضية
+/setup-git-lite undismiss-banner  # إعادة تفعيل النصيحة
 /setup-git-lite help       # الاستخدام الكامل
 ```
 
@@ -268,7 +268,7 @@ Anthropic لا تنشر الصيغة الدقيقة لنافذة 5 ساعات. �
 
 ### لافتة التوصية
 
-عندما تكون تعليمات Git الأصلية لـ CC نشطة على جهازك، يعرض cc-token-saver نصيحة من فقرة واحدة عند بداية الجلسة **~20% من الوقت** (بالإضافة إلى مخرجات `/usage-view` و`/report-limit`). أخفها بشكل دائم بـ `/setup-git-lite dismiss`.
+عندما تكون تعليمات Git الأصلية لـ CC نشطة على جهازك، يعرض cc-token-saver نصيحة من فقرة واحدة عند بداية الجلسة **~20% من الوقت** (بالإضافة إلى مخرجات `/usage-view` و`/report-limit`). أخفها بشكل دائم بـ `/setup-git-lite dismiss-banner`.
 
 ---
 

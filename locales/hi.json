@@ -122,6 +122,6 @@
     "tips": "💡 सुझाव — cc-token-saver उपयोग गाइड"
   },
   "gitLite": {
-    "tip": "सुझाव: CC के बिल्ट-इन git निर्देश ~2,200 tok/सेशन + ~1,700 tok/कॉल खपत करते हैं। `/setup-git-lite install` उन्हें 280-tok के क्यूरेटेड न्यूनतम से बदल देता है। `/setup-git-lite dismiss` इस सुझाव को छुपाता है।"
+    "tip": "सुझाव: CC के बिल्ट-इन git निर्देश ~2,200 tok/सेशन + ~1,700 tok/कॉल खपत करते हैं। `/setup-git-lite install` उन्हें 280-tok के क्यूरेटेड न्यूनतम से बदल देता है। `/setup-git-lite dismiss-banner` इस सुझाव को छुपाता है।"
   }
 }

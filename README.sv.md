@@ -235,8 +235,8 @@ I typiska interaktiva sessioner ackumuleras commit/PR-instruktionerna (1,7K tok)
 /setup-git-lite status     # Skrivskyddad diagnostik — aktuellt tillstånd + vad som skulle ändras
 /setup-git-lite install    # Inaktivera CC:s ursprungliga + aktivera vår minimala hook
 /setup-git-lite revert     # Återställ standard (aggressiv; se nedan)
-/setup-git-lite dismiss    # Tysta det tillfälliga rekommendationstipset
-/setup-git-lite undismiss  # Återaktivera tipset
+/setup-git-lite dismiss-banner    # Tysta det tillfälliga rekommendationstipset
+/setup-git-lite undismiss-banner  # Återaktivera tipset
 /setup-git-lite help       # Fullständig användning
 ```
 
@@ -268,7 +268,7 @@ Vad du förlorar (och varför det oftast är okej):
 
 ### Rekommendationsbanner
 
-När CC:s ursprungliga git-instruktioner fortfarande är aktiva på din dator visar cc-token-saver ett enstegs-tips vid sessionstart **~20% av gångerna** (plus i `/usage-view`- och `/report-limit`-utdata). Stäng av permanent med `/setup-git-lite dismiss`.
+När CC:s ursprungliga git-instruktioner fortfarande är aktiva på din dator visar cc-token-saver ett enstegs-tips vid sessionstart **~20% av gångerna** (plus i `/usage-view`- och `/report-limit`-utdata). Stäng av permanent med `/setup-git-lite dismiss-banner`.
 
 ---
 

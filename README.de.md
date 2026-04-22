@@ -235,8 +235,8 @@ In typischen interaktiven Sessions akkumulieren sich die Commit/PR-Anweisungen (
 /setup-git-lite status     # Nur-Lese-Diagnose — aktueller Zustand + was sich ändern würde
 /setup-git-lite install    # CC-Nativ deaktivieren + unseren minimalen Hook aktivieren
 /setup-git-lite revert     # Standard wiederherstellen (aggressiv; siehe unten)
-/setup-git-lite dismiss    # Den gelegentlichen Empfehlungshinweis stummschalten
-/setup-git-lite undismiss  # Den Hinweis wieder aktivieren
+/setup-git-lite dismiss-banner    # Den gelegentlichen Empfehlungshinweis stummschalten
+/setup-git-lite undismiss-banner  # Den Hinweis wieder aktivieren
 /setup-git-lite help       # Vollständige Verwendung
 ```
 
@@ -268,7 +268,7 @@ Was du verlierst (und warum es meistens in Ordnung ist):
 
 ### Empfehlungs-Banner
 
-Wenn CC-native Git-Anweisungen auf deinem Rechner noch aktiv sind, zeigt cc-token-saver beim Session-Start **~20 % der Zeit** einen einzeiligen Hinweis an (zusätzlich in `/usage-view`- und `/report-limit`-Ausgaben). Dauerhaft deaktivieren mit `/setup-git-lite dismiss`.
+Wenn CC-native Git-Anweisungen auf deinem Rechner noch aktiv sind, zeigt cc-token-saver beim Session-Start **~20 % der Zeit** einen einzeiligen Hinweis an (zusätzlich in `/usage-view`- und `/report-limit`-Ausgaben). Dauerhaft deaktivieren mit `/setup-git-lite dismiss-banner`.
 
 ---
 

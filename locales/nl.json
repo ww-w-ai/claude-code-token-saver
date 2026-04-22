@@ -122,6 +122,6 @@
     "tips": "💡 Tips — cc-token-saver Gebruiksgids"
   },
   "gitLite": {
-    "tip": "Tip: De ingebouwde git-instructies van CC verbruiken ~2.200 tok/sessie + ~1.700 tok/aanroep. `/setup-git-lite install` vervangt ze door een zorgvuldig geselecteerd minimum van 280 tok. `/setup-git-lite dismiss` verbergt deze tip."
+    "tip": "Tip: De ingebouwde git-instructies van CC verbruiken ~2.200 tok/sessie + ~1.700 tok/aanroep. `/setup-git-lite install` vervangt ze door een zorgvuldig geselecteerd minimum van 280 tok. `/setup-git-lite dismiss-banner` verbergt deze tip."
   }
 }

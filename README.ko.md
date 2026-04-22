@@ -242,8 +242,8 @@ cache 구조 (`utils/api.ts:321` `splitSysPromptPrefix`)는 MCP tool 활성화 �
 /setup-git-lite status     # 읽기 전용 진단 — 현재 상태 + 변경될 내용 확인
 /setup-git-lite install    # CC 기본 비활성화 + 최소화 hook 활성화
 /setup-git-lite revert     # 기본값 복원 (공격적 방식, 아래 참조)
-/setup-git-lite dismiss    # 가끔 표시되는 권장 팁 숨기기
-/setup-git-lite undismiss  # 팁 다시 활성화
+/setup-git-lite dismiss-banner    # 가끔 표시되는 권장 팁 숨기기
+/setup-git-lite undismiss-banner  # 팁 다시 활성화
 /setup-git-lite help       # 전체 사용법
 ```
 
@@ -275,7 +275,7 @@ cache 구조 (`utils/api.ts:321` `splitSysPromptPrefix`)는 MCP tool 활성화 �
 
 ### 권장 배너
 
-CC 기본 git 지침이 아직 활성화된 상태라면, cc-token-saver가 세션 시작 시 **약 20% 확률**로 안내 문구를 표시한다 (`/usage-view`와 `/report-limit` 출력에도 표시됨). `/setup-git-lite dismiss`로 영구적으로 숨길 수 있다.
+CC 기본 git 지침이 아직 활성화된 상태라면, cc-token-saver가 세션 시작 시 **약 20% 확률**로 안내 문구를 표시한다 (`/usage-view`와 `/report-limit` 출력에도 표시됨). `/setup-git-lite dismiss-banner`로 영구적으로 숨길 수 있다.
 
 ---
 

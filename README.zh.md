@@ -235,8 +235,8 @@ cache 结构（`utils/api.ts:321` 中的 `splitSysPromptPrefix`）根据是否�
 /setup-git-lite status     # 只读诊断 — 当前状态 + 会有哪些变化
 /setup-git-lite install    # 禁用 CC 原生 + 启用我们的精简 hook
 /setup-git-lite revert     # 恢复默认（激进；见下文）
-/setup-git-lite dismiss    # 屏蔽偶尔出现的推荐提示
-/setup-git-lite undismiss  # 重新启用提示
+/setup-git-lite dismiss-banner    # 屏蔽偶尔出现的推荐提示
+/setup-git-lite undismiss-banner  # 重新启用提示
 /setup-git-lite help       # 完整用法
 ```
 
@@ -268,7 +268,7 @@ cache 结构（`utils/api.ts:321` 中的 `splitSysPromptPrefix`）根据是否�
 
 ### 推荐提示横幅
 
-当你的机器上 CC 原生 git 指令仍处于启用状态时，cc-token-saver 会在 session 启动时**约 20% 的概率**显示一段提示（另外在 `/usage-view` 和 `/report-limit` 输出中也会显示）。可通过 `/setup-git-lite dismiss` 永久屏蔽。
+当你的机器上 CC 原生 git 指令仍处于启用状态时，cc-token-saver 会在 session 启动时**约 20% 的概率**显示一段提示（另外在 `/usage-view` 和 `/report-limit` 输出中也会显示）。可通过 `/setup-git-lite dismiss-banner` 永久屏蔽。
 
 ---
 

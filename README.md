@@ -242,8 +242,8 @@ In typical interactive sessions, the commit/PR instructions (1.7K tok) accumulat
 /setup-git-lite status     # Read-only diagnostic — current state + what would change
 /setup-git-lite install    # Disable CC native + enable our minimal hook
 /setup-git-lite revert     # Restore default (aggressive; see below)
-/setup-git-lite dismiss    # Silence the occasional recommendation tip
-/setup-git-lite undismiss  # Re-enable the tip
+/setup-git-lite dismiss-banner    # Silence the occasional recommendation tip
+/setup-git-lite undismiss-banner  # Re-enable the tip
 /setup-git-lite help       # Full usage
 ```
 
@@ -275,7 +275,7 @@ What you lose (and why it's usually fine):
 
 ### Recommendation banner
 
-When CC native git instructions are still active on your machine, cc-token-saver shows a one-paragraph tip at session start **~20% of the time** (plus in `/usage-view` and `/report-limit` outputs). Dismiss permanently with `/setup-git-lite dismiss`.
+When CC native git instructions are still active on your machine, cc-token-saver shows a one-paragraph tip at session start **~20% of the time** (plus in `/usage-view` and `/report-limit` outputs). Dismiss permanently with `/setup-git-lite dismiss-banner`.
 
 ---
 

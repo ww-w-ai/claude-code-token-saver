@@ -235,8 +235,8 @@ Anthropic לא מפרסמת את הנוסחה המדויקת של חלון 5 ה�
 /setup-git-lite status     # אבחון קריאה בלבד — מצב נוכחי + מה ישתנה
 /setup-git-lite install    # השבת CC native + הפעל hook מינימלי שלנו
 /setup-git-lite revert     # שחזר ברירת מחדל (אגרסיבי; ראה למטה)
-/setup-git-lite dismiss    # השתק את טיפ ההמלצה המזדמן
-/setup-git-lite undismiss  # הפעל מחדש את הטיפ
+/setup-git-lite dismiss-banner    # השתק את טיפ ההמלצה המזדמן
+/setup-git-lite undismiss-banner  # הפעל מחדש את הטיפ
 /setup-git-lite help       # שימוש מלא
 ```
 
@@ -268,7 +268,7 @@ Anthropic לא מפרסמת את הנוסחה המדויקת של חלון 5 ה�
 
 ### באנר המלצה
 
-כשהוראות git המובנות של CC עדיין פעילות על המחשב שלך, cc-token-saver מציג טיפ של פסקה אחת בתחילת session **~20% מהזמן** (בנוסף בפלטי `/usage-view` ו-`/report-limit`). דחה לצמיתות עם `/setup-git-lite dismiss`.
+כשהוראות git המובנות של CC עדיין פעילות על המחשב שלך, cc-token-saver מציג טיפ של פסקה אחת בתחילת session **~20% מהזמן** (בנוסף בפלטי `/usage-view` ו-`/report-limit`). דחה לצמיתות עם `/setup-git-lite dismiss-banner`.
 
 ---
 

@@ -235,8 +235,8 @@ In typische interactieve sessies accumuleren de commit/PR-instructies (1,7K tok)
 /setup-git-lite status     # Alleen-lezen diagnose — huidige staat + wat er zou veranderen
 /setup-git-lite install    # CC native uitschakelen + onze minimale hook inschakelen
 /setup-git-lite revert     # Standaard herstellen (agressief; zie hieronder)
-/setup-git-lite dismiss    # De occasionele aanbevelingstip stilleggen
-/setup-git-lite undismiss  # De tip opnieuw inschakelen
+/setup-git-lite dismiss-banner    # De occasionele aanbevelingstip stilleggen
+/setup-git-lite undismiss-banner  # De tip opnieuw inschakelen
 /setup-git-lite help       # Volledig gebruik
 ```
 
@@ -268,7 +268,7 @@ Wat je verliest (en waarom dat meestal prima is):
 
 ### Aanbevelingsbanner
 
-Wanneer CC native git-instructies nog actief zijn op je machine, toont cc-token-saver een alinealange tip bij sessiestart **~20% van de tijd** (plus in `/usage-view`- en `/report-limit`-uitvoer). Permanent stilleggen met `/setup-git-lite dismiss`.
+Wanneer CC native git-instructies nog actief zijn op je machine, toont cc-token-saver een alinealange tip bij sessiestart **~20% van de tijd** (plus in `/usage-view`- en `/report-limit`-uitvoer). Permanent stilleggen met `/setup-git-lite dismiss-banner`.
 
 ---
 

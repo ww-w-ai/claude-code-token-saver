@@ -235,8 +235,8 @@ Dalam session interaktif biasa, arahan commit/PR (1.7K tok) terkumpul **pada set
 /setup-git-lite status     # Diagnostik baca sahaja — keadaan semasa + apa yang akan berubah
 /setup-git-lite install    # Lumpuhkan CC natif + aktifkan hook minimal kami
 /setup-git-lite revert     # Pulihkan lalai (agresif; lihat di bawah)
-/setup-git-lite dismiss    # Senyapkan tip cadangan sesekali
-/setup-git-lite undismiss  # Aktifkan semula tip
+/setup-git-lite dismiss-banner    # Senyapkan tip cadangan sesekali
+/setup-git-lite undismiss-banner  # Aktifkan semula tip
 /setup-git-lite help       # Penggunaan penuh
 ```
 
@@ -268,7 +268,7 @@ Apa yang anda kehilangan (dan mengapa ia biasanya tidak mengapa):
 
 ### Sepanduk cadangan
 
-Apabila arahan git natif CC masih aktif pada mesin anda, cc-token-saver menunjukkan tip satu perenggan pada permulaan session **~20% daripada masa** (ditambah dalam output `/usage-view` dan `/report-limit`). Senyapkan secara kekal dengan `/setup-git-lite dismiss`.
+Apabila arahan git natif CC masih aktif pada mesin anda, cc-token-saver menunjukkan tip satu perenggan pada permulaan session **~20% daripada masa** (ditambah dalam output `/usage-view` dan `/report-limit`). Senyapkan secara kekal dengan `/setup-git-lite dismiss-banner`.
 
 ---
 

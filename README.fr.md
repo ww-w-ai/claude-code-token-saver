@@ -235,8 +235,8 @@ Dans les sessions interactives typiques, les instructions commit/PR (1,7K tok) s
 /setup-git-lite status     # Diagnostic en lecture seule — état actuel + ce qui changerait
 /setup-git-lite install    # Désactiver CC natif + activer notre hook minimal
 /setup-git-lite revert     # Restaurer les paramètres par défaut (agressif ; voir ci-dessous)
-/setup-git-lite dismiss    # Masquer le conseil de recommandation occasionnel
-/setup-git-lite undismiss  # Réactiver le conseil
+/setup-git-lite dismiss-banner    # Masquer le conseil de recommandation occasionnel
+/setup-git-lite undismiss-banner  # Réactiver le conseil
 /setup-git-lite help       # Utilisation complète
 ```
 
@@ -268,7 +268,7 @@ Ce que vous perdez (et pourquoi c'est généralement acceptable) :
 
 ### Bandeau de recommandation
 
-Quand les instructions git natives de CC sont toujours actives sur votre machine, cc-token-saver affiche un conseil d'un paragraphe au démarrage de session **environ 20 % du temps** (ainsi que dans les sorties de `/usage-view` et `/report-limit`). Masquez-le définitivement avec `/setup-git-lite dismiss`.
+Quand les instructions git natives de CC sont toujours actives sur votre machine, cc-token-saver affiche un conseil d'un paragraphe au démarrage de session **environ 20 % du temps** (ainsi que dans les sorties de `/usage-view` et `/report-limit`). Masquez-le définitivement avec `/setup-git-lite dismiss-banner`.
 
 ---
 

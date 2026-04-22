@@ -235,8 +235,8 @@ Tipik interaktif session'larda commit/PR talimatları (1.7K tok), `cache_read` a
 /setup-git-lite status     # Salt okunur tanılama — mevcut durum + ne değişeceği
 /setup-git-lite install    # CC yerelini devre dışı bırak + minimal hook'u etkinleştir
 /setup-git-lite revert     # Varsayılana geri yükle (agresif; aşağıya bakın)
-/setup-git-lite dismiss    # Ara sıra gösterilen tavsiye ipucunu sessize al
-/setup-git-lite undismiss  # İpucunu yeniden etkinleştir
+/setup-git-lite dismiss-banner    # Ara sıra gösterilen tavsiye ipucunu sessize al
+/setup-git-lite undismiss-banner  # İpucunu yeniden etkinleştir
 /setup-git-lite help       # Tam kullanım
 ```
 
@@ -268,7 +268,7 @@ Kaybettikleriniz (ve neden genellikle sorun olmadığı):
 
 ### Tavsiye banner'ı
 
-Makinenizde CC yerel git talimatları hâlâ aktifken cc-token-saver, session başlangıcında **yaklaşık %20 oranında** (ayrıca `/usage-view` ve `/report-limit` çıktılarında) tek paragraflık bir ipucu gösterir. Kalıcı olarak kapatmak için `/setup-git-lite dismiss`.
+Makinenizde CC yerel git talimatları hâlâ aktifken cc-token-saver, session başlangıcında **yaklaşık %20 oranında** (ayrıca `/usage-view` ve `/report-limit` çıktılarında) tek paragraflık bir ipucu gösterir. Kalıcı olarak kapatmak için `/setup-git-lite dismiss-banner`.
 
 ---
 

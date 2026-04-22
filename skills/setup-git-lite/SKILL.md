@@ -2,7 +2,7 @@
 name: setup-git-lite
 description: 'Disable Claude Code built-in git instructions and inject a curated 280-tok minimum via SessionStart hook. Saves ~2,200 tok/session + ~1,700 tok/call.'
 when_to_use: |
-  AI may auto-invoke for SAFE subcommands only — dismiss, undismiss, status, help.
+  AI may auto-invoke for SAFE subcommands only — dismiss-banner, undismiss-banner, status, help.
   AI MUST NOT auto-invoke DESTRUCTIVE subcommands — install, revert.
   Destructive subcommands require the user to explicitly type the slash command.
 ---
@@ -18,10 +18,10 @@ Parse the first argument from `$ARGUMENTS`:
 | `install`   | 🔴 destructive | ❌ user-only | Modifies ~/.claude/settings.json + shell profile. Requires explicit `<command-name>cc-token-saver:setup-git-lite</command-name>` tag with `<command-args>install</command-args>` |
 | `revert`    | 🔴 destructive | ❌ user-only | Aggressive cleanup. Same gating as install |
 | `status`    | 🟢 safe | ✅ allowed | Read-only diagnostic |
-| `dismiss`   | 🟢 safe | ✅ allowed | Suppresses the recommendation banner (preferences.json flag) |
-| `undismiss` | 🟢 safe | ✅ allowed | Re-enables the banner |
+| `dismiss-banner`   | 🟢 safe | ✅ allowed | Suppresses the recommendation banner (preferences.json flag) |
+| `undismiss-banner` | 🟢 safe | ✅ allowed | Re-enables the banner |
 | `help`      | 🟢 safe | ✅ allowed | Prints usage |
-| (empty)     | 🟢 safe | ✅ allowed | Prints help |
+| (empty)     | 🟢 safe | ✅ allowed | Run `status`, then append one-line usage hint: "Subcommands: install, revert, status, dismiss-banner, undismiss-banner, help" |
 
 ## Invocation guard — enforce for destructive subcommands only
 
@@ -40,7 +40,7 @@ If the subcommand is `install` or `revert`:
 
    Only proceed on a literal `yes`. Any other response — cancel.
 
-Safe subcommands (`status`, `dismiss`, `undismiss`, `help`) skip the guard entirely.
+Safe subcommands (`status`, `dismiss-banner`, `undismiss-banner`, `help`) skip the guard entirely.
 
 ## Execution
 
@@ -52,13 +52,17 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/setup-git-lite.js <subcommand>
 
 Relay stdout verbatim to the user. On non-zero exit, surface stderr.
 
+## Language
+
+Detect the user's language from the conversation. Translate ALL user-facing output into that language. The script outputs English — you MUST translate before relaying. Keep technical identifiers verbatim (file paths, env var names, command names, setting keys).
+
 ## Output conventions
 
-- `status`: relay stdout directly (already human-readable).
-- `install`: after stdout, add a **short** line pointing to README for the rationale.
-- `revert`: after stdout, note "Your current shell env may still have the variable set — restart the shell or run `unset CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS`."
-- `dismiss`/`undismiss`: relay stdout, no additions.
-- `help`: relay stdout.
+- `status`: translate stdout into the user's language, then relay.
+- `install`: translate stdout, then add a **short** line pointing to README for the rationale.
+- `revert`: translate stdout, then note "Your current shell env may still have the variable set — restart the shell or run `unset CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS`." (in the user's language).
+- `dismiss`/`undismiss`: translate stdout, then relay.
+- `help`: translate stdout, then relay.
 
 ## Error handling
 

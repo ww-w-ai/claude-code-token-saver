@@ -235,8 +235,8 @@ Anthropic ไม่เปิดเผยสูตรที่แน่ชัด�
 /setup-git-lite status     # Diagnostic แบบอ่านอย่างเดียว — สถานะปัจจุบัน + สิ่งที่จะเปลี่ยน
 /setup-git-lite install    # ปิด CC native + เปิด minimal hook ของเรา
 /setup-git-lite revert     # คืนค่าเริ่มต้น (aggressive; ดูด้านล่าง)
-/setup-git-lite dismiss    # ปิดเสียง recommendation tip ที่แสดงเป็นครั้งคราว
-/setup-git-lite undismiss  # เปิดใช้ tip อีกครั้ง
+/setup-git-lite dismiss-banner    # ปิดเสียง recommendation tip ที่แสดงเป็นครั้งคราว
+/setup-git-lite undismiss-banner  # เปิดใช้ tip อีกครั้ง
 /setup-git-lite help       # วิธีใช้งานเต็มรูปแบบ
 ```
 
@@ -268,7 +268,7 @@ Anthropic ไม่เปิดเผยสูตรที่แน่ชัด�
 
 ### Recommendation banner
 
-เมื่อ git instructions ของ CC native ยังเปิดใช้งานอยู่บนเครื่องของคุณ cc-token-saver จะแสดง tip หนึ่งย่อหน้าตอนเริ่ม session **ประมาณ 20% ของเวลา** (รวมถึงใน output ของ `/usage-view` และ `/report-limit`) ปิดถาวรด้วย `/setup-git-lite dismiss`
+เมื่อ git instructions ของ CC native ยังเปิดใช้งานอยู่บนเครื่องของคุณ cc-token-saver จะแสดง tip หนึ่งย่อหน้าตอนเริ่ม session **ประมาณ 20% ของเวลา** (รวมถึงใน output ของ `/usage-view` และ `/report-limit`) ปิดถาวรด้วย `/setup-git-lite dismiss-banner`
 
 ---
 

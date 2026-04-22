@@ -234,8 +234,8 @@ Cache কাঠামো (`utils/api.ts:321` `splitSysPromptPrefix`) MCP tool �
 /setup-git-lite status     # শুধু পড়ার জন্য diagnostic — বর্তমান অবস্থা + কী পরিবর্তন হবে
 /setup-git-lite install    # CC native নিষ্ক্রিয় + আমাদের minimal hook সক্রিয়
 /setup-git-lite revert     # ডিফল্ট পুনরুদ্ধার (aggressive; নিচে দেখুন)
-/setup-git-lite dismiss    # মাঝে মাঝে দেখানো recommendation tip বন্ধ করুন
-/setup-git-lite undismiss  # tip পুনরায় সক্রিয় করুন
+/setup-git-lite dismiss-banner    # মাঝে মাঝে দেখানো recommendation tip বন্ধ করুন
+/setup-git-lite undismiss-banner  # tip পুনরায় সক্রিয় করুন
 /setup-git-lite help       # সম্পূর্ণ ব্যবহারবিধি
 ```
 
@@ -267,7 +267,7 @@ Cache কাঠামো (`utils/api.ts:321` `splitSysPromptPrefix`) MCP tool �
 
 ### Recommendation banner
 
-আপনার মেশিনে CC native git instructions এখনো সক্রিয় থাকলে, cc-token-saver session শুরুতে **~20% সময়** একটি এক-অনুচ্ছেদের tip দেখায় (এছাড়া `/usage-view` এবং `/report-limit` output-এও)। `/setup-git-lite dismiss` দিয়ে স্থায়ীভাবে বন্ধ করুন।
+আপনার মেশিনে CC native git instructions এখনো সক্রিয় থাকলে, cc-token-saver session শুরুতে **~20% সময়** একটি এক-অনুচ্ছেদের tip দেখায় (এছাড়া `/usage-view` এবং `/report-limit` output-এও)। `/setup-git-lite dismiss-banner` দিয়ে স্থায়ীভাবে বন্ধ করুন।
 
 ---
 

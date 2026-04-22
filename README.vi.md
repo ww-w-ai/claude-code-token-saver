@@ -235,8 +235,8 @@ Trong các session tương tác thông thường, hướng dẫn commit/PR (1,7K
 /setup-git-lite status     # Chẩn đoán chỉ đọc — trạng thái hiện tại + những gì sẽ thay đổi
 /setup-git-lite install    # Vô hiệu hóa CC native + bật hook tối giản của chúng tôi
 /setup-git-lite revert     # Khôi phục mặc định (aggressive; xem bên dưới)
-/setup-git-lite dismiss    # Tắt gợi ý đề xuất thỉnh thoảng xuất hiện
-/setup-git-lite undismiss  # Bật lại gợi ý
+/setup-git-lite dismiss-banner    # Tắt gợi ý đề xuất thỉnh thoảng xuất hiện
+/setup-git-lite undismiss-banner  # Bật lại gợi ý
 /setup-git-lite help       # Toàn bộ hướng dẫn sử dụng
 ```
 
@@ -268,7 +268,7 @@ Những gì bạn mất (và tại sao thường không sao):
 
 ### Banner khuyến nghị
 
-Khi hướng dẫn git native của CC vẫn đang hoạt động trên máy bạn, cc-token-saver hiển thị một đoạn gợi ý khi bắt đầu session **~20% số lần** (cộng thêm trong các output `/usage-view` và `/report-limit`). Tắt vĩnh viễn bằng `/setup-git-lite dismiss`.
+Khi hướng dẫn git native của CC vẫn đang hoạt động trên máy bạn, cc-token-saver hiển thị một đoạn gợi ý khi bắt đầu session **~20% số lần** (cộng thêm trong các output `/usage-view` và `/report-limit`). Tắt vĩnh viễn bằng `/setup-git-lite dismiss-banner`.
 
 ---
 

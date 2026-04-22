@@ -235,8 +235,8 @@ cacheの構造（`utils/api.ts:321` の `splitSysPromptPrefix`）はMCPツール
 /setup-git-lite status     # 読み取り専用の診断 — 現在の状態と変更される内容を確認
 /setup-git-lite install    # CCネイティブを無効化し、最小限のフックを有効化
 /setup-git-lite revert     # デフォルトに戻す（積極的な処理。下記参照）
-/setup-git-lite dismiss    # 推奨ヒントの表示を無効化
-/setup-git-lite undismiss  # ヒントの表示を再有効化
+/setup-git-lite dismiss-banner    # 推奨ヒントの表示を無効化
+/setup-git-lite undismiss-banner  # ヒントの表示を再有効化
 /setup-git-lite help       # 全使い方
 ```
 
@@ -268,7 +268,7 @@ cacheの構造（`utils/api.ts:321` の `splitSysPromptPrefix`）はMCPツール
 
 ### 推奨バナー
 
-CCネイティブのgit命令がまだ有効な場合、cc-token-saverはセッション開始時に**約20%の確率**で1段落のヒントを表示する（`/usage-view` と `/report-limit` の出力にも表示）。`/setup-git-lite dismiss` で永続的に非表示にできる。
+CCネイティブのgit命令がまだ有効な場合、cc-token-saverはセッション開始時に**約20%の確率**で1段落のヒントを表示する（`/usage-view` と `/report-limit` の出力にも表示）。`/setup-git-lite dismiss-banner` で永続的に非表示にできる。
 
 ---
 
