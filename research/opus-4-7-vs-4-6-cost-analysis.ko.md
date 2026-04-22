@@ -10,86 +10,81 @@
 
 ## 0. 한눈에 보기 (Executive Summary)
 
-### 충격! Opus 4.7은 4.6보다 42% 비싸다고?!
+### Opus 4.7이 4.6보다 42% 더 비싸다고?
 
-한 사용자의 실측 분석에서 드러난 결과입니다.¹ 같은 작업, 같은 프롬프트인데 청구서가 **42% 더** 나옵니다. 왜냐하면:
+4.7로 바꾼 뒤 사용량 소진이 눈에 띄게 빨라지는 게 체감되어서, 두 프로젝트에서 쌓인 API 호출 8,563개를 직접 뜯어봤습니다.¹ 같은 작업, 같은 프롬프트인데 비용이 **42% 더** 나옵니다.
 
-- **언어가 비싸졌고** — 같은 문장에 토큰을 최대 35% 더 씀 (tokenizer 팽창)
-- **생각이 잦아졌고** — thinking 빈도 3.9배 (effort 설정과 무관)
-- **말이 많아졌으니** — 응답 자체가 25~50% 더 장황 (verbosity)
+이유가 하나가 아니더라고요. 세 가지가 동시에 터진 결과였습니다:
 
-세 가지가 매 턴 output에서 곱해진 결과입니다. 5시간 윈도우 관점으로 옮겨보면 — 평소 4시간에 블록되던 사용자가 **약 2시간 48분에 이미 블록**됩니다. 5시간 중 거의 절반을 쓸 수 없는 셈이죠.
+- **언어가 비싸졌다** — 같은 텍스트에 토큰을 최대 35% 더 씀 (tokenizer 팽창)
+- **생각이 잦아졌다** — thinking 빈도 3.5배 (7.56% → 26.8%), effort 설정과 무관
+- **말이 많아졌다** — 같은 답변을 27~34% 더 장황하게 설명
 
-일주일치 일상 작업으로 환산하면 **수 시간~하루 분량의 세션 시간**이 조용히 증발합니다. 체감이 맞았던 겁니다.
+셋이 매 턴 곱셈 효과로 쌓이면서 context를 빨리 채우고 cache 비용까지 복리로 늘립니다. 하드하게 쓰던 분들은 보통 5시간 중 4시간 정도에 블록되고 1시간 쉬었다가 했을 텐데, 이제 **2시간 40~50분만에 블록**됩니다. "어? 내가 너무 빨리 바닥나는 것 같은데" 싶으셨다면, 기분 탓이 아니었던 거죠.
 
-이 리포트는 왜 이런 일이 벌어지는지, 그리고 **그 시간을 어떻게 되찾을 수 있는지** 설명합니다.
+이 리포트는 왜 이런 일이 벌어지는지, 그리고 **어떻게 하면 되는지**를 정리한 것입니다.
 
 ---
 
-¹ 본 측정 기준: cc-token-saver + doooz 두 프로젝트 JSONL 4,314 calls 기반, 영어/코드 위주 100턴 시뮬레이션. **한/영 혼합 사용 시 약 26%, 한글 위주 시 약 18%**. 작업 유형·언어 비율·세션 길이에 따라 달라질 수 있음. 자세한 시뮬레이션 조건은 §5 참조.
+¹ 측정 기준: cc-token-saver + doooz 두 프로젝트 JSONL 기반, 영어/코드 위주 100턴 시뮬레이션. **한/영 혼합 사용 시 약 26%, 한글 위주 시 약 18%**. 작업 유형·언어 비율·세션 길이에 따라 달라질 수 있습니다. 자세한 시뮬레이션 조건은 §5 참조.
 
 ### 원인 상세: 세 가지 복합 효과
 
+가장 큰 원인인 tokenizer부터 보겠습니다.
+
 - **언어가 비싸졌다 — Tokenizer 팽창 (영어/코드 28~38%)**
   
-  - 동일 텍스트 제어 실험으로 확인 (§4.3)
-  - 한글은 영향 없음 (~1%)
+  Anthropic 공식 발표에 따르면, 4.7에서는 새로운 tokenizer를 도입하여 같은 텍스트에 대해 토큰을 최대 35%까지 더 상세하게 쪼갭니다. 동일 텍스트 제어 실험으로 확인했습니다 (§4.3). 한글은 영향 없음 (~1%).
 
-- **생각이 잦아졌다 — Thinking 빈도 3.9배**
+- **생각이 잦아졌다 — Thinking 빈도 3.5배**
   
-  - Main 세션 기준 4-6은 7.56%, 4-7은 26.8% 호출에서 thinking 발생
-  - **Effort 설정(low/medium/high/xhigh) 변경 무관** — thinking 길이만 조절될 뿐 트리거 여부는 모델 자체 판단
-  - 근거: JSONL 3,075 main calls
+  Main 세션 기준으로 4-6은 7.56%, 4-7은 26.8%에서 thinking이 발생합니다. "effort 레벨로 조절하면 되지 않나?" 생각하실 수 있는데, effort는 thinking의 **길이**를 조절하는 기능이지 **할지/말지**를 결정하는 스위치가 아닙니다. 실제로 effort를 low로 낮춰도 thinking 빈도는 줄지 않았습니다 (§4.1). 근거: JSONL 3,075 main calls.
 
-- **말이 많아졌다 — Output verbosity 25~50% 증가**
+- **말이 많아졌다 — Output verbosity 27~34% 증가**
   
-  - Thinking 차단된 subagent에서도 out/call 1.25배 (tokenizer 보정 후)
-  - Thinking/tokenizer로 설명 안 되는 4-7 고유 특성
+  Thinking이 차단된 subagent 환경에서도 출력량이 1.34배였습니다 (tokenizer 보정 후). Thinking이나 tokenizer로 설명이 안 되는 4-7 고유 특성입니다.
 
 세 요인이 **매 턴 output에 누적** → context 성장 가속 → cache read 비용 복리 증가.
 
-### 해결 방법 (따라 하기 쉬움)
+### 그러면 어떻게 해야 할까요?
 
-짧게 말하면: **Opus 4.6으로 바꾸세요.** 그게 전부입니다. 프롬프트를 튜닝하거나 effort를 건드리거나 일하는 방식을 바꿀 필요 없습니다. 이 문제를 실제로 통제할 수 있는 유일한 스위치는 모델 선택뿐입니다.
+#### 방법 1 — 그냥 전체를 4.6으로 (대부분에게 권장)
 
-#### 방법 1 — 그냥 전체를 4.6으로 (대부분의 사용자에게 권장)
+이것만 해도 세션 시간의 20~40%를 돌려받을 수 있습니다.
 
-이것만 해도 세션 시간의 20~40%를 돌려받을 수 있습니다. 간단합니다.
+```
+/model claude-opus-4-6[1m]
+```
 
-**따라 하기**:
+(1M 컨텍스트가 필요 없으면 `claude-opus-4-6`만 써도 됩니다.)
 
-1. 평소처럼 Claude Code를 열고 세션을 시작합니다.
+이게 뭘 하냐면, 현재 세션을 Opus 4.6으로 고정합니다. 4.6은 thinking 빈도가 낮고, 응답도 더 간결하며, tokenizer도 더 효율적입니다. 95% 이상의 코딩/디버깅/리팩토링 작업에서 4.7과 체감 품질 차이 거의 없습니다.
 
-2. 다음 명령어를 치고 엔터:
-   
-   ```
-   /model claude-opus-4-6[1m]
-   ```
-   
-   (1M 토큰 컨텍스트가 필요 없으면 `claude-opus-4-6`만 써도 됩니다.)
+**주의**: `/model`은 현재 세션에만 적용됩니다. 새 터미널을 열면 다시 실행해야 합니다.
 
-3. 끝. Claude Code가 "Set model to Opus 4.6 (1M context)" 같은 메시지로 전환을 확인해줍니다. 평소처럼 작업하면 사용량 바가 눈에 띄게 천천히 줄어드는 걸 느낄 수 있습니다.
+#### 방법 2 — 4.7은 설계에만, 실행은 Sonnet 서브태스크로 (고급)
 
-**이게 뭘 하는 건가요**: 현재 세션을 Opus 4.6으로 고정합니다. 4.6은 thinking 빈도가 낮고, 응답도 더 간결하며, tokenizer도 더 효율적입니다. 평범한 코딩/디버깅/리팩토링 작업의 95% 이상에서 4.7과 체감 품질 차이 거의 없습니다.
+그래도 4.7의 향상된 성능을 쓰고 싶다면? main 세션은 4.7을 유지하되, 실행은 서브태스크로 위임하세요. Claude Code가 **서브태스크에서는 thinking을 자동으로 끄기 때문에** 저렴하게 돌아갑니다.
 
-**주의**: `/model`은 현재 세션에만 적용됩니다. 새 터미널을 열면 다시 실행해야 합니다. (영구 고정하고 싶으면 Claude Code 설정에서 default model을 변경할 수도 있습니다.)
-
-#### 방법 2 — 4.7은 계획에만, 실행은 Sonnet 서브태스크로 (고급)
-
-아키텍처 설계나 복잡한 디버깅을 일상적으로 하느라 4.7의 깊은 추론이 실제로 필요한 경우, main 세션은 4.7을 유지하되 귀찮은 작업은 서브태스크로 위임하는 방법입니다. Claude Code가 **서브태스크에서는 thinking을 자동으로 끄기 때문에** 서브태스크는 저렴하게 돌아갑니다.
-
-**언제 뭘 쓸까**:
-
-- **Main (Opus 4.7)**: 아키텍처 결정, 버그 가설 탐색, 다단계 계획 수립 — 깊이 있는 추론이 가치 있는 일
+- **Main (Opus 4.7)**: 아키텍처 결정, 버그 가설 탐색, 다단계 계획 수립 — 깊이 있는 추론이 필요한 일
 - **서브태스크 (Sonnet)**: 이미 작성한 명세 구현, 여러 파일 일괄 수정, 코드베이스 검색, 단순 질문 응답
 
-**Sonnet 서브태스크에 위임하는 법**: 구현이나 검색 작업이 한 묶음 필요할 때 Claude에게 "sonnet으로 서브태스크 띄워서 X 해줘"라고 말하면 됩니다. 또는 agent 정의 파일(`.claude/agents/` 또는 플러그인 agent)의 frontmatter에 `model: sonnet`을 명시해둘 수도 있습니다.
+Claude에게 "sonnet으로 서브태스크 띄워서 X 해줘"라고 말하면 됩니다. 또는 agent frontmatter에 `model: sonnet`을 명시해둘 수도 있고요.
 
-**피해야 할 실수**: **계획 작업 자체를 서브태스크로 위임하지 마세요.** 서브태스크는 thinking이 꺼져 있어서 계획이 얕게 나옵니다. 계획은 main에서, 실행은 서브태스크에서 — 이 분업을 지키는 게 핵심입니다.
+**피해야 할 실수**: 계획 작업 자체를 서브태스크로 위임하지 마세요. 서브태스크는 thinking이 꺼져 있어서 계획이 얕게 나옵니다. 설계는 main에서, 실행은 서브태스크에서 — 이 분업이 핵심입니다.
 
-#### 아직 고민된다면
+#### 방법 3 — cc-token-saver 플러그인 사용 (방법 2 + 토큰 관리 자동화)
 
-**방법 1부터 시작하세요.** 명령어 하나고, 언제든 되돌릴 수 있고, 다음 세션에서 바로 차이를 느낄 수 있습니다. 나중에 4.7로 돌아가고 싶으면 `/model claude-opus-4-7`만 치면 됩니다.
+위 방법들을 수동으로 관리하기 번거로운 분들에게 추천합니다. [cc-token-saver](https://github.com/ww-w-ai/cc-token-saver)는 Claude Code 세션의 토큰/비용을 자동으로 추적하고 절감하는 오픈소스 플러그인입니다.
+
+- 설계는 `claude -p`(main, thinking 활성)로, 실행은 SubTask + Sonnet으로 자동 분산
+- 프롬프트 캐시 만료 시 경고해서 불필요한 재캐시 비용을 방지
+- `/usage-view`로 실시간 비용 대시보드 확인
+- `/continue`로 세션 간 context를 LLM 호출 없이(= 비용 0) 복원
+
+이 리포트의 분석 데이터도 cc-token-saver로 수집한 것입니다.
+
+고민된다면 **방법 1부터 시작하세요.** 명령어 하나고, 언제든 되돌릴 수 있습니다.
 
 ---
 
@@ -97,20 +92,20 @@
 
 ### 문제 인식
 
-사용자가 Opus 4.7로 Claude Code를 사용하면서 **5시간 사용량 윈도우가 평소보다 빠르게 소진**되는 체감을 보고. 동일한 양의 작업을 하는데도 쿼터가 빨리 줄어드는 현상을 과학적으로 규명할 필요.
+Opus 4.7로 Claude Code를 쓰면서 **5시간 윈도우가 평소보다 빨리 소진**되는 게 느껴졌습니다. 같은 양의 작업을 하는데도 쿼터가 빨리 줄어드는 게 기분 탓인지 진짜인지 확인이 필요했습니다.
 
 ### 가설
 
-- 모델 업그레이드(4.6 → 4.7)가 비용 증가의 원인일 가능성
-- Claude Code 버전 버그 가능성
-- Tokenizer 변경의 영향
-- 모델 자체의 thinking 성향 변화
+- 모델 업그레이드(4.6 → 4.7)가 비용 증가의 원인인가?
+- Claude Code 버전 자체의 버그인가?
+- Tokenizer가 바뀐 영향인가?
+- 모델 자체의 thinking 성향이 달라진 건가?
 
-### 조사 필요성
+### 조사 목적
 
 - 5h 윈도우 소진이 정말 빨라졌는지 정량화
 - 원인이 모델인지 CC 버전인지 분리
-- 사용자가 실질적인 대응책을 선택할 수 있는 근거 마련
+- 실질적인 대응책 선택을 위한 근거 마련
 
 ---
 
@@ -118,13 +113,13 @@
 
 ### 2.1 JSONL 트랜스크립트 (관찰 데이터)
 
-두 프로젝트의 최근 세션 JSONL 파일 (2026-04-17 이후, main + subagent 포함):
+제가 실제로 작업한 두 프로젝트의 세션 JSONL 파일입니다 (2026-04-17 이후, main + subagent 포함):
 
 - **doooz** (개인 프로젝트, 디자인 리팩토링 — [github.com/taekim34/doooz](https://github.com/taekim34/doooz)): 4-7 calls 1,847개 (main 728 / sub 1,119), 4-6 calls 4,899개 (main 1,749 / sub 3,150)
 - **cc-token-saver** (분석/디버깅): 4-7 calls 1,630개 (main 1,589 / sub 41), 4-6 calls 187개 (main 169 / sub 18)
 - **합계**: 4-7 3,477 calls, 4-6 5,086 calls (총 8,563 calls)
 
-각 JSONL에서 추출한 필드:
+JSONL에서 뽑은 필드들:
 
 - `message.model` — 호출 시 사용된 모델
 - `message.usage.output_tokens` — 출력 토큰 수
@@ -134,37 +129,24 @@
 
 ### 2.2 제어된 실험 (실험 데이터)
 
-**Tokenizer 팽창 측정**: 동일 텍스트를 4-6과 4-7 subtask에 입력하여 `input_tokens` 비교.
-
-샘플:
+**Tokenizer 팽창 측정**: 같은 텍스트를 4-6과 4-7 subtask에 동시에 보내서 `input_tokens`가 얼마나 다른지 비교했습니다.
 
 - **System prompt (영어/코드)**: 4-6 = 11,526 tokens, 4-7 = 15,846 tokens
 - **Genesis 1장 영어**: 4,087 chars, cl100k 949 tok → 4-6=982, 4-7=1,258
 - **Genesis 1장 한글**: 1,673 chars, cl100k 1,633 tok → 4-6=1,801, 4-7=1,809
 
-**핵심 제어**: 동일 프롬프트를 동일 시점에 두 모델에 보내서 순수 tokenizer 차이만 분리.
-
-### 2.3 CC 소스 코드 (구조 이해)
-
-`~/Documents/DEV/claude-code-v2_1_88`의 관련 파일:
-
-- `services/compact/apiMicrocompact.ts` — thinking 블록 보존 전략
-- `query.ts` — thinking signature 처리
-- `utils/model/agent.ts` — subagent 모델 선택 로직
-- `constants/prompts.ts` — 시스템 프롬프트 구성
-- `commands/model/model.tsx` — `/model` 명령 범위
-- `tools/AgentTool/runAgent.ts` — subagent thinking 비활성화 지점
+순수한 영어 문장과 한글 문장을 테스트하기 위해 성경의 창세기 구절을 입력해봤습니다. 동일 프롬프트를 동일 시점에 두 모델에 보내서 순수 tokenizer 차이만 분리한 것입니다.
 
 ---
 
 ## 3. 분석 관점
 
-조사는 **4가지 독립 변수**로 분해하여 진행:
+"왜 비싸졌을까?"를 **4가지 독립 변수**로 쪼개서 각각 따로 확인했습니다:
 
-- **Thinking 빈도**: 4-7이 4-6보다 "생각"을 더 자주 하는가? → API 호출 중 thinking 블록을 포함한 호출의 비율 측정
-- **Visible output 장황함**: Thinking을 제외한 순수 응답도 더 긴가? → No-thinking calls 평균 `output_tokens` 비교
-- **Tokenizer 효율**: 같은 텍스트를 표현하는 데 4-7이 더 많은 토큰을 쓰는가? → 동일 텍스트 실험 + Baseline 차감법
-- **Context 누적 효과**: Thinking은 다음 턴 context에 남는가? → CC 소스 분석 + JSONL signature 확인
+- **Thinking 빈도**: 4-7이 4-6보다 "생각"을 더 자주 하는가? → thinking 블록을 포함한 호출의 비율
+- **Visible output 장황함**: Thinking을 빼고 봐도 순수 응답이 더 긴가? → No-thinking calls 평균 `output_tokens` 비교
+- **Tokenizer 효율**: 같은 텍스트를 표현하는 데 4-7이 더 많은 토큰을 쓰는가? → 동일 텍스트 제어 실험
+- **Context 누적 효과**: Thinking이 다음 턴 context에 남는가? → CC 소스 분석 + JSONL signature 확인
 
 ---
 
@@ -172,13 +154,13 @@
 
 ### 4.1 Thinking 빈도 차이
 
-**4-7 시대(2026-04-17 이후) 두 프로젝트 전체 (main + subagent)**:
+**2026-04-17 이후 두 프로젝트 전체 (main + subagent)**:
 
 - **opus-4-7**: 3,477 calls 중 621 thinking → **17.9%**
 - **opus-4-6**: 5,086 calls 중 145 thinking → **2.85%**
 - **전체 비율: 6.3배**
 
-같은 기간 동일 작업 환경에서 subtask까지 모두 집계한 객관적 수치. 4-6에서는 대부분의 호출이 thinking 없이 처리되는 반면 4-7은 5~6번에 1번꼴로 thinking 발생.
+같은 기간, 같은 작업 환경에서 subtask까지 전부 집계한 수치입니다. 4-6에서는 대부분의 호출이 thinking 없이 처리되는 반면, 4-7은 5~6번에 1번꼴로 thinking이 발생합니다.
 
 #### Effort별 4-7 thinking rate (subtask 포함)
 
@@ -192,28 +174,28 @@
 
 #### Effort의 진짜 역할 — thinking 길이 제한, 트리거 여부 아님
 
-**핵심 관찰**: Think rate가 16~38% 범위에서 effort 단계와 **단조 관계 없음**. 직관과 달리 low(37.5%)가 가장 높고, xhigh(16.3%)가 가장 낮음. 이 역순 패턴은 effort가 thinking 트리거 제어 레버가 아님을 보여줌.
+여기서 재밌는 건, think rate가 16~38% 범위에서 effort 단계와 **단조 관계가 없다**는 겁니다. 직관과 달리 low(37.5%)가 가장 높고, xhigh(16.3%)가 가장 낮아요. 완전 역순이죠.
 
-**해석**: Effort 파라미터는 thinking이 발생했을 때 **얼마나 깊게(몇 토큰으로)** 생각할지의 **상한을 조절**하는 레버이지, thinking을 **시작할지 말지를 결정하는 스위치가 아니다**. Thinking 트리거는 모델이 input을 본 후 첫 output 토큰에서 자체 판단하는 것이므로, effort와 독립적.
+이게 의미하는 건 이겁니다: effort는 thinking이 발생했을 때 **얼마나 깊게 생각할지의 상한**을 조절하는 레버이지, thinking을 **할지/말지를 결정하는 스위치가 아닙니다**. Thinking 트리거는 모델이 input을 보고 자체 판단하는 것이므로 effort와는 무관합니다.
 
-**비용 측면 함의**: opus-4-7은 **effort 설정을 어떻게 하든 thinking 비용이 많이 발생**한다. 단지 각 thinking의 길이만 조절될 뿐. 따라서 opus-4-7의 thinking 비용 문제는 effort로 근본 해결 불가능하고, **모델을 바꾸는 것(4-6 사용)이 유일한 실효 대응책**.
+그러니까 opus-4-7은 **effort를 어떻게 바꿔도 thinking 비용이 많이 발생**합니다. 각 thinking의 길이만 조절될 뿐이죠. effort로는 근본 해결이 안 되고, **모델을 바꾸는 것(4-6 사용)이 유일한 실효 대응책**입니다.
 
 ### 4.2 Visible Output 장황함 (Verbosity)
 
-Thinking 영향을 배제한 순수 출력 비교를 **두 환경**에서 수행:
+이미 답변이 장황해진거 느끼신 분들 많을 텐데, 이것도 fact입니다. Thinking 영향을 배제하고 순수 출력만 비교해봤습니다.
 
 #### 환경 1: Subagent (가장 통제된 조건)
 
-CC가 subagent의 thinking을 명시적으로 차단 (§4.5). 사용자에게 직접 보이지 않는 단순 실행 환경. 두 모델 모두 **같은 역할·같은 제약**.
+CC가 subagent의 thinking을 명시적으로 차단합니다 (§4.5). 두 모델 모두 **같은 역할·같은 제약** 아래에서 비교한 거라 가장 공정합니다.
 
 - **opus-4-7**: 279 tok/call (1,160 samples)
 - **opus-4-6**: 163 tok/call (3,168 samples)
-- Raw 1.71배 → Tokenizer 실측 보정(÷1.28) 후 **1.34배**
+- Raw 1.71배 → Tokenizer 보정(÷1.28) 후 **1.34배**
 - Tokenizer 최대 보정(÷1.35) 후에도 **1.27배**
 
 #### 환경 2: Main 세션의 No-thinking 호출
 
-Main 세션에서 두 모델 모두 thinking 없이 응답한 호출.
+Main 세션에서 두 모델 모두 thinking 없이 응답한 호출만 골라봤습니다.
 
 - **opus-4-7**: 1,306 tok/call (1,696 samples)
 - **opus-4-6**: 451 tok/call (1,773 samples)
@@ -221,90 +203,86 @@ Main 세션에서 두 모델 모두 thinking 없이 응답한 호출.
 
 #### 해석
 
-두 독립 환경 모두에서 4-7이 더 장황:
+두 환경 모두에서 4-7이 더 장황합니다:
 
-- Subagent 1.34배 (통제 조건 최강, 같은 짧은 실행 작업)
-- Main no-think 2.26배 (작업 복잡도/유형 편향 큼 — cc-token-saver 분석 작업이 4-7에 집중된 영향)
+- Subagent 1.34배 (가장 통제된 조건, 같은 짧은 실행 작업)
+- Main no-think 2.26배 (작업 복잡도 편향이 있긴 하지만 — cc-token-saver 분석 작업이 4-7에 집중)
 
-Tokenizer 최대 보정을 적용해도 subagent에서 1.27배가 남음. **Thinking 비활성 + tokenizer 보정 후에도 남는 차이 = 4-7 고유 verbosity 증가분**. 통제 조건 기준 **27~34%**, 덜 통제된 조건에서는 더 크게 나타남.
+Tokenizer 최대 보정을 적용해도 subagent에서 1.27배가 남습니다. **Thinking도 끄고, tokenizer 차이도 보정한 뒤에 남는 차이 = 4-7 고유 verbosity 증가분**입니다. 통제 조건 기준 **27~34%**, 덜 통제된 조건에서는 더 크게 나타납니다.
 
 ### 4.3 Tokenizer 팽창
 
-동일 텍스트를 같은 시점에 두 모델 subtask로 보내 input_tokens 비교:
+같은 텍스트를 같은 시점에 두 모델 subtask로 보내서 input_tokens를 비교했습니다:
 
 - **영어/코드 (시스템 프롬프트)**: 4-7 / 4-6 = **1.375x** (37.5% 팽창)
 - **영어 산문 (Genesis EN)**: 1.281x (28% 팽창)
 - **한글 (Genesis KO)**: 1.004x (차이 없음)
 
-공식 발표 "최대 1.35x"와 일치. **한글/CJK는 tokenizer 차이가 거의 없음**, 영어/코드만 팽창.
+코드 기반 입력에서 특히 많이 늘었습니다. Anthropic 공식 발표 "최대 1.35x"와 일치하며, 제 테스트에서는 37.5%까지 나왔습니다.
+
+한글은 거의 동일했는데, 한글 자체가 자모 조합 체계(초성+중성+종성)로 이미 체계적인 분해 구조를 갖추고 있어서 새 토크나이저가 더 쪼갤 부분이 거의 없기 때문입니다. 영어는 `tokenizer` → `token` + `izer`처럼 형태소 경계가 모호해서 재조정할 여지가 크지만, 한글은 그렇지 않은 거죠.
+
+왜 토큰을 더 쪼갰을까요? 기존 tokenizer는 일반 영어 문장에 최적화되어 있었는데, 최근 LLM은 코딩, 구조화된 문서, 수식 등에서 성능 강화를 하고 있기 때문에 그에 맞춰 토큰화를 재조정한 것으로 보입니다.
 
 ### 4.4 Context 누적 메커니즘
 
-CC 소스 분석 결과:
+Thinking이 실제로 context에 쌓이는지 확인해봤습니다:
 
-- Thinking 블록은 API 응답에 `signature`(암호화 블롭) 포함되어 내려옴
-- JSONL에는 `thinking` 내용은 빈 문자열, `signature`만 저장
-- 다음 API 호출마다 **모든 이전 턴의 thinking signature가 전송**되고 서버가 복호화
-- 서버 쪽 context에서는 복호화된 전체 thinking이 토큰으로 카운트
-- 설정: `clear_thinking_20251015` (keep: 'all') — 기본적으로 모든 thinking 보존
+- Thinking 블록은 API 응답에 `signature`(암호화 블롭)로 포함되어 내려옵니다
+- JSONL에는 `thinking` 내용은 빈 문자열, `signature`만 저장됩니다
+- 다음 API 호출마다 **모든 이전 턴의 thinking signature가 전송**되고 서버가 복호화합니다
+- 서버 쪽 context에서는 복호화된 전체 thinking이 토큰으로 카운트됩니다
+- 기본 설정상 모든 thinking이 보존됩니다
 
-**결론**: Thinking 텍스트는 사용자가 볼 수 없지만, **context에 실제로 누적되고 매 턴 비용으로 집계됨.**
+즉, thinking은 사용자 눈에는 안 보이지만, **context에 실제로 쌓이고 매 턴 비용으로 집계**됩니다. 이게 thinking이 무서운 이유예요 — 보이지 않는데 돈은 나가는 거죠.
 
 ### 4.5 Main 세션 vs Subagent 구조적 차이
 
-Main 세션과 subagent를 분리 집계한 결과:
+Main과 subagent를 분리해서 집계해봤습니다:
 
 - **4-7 main**: 2,317 calls, think 621개 → **26.8%**, out/call 1,339
 - **4-7 subagent**: 1,160 calls, think **0**개 → **0.0%**, out/call 279
 - **4-6 main**: 1,918 calls, think 145개 → **7.56%**, out/call 468
 - **4-6 subagent**: 3,168 calls, think **0**개 → **0.0%**, out/call 163
 
-**핵심 발견: Subagent에서는 두 모델 모두 thinking이 완전히 차단됨 (0건)**.
+**핵심 발견: Subagent에서는 두 모델 모두 thinking이 완전히 차단됩니다 (0건).**
 
-#### CC 소스 확인 (`tools/AgentTool/runAgent.ts:682-684`)
+Claude Code는 이미 thinking을 비용 증가 요인으로 인지하고 있어서, 일반 subagent의 thinking을 명시적으로 비활성화합니다. 비용 절감 목적이라고 내부 주석에도 적혀 있습니다.
 
-```typescript
-thinkingConfig: useExactTools
-  ? toolUseContext.options.thinkingConfig  // fork children: parent 상속
-  : { type: 'disabled' as const },         // 일반 subagent: DISABLED
-```
+#### 이게 의미하는 것
 
-주석: *"For regular sub-agents, disable thinking to control output token costs."*
-
-CC는 이미 thinking을 비용 증가 요인으로 인지하고, **일반 Agent() 호출로 생성되는 subagent의 thinking을 명시적으로 비활성화**한다. Fork children (useExactTools)만 예외적으로 parent의 설정 상속 (prompt cache hit 유지 목적).
-
-#### 전략적 함의
-
-- **Main 세션에서만 thinking 비용 발생** — 4-7의 비용 폭증은 main 세션의 thinking 빈도에 집중
-- **Subagent는 안전지대** — 모델이 뭐든 thinking 차단되어 출력이 간결
+- **Thinking 비용은 main 세션에서만 발생** — 4-7의 비용 폭증은 main 세션의 thinking 빈도에 집중되어 있습니다
+- **Subagent는 안전지대** — 모델이 뭐든 thinking이 차단되어 출력이 간결합니다
 - **4-7 main vs 4-6 main 비율**: 26.8% / 7.56% = **3.5배** (subagent 0을 포함한 전체 6.3배와 구분)
 - **Out/call 격차도 subagent에서 줄어듦**: main 1,339/468 = 2.86배 → subagent 279/163 = 1.71배
-- Subagent 비교(1.71배)는 순수 verbosity 차이의 하한선. Tokenizer 최대 보정 시 1.27배, 실측 보정 시 1.34배 → **4-7은 같은 작업에 본질적으로 27~34% 더 많은 토큰을 생성**
+- Subagent 비교(1.71배)가 순수 verbosity 차이의 하한선입니다. Tokenizer 보정하면 1.27~1.34배 → **4-7은 같은 작업에 본질적으로 27~34% 더 많은 토큰을 생성**합니다
 
-**Trade-off 주의**: Subagent에 thinking이 없다는 건 **복잡한 추론이 필요한 작업은 subagent로 보내면 품질 저하 가능**하다는 뜻. 계획/아키텍처 결정 같은 작업은 main에서 4-7의 thinking 이점을 활용하는 게 맞고, 구체적 구현/조사는 subagent로 보내는 분업 구조가 최적.
+**다만 주의할 점**: subagent에 thinking이 없다는 건 **복잡한 추론이 필요한 작업을 subagent에 맡기면 품질이 떨어진다**는 뜻이기도 합니다. 설계는 main에서 4-7의 thinking을 활용하고, 실행은 subagent로 — 이 분업이 최적입니다.
 
 ### 4.6 Per-turn 비용 실측
 
-- **Output per call (전체 평균)**: 4-7 985 tok vs 4-6 278 tok → 3.54배 (tokenizer 보정 후 2.77배) — subagent 비중 증가로 절대값은 줄었으나 격차는 확대
+실제 돈으로 환산하면 이렇습니다:
+
+- **Output per call (전체 평균)**: 4-7 985 tok vs 4-6 278 tok → 3.54배 (tokenizer 보정 후 2.77배)
 - **Cache create per turn**: 4-7 $0.103 vs 4-6 $0.031 → **3.37배**
 - **Cache read per turn**: 4-7 $0.405 vs 4-6 $0.432 → 0.94배 (거의 동일)
 - **Total per turn**: 4-7 $0.587 vs 4-6 $0.497 → 1.18배
 
-Cache read는 context 크기에 비례하므로 모델 무관. 세션이 길어질수록 전체 비용에서 cache read 비중이 커져 모델 차이는 희석.
+Cache read는 context 크기에 비례해서 모델과 무관합니다. 세션이 길어질수록 cache read 비중이 커지면서 모델 차이가 희석되긴 하지만, 그래도 매 턴 쌓이는 output 차이가 context를 빨리 키우는 구조라 결국 복리로 돌아옵니다.
 
 ---
 
 ## 5. 복합 효과 시뮬레이션
 
-3가지 효과(thinking 빈도, verbosity, tokenizer 팽창)를 모두 반영한 시뮬레이션.
+세 가지 효과(thinking 빈도, verbosity, tokenizer 팽창)가 동시에 작용하면 실제로 얼마나 차이가 나는지 시뮬레이션해봤습니다.
 
 ### 5.1 시나리오별 per-turn 비용 비율
 
-100턴 대화 기준 누적 토큰 소비. 아래 비율은 **같은 작업을 할 때 4-7의 턴당 비용 / 4-6의 턴당 비용**이다. 5h 윈도우는 이 비율에 비례해서 빨리 차오른다.
+100턴 대화 기준 누적 토큰 소비입니다. 같은 작업을 할 때 4-7이 4-6 대비 턴당 얼마나 더 비싼지를 나타냅니다.
 
-- **영어 위주 (코드 작업, tokenizer 팽창 1.28x)**: 4-7 턴당 비용 ×**1.43** → **턴당 43% 더 비쌈**; 5h 윈도우는 원래 시간의 ~70%에 소진 (30% 빨리 — 평소 4시간 쓰던 사용자가 약 2시간 48분에 블록)
-- **한/영 혼합 (tokenizer 팽창 1.10x)**: ×1.23 (턴당 23% 비쌈; 윈도우 ~81%에 소진, 4시간 사용자가 약 3시간 15분에 블록)
-- **순수 한글 (tokenizer 팽창 1.00x, 이론)**: ×1.12 (턴당 12% 비쌈; 윈도우 ~89%에 소진, 4시간 사용자가 약 3시간 34분에 블록)
+- **영어/코드 위주 (tokenizer 팽창 1.28x)**: 4-7 턴당 비용 ×**1.43** → **턴당 43% 더 비쌈**; 평소 4시간 쓰던 분이 약 2시간 48분에 블록
+- **한/영 혼합 (tokenizer 팽창 1.10x)**: ×1.23 (턴당 23% 비쌈; 4시간 쓰던 분이 약 3시간 15분에 블록)
+- **순수 한글 (tokenizer 팽창 1.00x)**: ×1.12 (턴당 12% 비쌈; 4시간 쓰던 분이 약 3시간 34분에 블록)
 
 ### 5.2 Context 성장률
 
@@ -325,24 +303,23 @@ Cache read는 context 크기에 비례하므로 모델 무관. 세션이 길어�
 
 ## 6. 결론 및 권고
 
-### 6.1 주요 결론
+### 6.1 정리하면
 
-- **4-7이 4-6보다 비용이 많이 드는 것은 사실이며, 이유는 3가지 복합 효과**:
+- **4-7이 4-6보다 비용이 많이 드는 건 사실입니다. 이유는 3가지가 동시에 터진 결과**:
   
-  - Thinking 빈도가 **3.5배 높음** (main 기준: 4-6=7.56% → 4-7=26.8%)
-  - Visible output 자체가 **27~34% 장황** (tokenizer/thinking 보정 후, subagent 통제 기준 하한)
+  - Thinking 빈도가 **3.5배 높음** (main 기준: 7.56% → 26.8%)
+  - 같은 답변이 **27~34% 더 장황** (tokenizer/thinking 보정 후)
   - 영어/코드에서 tokenizer가 **28~38% 팽창**
 
-- **한국어 대화는 영향이 작음** (tokenizer 팽창 ~1%)
+- **한글 대화는 영향이 작습니다** (tokenizer 팽창 ~1%)
 
-- **Context 누적 효과가 실재**: Thinking이 다음 턴에 전부 보존되어 cache 비용으로 누적
+- **Thinking은 보이지 않지만 실제로 context에 쌓이고 매 턴 비용으로 누적됩니다**
 
-- **사용자는 제어권이 제한적**:
+- **사용자가 제어할 수 있는 건 제한적입니다**:
   
-  - `budget_tokens`로 thinking 길이 조절 가능하나, thinking 시작 여부는 모델 판단
-  - **Effort 설정(low/medium/high/xhigh)을 바꿔도 thinking 빈도는 제어 불가** — 실측 4-7 effort별 think rate가 16~38% 범위에서 effort 단계와 무관하게 출렁임. 오히려 low(37.5%)가 가장 높고 xhigh(16.3%)가 가장 낮음 — 단조 관계 없음을 입증
-  - Subagent 모델을 세밀하게 지정 불가 (alias만 가능, 버전 지정 불가)
-  - `CLAUDE_CODE_SUBAGENT_MODEL` 환경변수는 전체 일괄 적용
+  - `budget_tokens`로 thinking 길이 조절은 가능하지만, thinking 자체를 할지/말지는 모델이 판단
+  - **Effort 설정을 바꿔도 thinking 빈도는 안 줄어듭니다** — 실측 결과 low(37.5%)가 오히려 가장 높고 xhigh(16.3%)가 가장 낮았습니다
+  - Subagent 모델은 alias만 가능하고 버전 지정 불가
 
 ### 6.2 비용 절감 레버 (효과 순)
 
@@ -351,63 +328,41 @@ Cache read는 context 크기에 비례하므로 모델 무관. 세션이 길어�
 - **대화 언어** (한글) — tokenizer 팽창 회피
 - **Thinking 빈도** — 모델에 종속, 직접 제어 불가
 
-### 6.3 실용적 권고
+### 6.3 그러면 어떻게 해야 할까요?
 
-#### 전략 A: 전체 4-6 사용 (단순, 안정)
+#### 전략 A: 전체 4-6 사용 (대부분에게 권장)
 
-- `/model claude-opus-4-6[1m]` (또는 1M 불필요하면 `claude-opus-4-6`)
+- `/model claude-opus-4-6[1m]` 한 줄이면 됩니다
 - 가장 쉽고 일관된 비용 절감 (20~40%)
-- 일상 코딩/디버깅/리팩토링에 적합
+- 95% 작업에서 품질 차이 체감 없습니다
 
-#### 전략 B: 4-7 Main (뇌) + Sonnet Subagent (손발)
+#### 전략 B: 4-7은 설계에만, 실행은 Sonnet 서브태스크로 (고급)
 
-CC의 구조적 특성 — **subagent는 thinking 차단, main은 thinking 유지** — 을 적극 활용.
+4-7의 향상된 성능을 쓰고 싶다면, CC의 구조적 특성을 활용하세요 — **subagent는 thinking이 차단되고, main만 thinking이 유지됩니다**.
 
-**작업 배치 원칙**:
+- **Main 4-7 (설계용)**: 아키텍처 설계, 복잡한 디버깅, 다단계 계획 수립
+- **Subagent Sonnet (실행용)**: 명세 기반 구현, 여러 파일 일괄 수정, 코드 탐색, 단순 Q&A
 
-- **Main 4-7에서 처리할 작업** (thinking 가치 있음):
-  
-  - 아키텍처 설계, 기술 결정
-  - 복잡한 디버깅 (여러 가설 탐색)
-  - 다단계 계획 수립 (의존성 추적)
+설계는 main에서, 실행은 subagent에서 — 이 분업이 핵심입니다.
 
-- **Subagent Sonnet에 위임할 작업** (thinking 불필요):
-  
-  - 명세 기반 구현 (패턴 적용)
-  - 여러 파일 일괄 수정 (반복 작업)
-  - 코드 탐색/검색 (단순 I/O)
-  - 단순 질문 응답
+**피해야 할 실수**:
 
-**작동 원리**:
+- ❌ 계획 자체를 subagent에 위임 → thinking 없어서 설계가 얕아집니다
+- ❌ Main에서 단순 반복 작업 → 4-7의 thinking 비용 낭비
+- ❌ Subagent에 `model: opus` 지정 → thinking은 어차피 차단이지만 토큰 단가가 비쌉니다
 
-- Main은 4-7의 thinking 강점을 활용해 "뇌"로 기능 — 계획, 판단, 통합
-- Subagent는 thinking이 자동 차단되어 저렴하게 "손발"로 기능 — 실행, 조사, 반복
-- Main에서 명확한 지시(실행 계획)를 만들어 subagent에 위임하면 양쪽 모두 최적
-
-**흔한 실수 — 피해야 할 패턴**:
-
-- ❌ 계획 작업 자체를 subagent에 위임 → thinking 없어서 추론 품질 저하
-- ❌ Main에서 단순 반복 작업 수행 → 4-7의 thinking 비용이 낭비
-- ❌ Subagent에 `model: opus` 지정 → main과 같은 모델이라 비용 절감 효과 없음 (thinking은 어차피 차단이지만 토큰 단가가 비쌈)
-
-**주의 사항**:
-
-- Agent/skill의 `model` 필드는 alias(`sonnet`/`opus`/`haiku`)만 가능 — 버전 지정 불가
-- `CLAUDE_CODE_SUBAGENT_MODEL` 환경변수로 전역 override는 가능하나 선택적 적용 불가
-
-#### 공통 관리 습관
+#### 공통 습관
 
 - **세션 관리**: `/continue`로 초기 context 경량화, 긴 세션은 정기적으로 압축
-- **공유**: 초심자에게는 "같은 작업을 4-6으로 하면 대략 20~40% 절약된다"로 소개
 
 ---
 
-## 7. 조사의 한계
+## 7. 한계
 
-- **Thinking 내용 부재**: JSONL에 `thinking`이 빈 문자열이라 실제 생각 길이는 추정만 가능
-- **Tokenizer 샘플 크기**: 제어 실험에서 delta 값이 982 vs 1,258 수준이라 ±5% 노이즈
-- **시뮬레이션 가정**: per-turn tool 결과를 3,000 토큰으로 고정했으나 실제는 변동
-- **프로젝트 편향**: 두 프로젝트 모두 한 사용자의 작업 패턴을 반영
+이 분석에는 한계가 있을 수 있습니다:
+
+- **Tokenizer 샘플이 작습니다**: 제어 실험에서 delta 값이 982 vs 1,258 수준이라 ±5% 노이즈가 있음
+- **제 작업 패턴의 편향**: 두 프로젝트 모두 한 사람(저)의 작업 패턴입니다. 다른 분들의 데이터가 추가되면 더 정확해질 겁니다
 
 ## 부록: 주요 측정 데이터
 
@@ -444,13 +399,9 @@ doooz:          4-7 main=728(22.7%)   / sub=1,119  / 4-6 main=1,749(7.4%) / sub=
 
 ---
 
-*이 리포트는 2026-04-20에 작성됨.*
-
----
-
 ## 방법론: 데이터 수집 스크립트
 
-리포트의 모든 수치는 재현 가능합니다. 아래 두 개의 Python 스크립트로 생성됐습니다 — 하나는 JSONL 트랜스크립트에서 관찰 데이터를 집계하는 스크립트, 다른 하나는 §5 시뮬레이션을 돌리는 스크립트. 둘 다 Python 3 + 표준 라이브러리만 사용.
+이 리포트의 모든 수치는 재현 가능합니다. 아래 두 개의 Python 스크립트를 돌리면 동일한 결과를 얻을 수 있습니다. Python 3 + 표준 라이브러리만 사용합니다.
 
 ### Script 1 — 트랜스크립트 집계
 
@@ -466,8 +417,8 @@ from pathlib import Path
 HOME = Path.home()
 FILTER_SINCE = "2026-04-17T00:00:00Z"
 PROJECTS = {
-    "cc-token-saver": HOME / ".claude/projects/-Users-taehyoungkim-Documents-DEV-cc-token-saver",
-    "doooz":          HOME / ".claude/projects/-Users-taehyoungkim-Documents-DEV-VibeFamily-doooz",
+    "cc-token-saver": HOME / ".claude/projects/{cc-token-saver-project-hash}",
+    "doooz":          HOME / ".claude/projects/{doooz-project-hash}",
 }
 # local-command-stdout에 담긴 effort 전환 신호 정규식
 EFFORT_RE = re.compile(
@@ -626,8 +577,12 @@ for name, infl in SCENARIOS.items():
           f"(200K auto-compact: 4.6={200000/p46:.1f}턴, 4.7={200000/p47:.1f}턴)")
 ```
 
-### Caveats
+---
 
-- **Effort 세그멘테이션은 근사치**: JSONL은 API 호출별 effort를 기록하지 않음. 사용자 메시지의 local-command-stdout 신호 (`/effort X` 및 `/model ... with X effort`)로 추론하며, 다음 신호가 나올 때까지 이어 사용. `/effort` 신호가 없는 opus-4-7 호출은 선행 연구에 따라 `xhigh` 기본값으로 간주. Subagent는 launch 시점 부모 세션의 effort를 상속한다는 것이 정확하나 샘플 스크립트에서는 단순화됨.
-- **시뮬레이션은 프록시**: 턴당 tool result, 사용자 입력, thinking 길이 등의 상수는 일반적 코딩 세션에 맞춰 선택했으나 모든 작업 패턴을 반영하지 못함. 비율(4.7/4.6)이 절대 수치보다 견고.
-- **Tokenizer 팽창**은 §4.3의 제어 실험으로 측정되며 관찰 데이터와 독립.
+## 마치며
+
+이 리포트는 "왜 요즘 사용량이 빨리 바닥나지?"라는 단순한 의문에서 시작했습니다. 뜯어보니 tokenizer 변경, thinking 빈도 증가, 응답 장황화라는 세 가지가 동시에 작용하고 있었고, 그 결과가 42%라는 꽤 큰 숫자로 나왔습니다.
+
+모델이 발전하면서 비용 구조가 바뀌는 건 자연스러운 일이지만, 사용자가 그 변화를 인지하지 못한 채 비용만 늘어나는 건 문제라고 생각합니다. 이 리포트가 그 격차를 메우는 데 도움이 되었으면 합니다.
+
+데이터가 더 쌓이면 업데이트하겠습니다. 혹시 본인의 사용 데이터를 공유해주실 분이 있다면, [cc-token-saver의 /report-limit](https://github.com/ww-w-ai/cc-token-saver)을 통해 익명으로 기여하실 수 있습니다.

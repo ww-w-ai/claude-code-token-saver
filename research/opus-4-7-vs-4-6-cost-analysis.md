@@ -10,105 +10,102 @@
 
 ## 0. Executive Summary
 
-### Wait — Opus 4.7 costs 42% more than 4.6?!
+### Opus 4.7 costs 42% more than 4.6?
 
-That's what one user's measurements show.¹ Same work, same prompts, but the bill comes back **42% higher**. Why?
+After switching to 4.7, I noticed usage draining noticeably faster. So I dug into 8,563 API calls across two projects.¹ Same work, same prompts — but **42% more** expensive.
+
+It wasn't just one thing. Three factors hit at the same time:
 
 - **The language got more expensive** — up to 35% more tokens for the same text (tokenizer inflation)
-- **It thinks more often** — thinking frequency 3.5× higher (independent of effort setting)
-- **It talks more** — responses themselves are 25~50% more verbose
+- **It thinks more often** — thinking frequency 3.5× (7.56% → 26.8%), independent of effort setting
+- **It talks more** — same answers are 27~34% more verbose
 
-These three multiply in every turn's output. Translated to the 5-hour window: a user who used to hit the block at 4 hours now gets blocked at around **2 hours 48 minutes** — losing nearly half of the 5-hour window.
+These three multiply every turn, filling up context faster and compounding cache costs. Heavy users who typically got blocked around 4 hours into the 5-hour window now get blocked at **2 hours 40~50 minutes**. If you've been feeling like "I'm running out way faster than before" — it wasn't your imagination.
 
-Over a week of daily work, that's **multiple full workdays** worth of session time quietly evaporating. Your gut feeling was right.
-
-The rest of this report explains exactly why this happens and — importantly — how to get that time back.
+This report explains why it happens and **what you can do about it**.
 
 ---
-¹ Measurement basis: 4,314 JSONL calls from two projects (cc-token-saver + doooz), simulated over 100 turns of English/code-heavy dialog. **Mixed Korean/English use: ~26%; Korean-heavy use: ~18%**. Actual impact varies by task type, language ratio, and session length. See §5 for full simulation conditions.
+
+¹ Measurement basis: cc-token-saver + doooz JSONL data, simulated over 100 turns of English/code-heavy dialog. **Mixed Korean/English: ~26%; Korean-heavy: ~18%**. Varies by task type, language ratio, and session length. See §5 for full simulation conditions.
 
 ### The three causes in detail
 
+Let's start with the biggest factor — the tokenizer.
+
 - **The language got more expensive — Tokenizer inflation (English/code 28~38%)**
   
-  - Confirmed via controlled experiment with identical inputs (§4.3)
-  - Korean shows no effect (~1%)
+  Per Anthropic's official announcement, 4.7 introduced a new tokenizer that breaks the same text into up to 35% more tokens. Confirmed via controlled experiment with identical inputs (§4.3). Korean shows no effect (~1%).
 
 - **It thinks more often — Thinking frequency 3.5×**
   
-  - Main-session calls with thinking: 4.6 = 7.56%, 4.7 = 26.8%
-  - **Independent of effort setting (low/medium/high/xhigh)** — effort only controls thinking *length*, not whether the model decides to think
-  - Evidence: 3,075 main calls across JSONL transcripts
+  In main-session calls, 4.6 triggers thinking in 7.56% of calls; 4.7 triggers it in 26.8%. You might think "can't I just lower the effort level?" — but effort controls thinking **length**, not **whether it happens**. Even at low effort, thinking frequency didn't decrease (§4.1). Evidence: 3,075 main calls.
 
-- **It talks more — Output verbosity 25~50% higher**
+- **It talks more — Output verbosity 27~34% higher**
   
-  - Even in subagent environment where thinking is disabled, out/call is 1.25× (tokenizer-adjusted)
-  - Inherent 4.7 trait not explained by thinking or tokenizer
+  Even in the subagent environment where thinking is disabled, output volume was 1.34× (tokenizer-adjusted). This is a 4.7-intrinsic trait not explained by thinking or tokenizer.
 
-These three factors accumulate in every turn's output → context grows faster → cache read cost compounds.
+These three factors **accumulate every turn** → context grows faster → cache read cost compounds.
 
-### What you can do (easy, step-by-step)
+### What should you do?
 
-The short version: **switch to Opus 4.6**. That's it. You don't need to tune prompts, tweak effort, or change how you work. The model choice is the only knob that actually controls this.
+#### Option 1 — Just use 4.6 for everything (recommended for most)
 
-#### Option 1 — Just use 4.6 for everything (recommended for most people)
+This alone gets you back 20~40% of your session time.
 
-This gets you back 20~40% of your session time with zero hassle.
+```
+/model claude-opus-4-6[1m]
+```
 
-**Step-by-step**:
+(If you don't need the 1M context window, `claude-opus-4-6` works too.)
 
-1. Open Claude Code and start a session as usual.
-2. Type this command and hit enter:
+What this does: pins your session to Opus 4.6. It thinks less often, responds more concisely, and uses a more efficient tokenizer. 95%+ of coding/debugging/refactoring work shows no noticeable quality difference from 4.7.
 
-   ```
-   /model claude-opus-4-6[1m]
-   ```
+**Note**: `/model` only applies to the current session. New terminal → run it again.
 
-   (If you don't need the 1-million-token context, you can use `claude-opus-4-6` instead.)
+#### Option 2 — Keep 4.7 for design, delegate execution to Sonnet subagents (advanced)
 
-3. That's it. Claude Code will confirm the switch with a message like "Set model to Opus 4.6 (1M context)". Work normally — you'll notice the usage bar drains slower.
+Still want 4.7's improved capabilities? Keep 4.7 in the main session but delegate execution to subagents. Claude Code **automatically disables thinking in subagents**, so they run cheaply.
 
-**What this does**: pins your session to Opus 4.6, which thinks less often, produces shorter responses, and uses a more efficient tokenizer. Same quality for 95%+ of typical coding/debugging/refactoring work.
+- **Main (Opus 4.7)**: architecture decisions, exploring bug hypotheses, multi-step planning — where deep reasoning matters
+- **Subagent (Sonnet)**: implementing specs you already wrote, batch file edits, codebase search, routine Q&A
 
-**Note**: `/model` only applies to the current session. Open a new terminal → run it again. (Or set it permanently in Claude Code settings if you prefer.)
+Tell Claude "launch a subagent with sonnet to do X", or set `model: sonnet` in agent frontmatter.
 
-#### Option 2 — Keep 4.7 for planning, use Sonnet subagents for implementation (advanced)
+**Pitfall to avoid**: don't delegate planning itself to subagents. They can't think, so plans come out shallow. Design in main, execute in subagents — that's the key division.
 
-If you genuinely benefit from 4.7's deeper reasoning (e.g., you design complex architectures or debug tricky systems daily), keep 4.7 in the main session but let subagents handle the grunt work. Claude Code automatically disables thinking in subagents, so they run cheaply.
+#### Option 3 — cc-token-saver plugin (Option 2 + automated token management)
 
-**When to pick each**:
+For those who find manual management tedious. [cc-token-saver](https://github.com/ww-w-ai/cc-token-saver) is an open-source Claude Code plugin that automatically tracks and reduces token costs.
 
-- **Main (Opus 4.7)**: architecture decisions, exploring bug hypotheses, planning multi-step changes — anywhere deep reasoning pays off
-- **Subagent (Sonnet)**: implementing specs you already wrote, editing many files, searching the codebase, routine Q&A
+- Design via `claude -p` (main, thinking active), execution via SubTask + Sonnet — automatic distribution
+- Warns on prompt cache expiry to prevent unnecessary re-caching costs
+- `/usage-view` for real-time cost dashboard
+- `/continue` to restore context between sessions at zero LLM cost
 
-**How to delegate to a Sonnet subagent**: when you need a batch of implementation or search work done, tell Claude to "launch a subagent with sonnet to do X". Or use agent definitions (in `.claude/agents/` or plugin agents) with `model: sonnet` in their frontmatter.
+The analysis data in this report was collected using cc-token-saver.
 
-**Pitfall to avoid**: don't delegate *planning* to subagents. They can't think, so plans come out shallow. Keep planning in the main session, delegate execution.
-
-#### If you're still unsure
-
-Start with Option 1. It's one command, it's reversible, and you'll see the difference in your very next session. You can always switch back to 4.7 later with `/model claude-opus-4-7`.
+If you're unsure, **start with Option 1.** One command, reversible anytime.
 
 ---
 
 ## 1. Background
 
-### Problem statement
+### Problem
 
-Multiple users reported faster-than-usual exhaustion of the 5-hour Claude Code usage window after upgrading to Opus 4.7. Same amount of work, quota drains faster. We set out to quantify this scientifically.
+After switching to Opus 4.7, I noticed the **5-hour usage window draining faster than before**. Same amount of work, quota depleting quicker. Was it just my imagination, or was it real?
 
 ### Hypotheses
 
-- Model upgrade (4.6 → 4.7) as primary cost driver
-- Claude Code version bug
-- Tokenizer change impact
-- Model-intrinsic thinking behavior shift
+- Is the model upgrade (4.6 → 4.7) driving the cost increase?
+- Is it a Claude Code version bug?
+- Is the tokenizer change affecting costs?
+- Has the model's thinking behavior changed?
 
 ### Research objectives
 
 - Quantify whether window exhaustion is actually faster
 - Separate model effects from CC version effects
-- Provide evidence-based guidance for practical mitigation
+- Provide evidence for practical mitigation choices
 
 ---
 
@@ -116,13 +113,13 @@ Multiple users reported faster-than-usual exhaustion of the 5-hour Claude Code u
 
 ### 2.1 JSONL transcripts (observational data)
 
-Recent session JSONLs from two projects (since 2026-04-17, main + subagent):
+Session JSONL files from two projects I actually worked on (since 2026-04-17, main + subagent):
 
 - **doooz** (personal project, design refactoring — [github.com/taekim34/doooz](https://github.com/taekim34/doooz)): 4.7 = 1,847 calls (main 728 / sub 1,119), 4.6 = 4,899 calls (main 1,749 / sub 3,150)
 - **cc-token-saver** (analysis/debugging): 4.7 = 1,630 calls (main 1,589 / sub 41), 4.6 = 187 calls (main 169 / sub 18)
 - **Total**: 4.7 = 3,477 calls, 4.6 = 5,086 calls (8,563 total)
 
-Fields extracted:
+Fields extracted from JSONL:
 
 - `message.model` — model used for the call
 - `message.usage.output_tokens` — output token count
@@ -132,37 +129,24 @@ Fields extracted:
 
 ### 2.2 Controlled experiment (experimental data)
 
-**Tokenizer inflation measurement**: identical text sent to 4.6 and 4.7 subtasks; `input_tokens` compared.
-
-Samples:
+**Tokenizer inflation measurement**: sent the same text to 4.6 and 4.7 subtasks simultaneously to compare `input_tokens`.
 
 - **System prompt (English/code)**: 4.6 = 11,526 tokens, 4.7 = 15,846 tokens
 - **Genesis 1 (English)**: 4,087 chars, cl100k 949 tok → 4.6 = 982, 4.7 = 1,258
 - **Genesis 1 (Korean)**: 1,673 chars, cl100k 1,633 tok → 4.6 = 1,801, 4.7 = 1,809
 
-**Key control**: identical prompts sent at the same moment to both models to isolate pure tokenizer difference.
-
-### 2.3 CC source code (structural analysis)
-
-Relevant files in `~/Documents/DEV/claude-code-v2_1_88`:
-
-- `services/compact/apiMicrocompact.ts` — thinking block retention strategy
-- `query.ts` — thinking signature handling
-- `utils/model/agent.ts` — subagent model selection logic
-- `constants/prompts.ts` — system prompt composition
-- `commands/model/model.tsx` — `/model` command scope
-- `tools/AgentTool/runAgent.ts` — subagent thinking disable point
+I used Genesis passages to test pure English and Korean prose. Identical prompts sent at the same moment to both models to isolate pure tokenizer difference.
 
 ---
 
 ## 3. Analysis Framework
 
-Decomposed into **4 independent variables**:
+I broke down "why did it get more expensive?" into **4 independent variables**, verifying each separately:
 
-- **Thinking frequency**: Does 4.7 "think" more often than 4.6? → Measure ratio of calls containing thinking blocks
+- **Thinking frequency**: Does 4.7 "think" more often than 4.6? → Ratio of calls containing thinking blocks
 - **Visible output verbosity**: Are responses longer even without thinking? → Compare avg `output_tokens` in no-thinking calls
-- **Tokenizer efficiency**: Does 4.7 use more tokens for the same text? → Identical text experiment + baseline subtraction
-- **Context accumulation effect**: Does thinking persist in subsequent turns' context? → CC source analysis + JSONL signature inspection
+- **Tokenizer efficiency**: Does 4.7 use more tokens for the same text? → Identical text controlled experiment
+- **Context accumulation effect**: Does thinking persist in subsequent turns' context? → JSONL signature inspection
 
 ---
 
@@ -170,13 +154,13 @@ Decomposed into **4 independent variables**:
 
 ### 4.1 Thinking frequency difference
 
-**Since 2026-04-17 (4.7 era), both projects combined (main + subagent)**:
+**Since 2026-04-17, both projects combined (main + subagent)**:
 
 - **opus-4-7**: 3,477 calls, 621 thinking → **17.9%**
 - **opus-4-6**: 5,086 calls, 145 thinking → **2.85%**
 - **Overall ratio: 6.3×**
 
-Same period, same work environment, subtasks included. 4.6 processes most calls without thinking; 4.7 triggers thinking in roughly 1 out of 5~6 calls.
+Same period, same work environment, subtasks included. 4.6 processes most calls without thinking; 4.7 triggers thinking roughly 1 in every 5~6 calls.
 
 #### Thinking rate by effort level (4.7, subtask included)
 
@@ -186,23 +170,23 @@ Same period, same work environment, subtasks included. 4.6 processes most calls 
 - **Xhigh (4.7 default)**: 2,898 calls, 472 thinking → **16.3%** (out/call 829, largest sample at 83%)
 - **Overall**: 3,477 calls, 621 thinking → **17.9%**
 
-(default is merged into xhigh, which is 4.7's default effort)
+(default merged into xhigh, which is 4.7's default effort)
 
 #### The real role of effort — length cap, not trigger switch
 
-**Key observation**: Think rate fluctuates in the 16~38% range with **no monotonic relationship** to effort levels. Counter to intuition, low (37.5%) is highest and xhigh (16.3%) is lowest — the reverse of what effort-as-trigger-switch would predict.
+Here's the interesting part: think rate fluctuates in the 16~38% range with **no monotonic relationship** to effort level. Counter to intuition, low (37.5%) is the highest and xhigh (16.3%) is the lowest — completely reversed.
 
-**Interpretation**: The effort parameter sets the **upper bound on how deep (how many tokens)** a thinking block can go *when triggered*. It does **not** control whether thinking starts in the first place. Thinking is triggered by the model's own judgment after reading input, independent of effort.
+What this means: effort sets the **upper bound on how deep** a thinking block can go when triggered. It does **not** control whether thinking starts in the first place. The thinking trigger is the model's own judgment after reading input — independent of effort.
 
-**Cost implication**: 4.7 **produces significant thinking cost regardless of effort setting**. Only the length per thinking block changes. Therefore, the thinking cost problem in 4.7 cannot be solved via effort — **model change (to 4.6) is the only effective response**.
+So opus-4-7 **produces significant thinking cost regardless of effort setting**. Only the length per block changes. Effort can't fundamentally solve this — **switching models (to 4.6) is the only effective response**.
 
 ### 4.2 Visible Output Verbosity
 
-Pure output comparison in **two environments**, isolating thinking effects:
+If you've noticed responses getting more verbose, that's a fact. I compared pure output with thinking effects removed.
 
 #### Environment 1: Subagent (most controlled condition)
 
-CC explicitly disables thinking in subagents (§4.5). Simple execution context, not shown directly to users. Both models under **same role, same constraints**.
+CC explicitly disables thinking in subagents (§4.5). Both models under **same role, same constraints** — the fairest comparison.
 
 - **opus-4-7**: 279 tok/call (1,160 samples)
 - **opus-4-6**: 163 tok/call (3,168 samples)
@@ -219,34 +203,38 @@ Main session calls where both models responded without triggering thinking.
 
 #### Interpretation
 
-Both independent environments show 4.7 is more verbose:
+Both environments show 4.7 is more verbose:
 
 - Subagent: 1.34× (strongest control, same short execution tasks)
-- Main no-think: 2.26× (heavy task-complexity bias — cc-token-saver's analytical work concentrated on 4.7)
+- Main no-think: 2.26× (some task-complexity bias — cc-token-saver's analytical work concentrated on 4.7)
 
 Even with maximum tokenizer correction, 1.27× remains in the subagent condition. **The residual after thinking-disabled + tokenizer-corrected = 4.7's intrinsic verbosity increase.** Controlled-condition range: **27~34%**; less-controlled conditions show more.
 
 ### 4.3 Tokenizer Inflation
 
-Identical text sent to both models' subtasks, input_tokens compared:
+Sent identical text to both models' subtasks at the same time, compared input_tokens:
 
 - **English/code (system prompt)**: 4.7 / 4.6 = **1.375×** (37.5% inflation)
 - **English prose (Genesis EN)**: 1.281× (28% inflation)
 - **Korean (Genesis KO)**: 1.004× (no difference)
 
-Matches the official "up to 1.35×" announcement. **Korean/CJK shows virtually no tokenizer difference**; inflation is limited to English/code.
+Code-heavy input showed the largest increase. Matches Anthropic's official "up to 1.35×" announcement — my test showed up to 37.5%.
+
+Korean was virtually identical because Korean's jamo composition system (initial + medial + final consonant) already provides a systematic decomposition structure, leaving little room for the new tokenizer to split further. English has ambiguous morpheme boundaries (e.g., `tokenizer` → `token` + `izer`) that invite re-tokenization, but Korean doesn't.
+
+Why did they split tokens more finely? The old tokenizer was optimized for general English prose. Recent LLMs are strengthening performance on code, structured documents, and math — so the tokenization was re-tuned to match.
 
 ### 4.4 Context Accumulation Mechanism
 
-From CC source code analysis:
+I verified whether thinking actually accumulates in context:
 
 - Thinking blocks arrive from the API with an encrypted `signature` blob
 - JSONL stores only the `signature`; the `thinking` field is empty
 - Every subsequent API call transmits **all prior turns' thinking signatures**, which the server decrypts
 - On the server side, the decrypted thinking content counts as context tokens
-- Config: `clear_thinking_20251015` (keep: 'all') — by default, all thinking is preserved
+- By default, all thinking is preserved
 
-**Conclusion**: Thinking text is invisible to users but **actually accumulates in context and incurs cost every turn.**
+In other words, thinking is invisible to the user but **actually accumulates in context and incurs cost every turn**. That's what makes thinking scary — you can't see it, but you're paying for it.
 
 ### 4.5 Main Session vs Subagent Structural Difference
 
@@ -257,52 +245,44 @@ Separating main and subagent:
 - **4.6 main**: 1,918 calls, 145 thinking → **7.56%**, out/call 468
 - **4.6 subagent**: 3,168 calls, **0** thinking → **0.0%**, out/call 163
 
-**Key finding: Thinking is completely blocked in subagents for both models (0 occurrences)**.
+**Key finding: Thinking is completely blocked in subagents for both models (0 occurrences).**
 
-#### CC source confirmation (`tools/AgentTool/runAgent.ts:682-684`)
+Claude Code already recognizes thinking as a cost driver and explicitly disables it for regular subagents. The internal comments confirm this is intentional for cost control.
 
-```typescript
-thinkingConfig: useExactTools
-  ? toolUseContext.options.thinkingConfig  // fork children: inherit from parent
-  : { type: 'disabled' as const },         // regular subagents: DISABLED
-```
-
-Comment: *"For regular sub-agents, disable thinking to control output token costs."*
-
-CC has already recognized thinking as a cost driver and **explicitly disables thinking for all regular Agent() subtasks**. Only fork children (useExactTools) inherit parent thinking config, for prompt cache hit preservation.
-
-#### Strategic implications
+#### What this means
 
 - **Thinking cost occurs only in the main session** — 4.7's cost explosion is concentrated in main-session thinking frequency
 - **Subagent is a safe zone** — regardless of model, thinking is disabled and output stays concise
 - **4.7 main vs 4.6 main ratio**: 26.8% / 7.56% = **3.5×** (distinct from the overall 6.3× which includes subagent 0s)
 - **Out/call gap also narrows in subagent**: main 1,339/468 = 2.86× → subagent 279/163 = 1.71×
-- The subagent comparison (1.71×) represents the lower bound of pure verbosity difference. After max tokenizer correction (1.27×) or realistic (1.34×), **4.7 intrinsically generates 27~34% more tokens for the same task**
+- The subagent comparison (1.71×) represents the lower bound of pure verbosity difference. After tokenizer correction: 1.27~1.34× → **4.7 intrinsically generates 27~34% more tokens for the same task**
 
-**Trade-off caution**: Subagent having no thinking means **delegating complex reasoning tasks to subagents may degrade quality**. Planning/architecture decisions should stay in the main session to leverage 4.7's thinking advantage; concrete implementation/investigation work goes to subagents — that's the optimal division.
+**One caveat**: no thinking in subagents also means **delegating complex reasoning to subagents will degrade quality**. Design in main using 4.7's thinking, execute in subagents — that's the optimal division.
 
 ### 4.6 Per-turn Cost (Empirical)
 
-- **Output per call (overall average)**: 4.7 = 985 tok vs 4.6 = 278 tok → 3.54× (tokenizer-adjusted 2.77×) — absolute values down due to heavier subagent share, but gap widened
+In real dollar terms:
+
+- **Output per call (overall average)**: 4.7 = 985 tok vs 4.6 = 278 tok → 3.54× (tokenizer-adjusted 2.77×)
 - **Cache create per turn**: 4.7 = $0.103 vs 4.6 = $0.031 → **3.37×**
 - **Cache read per turn**: 4.7 = $0.405 vs 4.6 = $0.432 → 0.94× (nearly equal)
 - **Total per turn**: 4.7 = $0.587 vs 4.6 = $0.497 → 1.18×
 
-Cache read is proportional to context size, so model-independent. As sessions grow longer, cache read dominates total cost and model differences get diluted.
+Cache read is proportional to context size, so model-independent. As sessions grow longer, cache read dominates and model differences dilute — but the per-turn output difference keeps growing the context faster, compounding back.
 
 ---
 
 ## 5. Compound Effect Simulation
 
-Simulation integrating all three effects (thinking frequency, verbosity, tokenizer inflation).
+I simulated what happens when all three effects (thinking frequency, verbosity, tokenizer inflation) act simultaneously.
 
 ### 5.1 Per-turn cost ratio by scenario
 
-100-turn cumulative token consumption. The ratio below is **per-turn cost of 4.7 relative to 4.6** (i.e., how much more you pay per turn for the same work). The 5h window fills up proportionally faster.
+100-turn cumulative token consumption. How much more expensive is 4.7 per turn compared to 4.6 for the same work?
 
-- **English-heavy (code work, tokenizer 1.28×)**: 4.7 per-turn cost ×**1.43** → **43% more expensive per turn**; 5h window drained in ~70% of the original time (30% sooner — a 4h user hits the block at ~2h 48m)
-- **Mixed Korean/English (tokenizer 1.10×)**: ×1.23 (23% more expensive per turn; window drained at ~81%, a 4h user hits the block at ~3h 15m)
-- **Pure Korean (tokenizer 1.00×, theoretical)**: ×1.12 (12% more expensive; window drained at ~89%, a 4h user hits the block at ~3h 34m)
+- **English/code-heavy (tokenizer 1.28×)**: 4.7 per-turn cost ×**1.43** → **43% more expensive per turn**; a 4h user hits the block at ~2h 48m
+- **Mixed Korean/English (tokenizer 1.10×)**: ×1.23 (23% more expensive; a 4h user hits the block at ~3h 15m)
+- **Pure Korean (tokenizer 1.00×)**: ×1.12 (12% more expensive; a 4h user hits the block at ~3h 34m)
 
 ### 5.2 Context growth rate
 
@@ -323,89 +303,66 @@ Context size at turn N (100-turn conversation):
 
 ## 6. Conclusions and Recommendations
 
-### 6.1 Main Conclusions
+### 6.1 Summary
 
-- **4.7 is more expensive than 4.6 for three compounding reasons**:
+- **4.7 is more expensive than 4.6. Three factors compounding simultaneously**:
   
-  - Thinking frequency **3.5× higher** (main: 4.6 = 7.56% → 4.7 = 26.8%)
-  - Visible output **27~34% more verbose** (tokenizer/thinking adjusted, subagent-controlled floor)
+  - Thinking frequency **3.5× higher** (main: 7.56% → 26.8%)
+  - Same answers are **27~34% more verbose** (tokenizer/thinking adjusted)
   - Tokenizer **28~38% inflation** on English/code
 
-- **Korean dialog largely unaffected** (tokenizer inflation ~1%)
+- **Korean dialog is largely unaffected** (tokenizer inflation ~1%)
 
-- **Context accumulation is real**: thinking persists in subsequent turns and accumulates as cache cost
+- **Thinking is invisible but accumulates in context and compounds cost every turn**
 
-- **Limited user control**:
+- **User control is limited**:
   
-  - `budget_tokens` can cap thinking length, but not the trigger
-  - **Effort (low/medium/high/xhigh) cannot suppress thinking frequency** — empirical 16~38% range shows no monotonic relationship with effort; in fact low (37.5%) is highest and xhigh (16.3%) is lowest
-  - Subagent model cannot be version-pinned (only aliases allowed)
-  - `CLAUDE_CODE_SUBAGENT_MODEL` env var applies globally, no selective override
+  - `budget_tokens` can cap thinking length, but the model decides whether to think
+  - **Changing effort doesn't reduce thinking frequency** — empirically, low (37.5%) was actually the highest and xhigh (16.3%) the lowest
+  - Subagent models accept aliases only, no version pinning
 
-### 6.2 Cost Reduction Levers (by impact)
+### 6.2 Cost reduction levers (by impact)
 
 - **Session length management** (context size) — biggest impact
 - **Model selection** (use 4.6) — 10~40% savings depending on work type
 - **Dialog language** (Korean) — avoids tokenizer inflation
 - **Thinking frequency** — model-intrinsic, cannot control directly
 
-### 6.3 Practical Recommendations
+### 6.3 What should you do?
 
-#### Strategy A: Use 4.6 everywhere (simple, stable)
+#### Strategy A: Use 4.6 everywhere (recommended for most)
 
-- `/model claude-opus-4-6[1m]` (or `claude-opus-4-6` if 1M context isn't needed)
+- `/model claude-opus-4-6[1m]` — one command
 - Simplest, most consistent 20~40% cost savings
-- Suitable for daily coding/debugging/refactoring
+- 95% of work shows no noticeable quality difference
 
-#### Strategy B: 4.7 Main (brain) + Sonnet Subagent (hands)
+#### Strategy B: 4.7 for design only, Sonnet subagents for execution (advanced)
 
-Leverages CC's structural characteristic — **subagent has thinking disabled, main keeps thinking**.
+If you want 4.7's improved capabilities, leverage CC's structural characteristic — **subagent has thinking disabled, main keeps thinking**.
 
-**Task allocation principle**:
+- **Main 4.7 (design)**: architecture design, complex debugging, multi-step planning
+- **Subagent Sonnet (execution)**: spec-driven implementation, batch file edits, code search, simple Q&A
 
-- **Handle in Main 4.7** (thinking is valuable):
-  
-  - Architecture design, technology decisions
-  - Complex debugging (hypothesis exploration)
-  - Multi-step planning (dependency tracking)
+Design in main, execute in subagents — that's the key division.
 
-- **Delegate to Subagent Sonnet** (thinking unnecessary):
-  
-  - Specification-driven implementation (pattern application)
-  - Batch file modifications (repetitive work)
-  - Code search/exploration (simple I/O)
-  - Simple Q&A
+**Mistakes to avoid**:
 
-**How it works**:
-
-- Main leverages 4.7's thinking as "the brain" — planning, judgment, integration
-- Subagent runs cheap as "hands" — execution, investigation, repetition (thinking auto-disabled)
-- Create clear instructions in main, delegate to subagent — optimal on both sides
-
-**Common mistakes to avoid**:
-
-- ❌ Delegating planning work itself to a subagent → no thinking, degraded reasoning
-- ❌ Doing simple repetitive work in main → 4.7's thinking cost is wasted
-- ❌ Specifying `model: opus` on subagents → same-tier model, no cost savings (thinking is blocked anyway, but token price is higher)
-
-**Caveats**:
-
-- Agent/skill `model` field accepts only aliases (`sonnet`/`opus`/`haiku`) — no version pinning
-- `CLAUDE_CODE_SUBAGENT_MODEL` env var can override globally but not selectively
+- ❌ Delegating planning to subagents → no thinking, shallow designs
+- ❌ Doing simple repetitive work in main → wasted 4.7 thinking cost
+- ❌ Setting `model: opus` on subagents → thinking is blocked anyway, but token price is higher
 
 #### Common habits
 
 - **Session management**: use `/continue` to keep initial context light; compress long sessions periodically
-- **Sharing**: for beginners, "the same work on 4.6 saves roughly 20~40%"
 
 ---
 
 ## 7. Limitations
 
-- **No thinking content available**: JSONL stores `thinking` as empty string; actual thinking length can only be estimated
+This analysis may have limitations:
+
 - **Small tokenizer sample**: controlled-experiment deltas (982 vs 1,258) leave ±5% noise
-- **Simulation assumption**: per-turn tool result fixed at 3,000 tokens; reality varies
-- **Project bias**: both projects reflect a single user's work patterns
+- **My work pattern bias**: both projects reflect one person's (my) work patterns. More contributors' data would improve accuracy
 
 ## Appendix: Key Measurements
 
@@ -442,13 +399,9 @@ doooz:          4-7 main=728(22.7%)   / sub=1,119  / 4-6 main=1,749(7.4%) / sub=
 
 ---
 
-*Report produced on 2026-04-20.*
-
----
-
 ## Methodology: Data Collection Scripts
 
-All numbers in this report are reproducible. Below are the two Python scripts used — one to aggregate observational stats from JSONL transcripts, one to run the §5 simulation. Both are self-contained and assume only Python 3 + standard library.
+All numbers in this report are reproducible. Run the two Python scripts below to get the same results. Python 3 + standard library only.
 
 ### Script 1 — Collect observational stats from transcripts
 
@@ -464,8 +417,8 @@ from pathlib import Path
 HOME = Path.home()
 FILTER_SINCE = "2026-04-17T00:00:00Z"
 PROJECTS = {
-    "cc-token-saver": HOME / ".claude/projects/-Users-taehyoungkim-Documents-DEV-cc-token-saver",
-    "doooz":          HOME / ".claude/projects/-Users-taehyoungkim-Documents-DEV-VibeFamily-doooz",
+    "cc-token-saver": HOME / ".claude/projects/{cc-token-saver-project-hash}",
+    "doooz":          HOME / ".claude/projects/{doooz-project-hash}",
 }
 # Regexes for effort signals captured in local-command-stdout messages.
 EFFORT_RE = re.compile(
@@ -481,7 +434,7 @@ def normalize_model(m):
     return None
 
 def walk_main_jsonl(path, project):
-    """Yield (assistant_entry, effort_at_time) for each usage-bearing assistant message."""
+    """Yield assistant entries with effort tracking."""
     current_effort = "xhigh"  # opus-4-7 default per prior research
     with open(path) as f:
         for line in f:
@@ -534,10 +487,7 @@ def walk_subagent_jsonl(path, project, parent_effort_by_ts):
                 isinstance(b, dict) and b.get("type") == "thinking"
                 for b in (msg.get("content") or [])
             )
-            # Look up parent's effort at subagent's first timestamp (approximation)
-            effort = None
-            if model == "opus-4-7":
-                effort = "xhigh"  # fallback default; refine via parent lookup if needed
+            effort = "xhigh" if model == "opus-4-7" else None
             yield {
                 "project": project,
                 "is_subagent": True,
@@ -626,9 +576,12 @@ for name, infl in SCENARIOS.items():
           f"(200K auto-compact: 4.6={200000/p46:.1f} turns, 4.7={200000/p47:.1f} turns)")
 ```
 
-### Caveats
+---
 
-- **Effort segmentation is approximate**: JSONL doesn't record effort per API call. We infer from local-command-stdout signals in user messages (`/effort X` and `/model ... with X effort`), propagating forward in time until the next signal. Default for opus-4-7 without a signal is assumed `xhigh` per prior research. Subagents inherit their parent session's effort at launch time but that lookup is simplified in the sample script above.
-- **Simulation is a proxy**: per-turn constants (tool result, user input, thinking length) are chosen to match typical coding sessions but do not reflect all workflows. The ratios (4.7/4.6) are more robust than the absolute numbers.
-- **Tokenizer inflation** is measured via §4.3's controlled same-text experiment, independent of the observational data.
+## Closing
 
+This report started from a simple question: "why am I running out of usage so fast lately?" Digging in, I found three factors — tokenizer change, thinking frequency increase, and response verbosity — all acting simultaneously, adding up to a 42% difference.
+
+It's natural for cost structures to shift as models evolve. But when users don't notice the change and only see higher bills — that's a problem. I hope this report helps bridge that gap.
+
+I'll update as more data comes in. If you'd like to contribute your own usage data, you can do so anonymously through [cc-token-saver's /report-limit](https://github.com/ww-w-ai/cc-token-saver).
