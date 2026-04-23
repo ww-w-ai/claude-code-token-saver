@@ -212,8 +212,9 @@ if (importDataPath) {
     process.exit(1);
   }
   const endIdx = endRaw + marker_end.length;
+  const jsonStr = JSON.stringify(reportData, null, 0).replace(/<\//g, '<\\/');
   const output = template.slice(0, startIdx) +
-    marker_start + '\nconst REPORT_DATA = ' + JSON.stringify(reportData, null, 0) + ';\n' + marker_end +
+    marker_start + '\nconst REPORT_DATA = ' + jsonStr + ';\n' + marker_end +
     template.slice(endIdx);
   fs.writeFileSync(outputPath, output);
   console.error(`Report written to ${outputPath} (${output.length} bytes)`);
@@ -2380,8 +2381,9 @@ if (startIdx === -1 || endRaw === -1) {
 }
 const endIdx = endRaw + marker_end.length;
 
+const jsonStr = JSON.stringify(reportData, null, 0).replace(/<\//g, '<\\/');
 const output = template.slice(0, startIdx) +
-  marker_start + '\nconst REPORT_DATA = ' + JSON.stringify(reportData, null, 0) + ';\n' + marker_end +
+  marker_start + '\nconst REPORT_DATA = ' + jsonStr + ';\n' + marker_end +
   template.slice(endIdx);
 
 fs.writeFileSync(outputPath, output);
