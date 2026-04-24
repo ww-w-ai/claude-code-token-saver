@@ -74,7 +74,7 @@ const DEFAULT_COST_FILTER = 0.80; // calendar detail panel default filter
 
 // ── Args ────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
-let dataPath = null, outputPath = null, currentMode = false, aiDataPath = null, exportPromptPath = null, exportDataPath = null, importDataPath = null, localeArg = null, planArg = null, projectFilter = null;
+let dataPath = null, outputPath = null, currentMode = false, aiDataPath = null, exportPromptPath = null, exportDataPath = null, importDataPath = null, localeArg = null, planArg = null, projectFilter = null, privateMode = false;
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--data' && args[i + 1]) { dataPath = args[++i]; }
   else if (args[i] === '--output' && args[i + 1]) { outputPath = args[++i]; }
@@ -86,6 +86,7 @@ for (let i = 0; i < args.length; i++) {
   else if (args[i] === '--locale' && args[i + 1]) { localeArg = args[++i]; }
   else if (args[i] === '--plan' && args[i + 1]) { planArg = args[++i]; }
   else if (args[i] === '--project' && args[i + 1]) { projectFilter = args[++i]; }
+  else if (args[i] === '--private') { privateMode = true; }
 }
 const resolvedLocale = resolveLocale(localeArg);
 let localeData;
@@ -100,20 +101,11 @@ if (resolvedLocale !== 'en') {
   const en = JSON.parse(fs.readFileSync(path.join(LOCALES_DIR, 'en.json'), 'utf8'));
   // Token data labels — appear in charts & tables
   Object.assign(localeData.token, {
-    input: en.token.input, output: en.token.output,
-    cacheWrite: en.token.cacheWrite, cacheRead: en.token.cacheRead,
-    cache1hTier: en.token.cache1hTier, cache5mTier: en.token.cache5mTier,
-    total: en.token.total, type: en.token.type, tokens: en.token.tokens, cost: en.token.cost
+    cache1hTier: en.token.cache1hTier, cache5mTier: en.token.cache5mTier
   });
   // Chart data labels (day names, avg/max, hour suffix, legend, efficiency notes)
   Object.assign(localeData.chart, {
-    days: en.chart.days, hourSuffix: en.chart.hourSuffix,
-    avg: en.chart.avg, max: en.chart.max,
-    avgCost: en.chart.avgCost, maxCost: en.chart.maxCost,
-    legendAverage: en.chart.legendAverage,
-    effTotalPerOutput: en.chart.effTotalPerOutput,
-    effCachePerOutput: en.chart.effCachePerOutput,
-    effNote: en.chart.effNote
+    hourSuffix: en.chart.hourSuffix,
   });
   // Alert & session: use bidi marks in locale files instead (he.json, ar.json)
 }
@@ -1160,7 +1152,7 @@ const days = Math.round((toDate - fromDate) / 86400000) + 1;
 // Exclude acompact subagents from subCount — they're attributed to parent's compact marker.
 const subCount = raw.sessions.filter(s => s.filePath && s.filePath.includes('/subagents/') && !isAcompactSessionId(s.sessionId)).length;
 const summary = {
-  totalCost: sm.totalCost,
+  totalCost: 0,
   sessionCount: sm.sessionCount,
   subtaskCount: subCount,
   dateFrom: fsd(fromD),
@@ -1193,6 +1185,8 @@ for (const row of allRows) {
 for (const key of Object.keys(tb)) {
   tb[key].cost = round2(tb[key].cost);
 }
+// Align summary.totalCost with tokenBreakdown (dedup-corrected source of truth)
+summary.totalCost = round2(tb.input.cost + tb.output.cost + tb.cacheCreate1h.cost + tb.cacheCreate5m.cost + tb.cacheRead.cost);
 
 // 2b. 5H alerts from ratelimit CSVs (optional, statusline users only)
 const fiveHAlerts = [];
@@ -2364,6 +2358,40 @@ cc-token-saver's /continue skill:
 
   fs.writeFileSync(exportPromptPath, finalPrompt);
   console.error('AI prompt exported to ' + exportPromptPath);
+}
+
+// ── Private mode: strip user prompt text from REPORT_DATA ──────
+if (privateMode) {
+  for (const w of reportData.windows) {
+    w.firstMsg = '';
+    w.lastMsg = '';
+    for (const s of (w.windowSessions || [])) {
+      s.firstMsg = '';
+      s.lastMsg = '';
+    }
+    for (const a of (w.alertMessages || [])) {
+      a.text = '';
+    }
+  }
+  if (reportData.contextCostScatter) {
+    const stripBubbles = (dataset) => {
+      if (!dataset || !dataset.bubbles) return;
+      for (const b of dataset.bubbles) {
+        b.text = '';
+        if (b.topTexts) {
+          for (const t of b.topTexts) t.text = '';
+        }
+      }
+    };
+    const pa = reportData.contextCostScatter.perAssistant;
+    if (pa) { stripBubbles(pa.cw); stripBubbles(pa.nonCW); }
+    stripBubbles(reportData.contextCostScatter.perUserTurn);
+  }
+  if (reportData.fiveHAlerts) {
+    for (const a of reportData.fiveHAlerts) a.text = '';
+  }
+  reportData.privateMode = true;
+  console.error('Private mode: user prompt text stripped from report data');
 }
 
 // ── Template injection ──────────────────────────────────────────

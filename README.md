@@ -410,6 +410,14 @@ Current translations are AI-generated. Native speaker contributions are welcome 
 
 ---
 
+## 📚 Documentation
+
+- [Prompt Cache Guide](guides/prompt-cache-guide.md) — Why most of your cost is cache, how caching works across providers (Anthropic, OpenAI, Gemini), and how to manage it ([한국어](guides/prompt-cache-guide-ko.md) · [日本語](guides/prompt-cache-guide-ja.md) · [中文](guides/prompt-cache-guide-zh.md) · [Español](guides/prompt-cache-guide-es.md) · [Français](guides/prompt-cache-guide-fr.md) · [Deutsch](guides/prompt-cache-guide-de.md) · [+16 languages](guides/))
+- [Opus 4.7 vs 4.6 Cost Analysis](guides/opus-4-7-vs-4-6-cost-analysis.md) — Side-by-side cost comparison across 8,563 API calls
+- [Opus 4.7 vs 4.6 Cost Analysis (한국어)](guides/opus-4-7-vs-4-6-cost-analysis.ko.md)
+
+---
+
 ## License
 
 Apache-2.0

@@ -945,8 +945,9 @@ async function main() {
     delete s._dedupApplied;
   }
 
-  // Build summary inline
-  const totalCost = Math.round(valid.reduce((s, x) => s + x.costUSD, 0) * 100) / 100;
+  // totalCost is NOT computed here — per-session costUSD double-counts replayed
+  // rows in subtasks. Accurate dedup'd total is computed in build-report.js
+  // from timeline CSVs (see tokenBreakdown → summary.totalCost).
   const totalTokens = valid.reduce(
     (s, x) =>
       s +
@@ -975,7 +976,6 @@ async function main() {
   const output = {
     sessions: valid,
     summary: {
-      totalCost,
       totalTokens,
       sessionCount: valid.length,
       dateRange,

@@ -56,7 +56,7 @@ const args = process.argv.slice(2);
 let mode = null;
 let days = null, current = false, locale = null, plan = null;
 let reportDataPath = null, aiDataPath = null, outputPath = null;
-let projectArg = null, allProjects = false, noAi = false, forceAi = false;
+let projectArg = null, allProjects = false, noAi = false, forceAi = false, privateMode = false;
 
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--prepare') mode = 'prepare';
@@ -73,6 +73,7 @@ for (let i = 0; i < args.length; i++) {
   else if (args[i] === '--all') allProjects = true;
   else if (args[i] === '--no-ai') noAi = true;
   else if (args[i] === '--ai') forceAi = true;
+  else if (args[i] === '--private') privateMode = true;
 }
 
 // --current defaults to --no-ai for fast rendering. Opt in with --ai.
@@ -113,6 +114,7 @@ if (mode === 'gen-agent-prompt') {
     if (locale) buildArgs.push('--locale', locale);
     if (plan) buildArgs.push('--plan', plan);
     if (resolvedProject) buildArgs.push('--project', resolvedProject);
+    if (privateMode) buildArgs.push('--private');
     execFileSync('node', buildArgs, {
       stdio: ['pipe', 'pipe', 'pipe'],
       maxBuffer: 100 * 1024 * 1024,
@@ -144,6 +146,7 @@ if (mode === 'gen-agent-prompt') {
   if (plan) flags.push('--plan', plan);
   if (resolvedProject) flags.push('--project', resolvedProject);
   else if (allProjects) flags.push('--all');
+  if (privateMode) flags.push('--private');
 
   // Resolve locale
   const resolvedLocale = resolveLocale(locale);
@@ -187,6 +190,7 @@ if (mode === 'prepare') {
   if (locale) buildArgs.push('--locale', locale);
   if (plan) buildArgs.push('--plan', plan);
   if (resolvedProject) buildArgs.push('--project', resolvedProject);
+  if (privateMode) buildArgs.push('--private');
 
   execFileSync('node', buildArgs, {
     stdio: ['pipe', 'pipe', 'pipe'],
@@ -224,6 +228,7 @@ if (mode === 'finalize') {
   if (locale) buildArgs.push('--locale', locale);
   if (plan) buildArgs.push('--plan', plan);
   if (resolvedProject) buildArgs.push('--project', resolvedProject);
+  if (privateMode) buildArgs.push('--private');
 
   execFileSync('node', buildArgs, {
     stdio: ['pipe', 'pipe', 'pipe'],

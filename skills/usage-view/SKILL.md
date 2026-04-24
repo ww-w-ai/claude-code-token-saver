@@ -22,6 +22,7 @@ Options:
   locale XX       Force language (e.g. locale ja). Default: system language → en fallback
   no ai           Skip AI analysis for faster rendering (no LLM cost)
   ai              Force AI analysis (use with "current" to override its default)
+  private         Strip user prompt text from report (safe to share)
   help            Show this help
 
 Supported locales:
@@ -34,6 +35,7 @@ Examples:
   /usage-view last 7 days
   /usage-view locale ja
   /usage-view current locale fr
+  /usage-view private           (safe to share — no prompt text)
 ```
 
 Do not run any analysis. Just display the help text and stop.
@@ -56,6 +58,7 @@ Users may provide these in natural language. Parse and map to script flags.
 | "all"            | `--all`               | aggregate all projects     |
 | "no ai"          | `--no-ai`             | skip AI analysis (fast)    |
 | "ai"             | `--ai`                | force AI analysis (override current's default) |
+| "private"        | `--private`           | strip user prompt text from report |
 
 **Note on `--days all`**: Claude Code deletes transcripts older than ~1 month. Data beyond that range comes from previously cached timeline CSVs and session summaries at `~/.claude/cc-token-saver-data/`. Original transcripts cannot be recovered — only already-analyzed sessions are available. Tell the user: "Transcripts older than ~1 month are deleted by Claude Code. This loads previously cached analysis data — sessions that were never analyzed won't appear."
 

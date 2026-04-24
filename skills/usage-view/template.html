@@ -698,6 +698,12 @@
     </div>
   </div>
 
+  <div id="costGuideSection" style="margin:12px 0;padding:12px 16px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text-secondary)">
+    <strong id="costGuideTitle"></strong>
+    <span id="costGuideText"></span>
+    <a id="costGuideLink" href="" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:underline"></a>
+  </div>
+
   <div id="aiSection1" class="ai-analysis-box"><div class="ai-label">✨ AI Analysis</div><span id="aiText1"></span></div>
 
   <!-- Section 3: Daily Cost Trend -->
@@ -715,18 +721,18 @@
     <div class="chart-container">
       <h3 style="display:flex;align-items:center;gap:12px">Hourly Cost Pattern
         <span id="hourlyToggle" style="display:inline-flex;gap:4px;font-size:12px;cursor:pointer">
-          <span id="btnHourAvg" style="padding:2px 8px;border-radius:4px;background:#58a6ff;color:#0d1117;cursor:pointer">Avg (active days)</span>
-          <span id="btnHourCal" style="padding:2px 8px;border-radius:4px;background:var(--bg-tertiary);color:var(--text-secondary);cursor:pointer">Avg (all days)</span>
-          <span id="btnHourMax" style="padding:2px 8px;border-radius:4px;background:var(--bg-tertiary);color:var(--text-secondary);cursor:pointer">Max</span>
+          <span id="btnHourAvg" style="padding:2px 8px;border-radius:4px;background:#58a6ff;color:#0d1117;cursor:pointer"></span>
+          <span id="btnHourCal" style="padding:2px 8px;border-radius:4px;background:var(--bg-tertiary);color:var(--text-secondary);cursor:pointer"></span>
+          <span id="btnHourMax" style="padding:2px 8px;border-radius:4px;background:var(--bg-tertiary);color:var(--text-secondary);cursor:pointer"></span>
         </span>
       </h3>
       <div class="chart-wrapper">
         <canvas id="hourlyChart"></canvas>
       </div>
-      <div style="font-size:11px;color:var(--text-muted);margin-top:6px;padding-left:4px">
-        <div>* Active days: average cost only on days you actually used this hour.</div>
-        <div>* All days: spread across every calendar day in the period (including days off).</div>
-        <div>* Partial hours at the start/end of the period are normalized to a full hour.</div>
+      <div id="hourlyNotes" style="font-size:11px;color:var(--text-muted);margin-top:6px;padding-left:4px">
+        <div id="hourlyNoteActive"></div>
+        <div id="hourlyNoteAll"></div>
+        <div id="hourlyNotePartial"></div>
       </div>
     </div>
   </div>
@@ -735,18 +741,18 @@
     <div class="chart-container">
       <h3 style="display:flex;align-items:center;gap:12px">Day-of-Week Cost Pattern
         <span id="dowToggle" style="display:inline-flex;gap:4px;font-size:12px;cursor:pointer">
-          <span id="btnDowAvg" style="padding:2px 8px;border-radius:4px;background:#58a6ff;color:#0d1117;cursor:pointer">Avg (active days)</span>
-          <span id="btnDowCal" style="padding:2px 8px;border-radius:4px;background:var(--bg-tertiary);color:var(--text-secondary);cursor:pointer">Avg (all days)</span>
-          <span id="btnDowMax" style="padding:2px 8px;border-radius:4px;background:var(--bg-tertiary);color:var(--text-secondary);cursor:pointer">Max</span>
+          <span id="btnDowAvg" style="padding:2px 8px;border-radius:4px;background:#58a6ff;color:#0d1117;cursor:pointer"></span>
+          <span id="btnDowCal" style="padding:2px 8px;border-radius:4px;background:var(--bg-tertiary);color:var(--text-secondary);cursor:pointer"></span>
+          <span id="btnDowMax" style="padding:2px 8px;border-radius:4px;background:var(--bg-tertiary);color:var(--text-secondary);cursor:pointer"></span>
         </span>
       </h3>
       <div class="chart-wrapper">
         <canvas id="dowChart"></canvas>
       </div>
-      <div style="font-size:11px;color:var(--text-muted);margin-top:6px;padding-left:4px">
-        <div>* Active days: average only on weeks you worked that day.</div>
-        <div>* All days: divided by every occurrence of that weekday in the period.</div>
-        <div>* Partial days at boundaries are normalized.</div>
+      <div id="dowNotes" style="font-size:11px;color:var(--text-muted);margin-top:6px;padding-left:4px">
+        <div id="dowNoteActive"></div>
+        <div id="dowNoteAll"></div>
+        <div id="dowNotePartial"></div>
       </div>
     </div>
   </div>
@@ -756,14 +762,14 @@
     <div class="chart-container">
       <h3 style="display:flex;align-items:center;gap:12px">Efficiency Trend
         <select id="efficiencyMetricSelect" style="font-size:12px;padding:2px 8px;border-radius:4px;background:var(--bg-tertiary);color:var(--text-secondary);border:1px solid var(--border);cursor:pointer;outline:none">
-          <option value="totalPerOutput">(Total / Output) ↓ Lower is better</option>
-          <option value="cachePerOutput">(Cache Creation / Output) ↓ Lower is better</option>
+          <option id="effOptTotal" value="totalPerOutput"></option>
+          <option id="effOptCache" value="cachePerOutput"></option>
         </select>
       </h3>
       <div class="chart-wrapper">
         <canvas id="efficiencyChart"></canvas>
       </div>
-      <div style="font-size:11px;color:var(--text-muted);margin-top:6px;padding-left:4px">* Days with &lt;1,000 output tokens are omitted (too little output to compute a meaningful ratio).</div>
+      <div id="effNoteText" style="font-size:11px;color:var(--text-muted);margin-top:6px;padding-left:4px"></div>
     </div>
   </div>
 
@@ -773,16 +779,16 @@
       <div style="margin-bottom:8px">
         <h3 style="margin:0 0 6px 0"><span class="ctx-cost-section-title">💸 Cost by Context Size</span></h3>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-size:12px">
-          <div style="display:flex;align-items:center;gap:4px">
-            <span style="color:var(--text-secondary)">Per</span>
+          <div id="ctxCostPerRow" style="display:flex;align-items:center;gap:4px">
+            <span id="ctxCostPerLabel" style="color:var(--text-secondary)"></span>
             <span id="ctxCostModeToggle" style="display:inline-flex;gap:0">
-              <button class="ctx-cost-mode-btn active" data-mode="cw" style="padding:2px 10px;border-radius:4px 0 0 4px;border:1px solid var(--border);background:var(--accent);color:#fff;cursor:pointer;font-size:12px">API Call (CW)</button>
-              <button class="ctx-cost-mode-btn" data-mode="nonCW" style="padding:2px 10px;border-radius:0;border:1px solid var(--border);border-left:none;background:var(--bg-tertiary);color:var(--text-secondary);cursor:pointer;font-size:12px">API Call (Non-CW)</button>
-              <button class="ctx-cost-mode-btn" data-mode="turn" style="padding:2px 10px;border-radius:0 4px 4px 0;border:1px solid var(--border);border-left:none;background:var(--bg-tertiary);color:var(--text-secondary);cursor:pointer;font-size:12px">User Turn</button>
+              <button class="ctx-cost-mode-btn active" data-mode="cw" id="btnCtxCW" style="padding:2px 10px;border-radius:4px 0 0 4px;border:1px solid var(--border);background:var(--accent);color:#fff;cursor:pointer;font-size:12px"></button>
+              <button class="ctx-cost-mode-btn" data-mode="nonCW" id="btnCtxNonCW" style="padding:2px 10px;border-radius:0;border:1px solid var(--border);border-left:none;background:var(--bg-tertiary);color:var(--text-secondary);cursor:pointer;font-size:12px"></button>
+              <button class="ctx-cost-mode-btn" data-mode="turn" id="btnCtxTurn" style="padding:2px 10px;border-radius:0 4px 4px 0;border:1px solid var(--border);border-left:none;background:var(--bg-tertiary);color:var(--text-secondary);cursor:pointer;font-size:12px"></button>
             </span>
           </div>
           <span id="ctxCostModelSelect" style="display:flex;align-items:center;gap:6px;color:var(--text-secondary);position:relative">
-            <span>Price lines:</span>
+            <span id="ctxPriceLinesLabel"></span>
             <label style="display:flex;align-items:center;gap:2px;cursor:pointer"><input type="checkbox" id="chkOpus" checked style="accent-color:#ff7b72"> Opus</label>
             <label style="display:flex;align-items:center;gap:2px;cursor:pointer"><input type="checkbox" id="chkSonnet" checked style="accent-color:#58a6ff"> Sonnet</label>
             <label style="display:flex;align-items:center;gap:2px;cursor:pointer"><input type="checkbox" id="chkHaiku" checked style="accent-color:#3fb950"> Haiku</label>
@@ -798,11 +804,9 @@
   <!-- Section: Context Size Distribution -->
   <div class="charts-grid" id="ctxDistContainer">
     <div class="chart-container">
-      <h3>📊 Context Size Distribution</h3>
+      <h3 id="ctxDistTitle">📊 Context Size Distribution</h3>
       <div class="chart-wrapper" style="max-width:520px;margin:0 auto"><canvas id="ctxDistChart"></canvas></div>
-      <div style="font-size:11px;color:var(--text-muted);margin-top:6px;padding-left:4px">
-        * Lower context = cheaper per call. Keeping context small via /clear or /continue saves cost.
-      </div>
+      <div id="ctxNoteText" style="font-size:11px;color:var(--text-muted);margin-top:6px;padding-left:4px"></div>
     </div>
   </div>
 
@@ -1239,6 +1243,49 @@ function i18nT(template, vars) {
     var labelText = aiLabels[a].textContent.trim();
     if (labelText.indexOf('AI Analysis') >= 0) aiLabels[a].textContent = I18N.ai.analysis;
     else if (labelText.indexOf('Tips') >= 0) aiLabels[a].textContent = I18N.ai.tips;
+  }
+
+  // Chart toggle buttons
+  var C = I18N.chart;
+  var setText = function(id, val) { var el = document.getElementById(id); if (el && val) el.textContent = val; };
+  setText('btnHourAvg', C.avgActive); setText('btnHourCal', C.avgAll); setText('btnHourMax', C.maxBtn);
+  setText('btnDowAvg', C.avgActive); setText('btnDowCal', C.avgAll); setText('btnDowMax', C.maxBtn);
+  // Chart notes
+  setText('hourlyNoteActive', C.hourlyNoteActive); setText('hourlyNoteAll', C.hourlyNoteAll); setText('hourlyNotePartial', C.hourlyNotePartial);
+  setText('dowNoteActive', C.dowNoteActive); setText('dowNoteAll', C.dowNoteAll); setText('dowNotePartial', C.dowNotePartial);
+  setText('effNoteText', C.effNote);
+  setText('ctxNoteText', C.ctxNote);
+  // Cost guide section
+  var T = I18N.token;
+  setText('costGuideTitle', T.costGuideTitle); setText('costGuideText', T.costGuideText);
+  var guideLink = document.getElementById('costGuideLink');
+  if (guideLink && T.costGuideLink) {
+    var guideLang = I18N.meta && I18N.meta.locale || 'en';
+    var guideSuffix = guideLang === 'en' ? '' : '-' + guideLang;
+    guideLink.textContent = T.costGuideLink;
+    guideLink.href = 'https://github.com/ww-w-ai/cc-token-saver/blob/main/guides/prompt-cache-guide' + guideSuffix + '.md';
+  }
+  // Efficiency dropdown options
+  setText('effOptTotal', C.effTotalPerOutput); setText('effOptCache', C.effCachePerOutput);
+  // Context cost chart labels
+  setText('btnCtxCW', C.ctxCostCW); setText('btnCtxNonCW', C.ctxCostNonCW); setText('btnCtxTurn', C.ctxCostUserTurn);
+  // Context dist title
+  if (C.ctxDistTitle) { var ctxDT = document.getElementById('ctxDistTitle'); if (ctxDT) ctxDT.textContent = '\uD83D\uDCC8 ' + C.ctxDistTitle; }
+  setText('ctxPriceLinesLabel', C.ctxPriceLines);
+  // Per {mode} — extract prefix/suffix from template
+  if (C.ctxCostPer) {
+    var parts = C.ctxCostPer.split('{mode}');
+    var perRow = document.getElementById('ctxCostPerRow');
+    var perLabel = document.getElementById('ctxCostPerLabel');
+    if (perRow && perLabel) {
+      perLabel.textContent = (parts[0] || '').trim();
+      if (parts[1] && parts[1].trim()) {
+        var suffix = document.createElement('span');
+        suffix.style.color = 'var(--text-secondary)';
+        suffix.textContent = parts[1].trim();
+        perRow.appendChild(suffix);
+      }
+    }
   }
 })();
 
@@ -2223,7 +2270,7 @@ function renderContextCostChart(canvasId, wrapId, data, yLabel, chartMode) {
           type: 'linear',
           min: 0,
           max: maxX,
-          title: { display: true, text: 'Context Size (tokens)', color: '#9198a1' },
+          title: { display: true, text: I18N.chart.ctxCostXLabel || 'Context Size (tokens)', color: '#9198a1' },
           ticks: {
             color: '#9198a1',
             callback: function(v) { return fmtTokensShort(v); }
@@ -2261,11 +2308,11 @@ function renderContextCostCharts() {
 
   if (ctxCostMode === 'turn' && ccs.perUserTurn && ccs.perUserTurn.bubbles && ccs.perUserTurn.bubbles.length > 0) {
     var utData = ccs.perUserTurn;
-    yLabel = 'Cost per user turn ($)';
-    titleText = '\uD83D\uDCB8 Cost by Context Size \u2014 Per User Turn';
+    yLabel = I18N.chart.ctxCostYTurn || 'Cost per user turn ($)';
+    titleText = I18N.chart.ctxCostTitleTurn || '\uD83D\uDCB8 Cost by Context Size \u2014 Per User Turn';
     footnote = [
-      '* Each bubble = aggregated cost of one user prompt (all API calls combined), sized by density.',
-      '* \u2733 Stars = turns exceeding $50 (capped for display \u2014 hover for actual cost).'
+      I18N.chart.ctxCostTurnNote1 || '* Each bubble = aggregated cost of one user prompt (all API calls combined), sized by density.',
+      I18N.chart.ctxCostTurnNote2 || '* \u2733 Stars = turns exceeding $50 (capped for display \u2014 hover for actual cost).'
     ];
     // Cap y at $100 for display
     var cappedBubbles = utData.bubbles.map(function(b) {
@@ -2286,12 +2333,12 @@ function renderContextCostCharts() {
       modelPricing: cwData.modelPricing,
       totalCount: cwData.totalCount
     };
-    yLabel = 'Cost per API call ($)';
-    titleText = '\uD83D\uDCB8 Cost by Context Size \u2014 Cache Write (CW)';
+    yLabel = I18N.chart.ctxCostYApi || 'Cost per API call ($)';
+    titleText = I18N.chart.ctxCostTitleCW || '\uD83D\uDCB8 Cost by Context Size \u2014 Cache Write (CW)';
     footnote = [
-      '* Cache write is the most expensive token type \u2014 occurs when cache expires (1h+ idle) or after /resume, --continue.',
-      '* Lines: \u2500\u2500 1-hour cache write, \u254C 5-min cache write, \u00B7\u00B7\u00B7 cache read.',
-      '* Line colors by model: red tones = Opus, blue tones = Sonnet, green tones = Haiku.'
+      I18N.chart.ctxCostCWNote1 || '* Cache write is the most expensive token type \u2014 occurs when cache expires (1h+ idle) or after /resume, --continue.',
+      I18N.chart.ctxCostCWNote2 || '* Lines: \u2500\u2500 1-hour cache write, \u254C 5-min cache write, \u00B7\u00B7\u00B7 cache read.',
+      I18N.chart.ctxCostCWNote3 || '* Line colors by model: red tones = Opus, blue tones = Sonnet, green tones = Haiku.'
     ];
   } else {
     // nonCW
@@ -2306,11 +2353,11 @@ function renderContextCostCharts() {
       modelPricing: ncData.modelPricing,
       totalCount: ncData.totalCount
     };
-    yLabel = 'Cost per API call ($)';
-    titleText = '\uD83D\uDCB8 Cost by Context Size \u2014 Non-CW (Cache Read / Output)';
+    yLabel = I18N.chart.ctxCostYApi || 'Cost per API call ($)';
+    titleText = I18N.chart.ctxCostTitleNonCW || '\uD83D\uDCB8 Cost by Context Size \u2014 Non-CW (Cache Read / Output)';
     footnote = [
-      '* API calls where cache write is NOT the dominant cost (cache read, output, or input dominant).',
-      '* Dotted lines = cache read price per model. Points below may use a cheaper model.'
+      I18N.chart.ctxCostNonCWNote1 || '* API calls where cache write is NOT the dominant cost (cache read, output, or input dominant).',
+      I18N.chart.ctxCostNonCWNote2 || '* Dotted lines = cache read price per model. Points below may use a cheaper model.'
     ];
   }
   if (!filteredData || !filteredData.bubbles || filteredData.bubbles.length === 0) {

@@ -15,13 +15,23 @@ Keep main thin: cost = context × calls. `/model` persists to `settings.json` (i
 - **Spec-driven implementation** after Main's plan.
 - **WebFetch / WebSearch** — always.
 
-### Prefer LSP over Grep+Read for code
+### Minimize context growth — tool choice matters
 
-Symbol defs/refs/types/signatures → LSP (Go to Definition, Find References, Hover). Grep only for non-code or when LSP unavailable.
+Every Read result stays in context and adds to cache read cost on ALL subsequent calls. Prefer lightweight tools first:
+
+1. **Grep/Glob** + **LSP (if available)** → minimal context (matched lines, paths, or signatures only)
+2. **Read with offset/limit** → moderate (specified range only)
+3. **Read full file** → last resort (entire file added permanently to context)
+
+Symbol defs/refs/types/signatures → LSP (Go to Definition, Find References, Hover). Grep for non-code or when LSP unavailable.
+
+Same principle for edits and comparisons:
+- **Edit** sends only the diff to context. **Write** dumps the entire file — use Edit for existing files.
+- **Comparing files/changes** → `git diff`, `diff` etc. to see differences only, instead of reading both files fully.
 
 ### NEVER in main session
 
-- **NEVER Write an existing file** — Write = new files only. Existing → Edit (`replace_all` for large rewrites). Write dumps full file into tool_result.
+- **NEVER Write an existing file** — Write = new files only. Existing → Edit (`replace_all` for large rewrites).
 - **NEVER `ls`, `pwd`, `cat`, `cd`, `head`, `tail` in Bash** — use Glob / Read / absolute paths.
 
 ### When /continue was used
