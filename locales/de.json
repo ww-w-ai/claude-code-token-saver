@@ -26,7 +26,10 @@
     "cache1hTier": "└ 1h tier",
     "cache5mTier": "└ 5m tier",
     "total": "Gesamt",
-    "costRatio": "Kostenaufschlüsselung"
+    "costRatio": "Kostenaufschlüsselung",
+    "costGuideTitle": "📖 Cache-Kosten-Leitfaden — ",
+    "costGuideText": "Es ist normal, dass ~90% der Kosten auf Cache (Schreiben + Lesen) entfallen. Möchten Sie wissen, warum Cache unverzichtbar ist und wie Sie die Kosten verwalten können?",
+    "costGuideLink": "Leitfaden lesen →"
   },
   "chart": {
     "dailyCost": "Täglicher Kostentrend",
@@ -53,10 +56,10 @@
     "ctxPriceLines": "Preislinien:",
     "hourlyNoteActive": "* Aktive Tage: Durchschnittskosten nur an Tagen, an denen Sie diese Stunde tatsächlich genutzt haben.",
     "hourlyNoteAll": "* Alle Tage: verteilt über alle Kalendertage im Zeitraum (einschließlich arbeitsfreier Tage).",
-    "hourlyNotePartial": "* Randstunden, die keine vollen 60 Minuten umfassen, werden auf 1 Stunde normalisiert.",
+    "hourlyNotePartial": "* Unvollständige Stunden am Anfang/Ende werden auf 1 Stunde normalisiert (z.B. 20 Min. Daten werden ×3 skaliert).",
     "dowNoteActive": "* Aktive Tage: Durchschnitt nur über Wochen, in denen Sie an diesem Tag gearbeitet haben.",
     "dowNoteAll": "* Alle Tage: geteilt durch die Gesamtanzahl dieses Wochentags im Zeitraum (jeder Wochentag kann unterschiedlich oft vorkommen).",
-    "dowNotePartial": "* Randtage, die keine vollen 24 Stunden umfassen, werden auf 1 Tag normalisiert.",
+    "dowNotePartial": "* Unvollständige Tage am Anfang/Ende werden auf 1 Tag normalisiert (z.B. 6 Std. Daten werden ×4 skaliert).",
     "ctxNote": "* Weniger Kontext = günstiger pro Aufruf. Kontext klein halten mit /clear oder /continue spart Kosten.",
     "ctxDistTitle": "Verteilung der Kontextgröße",
     "ctxCostYApi": "Kosten pro API-Aufruf ($)",
@@ -81,7 +84,13 @@
       "Fr",
       "Sa"
     ],
-    "ctxCostTitle": "Kontextgröße vs. Teure API-Aufrufe ($1+)"
+    "ctxCostTitle": "Kontextgröße vs. Teure API-Aufrufe ($1+)",
+    "hourlyNoteMax": "* Maximum: die höchsten Kosten eines einzelnen Tages zu dieser Stunde.",
+    "dowNoteMax": "* Maximum: die höchsten Kosten einer einzelnen Woche an diesem Wochentag.",
+    "effGuide": "Gesamt/Ausgabe misst, wie viele Input-Tokens pro Output-Token verbraucht werden — niedriger bedeutet weniger Overhead. Cache-Erstellung/Ausgabe zeigt, welcher Anteil der Ausgabekosten auf Cache-Writes entfällt — Spitzen deuten auf Cache-Ablauf oder Sitzungsneustart hin. Die graue Linie (vor Plugin) und grüne (danach) ermöglichen einen Effizienzvergleich.",
+    "ctxGuide": "Jeder Punkt stellt einen API-Aufruf dar. Die X-Achse zeigt die Kontextgröße (Tokens), die Y-Achse die Kosten. Weiter rechts = höhere Kosten, da mehr Tokens gecacht und jedes Mal berechnet werden.",
+    "effGuideTitle": "📖 Effizienz-Leitfaden — ",
+    "ctxGuideTitle": "📖 Kontextkosten-Leitfaden — "
   },
   "calendar": {
     "title": "Stündlicher Nutzungskalender",
@@ -93,7 +102,9 @@
     "legendBlocked": "blockiert",
     "legendPlugin": "Plugin installiert",
     "note": "Klicken Sie auf eine Zelle, um Sitzungsdetails anzuzeigen. Die Standardansicht ist das 5-Stunden-Fenster — wechseln Sie mit der Schaltfläche oben zu 1-Stunden-Blöcken.",
-    "noData": "Keine Daten"
+    "noData": "Keine Daten",
+    "costFilterLabel": "💰 Kosten ≥",
+    "costFilterCount": "{n} angezeigt"
   },
   "session": {
     "detailExpand": "▶ Sitzungsdetails",

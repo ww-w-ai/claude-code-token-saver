@@ -26,7 +26,10 @@
     "cache1hTier": "└ 1h tier",
     "cache5mTier": "└ 5m tier",
     "total": "Total",
-    "costRatio": "Rincian Biaya"
+    "costRatio": "Rincian Biaya",
+    "costGuideTitle": "📖 Panduan Biaya Cache — ",
+    "costGuideText": "Wajar jika ~90% biaya berasal dari cache (tulis + baca). Ingin tahu mengapa cache penting dan bagaimana mengelola biayanya?",
+    "costGuideLink": "Baca panduan →"
   },
   "chart": {
     "dailyCost": "Tren Biaya Harian",
@@ -53,10 +56,10 @@
     "ctxPriceLines": "Garis harga:",
     "hourlyNoteActive": "* Hari aktif: biaya rata-rata hanya pada hari Anda benar-benar menggunakan jam ini.",
     "hourlyNoteAll": "* Semua hari: dibagi rata ke setiap hari kalender dalam periode (termasuk hari libur).",
-    "hourlyNotePartial": "* Jam batas yang tidak penuh 60 menit dinormalisasi ke 1 jam.",
+    "hourlyNotePartial": "* Jam tidak lengkap di awal/akhir dinormalisasi ke 1 jam (contoh: data 20 menit diskalakan ×3).",
     "dowNoteActive": "* Hari aktif: rata-rata hanya pada minggu di mana Anda bekerja pada hari tersebut.",
     "dowNoteAll": "* Semua hari: dibagi dengan total kemunculan hari tersebut dalam periode (setiap hari dalam seminggu mungkin memiliki jumlah berbeda).",
-    "dowNotePartial": "* Hari batas yang tidak penuh 24 jam dinormalisasi ke 1 hari.",
+    "dowNotePartial": "* Hari tidak lengkap di awal/akhir dinormalisasi ke 1 hari (contoh: data 6 jam diskalakan ×4).",
     "ctxNote": "* Konteks lebih kecil = lebih murah per panggilan. Menjaga konteks tetap kecil via /clear atau /continue menghemat biaya.",
     "ctxDistTitle": "Distribusi Ukuran Konteks",
     "ctxCostYApi": "Biaya per API call ($)",
@@ -81,7 +84,13 @@
       "Jum",
       "Sab"
     ],
-    "ctxCostTitle": "Ukuran Konteks vs Panggilan API Mahal ($1+)"
+    "ctxCostTitle": "Ukuran Konteks vs Panggilan API Mahal ($1+)",
+    "hourlyNoteMax": "* Maks: biaya tertinggi yang tercatat dalam satu hari untuk jam ini.",
+    "dowNoteMax": "* Maks: biaya tertinggi yang tercatat dalam satu minggu untuk hari ini.",
+    "effGuide": "Total/Output mengukur berapa token input yang dihabiskan per token output — lebih rendah berarti overhead lebih sedikit. Cache Creation/Output menunjukkan berapa fraksi biaya output yang digunakan untuk cache write — lonjakan menandakan cache kadaluarsa atau restart sesi. Garis abu-abu (sebelum plugin) dan hijau (sesudah) memungkinkan perbandingan efisiensi.",
+    "ctxGuide": "Setiap titik mewakili satu panggilan API. Sumbu X menunjukkan ukuran konteks (token), sumbu Y menunjukkan biaya. Semakin ke kanan = semakin mahal karena lebih banyak token di-cache dan ditagih setiap kali.",
+    "effGuideTitle": "📖 Panduan Efisiensi — ",
+    "ctxGuideTitle": "📖 Panduan Biaya Konteks — "
   },
   "calendar": {
     "title": "Kalender Penggunaan Per Jam",
@@ -93,7 +102,9 @@
     "legendBlocked": "diblokir",
     "legendPlugin": "Plugin terpasang",
     "note": "Klik sel mana saja untuk melihat detail sesi. Tampilan default adalah jendela 5 jam — alihkan ke blok 1 jam dengan tombol di atas.",
-    "noData": "Tidak Ada Data"
+    "noData": "Tidak Ada Data",
+    "costFilterLabel": "💰 Biaya ≥",
+    "costFilterCount": "{n} ditampilkan"
   },
   "session": {
     "detailExpand": "▶ Detail Sesi",

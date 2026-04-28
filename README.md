@@ -87,6 +87,22 @@ SubTasks have **37.5% cheaper cache writes** than Main. Context is also much sma
 
 ---
 
+## 🪶 Concise Mode
+
+**Same content. Less padding. On by default.**
+
+The SessionStart hook also injects a response-style rule that runs in **every session and every model** — no flags, no setup. Three things change:
+
+- **Preamble out** — no "Let me check…", "I'll now…", restating your question, or recapping what the diff already shows
+- **Right format for the content** — bullets for lists, prose for reasoning (tradeoffs, causation, rationale). Neither is forced
+- **Tighter expression** — same point, fewer words. Clearer prose is shorter prose
+
+Hard limit: never drop content, skip verification, or collapse nuance into a single sentence. Substance stays full; only the wrapper shrinks.
+
+Install once, applies everywhere.
+
+---
+
 ## 🔄 Feature 3: /continue — Context Restoration
 
 **Replaces `/compact`. Zero LLM calls. Zero token cost.**

@@ -720,7 +720,7 @@ function computeSessionUserTurns(sessionId, userAlerts, timelineRows) {
         if (!maxCrRow || rowCtx > maxCrRow.ctx) {
           maxCrRow = { ctx: rowCtx, cr: row.cr || 0, cost: row.cost || 0 };
         }
-        breakdown.push({ line: row.line, ts: row.ts, cost: row.cost, evt: row.evt || '', rl: row.rl || '' });
+        breakdown.push({ line: row.line, ts: row.ts, cost: row.cost, evt: row.evt || '', rl: row.rl || '', model: row.model || '' });
       }
       const evt = row.evt || '';
       if (evt.includes('ctx_danger')) hasCtxDanger = true;
@@ -862,7 +862,6 @@ function matchAlertWithTimeline(_alert, _timelineRows) {
 //
 // Each point carries marker badge, time, sid, text, token breakdown.
 function buildContextCostScatters(allTimelines, sessionMap) {
-  const ASST_COST_FLOOR = 0.05;
   const USER_TURN_COST_FLOOR = 0;
   const points = [];        // per assistant API call
   const userTurnPoints = [];  // per user turn (aggregated)
@@ -954,8 +953,6 @@ function buildContextCostScatters(allTimelines, sessionMap) {
       if (crReadCost > domCost) { dom = 'cacheRead'; domCost = crReadCost; }
       dominantBreakdown[dom]++;
       // CW: $0.05 floor; Non-CW: no floor (include all)
-      if (dom === 'cacheCreate' && row.cost < ASST_COST_FLOOR) continue;
-
       const parent = findEnclosingUser(row.line || 0);
       points.push({
         x: ctx,
@@ -1013,7 +1010,7 @@ function buildContextCostScatters(allTimelines, sessionMap) {
         cc: turn.agg.cc,
         cr: turn.agg.cr,
         callCount: turn.breakdown.length,
-        mdl: rows.length > 0 ? ((rows[0].model || '').includes('opus') ? 'O' : (rows[0].model || '').includes('haiku') ? 'H' : 'S') : 'O'
+        mdl: (() => { const m = (turn.breakdown[0] || {}).model || ''; return m.includes('opus') ? 'O' : m.includes('haiku') ? 'H' : 'S'; })()
       });
     }
   }
@@ -1823,10 +1820,11 @@ for (const row of allRows) {
   const d = new Date(row.ts * 1000);
   const key = fsdKey(d);
   if (!dailyTokenMap.has(key)) {
-    dailyTokenMap.set(key, { date: fsd(d), total: 0, cc: 0, out: 0 });
+    dailyTokenMap.set(key, { date: fsd(d), total: 0, input: 0, cc: 0, out: 0 });
   }
   const entry = dailyTokenMap.get(key);
   entry.total += row.input + row.cc + row.cr + row.out;
+  entry.input += row.input;
   entry.cc += row.cc;
   entry.out += row.out;
 }

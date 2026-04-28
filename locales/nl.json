@@ -26,7 +26,10 @@
     "cache1hTier": "└ 1h tier",
     "cache5mTier": "└ 5m tier",
     "total": "Totaal",
-    "costRatio": "Kostenverdeling"
+    "costRatio": "Kostenverdeling",
+    "costGuideTitle": "📖 Gids voor cachekosten — ",
+    "costGuideText": "Het is normaal dat ~90% van de kosten uit cache (schrijven + lezen) bestaat. Wilt u weten waarom cache essentieel is en hoe u de kosten beheert?",
+    "costGuideLink": "Lees de gids →"
   },
   "chart": {
     "dailyCost": "Dagelijkse kostentrend",
@@ -53,10 +56,10 @@
     "ctxPriceLines": "Prijslijnen:",
     "hourlyNoteActive": "* Actieve dagen: gemiddelde kosten alleen op dagen waarop u dit uur daadwerkelijk hebt gebruikt.",
     "hourlyNoteAll": "* Alle dagen: verdeeld over alle kalenderdagen in de periode (inclusief vrije dagen).",
-    "hourlyNotePartial": "* Grensuren die geen volle 60 minuten beslaan, worden genormaliseerd naar 1 uur.",
+    "hourlyNotePartial": "* Onvolledige uren aan het begin/einde worden genormaliseerd naar 1 uur (bijv. 20 min data wordt ×3 geschaald).",
     "dowNoteActive": "* Actieve dagen: gemiddelde alleen over weken waarin u op die dag hebt gewerkt.",
     "dowNoteAll": "* Alle dagen: gedeeld door het totale aantal keren dat die weekdag in de periode voorkomt (elke weekdag kan een ander aantal hebben).",
-    "dowNotePartial": "* Grensdagen die geen volle 24 uur beslaan, worden genormaliseerd naar 1 dag.",
+    "dowNotePartial": "* Onvolledige dagen aan het begin/einde worden genormaliseerd naar 1 dag (bijv. 6 uur data wordt ×4 geschaald).",
     "ctxNote": "* Kleiner context = goedkoper per aanroep. Houd de context klein via /clear of /continue om kosten te besparen.",
     "ctxDistTitle": "Verdeling van contextgrootte",
     "ctxCostYApi": "Kosten per API-aanroep ($)",
@@ -81,7 +84,13 @@
       "Vr",
       "Za"
     ],
-    "ctxCostTitle": "Contextgrootte vs Dure API-aanroepen ($1+)"
+    "ctxCostTitle": "Contextgrootte vs Dure API-aanroepen ($1+)",
+    "hourlyNoteMax": "* Maximum: de hoogste kosten op één dag voor dit uur.",
+    "dowNoteMax": "* Maximum: de hoogste kosten in één week voor deze dag.",
+    "effGuide": "Totaal/Output meet hoeveel input-tokens per output-token worden besteed — lager betekent minder overhead. Cache-aanmaak/Output toont welk deel van de outputkosten naar cache-writes gaat — pieken wijzen op cache-verval of sessieherstart. De grijze lijn (vóór plugin) en groene (na) laten u de efficiëntie vergelijken.",
+    "ctxGuide": "Elk punt vertegenwoordigt een API-aanroep. De X-as toont contextgrootte (tokens), de Y-as de kosten. Verder naar rechts = duurder, omdat meer tokens gecacht en elke keer in rekening gebracht worden.",
+    "effGuideTitle": "📖 Efficiëntiegids — ",
+    "ctxGuideTitle": "📖 Contextkostengids — "
   },
   "calendar": {
     "title": "Uurlijkse gebruikskalender",
@@ -93,7 +102,9 @@
     "legendBlocked": "geblokkeerd",
     "legendPlugin": "Plugin geïnstalleerd",
     "note": "Klik op een cel om sessiedetails te bekijken. De standaardweergave is het 5-uursvenster — schakel naar 1-uursblokken met de knop hierboven.",
-    "noData": "Geen gegevens"
+    "noData": "Geen gegevens",
+    "costFilterLabel": "💰 Kosten ≥",
+    "costFilterCount": "{n} getoond"
   },
   "session": {
     "detailExpand": "▶ Sessiedetails",

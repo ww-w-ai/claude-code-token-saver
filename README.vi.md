@@ -87,6 +87,23 @@ SubTask có **chi phí cache write rẻ hơn 37.5%** so với Main. Context cũn
 
 ---
 
+## 🪶 Chế Độ Súc Tích
+
+**Cùng nội dung. Ít đệm hơn. Bật mặc định.**
+
+Cùng hook SessionStart cũng tiêm một quy tắc phong cách phản hồi chạy trong **mọi phiên và mọi model** — không cờ, không cài đặt. Ba điều thay đổi:
+
+- **Bỏ phần mở đầu** — không "Để tôi kiểm tra…", "Giờ tôi sẽ…", lặp lại câu hỏi của bạn, hay tóm tắt những gì diff đã hiển thị
+- **Định dạng phù hợp với nội dung** — bullet cho danh sách, văn xuôi cho lập luận (tradeoff, nhân quả, lý do). Không ép buộc bên nào
+- **Diễn đạt chặt chẽ hơn** — cùng ý, ít từ hơn. Văn xuôi rõ ràng hơn là văn xuôi ngắn hơn
+
+Giới hạn cứng: không bao giờ bỏ nội dung, bỏ qua xác minh, hay nén sắc thái thành một câu duy nhất. Bản chất giữ nguyên; chỉ vỏ bọc co lại.
+
+Cài đặt một lần, áp dụng mọi nơi.
+
+---
+
+
 ## 🔄 Tính năng 3: /continue — Khôi phục Context
 
 **Thay thế `/compact`. Không gọi LLM. Không tốn token.**

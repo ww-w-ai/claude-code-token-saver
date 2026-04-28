@@ -1,7 +1,7 @@
 # cc-token-saver
 
 > **Claude Code가 자꾸 끊긴다고? 이제 그만.**
->
+> 
 > 덜 쓰고, 더 오래 코딩하고, 토큰이 어디로 가는지 정확히 확인하자 — 설정 필요 없음.
 
 자동 context 관리, 실시간 비용 추적, cache 기반 session 제어. 플러그인 하나에 전부 들어있다.
@@ -84,6 +84,22 @@ Session Architect는 세션 시작 시 자동으로 작업 위임 전략을 주�
 SubTask는 Main 대비 **37.5% 저렴한 cache write** 비용이 적용된다. 게다가 context도 훨씬 작다. 무거운 작업을 SubTask에 위임하는 것만으로 비용이 대폭 절감된다.
 
 **결과:** 사용자가 의식하지 않아도, Claude가 자동으로 비용 효율적인 패턴으로 작업한다.
+
+---
+
+## 🪶 Concise Mode
+
+**같은 내용, 줄어든 군더더기. 기본 ON.**
+
+같은 SessionStart 훅이 응답 스타일 규칙도 함께 주입한다 — **모든 세션, 모든 모델**에 적용. 별도 설정·플래그 없음. 세 가지가 바뀐다:
+
+- **잡담 컷** — "확인해볼게요…", "이제 ~하겠습니다…", 질문 되풀이, diff에 이미 있는 내용 다시 요약하기 같은 것 모두 제거
+- **내용에 맞는 형식** — 리스트엔 불릿, 추론(트레이드오프·인과·근거)엔 prose. 어느 쪽도 강제하지 않음
+- **표현 자체를 압축** — 같은 요점, 더 적은 단어. 명료한 문장이 짧은 문장이다
+
+다만 안전선: **내용 누락·검증 생략·뉘앙스를 한 줄로 뭉개기는 금지**. 본질은 그대로, 포장지만 줄어든다.
+
+한 번 설치하면 어디서나 적용.
 
 ---
 
@@ -192,11 +208,13 @@ Rate limit에 걸렸을 때 `/report-limit`를 실행하면 해당 시점의 사
 토큰은 Claude Code 소스(v2.1.88)의 독립된 두 주입 지점에서 발생한다:
 
 **1. `gitStatus` 스냅샷 (~500 tok) — system prompt**
+
 - `context.ts:36-111` `getGitStatus()`가 branch + main branch + user.name + 전체 status (최대 2000자) + **최근 커밋 5개**를 수집
 - `appendSystemContext` (`utils/api.ts:437`)를 통해 system prompt에 추가
 - 새 커밋, 수정 파일, branch 전환 시마다 텍스트가 바뀌어 prefix cache가 무효화됨
 
 **2. Commit/PR 워크플로우 지침 (~1,700 tok) — Bash tool description**
+
 - `tools/BashTool/prompt.ts:53`에서 안전 규칙 60줄 이상, 단계별 commit 절차, HEREDOC 예시, PR 생성 템플릿을 `Bash` tool description에 추가
 - system prompt와 함께 cache되지만 `tools[]` 파라미터로 전송됨
 
@@ -215,6 +233,7 @@ cache 구조 (`utils/api.ts:321` `splitSysPromptPrefix`)는 MCP tool 활성화 �
 `/setup-git-lite`는 CC 기본 경로를 비활성화하고, SessionStart hook을 통해 **280토큰짜리 교체 지침**을 주입한다. Claude의 기본 동작을 오버라이드하는 안전 규칙은 유지하고, 훈련 데이터로 이미 아는 내용(단계별 워크플로우, PR 템플릿, gh 사용 패턴 등)은 제거했다.
 
 **유지됨 — 핵심 오버라이드 규칙 11개** (Claude의 기본 친절함을 신중함으로 전환하는 규칙들):
+
 - 명시적 요청 없이 commit/push/amend/PR/tag/merge 금지
 - hooks 생략, main/master force-push, 파괴적 명령, git config 수정 금지
 - `.env`, `credentials`, `*.pem`, `secret.*` 파일 commit 금지
@@ -229,12 +248,12 @@ cache 구조 (`utils/api.ts:321` `splitSysPromptPrefix`)는 MCP tool 활성화 �
 
 ### 예상 절감 효과 (Opus 4.7 기준, output $25/MTok, input $5/MTok, cache read $0.50/MTok)
 
-| 항목 | 기존 | setup-git-lite 적용 후 | 절감 |
-| ---- | ---- | --------------------- | ---- |
-| System prompt 로드 (새 세션마다) | ~2,200 tok cache_create | ~280 tok cache_create | ~1,920 tok |
-| 같은 세션 내 반복 호출 | ~1,700 tok cache_read/call | ~280 tok cache_read/call | ~1,420 tok/call |
-| 100회 호출 세션 (Opus 4.7) | — | — | **~$0.11 절감** |
-| 20 sessions/day × 22 근무일 | — | — | **월 ~$48 절감** |
+| 항목                        | 기존                         | setup-git-lite 적용 후      | 절감              |
+| ------------------------- | -------------------------- | ------------------------ | --------------- |
+| System prompt 로드 (새 세션마다) | ~2,200 tok cache_create    | ~280 tok cache_create    | ~1,920 tok      |
+| 같은 세션 내 반복 호출             | ~1,700 tok cache_read/call | ~280 tok cache_read/call | ~1,420 tok/call |
+| 100회 호출 세션 (Opus 4.7)     | —                          | —                        | **~$0.11 절감**   |
+| 20 sessions/day × 22 근무일  | —                          | —                        | **월 ~$48 절감**   |
 
 ### 사용법
 
@@ -269,6 +288,7 @@ cache 구조 (`utils/api.ts:321` `splitSysPromptPrefix`)는 MCP tool 활성화 �
 ### 트레이드오프
 
 잃는 것 (그리고 대체로 괜찮은 이유):
+
 - Claude가 세션 시작 시 미리 계산된 `git status` / `git log -n 5`를 받지 않는다. 새 세션에서 "뭐가 바뀌었지?"라고 물으면 Claude가 직접 해당 명령을 실행한다 (tool call 1회 추가, ~300 tok).
 - Claude가 CC의 정식 3단계 commit 절차를 받지 않는다. 수백 건의 commit 플로우 테스트 결과, 핵심 케이스 (HEREDOC 포맷, `--amend` 금지, force-push 금지)는 명시적 규칙으로 유지하기 때문에 훈련 지식으로 충분히 처리된다.
 - PR body 템플릿 (`## Summary` + `## Test plan`)이 주입되지 않는다. 해당 포맷이 꼭 필요하다면 프로젝트의 CLAUDE.md에 직접 추가하면 된다.

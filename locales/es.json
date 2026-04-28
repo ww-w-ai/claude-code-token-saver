@@ -26,7 +26,10 @@
     "cache1hTier": "└ 1h tier",
     "cache5mTier": "└ 5m tier",
     "total": "Total",
-    "costRatio": "Desglose de costos"
+    "costRatio": "Desglose de costos",
+    "costGuideTitle": "📖 Guía de costos de caché — ",
+    "costGuideText": "Es normal que ~90% de los costos provengan del caché (escritura + lectura). ¿Quieres saber por qué el caché es esencial y cómo gestionar los costos?",
+    "costGuideLink": "Ver la guía →"
   },
   "chart": {
     "dailyCost": "Tendencia de costo diario",
@@ -53,10 +56,10 @@
     "ctxPriceLines": "Líneas de precio:",
     "hourlyNoteActive": "* Días activos: costo promedio solo en los días que realmente usaste esta hora.",
     "hourlyNoteAll": "* Todos los días: distribuido entre todos los días del período (incluidos los días sin actividad).",
-    "hourlyNotePartial": "* Las horas límite que no completan 60 minutos se normalizan a 1 hora.",
+    "hourlyNotePartial": "* Las horas parciales al inicio/final se normalizan a 1 hora (ej: 20 min de datos se escalan ×3).",
     "dowNoteActive": "* Días activos: promedio solo en las semanas en que trabajaste ese día.",
     "dowNoteAll": "* Todos los días: dividido por el total de ocurrencias de ese día de la semana en el período (cada día puede tener un conteo diferente).",
-    "dowNotePartial": "* Los días límite que no completan 24 horas se normalizan a 1 día.",
+    "dowNotePartial": "* Los días parciales al inicio/final se normalizan a 1 día (ej: 6 horas de datos se escalan ×4).",
     "ctxNote": "* Menor contexto = más barato por llamada. Mantener el contexto pequeño con /clear o /continue ahorra costos.",
     "ctxDistTitle": "Distribución del tamaño de contexto",
     "ctxCostYApi": "Costo por llamada API ($)",
@@ -81,7 +84,13 @@
       "Vie",
       "Sáb"
     ],
-    "ctxCostTitle": "Tamaño del contexto vs Llamadas API costosas ($1+)"
+    "ctxCostTitle": "Tamaño del contexto vs Llamadas API costosas ($1+)",
+    "hourlyNoteMax": "* Máximo: el costo más alto registrado en un solo día para esta hora.",
+    "dowNoteMax": "* Máximo: el costo más alto registrado en una sola semana para este día.",
+    "effGuide": "Total/Salida mide cuántos tokens de entrada se gastan por token de salida — menor significa menos overhead. Creación de caché/Salida muestra qué fracción del costo de salida va a escrituras de caché — picos indican expiración de caché o reinicio de sesión. La línea gris (antes del plugin) y verde (después) permiten comparar la eficiencia.",
+    "ctxGuide": "Cada punto representa una llamada API. El eje X muestra el tamaño del contexto (tokens), el eje Y el costo. Más a la derecha = más costoso, porque más tokens se cachean y cobran cada vez.",
+    "effGuideTitle": "📖 Guía de eficiencia — ",
+    "ctxGuideTitle": "📖 Guía de costo por contexto — "
   },
   "calendar": {
     "title": "Calendario de uso por hora",
@@ -93,7 +102,9 @@
     "legendBlocked": "bloqueado",
     "legendPlugin": "Plugin instalado",
     "note": "Haga clic en cualquier celda para ver los detalles de la sesión. La vista predeterminada es la ventana de 5 horas — cambie a bloques de 1 hora con el botón de arriba.",
-    "noData": "Sin datos"
+    "noData": "Sin datos",
+    "costFilterLabel": "💰 Costo ≥",
+    "costFilterCount": "{n} mostrados"
   },
   "session": {
     "detailExpand": "▶ Detalles de sesión",

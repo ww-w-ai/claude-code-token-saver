@@ -87,6 +87,23 @@ SubTask mempunyai **cache write 37.5% lebih murah** berbanding Main. Context jug
 
 ---
 
+## 🪶 Mod Ringkas
+
+**Kandungan yang sama. Padding yang kurang. Aktif secara lalai.**
+
+Hook SessionStart yang sama juga menyuntik peraturan gaya respons yang berjalan dalam **setiap sesi dan setiap model** — tiada flag, tiada persediaan. Tiga perkara berubah:
+
+- **Mukadimah dibuang** — tiada "Biar saya semak…", "Sekarang saya akan…", mengulang soalan anda, atau meringkaskan apa yang sudah ditunjukkan oleh diff
+- **Format yang sesuai untuk kandungan** — bullet untuk senarai, prosa untuk penaakulan (tradeoff, sebab-akibat, justifikasi). Tiada yang dipaksa
+- **Ekspresi yang lebih ketat** — perkara yang sama, perkataan yang lebih sedikit. Prosa yang lebih jelas adalah prosa yang lebih pendek
+
+Had keras: jangan sekali-kali membuang kandungan, melangkau pengesahan, atau memampatkan nuansa ke dalam satu ayat. Intipati kekal utuh; hanya bungkusan yang mengecut.
+
+Pasang sekali, terpakai di mana-mana.
+
+---
+
+
 ## 🔄 Ciri 3: /continue — Pemulihan Context
 
 **Menggantikan `/compact`. Sifar panggilan LLM. Sifar kos token.**

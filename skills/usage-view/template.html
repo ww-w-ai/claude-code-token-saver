@@ -695,13 +695,12 @@
       <div class="chart-wrapper donut-wrapper">
         <canvas id="donutChart"></canvas>
       </div>
+      <div id="costGuideSection" style="margin:12px 0 0 0;padding:10px 12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;font-size:12px;color:var(--text-secondary)">
+        <strong id="costGuideTitle"></strong>
+        <span id="costGuideText"></span>
+        <a id="costGuideLink" href="" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:underline"></a>
+      </div>
     </div>
-  </div>
-
-  <div id="costGuideSection" style="margin:12px 0;padding:12px 16px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text-secondary)">
-    <strong id="costGuideTitle"></strong>
-    <span id="costGuideText"></span>
-    <a id="costGuideLink" href="" target="_blank" rel="noopener" style="color:var(--accent-blue);text-decoration:underline"></a>
   </div>
 
   <div id="aiSection1" class="ai-analysis-box"><div class="ai-label">✨ AI Analysis</div><span id="aiText1"></span></div>
@@ -732,6 +731,7 @@
       <div id="hourlyNotes" style="font-size:11px;color:var(--text-muted);margin-top:6px;padding-left:4px">
         <div id="hourlyNoteActive"></div>
         <div id="hourlyNoteAll"></div>
+        <div id="hourlyNoteMax"></div>
         <div id="hourlyNotePartial"></div>
       </div>
     </div>
@@ -752,6 +752,7 @@
       <div id="dowNotes" style="font-size:11px;color:var(--text-muted);margin-top:6px;padding-left:4px">
         <div id="dowNoteActive"></div>
         <div id="dowNoteAll"></div>
+        <div id="dowNoteMax"></div>
         <div id="dowNotePartial"></div>
       </div>
     </div>
@@ -770,6 +771,11 @@
         <canvas id="efficiencyChart"></canvas>
       </div>
       <div id="effNoteText" style="font-size:11px;color:var(--text-muted);margin-top:6px;padding-left:4px"></div>
+      <div id="effGuideSection" style="margin:12px 0 0 0;padding:10px 12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;font-size:12px;color:var(--text-secondary);line-height:1.6">
+        <div id="effGuideLine1" style="font-weight:bold;margin-bottom:4px"></div>
+        <div id="effGuideLine2" style="white-space:pre-line"></div>
+        <div id="effGuideLine3" style="margin-top:4px"></div>
+      </div>
     </div>
   </div>
 
@@ -798,6 +804,10 @@
       <div id="ctxCostLegend" style="display:grid;grid-template-columns:1fr 1fr;gap:2px 16px;justify-items:center;font-size:11px;color:#9198a1;margin:4px auto;max-width:520px"></div>
       <div class="chart-wrapper" style="max-width:520px;margin:0 auto"><canvas id="ctxCostAsstChart"></canvas></div>
       <div id="ctxCostFootnote" style="font-size:11px;color:var(--text-muted);margin-top:6px;padding-left:4px"></div>
+      <div id="ctxGuideSection" style="margin:12px 0 0 0;padding:10px 12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;font-size:12px;color:var(--text-secondary);line-height:1.6">
+        <div id="ctxGuideLine1" style="font-weight:bold;margin-bottom:4px"></div>
+        <div id="ctxGuideLine2" style="white-space:pre-line"></div>
+      </div>
     </div>
   </div>
 
@@ -1034,13 +1044,13 @@ const REPORT_DATA = {
     { date: '4/4',  input: 27.30,  cacheCreate: 13.60,  cacheRead: 6.70,  output: 12.50 },
   ],
   dailyTokens: [
-    { date: '3/29', total: 48000000, cc: 12000000, out: 3200000 },
-    { date: '3/30', total: 42000000, cc: 10500000, out: 2800000 },
-    { date: '3/31', total: 43000000, cc: 10600000, out: 2900000 },
-    { date: '4/1',  total: 39000000, cc: 9800000,  out: 2700000 },
-    { date: '4/2',  total: 12000000, cc: 3000000,  out: 800000 },
-    { date: '4/3',  total: 20000000, cc: 5000000,  out: 1300000 },
-    { date: '4/4',  total: 3800000,  cc: 950000,   out: 250000 },
+    { date: '3/29', total: 48000000, input: 2400000, cc: 12000000, out: 3200000 },
+    { date: '3/30', total: 42000000, input: 2100000, cc: 10500000, out: 2800000 },
+    { date: '3/31', total: 43000000, input: 2150000, cc: 10600000, out: 2900000 },
+    { date: '4/1',  total: 39000000, input: 1950000, cc: 9800000,  out: 2700000 },
+    { date: '4/2',  total: 12000000, input: 600000,  cc: 3000000,  out: 800000 },
+    { date: '4/3',  total: 20000000, input: 1000000, cc: 5000000,  out: 1300000 },
+    { date: '4/4',  total: 3800000,  input: 190000,  cc: 950000,   out: 250000 },
   ],
   hourlyStats: [
     { hour: 0, avg: 1.8, max: 6.5 }, { hour: 1, avg: 2.5, max: 8.2 },
@@ -1251,10 +1261,12 @@ function i18nT(template, vars) {
   setText('btnHourAvg', C.avgActive); setText('btnHourCal', C.avgAll); setText('btnHourMax', C.maxBtn);
   setText('btnDowAvg', C.avgActive); setText('btnDowCal', C.avgAll); setText('btnDowMax', C.maxBtn);
   // Chart notes
-  setText('hourlyNoteActive', C.hourlyNoteActive); setText('hourlyNoteAll', C.hourlyNoteAll); setText('hourlyNotePartial', C.hourlyNotePartial);
-  setText('dowNoteActive', C.dowNoteActive); setText('dowNoteAll', C.dowNoteAll); setText('dowNotePartial', C.dowNotePartial);
-  setText('effNoteText', C.effNote);
-  setText('ctxNoteText', C.ctxNote);
+  setText('hourlyNoteActive', C.hourlyNoteActive); setText('hourlyNoteAll', C.hourlyNoteAll); setText('hourlyNoteMax', C.hourlyNoteMax); setText('hourlyNotePartial', C.hourlyNotePartial);
+  setText('dowNoteActive', C.dowNoteActive); setText('dowNoteAll', C.dowNoteAll); setText('dowNoteMax', C.dowNoteMax); setText('dowNotePartial', C.dowNotePartial);
+  setText('effNoteText', C.effNote); setText('effGuideLine1', C.effGuideLine1); setText('effGuideLine3', C.effGuideLine3);
+  (function(){ var el = document.getElementById('effGuideLine2'); if (el && C.effGuideLine2) el.innerHTML = C.effGuideLine2; })();
+  setText('ctxNoteText', C.ctxNote); setText('ctxGuideLine1', C.ctxGuideLine1);
+  (function(){ var el = document.getElementById('ctxGuideLine2'); if (el && C.ctxGuideLine2) el.innerHTML = C.ctxGuideLine2; })();
   // Cost guide section
   var T = I18N.token;
   setText('costGuideTitle', T.costGuideTitle); setText('costGuideText', T.costGuideText);
@@ -1505,9 +1517,9 @@ function renderBarChart() {
       labels: labels,
       datasets: [
         { label: I18N.token.input, data: REPORT_DATA.dailyCosts.map(function(d) { return d.input; }), backgroundColor: '#58a6ff', borderRadius: 3 },
+        { label: I18N.token.output, data: REPORT_DATA.dailyCosts.map(function(d) { return d.output; }), backgroundColor: '#f778ba', borderRadius: 3 },
         { label: I18N.token.cacheWrite, data: REPORT_DATA.dailyCosts.map(function(d) { return d.cacheCreate; }), backgroundColor: '#d29922', borderRadius: 3 },
         { label: I18N.token.cacheRead, data: REPORT_DATA.dailyCosts.map(function(d) { return d.cacheRead; }), backgroundColor: '#3fb950', borderRadius: 3 },
-        { label: I18N.token.output, data: REPORT_DATA.dailyCosts.map(function(d) { return d.output; }), backgroundColor: '#f778ba', borderRadius: 3 },
       ]
     },
     options: {
@@ -1581,7 +1593,7 @@ function renderBarChart() {
               ctx2.font = '11px sans-serif';
               ctx2.fillStyle = '#d29922';
               ctx2.textAlign = 'center';
-              ctx2.fillText(I18N.chart.pluginInstalled, x, yAxis.top - 6);
+              ctx2.fillText(I18N.chart.pluginInstalled, x, yAxis.top + 14);
               ctx2.restore();
             }
           }
@@ -1773,7 +1785,7 @@ function aggregateEfficiencyByDay() {
   var dayMap = {};
   var dates = [];
   for (var i = 0; i < dt.length; i++) {
-    dayMap[dt[i].date] = { total: dt[i].total, cc: dt[i].cc, out: dt[i].out };
+    dayMap[dt[i].date] = { total: dt[i].total, input: dt[i].input || 0, cc: dt[i].cc, out: dt[i].out };
     dates.push(dt[i].date);
   }
   return { dayMap: dayMap, dates: dates };
@@ -1804,7 +1816,7 @@ function renderEfficiencyChart() {
     if (metric === 'totalPerOutput') {
       val = Math.round((d.total / d.out) * 100) / 100;
     } else {
-      val = d.cc > 0 ? Math.round((d.cc / d.out) * 100) / 100 : 0;
+      val = d.cc > 0 ? Math.round((d.cc / (d.input + d.out)) * 100) / 100 : 0;
     }
     allData.push(val);
     if (instKey && agg.dates[i] === instKey) pluginInstalledIdx = labels.length - 1;
@@ -1813,7 +1825,7 @@ function renderEfficiencyChart() {
   // splitIdx: install day itself = after (matches build-report.js _installIdx)
   var splitIdx = (pluginInstalledIdx >= 0) ? pluginInstalledIdx : labels.length;
 
-  var chartLabel = metric === 'totalPerOutput' ? 'Total / Output' : 'Cache / Output';
+  var chartLabel = metric === 'totalPerOutput' ? (I18N.chart.effLabelTotal || 'Total / Output') : (I18N.chart.effLabelCache || 'Cache Creation / Output');
   var piLabelStr = instKey;
 
   // Compute before/after averages as weighted ratio: sum(total) / sum(output)
@@ -1827,8 +1839,8 @@ function renderEfficiencyChart() {
         if (m < splitIdx) { ebTotal += dd.total; ebOut += dd.out; }
         if (m >= splitIdx) { eaTotal += dd.total; eaOut += dd.out; }
       } else {
-        if (m < splitIdx) { ebTotal += dd.cc; ebOut += dd.out; }
-        if (m >= splitIdx) { eaTotal += dd.cc; eaOut += dd.out; }
+        if (m < splitIdx) { ebTotal += dd.cc; ebOut += dd.input + dd.out; }
+        if (m >= splitIdx) { eaTotal += dd.cc; eaOut += dd.input + dd.out; }
       }
     }
     if (ebOut > 0) effBeforeAvg = Math.round(ebTotal / ebOut * 100) / 100;
@@ -1931,7 +1943,7 @@ function renderEfficiencyChart() {
               ctx2.font = '11px sans-serif';
               ctx2.fillStyle = '#d29922';
               ctx2.textAlign = 'center';
-              ctx2.fillText(I18N.chart.pluginInstalled, x, yAxis.top - 6);
+              ctx2.fillText(I18N.chart.pluginInstalled, x, yAxis.top + 14);
               ctx2.restore();
             }
           }
@@ -2148,7 +2160,6 @@ function renderContextCostChart(canvasId, wrapId, data, yLabel, chartMode) {
     var modelNames = ['Opus', 'Sonnet', 'Haiku'];
     for (var mni = 0; mni < modelNames.length; mni++) {
       var mn = modelNames[mni];
-      if (!modelsWithData[mn]) continue;
       var mp = allModels[mn];
       if (!mp || !mp.cr) continue;
       trendDatasetIndices.push(datasets.length);
@@ -2336,9 +2347,9 @@ function renderContextCostCharts() {
     yLabel = I18N.chart.ctxCostYApi || 'Cost per API call ($)';
     titleText = I18N.chart.ctxCostTitleCW || '\uD83D\uDCB8 Cost by Context Size \u2014 Cache Write (CW)';
     footnote = [
-      I18N.chart.ctxCostCWNote1 || '* Cache write is the most expensive token type \u2014 occurs when cache expires (1h+ idle) or after /resume, --continue.',
-      I18N.chart.ctxCostCWNote2 || '* Lines: \u2500\u2500 1-hour cache write, \u254C 5-min cache write, \u00B7\u00B7\u00B7 cache read.',
-      I18N.chart.ctxCostCWNote3 || '* Line colors by model: red tones = Opus, blue tones = Sonnet, green tones = Haiku.'
+      I18N.chart.ctxCostCWNote2 || '* Each dot: an API call or user conversation, plotted by context size and cost.',
+      I18N.chart.ctxCostCWNote3 || '* Lines: \u2500\u2500 1-hour cache write, \u254C 5-min cache write, \u00B7\u00B7\u00B7 cache read.',
+      I18N.chart.ctxCostCWNote4 || '* Dot/line colors: red tones = Opus, blue tones = Sonnet, green tones = Haiku.'
     ];
   } else {
     // nonCW
@@ -2356,8 +2367,9 @@ function renderContextCostCharts() {
     yLabel = I18N.chart.ctxCostYApi || 'Cost per API call ($)';
     titleText = I18N.chart.ctxCostTitleNonCW || '\uD83D\uDCB8 Cost by Context Size \u2014 Non-CW (Cache Read / Output)';
     footnote = [
-      I18N.chart.ctxCostNonCWNote1 || '* API calls where cache write is NOT the dominant cost (cache read, output, or input dominant).',
-      I18N.chart.ctxCostNonCWNote2 || '* Dotted lines = cache read price per model. Points below may use a cheaper model.'
+      I18N.chart.ctxCostNonCWNote2 || '* Each dot: an API call or user conversation, plotted by context size and cost.',
+      I18N.chart.ctxCostNonCWNote3 || '* Dotted lines = cache read price per model. Points below may use a cheaper model.',
+      I18N.chart.ctxCostNonCWNote4 || '* Dot/line colors: red tones = Opus, blue tones = Sonnet, green tones = Haiku.'
     ];
   }
   if (!filteredData || !filteredData.bubbles || filteredData.bubbles.length === 0) {

@@ -87,6 +87,23 @@ I SubTask hanno **cache write più economiche del 37,5%** rispetto alla session 
 
 ---
 
+## 🪶 Modalità Concisa
+
+**Stesso contenuto. Meno padding. Attivo di default.**
+
+Lo stesso hook SessionStart inietta anche una regola di stile di risposta che si applica a **ogni sessione e ogni modello** — nessun flag, nessuna configurazione. Tre cose cambiano:
+
+- **Preambolo eliminato** — niente "Fammi controllare…", "Ora farò…", ripetere la tua domanda, o riassumere ciò che il diff già mostra
+- **Formato adatto al contenuto** — bullet per gli elenchi, prosa per il ragionamento (trade-off, causalità, motivazioni). Nessuno dei due è forzato
+- **Espressione più stringata** — stesso concetto, meno parole. Una prosa più chiara è una prosa più breve
+
+Limite rigido: mai rimuovere contenuto, saltare la verifica, o comprimere le sfumature in una singola frase. La sostanza rimane intatta; solo l'involucro si riduce.
+
+Installa una volta, vale ovunque.
+
+---
+
+
 ## 🔄 Funzionalità 3: /continue — Ripristino del context
 
 **Sostituisce `/compact`. Zero chiamate LLM. Zero costi in token.**

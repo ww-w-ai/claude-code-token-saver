@@ -87,6 +87,23 @@ SubTask mają **37,5% tańszy zapis cache** niż Main. Kontekst jest też znaczn
 
 ---
 
+## 🪶 Tryb Zwięzły
+
+**Ta sama treść. Mniej wypełnienia. Domyślnie włączone.**
+
+Ten sam hook SessionStart wstrzykuje także regułę stylu odpowiedzi, która działa w **każdej sesji i każdym modelu** — bez flag, bez konfiguracji. Trzy rzeczy się zmieniają:
+
+- **Preambuła wycięta** — żadnego "Pozwól mi sprawdzić…", "Teraz zrobię…", powtarzania twojego pytania, ani podsumowywania tego, co diff już pokazuje
+- **Odpowiedni format dla treści** — punkty dla list, proza dla rozumowania (kompromisy, przyczynowość, uzasadnienia). Żadne nie jest wymuszane
+- **Bardziej zwarty wyraz** — ta sama myśl, mniej słów. Jaśniejsza proza to krótsza proza
+
+Twarda granica: nigdy nie usuwaj treści, nie pomijaj weryfikacji, nie ściskaj niuansu w jedno zdanie. Esencja pozostaje pełna; kurczy się tylko opakowanie.
+
+Zainstaluj raz, działa wszędzie.
+
+---
+
+
 ## 🔄 Funkcja 3: /continue — Przywracanie context
 
 **Zastępuje `/compact`. Zero wywołań LLM. Zero kosztów tokenów.**

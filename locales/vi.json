@@ -26,7 +26,10 @@
     "cache1hTier": "└ 1h tier",
     "cache5mTier": "└ 5m tier",
     "total": "Tổng",
-    "costRatio": "Phân bổ chi phí"
+    "costRatio": "Phân bổ chi phí",
+    "costGuideTitle": "📖 Hướng dẫn chi phí cache — ",
+    "costGuideText": "Việc ~90% chi phí đến từ cache (ghi + đọc) là bình thường. Bạn muốn biết tại sao cache cần thiết và cách quản lý chi phí?",
+    "costGuideLink": "Xem hướng dẫn →"
   },
   "chart": {
     "dailyCost": "Xu hướng chi phí hàng ngày",
@@ -53,10 +56,10 @@
     "ctxPriceLines": "Đường giá:",
     "hourlyNoteActive": "* Ngày hoạt động: chi phí trung bình chỉ tính các ngày bạn thực sự sử dụng giờ này.",
     "hourlyNoteAll": "* Tất cả các ngày: phân bổ đều cho mọi ngày trong lịch của khoảng thời gian (bao gồm ngày nghỉ).",
-    "hourlyNotePartial": "* Giờ biên không đủ 60 phút được chuẩn hóa thành 1 giờ.",
+    "hourlyNotePartial": "* Giờ không đầy đủ ở đầu/cuối được chuẩn hóa thành 1 giờ (ví dụ: 20 phút dữ liệu được nhân ×3).",
     "dowNoteActive": "* Ngày hoạt động: trung bình chỉ tính các tuần bạn làm việc vào ngày đó.",
     "dowNoteAll": "* Tất cả các ngày: chia cho tổng số lần xuất hiện của ngày đó trong khoảng thời gian (mỗi ngày trong tuần có thể có số lần khác nhau).",
-    "dowNotePartial": "* Ngày biên không đủ 24 giờ được chuẩn hóa thành 1 ngày.",
+    "dowNotePartial": "* Ngày không đầy đủ ở đầu/cuối được chuẩn hóa thành 1 ngày (ví dụ: 6 giờ dữ liệu được nhân ×4).",
     "ctxNote": "* Ngữ cảnh nhỏ hơn = rẻ hơn mỗi lần gọi. Giữ ngữ cảnh gọn nhẹ bằng /clear hoặc /continue giúp tiết kiệm chi phí.",
     "ctxDistTitle": "Phân bố kích thước ngữ cảnh",
     "ctxCostYApi": "Chi phí mỗi API call ($)",
@@ -81,7 +84,13 @@
       "T6",
       "T7"
     ],
-    "ctxCostTitle": "Kích thước ngữ cảnh vs Lệnh gọi API đắt ($1+)"
+    "ctxCostTitle": "Kích thước ngữ cảnh vs Lệnh gọi API đắt ($1+)",
+    "hourlyNoteMax": "* Tối đa: chi phí cao nhất ghi nhận trong một ngày cho giờ này.",
+    "dowNoteMax": "* Tối đa: chi phí cao nhất ghi nhận trong một tuần cho ngày này.",
+    "effGuide": "Tổng/Output đo lường bao nhiêu token đầu vào được chi cho mỗi token đầu ra — thấp hơn nghĩa là ít overhead hơn. Tạo cache/Output cho thấy phần chi phí đầu ra nào đi vào ghi cache — đỉnh cho thấy cache hết hạn hoặc phiên khởi động lại. Đường xám (trước plugin) và xanh (sau) giúp so sánh hiệu quả.",
+    "ctxGuide": "Mỗi điểm đại diện cho một lần gọi API. Trục X hiển thị kích thước ngữ cảnh (token), trục Y hiển thị chi phí. Càng sang phải càng đắt vì nhiều token được cache và tính phí mỗi lần.",
+    "effGuideTitle": "📖 Hướng dẫn hiệu quả — ",
+    "ctxGuideTitle": "📖 Hướng dẫn chi phí ngữ cảnh — "
   },
   "calendar": {
     "title": "Lịch sử dụng theo giờ",
@@ -93,7 +102,9 @@
     "legendBlocked": "bị chặn",
     "legendPlugin": "Đã cài đặt plugin",
     "note": "Nhấp vào ô bất kỳ để xem chi tiết phiên. Chế độ xem mặc định là cửa sổ 5 giờ — chuyển sang khối 1 giờ bằng nút phía trên.",
-    "noData": "Không có dữ liệu"
+    "noData": "Không có dữ liệu",
+    "costFilterLabel": "💰 Chi phí ≥",
+    "costFilterCount": "{n} hiển thị"
   },
   "session": {
     "detailExpand": "▶ Chi tiết phiên",

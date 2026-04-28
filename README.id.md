@@ -87,6 +87,23 @@ SubTask memiliki **biaya cache write 37,5% lebih murah** dibanding Main. Context
 
 ---
 
+## 🪶 Mode Ringkas
+
+**Konten yang sama. Lebih sedikit padding. Aktif secara default.**
+
+Hook SessionStart yang sama juga menyuntikkan aturan gaya respons yang berjalan di **setiap session dan setiap model** — tanpa flag, tanpa setup. Tiga hal berubah:
+
+- **Preamble dihapus** — tidak ada "Biar saya cek…", "Sekarang saya akan…", mengulangi pertanyaan Anda, atau merangkum apa yang sudah ditunjukkan oleh diff
+- **Format yang tepat untuk konten** — bullet untuk daftar, prosa untuk penalaran (tradeoff, kausalitas, justifikasi). Tidak ada yang dipaksakan
+- **Ekspresi yang lebih ringkas** — poin yang sama, kata yang lebih sedikit. Prosa yang lebih jelas adalah prosa yang lebih pendek
+
+Batas tegas: jangan pernah menghilangkan konten, melewatkan verifikasi, atau memadatkan nuansa ke dalam satu kalimat. Substansi tetap utuh; hanya kemasannya yang menyusut.
+
+Pasang sekali, berlaku di mana saja.
+
+---
+
+
 ## 🔄 Fitur 3: /continue — Pemulihan Context
 
 **Menggantikan `/compact`. Nol panggilan LLM. Nol biaya token.**

@@ -87,6 +87,23 @@ SubTask'lar Main'e göre **%37,5 daha ucuz cache yazma** maliyetine sahiptir. Co
 
 ---
 
+## 🪶 Özlü Mod
+
+**Aynı içerik. Daha az dolgu. Varsayılan olarak açık.**
+
+Aynı SessionStart hook'u **her oturum ve her model**de çalışan bir yanıt stili kuralı da enjekte eder — bayrak yok, kurulum yok. Üç şey değişir:
+
+- **Giriş cümlesi yok** — "Bir bakayım…", "Şimdi yapacağım…", sorunun tekrarı veya diff'te zaten görünenin özetlemesi yok
+- **İçeriğe uygun format** — listeler için madde işaretleri, akıl yürütme için düz yazı (ödünleşimler, nedensellik, gerekçeler). Hiçbiri zorlanmaz
+- **Daha sıkı ifade** — aynı nokta, daha az kelime. Daha net düz yazı, daha kısa düz yazıdır
+
+Sıkı sınır: asla içerik atmayın, doğrulamayı atlamayın veya nüansı tek cümleye sıkıştırmayın. Öz bütün kalır; sadece ambalaj küçülür.
+
+Bir kez kurun, her yerde geçerli.
+
+---
+
+
 ## 🔄 Özellik 3: /continue — Context Geri Yükleme
 
 **`/compact`'ın yerini alır. Sıfır LLM çağrısı. Sıfır token maliyeti.**

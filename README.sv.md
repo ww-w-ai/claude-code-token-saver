@@ -87,6 +87,23 @@ SubTasks har **37,5% billigare cache writes** än Main. Kontexten är också myc
 
 ---
 
+## 🪶 Koncist Läge
+
+**Samma innehåll. Mindre fyllmedel. På som standard.**
+
+Samma SessionStart-hook injicerar också en svarsstilsregel som körs i **varje session och varje modell** — inga flaggor, ingen setup. Tre saker ändras:
+
+- **Inledning bort** — inga "Låt mig kolla…", "Nu ska jag…", upprepningar av din fråga, eller sammanfattningar av vad diffen redan visar
+- **Rätt format för innehållet** — punkter för listor, prosa för resonemang (avvägningar, kausalitet, motiveringar). Inget tvingas
+- **Stramare uttryck** — samma poäng, färre ord. Tydligare prosa är kortare prosa
+
+Hård gräns: aldrig ta bort innehåll, hoppa över verifiering, eller pressa in nyans i en enda mening. Substansen förblir hel; bara förpackningen krymper.
+
+Installera en gång, gäller överallt.
+
+---
+
+
 ## 🔄 Funktion 3: /continue — Context Restoration
 
 **Ersätter `/compact`. Noll LLM-anrop. Noll token-kostnad.**

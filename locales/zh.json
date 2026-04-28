@@ -26,7 +26,10 @@
     "cache1hTier": "└ 1h tier",
     "cache5mTier": "└ 5m tier",
     "total": "总计",
-    "costRatio": "费用明细"
+    "costRatio": "费用明细",
+    "costGuideTitle": "📖 缓存成本指南 — ",
+    "costGuideText": "缓存（写入 + 读取）占总成本约90%是正常的。想了解为什么缓存必不可少，以及如何管理成本？",
+    "costGuideLink": "查看指南 →"
   },
   "chart": {
     "dailyCost": "每日费用趋势",
@@ -53,10 +56,10 @@
     "ctxPriceLines": "价格线：",
     "hourlyNoteActive": "* 活跃天数：仅按实际使用该时段的天数计算平均值。",
     "hourlyNoteAll": "* 全部天数：按期间内所有日历天（含休息日）计算平均值。",
-    "hourlyNotePartial": "* 不满60分钟的边界时段按1小时归一化。",
+    "hourlyNotePartial": "* 开始/结束的不完整小时按1小时标准化（例：20分钟数据 ×3 缩放）。",
     "dowNoteActive": "* 活跃天数：仅按实际在该星期几工作的周数计算平均值。",
     "dowNoteAll": "* 全部天数：按期间内该星期几出现的总次数计算平均值（各星期几的次数可能不同）。",
-    "dowNotePartial": "* 不满24小时的边界日期按1天归一化。",
+    "dowNotePartial": "* 开始/结束的不完整天数按1天标准化（例：6小时数据 ×4 缩放）。",
     "ctxNote": "* 上下文越小，每次调用的费用越低。使用 /clear 或 /continue 可节省费用。",
     "ctxDistTitle": "上下文大小分布",
     "ctxCostYApi": "每次 API 调用费用 ($)",
@@ -81,7 +84,13 @@
       "五",
       "六"
     ],
-    "ctxCostTitle": "上下文大小 vs 高成本 API 调用 ($1+)"
+    "ctxCostTitle": "上下文大小 vs 高成本 API 调用 ($1+)",
+    "hourlyNoteMax": "* 最大值：该小时内单日最高成本记录。",
+    "dowNoteMax": "* 最大值：该星期几单周最高成本记录。",
+    "effGuide": "总计/输出衡量每个输出 token 消耗多少输入 token — 越低表示开销越少。缓存创建/输出显示输出成本中有多少用于缓存写入 — 突增表示缓存过期或会话重新启动。灰色线（插件安装前）和绿色线（安装后）可用于比较效率变化。",
+    "ctxGuide": "每个点代表一次 API 调用。X 轴为上下文大小（token），Y 轴为成本。越靠右成本越高，因为每次都有更多 token 被缓存和计费。右上角集中的点表示上下文增长较大的会话。",
+    "effGuideTitle": "📖 效率指南 — ",
+    "ctxGuideTitle": "📖 上下文成本指南 — "
   },
   "calendar": {
     "title": "每小时使用日历",
@@ -93,7 +102,9 @@
     "legendBlocked": "已阻止",
     "legendPlugin": "插件已安装",
     "note": "点击任意单元格查看会话详情。默认显示5小时窗口 — 使用上方按钮切换到1小时块视图。",
-    "noData": "无数据"
+    "noData": "无数据",
+    "costFilterLabel": "💰 费用 ≥",
+    "costFilterCount": "显示 {n} 个"
   },
   "session": {
     "detailExpand": "▶ 会话详情",

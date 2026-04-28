@@ -26,7 +26,10 @@
     "cache1hTier": "└ 1h tier",
     "cache5mTier": "└ 5m tier",
     "total": "Totalt",
-    "costRatio": "Kostnadsfordeling"
+    "costRatio": "Kostnadsfordeling",
+    "costGuideTitle": "📖 Guide for cache-kostnader — ",
+    "costGuideText": "Det er normalt at ~90% av kostnadene kommer fra cache (skriving + lesing). Vil du vite hvorfor cache er viktig og hvordan du kan håndtere kostnadene?",
+    "costGuideLink": "Les guiden →"
   },
   "chart": {
     "dailyCost": "Daglig kostnadstrend",
@@ -53,10 +56,10 @@
     "ctxPriceLines": "Prislinjer:",
     "hourlyNoteActive": "* Aktive dager: gjennomsnittskostnad kun for dager du faktisk brukte denne timen.",
     "hourlyNoteAll": "* Alle dager: fordelt over alle kalenderdager i perioden (inkludert fridager).",
-    "hourlyNotePartial": "* Grensetimer som ikke fyller hele 60 minutter, normaliseres til 1 time.",
+    "hourlyNotePartial": "* Ufullstendige timer i starten/slutten normaliseres til 1 time (f.eks. 20 min data skaleres ×3).",
     "dowNoteActive": "* Aktive dager: gjennomsnitt kun for uker du jobbet den dagen.",
     "dowNoteAll": "* Alle dager: delt på totalt antall forekomster av den ukedagen i perioden (hver ukedag kan ha ulikt antall).",
-    "dowNotePartial": "* Grensedager som ikke fyller hele 24 timer, normaliseres til 1 dag.",
+    "dowNotePartial": "* Ufullstendige dager i starten/slutten normaliseres til 1 dag (f.eks. 6 timer data skaleres ×4).",
     "ctxNote": "* Mindre kontekst = billigere per kall. Hold konteksten liten med /clear eller /continue for å spare kostnad.",
     "ctxDistTitle": "Fordeling av kontekststørrelse",
     "ctxCostYApi": "Kostnad per API-kall ($)",
@@ -81,7 +84,13 @@
       "Fre",
       "Lør"
     ],
-    "ctxCostTitle": "Kontekststørrelse vs Dyre API-kall ($1+)"
+    "ctxCostTitle": "Kontekststørrelse vs Dyre API-kall ($1+)",
+    "hourlyNoteMax": "* Maks: den høyeste kostnaden registrert på en enkelt dag for denne timen.",
+    "dowNoteMax": "* Maks: den høyeste kostnaden registrert i en enkelt uke for denne dagen.",
+    "effGuide": "Total/Output måler hvor mange input-tokens som brukes per output-token — lavere betyr mindre overhead. Cache-opprettelse/Output viser hvilken andel av outputkostnaden som går til cache-skriving — topper indikerer cache-utløp eller omstart av økt. Den grå linjen (før plugin) og grønne (etter) lar deg sammenligne effektiviteten.",
+    "ctxGuide": "Hvert punkt representerer et API-kall. X-aksen viser kontekststørrelse (tokens), Y-aksen viser kostnad. Lenger til høyre = dyrere fordi flere tokens caches og faktureres hver gang.",
+    "effGuideTitle": "📖 Effektivitetsguide — ",
+    "ctxGuideTitle": "📖 Kontekstkostnadsguide — "
   },
   "calendar": {
     "title": "Timesvis brukskalender",
@@ -93,7 +102,9 @@
     "legendBlocked": "blokkert",
     "legendPlugin": "Plugin installert",
     "note": "Klikk på en celle for å se sesjonsdetaljer. Standardvisningen er 5-timersvinduet — bytt til 1-timersblokker med knappen ovenfor.",
-    "noData": "Ingen data"
+    "noData": "Ingen data",
+    "costFilterLabel": "💰 Kostnad ≥",
+    "costFilterCount": "{n} vist"
   },
   "session": {
     "detailExpand": "▶ Sesjonsdetaljer",

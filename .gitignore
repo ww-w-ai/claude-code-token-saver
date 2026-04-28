@@ -8,3 +8,5 @@ docs/
 *.swo
 .vscode/
 .idea/
+.orphaned_at
+**/.orphaned_at

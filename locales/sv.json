@@ -26,7 +26,10 @@
     "cache1hTier": "└ 1h tier",
     "cache5mTier": "└ 5m tier",
     "total": "Totalt",
-    "costRatio": "Kostnadsfördelning"
+    "costRatio": "Kostnadsfördelning",
+    "costGuideTitle": "📖 Guide för cachekostnader — ",
+    "costGuideText": "Det är normalt att ~90% av kostnaderna kommer från cache (skrivning + läsning). Vill du veta varför cache är nödvändigt och hur du hanterar kostnaderna?",
+    "costGuideLink": "Läs guiden →"
   },
   "chart": {
     "dailyCost": "Daglig kostnadstrend",
@@ -53,10 +56,10 @@
     "ctxPriceLines": "Prislinjer:",
     "hourlyNoteActive": "* Aktiva dagar: genomsnittskostnad bara för dagar då du faktiskt använde denna timme.",
     "hourlyNoteAll": "* Alla dagar: fördelat över alla kalenderdagar i perioden (inklusive lediga dagar).",
-    "hourlyNotePartial": "* Gränstimmar som inte fyller hela 60 minuter normaliseras till 1 timme.",
+    "hourlyNotePartial": "* Ofullständiga timmar i början/slutet normaliseras till 1 timme (t.ex. 20 min data skalas ×3).",
     "dowNoteActive": "* Aktiva dagar: genomsnitt bara för veckor då du arbetade den dagen.",
     "dowNoteAll": "* Alla dagar: delat med totala antalet förekomster av den veckodagen i perioden (varje veckodag kan ha ett annat antal).",
-    "dowNotePartial": "* Gränsdagar som inte fyller hela 24 timmar normaliseras till 1 dag.",
+    "dowNotePartial": "* Ofullständiga dagar i början/slutet normaliseras till 1 dag (t.ex. 6 timmars data skalas ×4).",
     "ctxNote": "* Mindre kontext = billigare per anrop. Håll kontexten liten med /clear eller /continue för att spara kostnad.",
     "ctxDistTitle": "Fördelning av kontextstorlek",
     "ctxCostYApi": "Kostnad per API-anrop ($)",
@@ -81,7 +84,13 @@
       "Fre",
       "Lör"
     ],
-    "ctxCostTitle": "Kontextstorlek vs Dyra API-anrop ($1+)"
+    "ctxCostTitle": "Kontextstorlek vs Dyra API-anrop ($1+)",
+    "hourlyNoteMax": "* Max: den högsta kostnaden registrerad under en enskild dag för denna timme.",
+    "dowNoteMax": "* Max: den högsta kostnaden registrerad under en enskild vecka för denna dag.",
+    "effGuide": "Total/Output mäter hur många input-tokens som spenderas per output-token — lägre innebär mindre overhead. Cache-skapande/Output visar vilken andel av outputkostnaden som går till cache-skrivningar — toppar indikerar cache-utgång eller sessionsomstart. Den grå linjen (före plugin) och gröna (efter) låter dig jämföra effektiviteten.",
+    "ctxGuide": "Varje punkt representerar ett API-anrop. X-axeln visar kontextstorlek (tokens), Y-axeln visar kostnad. Längre till höger = dyrare eftersom fler tokens cachas och debiteras varje gång.",
+    "effGuideTitle": "📖 Effektivitetsguide — ",
+    "ctxGuideTitle": "📖 Kontextkostnadsguide — "
   },
   "calendar": {
     "title": "Timvis användningskalender",
@@ -93,7 +102,9 @@
     "legendBlocked": "blockerad",
     "legendPlugin": "Plugin installerat",
     "note": "Klicka på valfri cell för att se sessionsdetaljer. Standardvyn är 5-timmarsfönstret — växla till 1-timmarsblock med knappen ovan.",
-    "noData": "Ingen data"
+    "noData": "Ingen data",
+    "costFilterLabel": "💰 Kostnad ≥",
+    "costFilterCount": "{n} visade"
   },
   "session": {
     "detailExpand": "▶ Sessionsdetaljer",

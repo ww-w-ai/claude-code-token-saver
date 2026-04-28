@@ -87,6 +87,23 @@ SubTasks haben **37,5 % günstigere Cache-Writes** als Main. Der Context ist au�
 
 ---
 
+## 🪶 Concise Mode
+
+**Gleicher Inhalt. Weniger Füllmaterial. Standardmäßig aktiv.**
+
+Derselbe SessionStart-Hook injiziert auch eine Antwortstil-Regel, die in **jeder Session und jedem Modell** läuft — keine Flags, kein Setup. Drei Dinge ändern sich:
+
+- **Präambel raus** — kein "Lass mich prüfen…", kein "Ich werde jetzt…", kein Wiederholen deiner Frage, kein Zusammenfassen dessen, was im Diff bereits sichtbar ist
+- **Passendes Format für den Inhalt** — Bullets für Listen, Prosa für Argumentation (Tradeoffs, Kausalität, Begründungen). Keines wird erzwungen
+- **Straffere Ausdrucksweise** — gleicher Punkt, weniger Worte. Klarere Prosa ist kürzere Prosa
+
+Harte Grenze: niemals Inhalt streichen, Verifizierung überspringen oder Nuancen in einen Satz quetschen. Die Substanz bleibt vollständig; nur die Verpackung schrumpft.
+
+Einmal installieren, gilt überall.
+
+---
+
+
 ## 🔄 Feature 3: /continue — Context-Wiederherstellung
 
 **Ersetzt `/compact`. Null LLM-Aufrufe. Null Token-Kosten.**

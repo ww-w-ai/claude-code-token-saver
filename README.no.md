@@ -87,6 +87,23 @@ SubTask har **37,5 % billigere cache writes** enn Main. Context er også mye min
 
 ---
 
+## 🪶 Konsis Modus
+
+**Samme innhold. Mindre fyllstoff. På som standard.**
+
+Samme SessionStart-hook injiserer også en responsstil-regel som kjører i **hver økt og hver modell** — ingen flagg, ingen oppsett. Tre ting endres:
+
+- **Innledning ut** — ingen "La meg sjekke…", "Jeg skal nå…", gjenta spørsmålet ditt, eller oppsummere det diffen allerede viser
+- **Riktig format for innholdet** — punkter for lister, prosa for resonnement (avveininger, kausalitet, begrunnelser). Ingen tvinges
+- **Strammere uttrykk** — samme poeng, færre ord. Klarere prosa er kortere prosa
+
+Hard grense: aldri fjerne innhold, hoppe over verifisering, eller klemme nyanser inn i én setning. Substansen forblir hel; bare innpakningen krymper.
+
+Installer én gang, gjelder overalt.
+
+---
+
+
 ## 🔄 Funksjon 3: /continue — Context-gjenoppretting
 
 **Erstatter `/compact`. Null LLM-kall. Null token-kostnad.**

@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.2] - 2026-04-28
+
+### New: Concise Mode (built-in response style)
+
+- SessionStart hook now injects a response-style rule alongside the existing session architecture guidance — applies to **every session and every model**, no flags or setup
+- Cuts preamble ("Let me check…", "I'll now…"), question restatements, and redundant summaries of work already shown in tool calls/diffs
+- Picks bullets for lists, prose for reasoning (tradeoffs, causation, rationale) — neither forced
+- Hard limits prevent over-compression: never drop content, skip verification, or collapse nuance into a single sentence ("Compress expression, not analysis")
+- README updated in all 22 translated languages with a dedicated `🪶 Concise Mode` section
+
+### `/usage-view` dashboard improvements
+
+- **Efficiency chart**: denominator changed from `cc / output` to `cc / (input+output)` for fairer ratio interpretation; chart now ships with an in-place guide card explaining both Total/Output and Cache/(Input+Output) metrics
+- **Context cost chart**: new in-place guide card explains CW / Non-CW / User Turn options and price-line semantics; dot/line color legend (red=Opus, blue=Sonnet, green=Haiku) added to Non-CW chart for parity with CW
+- **Hourly / Day-of-Week**: new "Max" annotation describes single-day/single-week peak; "Partial" annotation now shows concrete normalization example (e.g., 20 min → ×3)
+- **Per-user-turn model accuracy**: model attribution now reads from each call's row instead of the first row of the turn, fixing mixed-model turns
+- **Cache write floor removed**: $0.05 minimum on CW dots removed so all calls render
+- **Calendar cost filter**: new `💰 비용 ≥` slider hides cells below threshold for noise reduction
+- **Daily token chart**: input tokens now tracked separately for finer-grained efficiency math
+- **Plugin-installed marker**: label moved below the chart axis to avoid overlap with chart titles
+
+### i18n
+
+- New keys across all 23 locales: `effLabelTotal`, `effLabelCache`, `effGuideLine1/2/3`, `hourlyNoteMax`, `dowNoteMax`, `ctxGuideLine1/2`, `ctxCostCWNote4`, `ctxCostNonCWNote3/4`, `costFilterLabel`, `costFilterCount`
+- Refined `hourlyNotePartial` / `dowNotePartial` with normalization examples in all 23 languages
+
 ## [1.5.0] - 2026-04-20
 
 ### New: `/setup-git-lite` skill

@@ -34,6 +34,10 @@ Same principle for edits and comparisons:
 - **NEVER Write an existing file** — Write = new files only. Existing → Edit (`replace_all` for large rewrites).
 - **NEVER `ls`, `pwd`, `cat`, `cd`, `head`, `tail` in Bash** — use Glob / Read / absolute paths.
 
+### Response style
+
+Be concise, not shallow. Keep all substance — facts, caveats, reasoning that affects the user's decision — but cut filler: hedging, restating the question, meta-commentary ("Let me…", "I'll now…"), trailing summaries of work already shown in tool calls/diffs. Bullets and short clauses are a default for lists; when reasoning needs prose (tradeoffs, causation, recommendations with rationale), use prose — do not force bullets. Do NOT compress by dropping content, skipping verification, shortening thinking, or collapsing nuance into a single sentence. Compress expression, not analysis. Clearer prose is shorter prose.
+
 ### When /continue was used
 
 Restored content is verbatim past messages (not summaries). `[Session:{sid} {ISO} L{n}]` → `~/.claude/projects/{projectHash}/{sessionId}.jsonl` line L{n}.

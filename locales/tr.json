@@ -26,7 +26,10 @@
     "cache1hTier": "└ 1h tier",
     "cache5mTier": "└ 5m tier",
     "total": "Toplam",
-    "costRatio": "Maliyet Dağılımı"
+    "costRatio": "Maliyet Dağılımı",
+    "costGuideTitle": "📖 Önbellek Maliyet Rehberi — ",
+    "costGuideText": "Maliyetlerin ~%90'ının önbellekten (yazma + okuma) gelmesi normaldir. Önbelleğin neden gerekli olduğunu ve maliyetleri nasıl yöneteceğinizi öğrenmek ister misiniz?",
+    "costGuideLink": "Rehberi oku →"
   },
   "chart": {
     "dailyCost": "Günlük Maliyet Trendi",
@@ -53,10 +56,10 @@
     "ctxPriceLines": "Fiyat çizgileri:",
     "hourlyNoteActive": "* Aktif günler: yalnızca bu saati gerçekten kullandığınız günlerdeki ortalama maliyet.",
     "hourlyNoteAll": "* Tüm günler: dönemdeki her takvim gününe yayılır (tatil günleri dahil).",
-    "hourlyNotePartial": "* 60 dakikayı doldurmayan sınır saatler 1 saate normalize edilir.",
+    "hourlyNotePartial": "* Başlangıç/sondaki eksik saatler 1 saate normalize edilir (ör: 20 dk veri ×3 ölçeklenir).",
     "dowNoteActive": "* Aktif günler: yalnızca o gün çalıştığınız haftalardaki ortalama.",
     "dowNoteAll": "* Tüm günler: dönemdeki o günün toplam tekrar sayısına bölünür (her gün farklı sayıda olabilir).",
-    "dowNotePartial": "* 24 saati doldurmayan sınır günler 1 güne normalize edilir.",
+    "dowNotePartial": "* Başlangıç/sondaki eksik günler 1 güne normalize edilir (ör: 6 saat veri ×4 ölçeklenir).",
     "ctxNote": "* Daha küçük bağlam = çağrı başına daha ucuz. /clear veya /continue ile bağlamı küçük tutmak maliyet tasarrufu sağlar.",
     "ctxDistTitle": "Bağlam Boyutu Dağılımı",
     "ctxCostYApi": "API call başına maliyet ($)",
@@ -81,7 +84,13 @@
       "Cum",
       "Cmt"
     ],
-    "ctxCostTitle": "Bağlam Boyutu vs Pahalı API Çağrıları ($1+)"
+    "ctxCostTitle": "Bağlam Boyutu vs Pahalı API Çağrıları ($1+)",
+    "hourlyNoteMax": "* Maks: bu saat için tek bir günde kaydedilen en yüksek maliyet.",
+    "dowNoteMax": "* Maks: bu gün için tek bir haftada kaydedilen en yüksek maliyet.",
+    "effGuide": "Toplam/Çıktı, çıktı tokeni başına kaç girdi tokeni harcandığını ölçer — düşük olan daha az ek yük demektir. Önbellek Oluşturma/Çıktı, çıktı maliyetinin ne kadarının önbellek yazmaya gittiğini gösterir — ani artışlar önbellek süresinin dolduğunu veya oturumun yeniden başladığını gösterir. Gri çizgi (plugin öncesi) ve yeşil (sonrası) ile verimliliği karşılaştırabilirsiniz.",
+    "ctxGuide": "Her nokta bir API çağrısını temsil eder. X ekseni bağlam boyutunu (token), Y ekseni maliyeti gösterir. Sağa gidildikçe daha pahalıdır çünkü her seferinde daha fazla token önbelleğe alınır ve faturalandırılır.",
+    "effGuideTitle": "📖 Verimlilik Rehberi — ",
+    "ctxGuideTitle": "📖 Bağlam Maliyet Rehberi — "
   },
   "calendar": {
     "title": "Saatlik Kullanım Takvimi",
@@ -93,7 +102,9 @@
     "legendBlocked": "engellendi",
     "legendPlugin": "Plugin yüklendi",
     "note": "Oturum ayrıntılarını görmek için herhangi bir hücreye tıklayın. Varsayılan görünüm 5 saatlik penceredir — yukarıdaki düğmeyle 1 saatlik bloklara geçin.",
-    "noData": "Veri Yok"
+    "noData": "Veri Yok",
+    "costFilterLabel": "💰 Maliyet ≥",
+    "costFilterCount": "{n} gösteriliyor"
   },
   "session": {
     "detailExpand": "▶ Oturum Detayları",

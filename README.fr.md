@@ -87,6 +87,23 @@ Les SubTask ont des **écritures cache 37,5 % moins chères** que Main. Le conte
 
 ---
 
+## 🪶 Mode Concis
+
+**Même contenu. Moins de remplissage. Activé par défaut.**
+
+Le même hook SessionStart injecte aussi une règle de style de réponse qui s'applique à **chaque session et chaque modèle** — sans flags, sans configuration. Trois choses changent :
+
+- **Préambule supprimé** — fini les "Laisse-moi vérifier…", "Je vais maintenant…", répétitions de ta question, ou résumés de ce que le diff montre déjà
+- **Format adapté au contenu** — puces pour les listes, prose pour le raisonnement (compromis, causalité, justifications). Aucun n'est forcé
+- **Expression plus serrée** — même propos, moins de mots. Une prose plus claire est une prose plus courte
+
+Limite stricte : jamais supprimer du contenu, sauter la vérification, ou réduire les nuances à une seule phrase. La substance reste intacte ; seule l'enveloppe rétrécit.
+
+Installe une fois, s'applique partout.
+
+---
+
+
 ## 🔄 Fonctionnalité 3 : /continue — Restauration du context
 
 **Remplace `/compact`. Zéro appel LLM. Zéro coût en tokens.**

@@ -87,6 +87,23 @@ SubTasks hebben **37,5% goedkopere cache writes** dan Main. De context is ook ve
 
 ---
 
+## 🪶 Concise Mode
+
+**Zelfde inhoud. Minder opvulling. Standaard aan.**
+
+Dezelfde SessionStart-hook injecteert ook een antwoordstijl-regel die in **elke sessie en elk model** loopt — geen flags, geen setup. Drie dingen veranderen:
+
+- **Inleiding eruit** — geen "Laat me checken…", "Ik ga nu…", je vraag herhalen, of samenvatten wat de diff al laat zien
+- **Juiste formaat voor de inhoud** — bullets voor lijsten, proza voor redenering (tradeoffs, causaliteit, onderbouwing). Geen van beide wordt geforceerd
+- **Strakkere uitdrukking** — zelfde punt, minder woorden. Helderder proza is korter proza
+
+Harde limiet: nooit inhoud weglaten, verificatie overslaan, of nuance in één zin pletten. De substantie blijft intact; alleen de verpakking krimpt.
+
+Eén keer installeren, geldt overal.
+
+---
+
+
 ## 🔄 Feature 3: /continue — Context Herstel
 
 **Vervangt `/compact`. Nul LLM calls. Nul token kosten.**
