@@ -31,6 +31,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New keys across all 23 locales: `effLabelTotal`, `effLabelCache`, `effGuideLine1/2/3`, `hourlyNoteMax`, `dowNoteMax`, `ctxGuideLine1/2`, `ctxCostCWNote4`, `ctxCostNonCWNote3/4`, `costFilterLabel`, `costFilterCount`
 - Refined `hourlyNotePartial` / `dowNotePartial` with normalization examples in all 23 languages
 
+## [1.6.1] - 2026-04-24
+
+### New: Prompt Cache Guide (23 languages)
+
+- New `guides/prompt-cache-guide.md` (+ 22 translations) explaining why cache dominates Claude Code costs, how Claude Code / Codex / Gemini CLI differ in caching behavior, and concrete strategies to cut cache spend with cc-token-saver features
+- Linked from README documentation section
+
+### `/usage-view` private mode
+
+- New private mode strips raw prompt text from generated reports so dashboards can be shared without leaking prompt content
+- 29 new i18n keys across all 23 locales (dashboard buttons, axis labels, descriptions)
+
+### `totalCost` dedup fix
+
+- Sum from `tokenBreakdown` instead of the `analyze-usage.js` rolled-up value — eliminates double-counting when parent/subtask sessions share replayed rows
+- Removed the dedup-unsafe `totalCost` field from `analyze-usage.js` output with an inline comment explaining why
+
+### Hook architecture: context-growth minimization
+
+- `session-architecture.md` gains a guide on tool choice impact (Grep/Glob/LSP → Read partial → Read full as last resort, Edit > Write, `git diff` > dual Read)
+
+### Repo housekeeping
+
+- `research/` docs moved to `guides/` to match documentation structure
+
+## [1.6.0] - 2026-04-22
+
+### `/setup-git-lite` simplification
+
+- Dropped the `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS` env var and shell-profile marker block — `settings.json` alone is sufficient since CC reads `includeGitInstructions` natively
+- `dismiss` / `undismiss` renamed to `dismiss-banner` / `undismiss-banner` for clarity
+- Default no-arg invocation now runs `status` (was `help`) — first-time users see actionable diagnostic
+- SKILL.md gains an i18n translation directive
+- All 23 README translations + 23 locale files updated to match
+
 ## [1.5.0] - 2026-04-20
 
 ### New: `/setup-git-lite` skill
