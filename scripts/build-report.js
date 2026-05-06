@@ -58,7 +58,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { buildGlobalWindowMap, FIVE_HOURS_S } = require('./lib/window-utils');
+const { buildGlobalWindowMap, buildGlobalTsMapper, FIVE_HOURS_S } = require('./lib/window-utils');
 const { listProjects, listSessions, listSubagents, getTimelinePath, getSummaryPath, getRatelimitPath, getSubagentTimelinePath, getSubagentSummaryPath, getCompactPath, migrateFromYYMM, CACHE_BASE: CACHE_DIR } = require('./lib/cache-paths');
 const { PLAN_INFO: PLAN_INFO_ALL } = require('./lib/plan-info');
 const { round2 } = require('./lib/format');
@@ -1218,28 +1218,40 @@ await ensureCompactCaches(allSessionIds);
 
 // 3. windows
 
-// ── 5h window construction from 1h activity + ratelimit data ──
-// Timeline CSV win column stores hourFloor (1h boundary).
-// Combine all sessions' hourly activity with ratelimit CSVs to build 5h windows.
+// ── 5h window construction from ratelimit data (ts-precision) ──
+// Anthropic switched 5h reset from hour-aligned to first-message+5h on
+// ~2026-04-23, so boundaries are now minute-precise. Map each row's raw
+// ts (second precision) to a window start using ratelimit 5h_reset values.
+// Pre-4/23 hour-aligned data is handled by the same algorithm naturally
+// because :00 boundaries are still valid ts values.
 
-// Normalize: ensure every row has hourFloor-based win (handles old cache with 5h wins)
+const { tsToWindow } = buildGlobalTsMapper();
+
+// First pass: assign covered rows directly via ts-precision mapping.
+// Collect uncovered rows for fallback grouping.
+const uncoveredRows = [];
 for (const [, rows] of allTimelines) {
   for (const row of rows) {
     const ts = typeof row.ts === 'number' ? row.ts : Math.floor(new Date(row.ts).getTime() / 1000);
-    row.win = Math.floor(ts / 3600) * 3600; // hourFloor
+    row.ts = ts;
+    const win = tsToWindow(ts);
+    if (win !== null) {
+      row.win = win;
+    } else {
+      uncoveredRows.push({ row, ts });
+    }
   }
 }
 
-// Build 5h window map from ALL projects (account-wide, not project-scoped).
-// Anthropic's 5h rate limit spans all projects, so window boundaries must be global.
-const hourToWin = buildGlobalWindowMap();
-
-// Assign each row's win to its 5h window start
-for (const [, rows] of allTimelines) {
-  for (const row of rows) {
-    const mapped = hourToWin.get(row.win);
-    if (mapped !== undefined) row.win = mapped;
+// Fallback: group uncovered rows into 5h blocks anchored by earliest ts.
+// Used when timeline activity exists without ratelimit coverage.
+uncoveredRows.sort((a, b) => a.ts - b.ts);
+let groupStart = null;
+for (const { row, ts } of uncoveredRows) {
+  if (groupStart === null || ts >= groupStart + FIVE_HOURS_S) {
+    groupStart = ts;
   }
+  row.win = groupStart;
 }
 
 // Group timeline rows by win column

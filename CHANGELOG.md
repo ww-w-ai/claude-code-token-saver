@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-05-06
+
+### Fixed: 5h window minute-precision (post-2026-04-23)
+
+- Anthropic switched 5h rate-limit window resets from hour-aligned to first-message+5h around 2026-04-23 — boundaries are now minute-precise (e.g. 13:20, 18:40)
+- usage-view used hour-floor mapping for window assignment, causing boundary-hour activity and sessions to be miscounted in the wrong window
+- Refactor: `window-utils.js` adds `buildGlobalTsMapper` (raw `ts` → window via merged ratelimit boundaries); `build-report.js` replaces hour-floor normalize with ts-precision mapping
+- timeline CSV schema unchanged — automatic migration from existing data
+- 4/23 이전 hour-aligned data is handled by the same algorithm naturally
+- Verified on 52,671 timeline rows × 91 ratelimit windows: 781 boundary-hour reattributions, 0 invariant violations, 270/270 sessions within window boundary
+
 ## [1.6.2] - 2026-04-28
 
 ### New: Concise Mode (built-in response style)

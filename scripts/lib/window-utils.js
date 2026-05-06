@@ -173,6 +173,26 @@ function buildGlobalWindowMap() {
   return buildHourToWindowMap(allHours, rlWindows);
 }
 
+/**
+ * Build a ts→window mapper using ratelimit 5h_reset boundaries.
+ * Anthropic switched 5h windows from hour-aligned to first-message+5h
+ * around 2026-04-23, making boundaries minute-precise. This mapper
+ * compares raw ts (second precision) against merged ratelimit windows.
+ *
+ * Returns: { tsToWindow(ts) -> windowStart|null, windows: [{start,end}] }
+ */
+function buildGlobalTsMapper() {
+  const rlStarts = scanRatelimitWindows();
+  const windows = mergeWindows(rlStarts, FIVE_HOURS_S);
+  function tsToWindow(ts) {
+    for (const w of windows) {
+      if (ts >= w.start && ts < w.end) return w.start;
+    }
+    return null;
+  }
+  return { tsToWindow, windows };
+}
+
 module.exports = {
   FIVE_HOURS_S,
   scanRatelimitWindows,
@@ -181,4 +201,5 @@ module.exports = {
   collectActiveHours,
   buildHourToWindowMap,
   buildGlobalWindowMap,
+  buildGlobalTsMapper,
 };
