@@ -2532,6 +2532,20 @@ function findWindowByKey(key) {
   return null;
 }
 
+// Format "(MM/DD HH:MM ~ HH:MM)" — collapse same-day to single date prefix,
+// keep both dates when session crosses midnight (e.g. "(5/5 21:40 ~ 5/6 01:04)").
+// startTime/endTime come in as "MM/DD HH:MM" strings from build-report.js.
+function formatTimeRange(startTime, endTime) {
+  if (!startTime) return '';
+  if (!endTime) return ' (' + startTime + '~)';
+  var sParts = startTime.split(' ');
+  var eParts = endTime.split(' ');
+  if (sParts.length === 2 && eParts.length === 2 && sParts[0] === eParts[0]) {
+    return ' (' + startTime + ' ~ ' + eParts[1] + ')';
+  }
+  return ' (' + startTime + ' ~ ' + endTime + ')';
+}
+
 function fmtTokens(n) {
   if (n >= 1e6) return (n/1e6).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + 'M';
   if (n >= 1e3) return (n/1e3).toFixed(1) + 'K';
@@ -2552,7 +2566,7 @@ function buildDetailTable(details) {
   for (var j = 0; j < details.length; j++) {
     var d = details[j];
     var tr = createEl('tr', { style: { borderBottom: '1px solid var(--bg-tertiary)' } });
-    var idLabel = d.id.slice(0, 8) + (d.startTime ? ' (' + d.startTime + '~)' : '');
+    var idLabel = d.id.slice(0, 8) + formatTimeRange(d.startTime, d.endTime);
     var cells = [
       { text: idLabel, align: 'left' },
       { text: d.type, align: 'left' },
@@ -2860,7 +2874,7 @@ function showWindowDetail(win, opts) {
       // Programmatic session grouping
       var detailCount = (s.details && s.details.length) || 0;
       var header = createEl('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } });
-      var progText = I18N.session.programmaticExec.replace('{count}', detailCount) + (s.startTime ? ' (' + s.startTime + '~)' : '');
+      var progText = I18N.session.programmaticExec.replace('{count}', detailCount) + formatTimeRange(s.startTime, s.endTime);
       header.appendChild(createEl('span', { style: { fontWeight: '600' }, textContent: progText }));
       header.appendChild(createEl('span', { style: { fontWeight: '600', color: 'var(--accent-green)' }, textContent: '$' + s.cost.toFixed(2) }));
       card.appendChild(header);
@@ -2894,7 +2908,7 @@ function showWindowDetail(win, opts) {
       // Batch session grouping (same firstMsg)
       var detailCount = (s.details && s.details.length) || 0;
       var header = createEl('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } });
-      var batchText = I18N.session.batchExec.replace('{count}', detailCount) + (s.startTime ? ' (' + s.startTime + '~)' : '');
+      var batchText = I18N.session.batchExec.replace('{count}', detailCount) + formatTimeRange(s.startTime, s.endTime);
       header.appendChild(createEl('span', { style: { fontWeight: '600' }, textContent: batchText }));
       header.appendChild(createEl('span', { style: { fontWeight: '600', color: 'var(--accent-green)' }, textContent: '$' + s.cost.toFixed(2) }));
       card.appendChild(header);
@@ -2924,7 +2938,7 @@ function showWindowDetail(win, opts) {
     } else {
       // Main session (default rendering)
       var header = createEl('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } });
-      var idText = s.id + (s.startTime ? ' (' + s.startTime + '~)' : '');
+      var idText = s.id + formatTimeRange(s.startTime, s.endTime);
       var idSpan = createEl('span', { className: 'session-id', style: { fontWeight: '600' }, textContent: idText });
       header.appendChild(idSpan);
       header.appendChild(createEl('span', { style: { fontWeight: '600', color: 'var(--accent-green)' }, textContent: '$' + s.cost.toFixed(2) }));
@@ -2983,8 +2997,8 @@ function hideWindowDetail() {
 function updateWindowHighlights() {
   var cells = document.querySelectorAll('.calendar-cell');
   cells.forEach(function(cell) {
-    var cellKey = cell.dataset.windowKey || null;
-    if (selectedWindowKey && cellKey === selectedWindowKey) {
+    var keys = (cell.dataset.windowKeys || cell.dataset.windowKey || '').split(',').filter(Boolean);
+    if (selectedWindowKey && keys.indexOf(selectedWindowKey) !== -1) {
       cell.classList.add('window-selected');
     } else {
       cell.classList.remove('window-selected');
@@ -3028,7 +3042,53 @@ function updateBlockHighlight(dateKey, hour) {
 
 function showBlockDetail(win, dateKey, hour) {
   var hourStr = String(hour);
-  var hourCost = win.hourlyCosts && win.hourlyCosts[hourStr] != null ? win.hourlyCosts[hourStr] : 0;
+
+  // Aggregate from ALL windows that include this hour cell.
+  // Boundary hours belong to two adjacent 5h windows (e.g. hour 18 ∈
+  // both 13:20-18:20 and 18:20-23:20). For 1-hour block view we want
+  // the complete picture of that hour, regardless of window scoping.
+  var contributingWins = (REPORT_DATA.windows || []).filter(function(W) {
+    if (W.date !== dateKey) {
+      // Window may span midnight — handle next-day case
+      var sH = parseInt(W.start.split(':')[0], 10);
+      var eH = parseInt(W.end.split(':')[0], 10);
+      var eM = parseInt(W.end.split(':')[1] || '0', 10);
+      if (eM > 0) eH++;
+      // Cross-midnight window: dateKey is next day if date+1 matches
+      var wDate = dateKeyToDate(W.date);
+      var nextKey = dateToKey(new Date(wDate.getTime() + 86400000));
+      if (nextKey !== dateKey) return false;
+      return eH > sH ? false : (hour < eH);
+    }
+    var sH = parseInt(W.start.split(':')[0], 10);
+    var eH = parseInt(W.end.split(':')[0], 10);
+    var eM = parseInt(W.end.split(':')[1] || '0', 10);
+    if (eM > 0) eH++;
+    if (eH > sH) return hour >= sH && hour < eH;
+    return hour >= sH; // wraps to next day
+  });
+  if (contributingWins.length === 0) contributingWins = [win];
+
+  // Sum cost across contributing windows for this hour
+  var hourCost = contributingWins.reduce(function(sum, W) {
+    return sum + (W.hourlyCosts && W.hourlyCosts[hourStr] != null ? W.hourlyCosts[hourStr] : 0);
+  }, 0);
+
+  // Merge sessions from all contributing windows.
+  // Same session id may appear in two windows (boundary case) — keep one,
+  // hourly stats are scoped to the hour so identical regardless of window.
+  var seenSessionIds = {};
+  var win = { windowSessions: [], continueEvents: [], alertMessages: [] };
+  contributingWins.forEach(function(W) {
+    (W.windowSessions || []).forEach(function(s) {
+      if (!seenSessionIds[s.id]) {
+        seenSessionIds[s.id] = true;
+        win.windowSessions.push(s);
+      }
+    });
+    (W.continueEvents || []).forEach(function(ce) { win.continueEvents.push(ce); });
+    (W.alertMessages || []).forEach(function(a) { win.alertMessages.push(a); });
+  });
 
   // Filter and slice sessions to this 1-hour block
   var filteredSessions = (win.windowSessions || []).filter(function(s) {
@@ -3044,7 +3104,7 @@ function showBlockDetail(win, dateKey, hour) {
       var dh = d.hourly && d.hourly[hourStr];
       if (!dh) return d;
       return {
-        id: d.id, type: d.type, startTime: d.startTime,
+        id: d.id, type: d.type, startTime: d.startTime, endTime: d.endTime,
         messages: dh.messages, input: dh.input, output: dh.output,
         cache1h: dh.cache1h, cache5m: dh.cache5m, cacheRead: dh.cacheRead,
         cost: dh.cost
@@ -3089,7 +3149,7 @@ function renderCalendar() {
     if (!dateMap[key]) {
       dateMap[key] = [];
       for (var i = 0; i < 24; i++) {
-        dateMap[key].push({ cost: 0, isRateLimit: false, isActive: false, hasSkull: false, hasAlert: false, windowStart: null, windowEnd: null, windowDate: null, inWindow: false });
+        dateMap[key].push({ cost: 0, isRateLimit: false, isActive: false, hasSkull: false, hasAlert: false, windowStart: null, windowEnd: null, windowDate: null, inWindow: false, windowKeys: [] });
       }
     }
   }
@@ -3113,16 +3173,26 @@ function renderCalendar() {
       ensureDate(dateKey);
       var isActive = activeHours ? activeHours.indexOf(hourInWindow) !== -1 : true;
       var hourCost = isActive && hourlyCosts[String(hourInWindow)] != null ? hourlyCosts[String(hourInWindow)] : 0;
+      var prev = dateMap[dateKey][h];
+      var prevKeys = prev && prev.windowKeys ? prev.windowKeys.slice() : [];
+      var thisKey = w.date + '|' + w.start;
+      if (prevKeys.indexOf(thisKey) === -1) prevKeys.push(thisKey);
+      // Boundary-shared cell: cost is summed across windows; primary window
+      // (used for click/tooltip default) is the latest assignment.
+      var combinedCost = (prev && prev.inWindow ? prev.cost : 0) + (isActive ? hourCost : 0);
+      var combinedActive = (prev && prev.isActive) || isActive;
       dateMap[dateKey][h] = {
-        cost: isActive ? hourCost : 0,
-        isRateLimit: isActive ? isRateLimit : false,
-        isActive: isActive,
-        hasSkull: false,
+        cost: combinedCost,
+        isRateLimit: isActive ? isRateLimit : (prev && prev.isRateLimit) || false,
+        isActive: combinedActive,
+        hasSkull: prev && prev.hasSkull || false,
+        hasAlert: prev && prev.hasAlert || false,
         windowStart: w.start,
         windowEnd: w.end,
         windowDate: w.date,
         inWindow: true,
-        windowIsRateLimit: isRateLimit
+        windowIsRateLimit: isRateLimit,
+        windowKeys: prevKeys
       };
     }
 
@@ -3259,9 +3329,14 @@ function renderCalendar() {
         style: { background: color }
       });
 
-      // Store window key for click selection
+      // Store window key for click selection. For boundary cells shared
+      // across two windows (e.g. hour 18 ∈ both 13:20-18:20 and 18:20-23:20),
+      // record all window keys so highlight matches either window.
       var wk = getWindowKey(slot);
       if (wk) cell.dataset.windowKey = wk;
+      if (slot.windowKeys && slot.windowKeys.length) {
+        cell.dataset.windowKeys = slot.windowKeys.join(',');
+      }
       cell.dataset.hour = h;
       cell.dataset.dateKey = entry.key;
 

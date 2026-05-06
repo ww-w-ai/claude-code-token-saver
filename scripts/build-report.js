@@ -1352,6 +1352,7 @@ for (const winStart of winStarts) {
       cacheRead: sessionCacheRead,
       cost: sessionCost,
       startTime: meta.firstTs ? fsd(new Date(meta.firstTs)) + ' ' + ft(new Date(meta.firstTs)) : '',
+      endTime: meta.lastTs ? fsd(new Date(meta.lastTs)) + ' ' + ft(new Date(meta.lastTs)) : '',
       activeHours: Object.keys(hourly).map(Number).sort((a, b) => a - b),
       hourly: hourly
     };
@@ -1484,6 +1485,7 @@ for (const winStart of winStarts) {
       firstMsg: winFirstMsg,
       lastMsg: winLastMsg,
       startTime: mainMeta && mainMeta.firstTs ? fsd(new Date(mainMeta.firstTs)) + ' ' + ft(new Date(mainMeta.firstTs)) : '',
+      endTime: mainMeta && mainMeta.lastTs ? fsd(new Date(mainMeta.lastTs)) + ' ' + ft(new Date(mainMeta.lastTs)) : '',
       messages: totalMessages,
       input: totalInput,
       output: totalOutput,
@@ -1722,6 +1724,10 @@ for (const winStart of winStarts) {
     date: fsd(winDate),
     start: ft(winDate),
     end: ft(winEndDate),
+    // Raw second-precise boundaries from ratelimit data — preferred over
+    // re-parsing start/end strings in the renderer.
+    startTs: winStart,
+    endTs: winEnd,
     usage: 0, // Cannot compute usage % without rate limit data
     cost: round2(winCost),
     eventCount: entries.length,
@@ -1965,35 +1971,52 @@ for (let dow = 0; dow < 7; dow++) {
   dowStats.push({ dow, label: dowLabels[dow], avg, max, calAvg });
 }
 
-// 7. Plugin installed date (oldest birthtime across all cached versions)
+// 7. Plugin installed date — read CC's authoritative tracking from
+// ~/.claude/plugins/installed_plugins.json (`installedAt` field).
+// CC writes this on first install and preserves it across version updates.
+// Falls back to cache directory birthtime if the file is unavailable.
 let pluginInstalledAt = null;
-// Scan all version directories in plugin cache for oldest birthtime
-// Cache path: ~/.claude/plugins/cache/{org}/{name}/{version}/
-// Derive org/name from repository URL in plugin.json
 try {
-  const pluginMeta = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '.claude-plugin', 'plugin.json'), 'utf8'));
-  const repoUrl = pluginMeta.repository || '';
-  const repoMatch = repoUrl.match(/github\.com\/([^/]+\/[^/]+)/);
-  if (repoMatch) {
-    const cacheBase = path.join(os.homedir(), '.claude', 'plugins', 'cache', ...repoMatch[1].split('/'));
-    if (fs.existsSync(cacheBase)) {
-      for (const ver of fs.readdirSync(cacheBase)) {
-        const verDir = path.join(cacheBase, ver);
-        try {
-          if (!fs.statSync(verDir).isDirectory() && !fs.lstatSync(verDir).isSymbolicLink()) continue;
-        } catch(e) { continue; }
-        // Check plugin.json in each version
-        for (const candidate of ['.claude-plugin/plugin.json', 'plugin.json']) {
-          try {
-            const bt = fs.statSync(path.join(verDir, candidate)).birthtime.toISOString();
-            if (!pluginInstalledAt || bt < pluginInstalledAt) pluginInstalledAt = bt;
-          } catch(e) {}
+  const installedJsonPath = path.join(os.homedir(), '.claude', 'plugins', 'installed_plugins.json');
+  if (fs.existsSync(installedJsonPath)) {
+    const installed = JSON.parse(fs.readFileSync(installedJsonPath, 'utf8'));
+    const entries = installed && installed.plugins && installed.plugins['cc-token-saver@ww-w-ai'];
+    if (Array.isArray(entries) && entries.length > 0) {
+      // Pick the earliest installedAt across scopes (user/project)
+      for (const e of entries) {
+        if (e && e.installedAt && (!pluginInstalledAt || e.installedAt < pluginInstalledAt)) {
+          pluginInstalledAt = e.installedAt;
         }
       }
     }
   }
 } catch(e) {}
-// Fallback: check local paths if cache scan found nothing
+// Fallback: oldest birthtime across cached version directories
+if (!pluginInstalledAt) {
+  try {
+    const pluginMeta = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '.claude-plugin', 'plugin.json'), 'utf8'));
+    const repoUrl = pluginMeta.repository || '';
+    const repoMatch = repoUrl.match(/github\.com\/([^/]+\/[^/]+)/);
+    if (repoMatch) {
+      const cacheBase = path.join(os.homedir(), '.claude', 'plugins', 'cache', ...repoMatch[1].split('/'));
+      if (fs.existsSync(cacheBase)) {
+        for (const ver of fs.readdirSync(cacheBase)) {
+          const verDir = path.join(cacheBase, ver);
+          try {
+            if (!fs.statSync(verDir).isDirectory() && !fs.lstatSync(verDir).isSymbolicLink()) continue;
+          } catch(e) { continue; }
+          for (const candidate of ['.claude-plugin/plugin.json', 'plugin.json']) {
+            try {
+              const bt = fs.statSync(path.join(verDir, candidate)).birthtime.toISOString();
+              if (!pluginInstalledAt || bt < pluginInstalledAt) pluginInstalledAt = bt;
+            } catch(e) {}
+          }
+        }
+      }
+    }
+  } catch(e) {}
+}
+// Final fallback: local plugin.json birthtime
 if (!pluginInstalledAt) {
   for (const p of [
     path.join(__dirname, '..', '.claude-plugin', 'plugin.json'),
