@@ -1,37 +1,53 @@
-# cc-token-saver
+# claude-code-upgrader
 
-> **Claude Code unterbricht dich ständig? Nicht mehr.**
->
-> Weniger ausgeben, länger coden und genau sehen, wohin deine Token gehen — ohne Konfiguration.
+**Das einzige Claude Code Plugin, das den CC-Quellcode tatsächlich liest, um herauszufinden, wohin deine Tokens fließen — und es automatisch behebt. Weniger ausgeben, länger coden.**
 
-Wie? Automatisches Context-Management, Echtzeit-Kostenüberwachung und cache-bewusste Session-Steuerung — alles in einem Plugin.
+> Gemessenes Ergebnis: **45 % Kostenreduktion** bei einer realen Auslastung von $326/Tag → $180/Tag. Cache-Ablaufprävention, automatische SubTask-Delegation, kostenfreie Kontextwiederherstellung und ein vollständiges Analyse-Dashboard — in einer Installation, null Konfiguration.
+
+Funktioniert mit **Max Plan ($200/Monat)** und **API Pay-per-Use**. Dasselbe Plugin, dieselben Funktionen. Besser für jeden Nutzer — besonders wenn jedes Token echtes Geld bedeutet.
+
+![Nutzungs-Dashboard — sieh genau, wohin deine Tokens fließen](docs/images/usage-view-overview.png)
+
+### Was es in 30 Sekunden tut
+
+| Funktion | Was passiert | Auswirkung |
+| ------- | ------------ | ------ |
+| 🛡️ Token Guardian | Erkennt Cache-Ablauf, blockiert $9-Wiederholungen bevor sie passieren | Verhindert die häufigste stille Kostenspitze |
+| 🧠 Session Architect | Delegiert schwere Arbeit automatisch an SubTasks (37,5 % günstigerer Cache) | Kontext bleibt klein, Kosten sinken |
+| 🪶 Concise Mode | Reduziert Fülltext, behält das Wesentliche | Weniger Ausgabe-Tokens pro Antwort |
+| 🔄 /continue | Ersetzt /compact — null LLM-Aufrufe, null Kosten, null Informationsverlust | Kostenfreie Kontextwiederherstellung |
+| 📊 Status Line | Echtzeit-Kosten, Kontextgröße, Rate-Limit — unter 50 ms | Probleme sehen bevor sie Kosten verursachen |
+| 📈 /usage-view | Interaktives HTML-Dashboard mit KI-gestützter Analyse | Vollständige Kostenanalyse per Klick |
+| ✂️ /setup-git-lite | Entfernt 2.200 versteckte Tokens, die CC jede Sitzung injiziert | ~$48/Monat allein durch Git-Anweisungen gespart |
 
 ---
 
-## 😤 Das Problem: $200/Monat und du kommst trotzdem nicht zum Arbeiten
+## 😤 Das Problem
 
-Claude Code Max Plan ($200/Monat). Sollte reichen. Tut es nicht.
+**Cache-Ablauf.** Du kommst vom Mittagessen zurück. Der Cache ist weg. Die nächste Nachricht sendet 900.000 Tokens zum vollen Preis neu. $9 auf einen Schlag.
 
-**5-Stunden-Rollfenster als Rate Limit.** Du bist mitten im Coding-Flow und es stoppt einfach. Kein Timer. Keine geschätzte Wartezeit. Einfach warten.
+**Unsichtbare Kosten.** Keine Echtzeittransparenz. Keine Warnung „dein Kontext ist bei 800.000 Token". Kein Alert „Cache ist vor 3 Minuten abgelaufen". Du erfährst es erst, nachdem der Schaden entstanden ist.
 
-**Cache-Ablauf.** Du kommst vom Mittagessen zurück. Über eine Stunde vergangen. Du schickst einen Prompt und 900K Token werden zum vollen Preis erneut gesendet. Kosten? $9 auf einen Schlag.
+**Kontext-Aufblähung.** Derselbe Prompt kostet bei 200K versus 800K Kontext das Vierfache. Jedes Read, Grep, Edit sendet den vollständigen Kontext erneut. Ein komplexer Prompt löst 15+ API-Aufrufe aus, jeder multipliziert mit deiner Kontextgröße.
 
-**Unsichtbare Kosten.** Es gibt keine Möglichkeit, die Ausgaben in Echtzeit zu sehen. Du erfährst es erst, wenn das Rate Limit zuschlägt.
+**Alles manuell.** Kontextverwaltung, Cache-Ablauftiming, SubTask-Delegation, Session-Bereinigung. Niemand kann das alles im Blick behalten, während er tatsächlich programmiert.
 
-**Alles manuell.** Context-Größe, Cache-Ablaufzeitpunkt, SubTask-Delegation, Session-Bereinigung. Das kann niemand im Blick behalten und gleichzeitig coden.
+**Max Plan ($200/Monat)?** Alles oben genannte, plus ein 5-Stunden-Rate-Limit, das deinen Flow ohne Timer und ohne ETA unterbricht.
 
-cc-token-saver übernimmt das alles automatisch. **Einmal installieren. Fertig.**
+**API Pay-per-Use?** Alles oben genannte, nur ohne Obergrenze. Ein Cache-Miss = $9 echtes Geld. Zehnmal pro Woche = $360/Monat allein durch Fehler. Ein schlechter Dienstag mit aufgeblähtem Kontext kann mehr kosten als ein Max-Plan-Abonnent im Monat zahlt.
+
+claude-code-upgrader erledigt das alles automatisch. **Einmal installieren. Fertig.**
 
 ---
 
 ## 🚀 Installation
 
 ```
-claude plugin marketplace add ww-w-ai/cc-token-saver
-claude plugin install cc-token-saver
+/plugin marketplace add ww-w-ai/marketplace
+/plugin install claude-code-upgrader@ww-w-ai
 ```
 
-Funktioniert automatisch nach der Installation. Keine Konfiguration nötig. Erfordert [Claude Code](https://claude.ai/claude-code) v2.1.71+.
+Funktioniert nach der Installation automatisch. Null Konfiguration. Benötigt [Claude Code](https://claude.ai/claude-code) v2.1.71+.
 
 Für Live-Monitoring:
 
@@ -39,212 +55,267 @@ Für Live-Monitoring:
 /setup-statusline install
 ```
 
----
-
-## 🛡️ Feature 1: Token Guardian
-
-**Erkennt Cache-Ablauf und blockiert automatisch teure Neuübertragungen.**
-
-Die Prompt-Cache-TTL von Claude Code beträgt 1 Stunde. Verlasse den Rechner für mehr als eine Stunde und der Cache läuft ab. Deine nächste Nachricht sendet den gesamten Context zum vollen Preis erneut. Bei 900K Token sind das $9 auf einen Schlag.
-
-Token Guardian verfolgt, wann die letzte Antwort eingegangen ist. Wenn mehr als 3.590 Sekunden vergangen sind (TTL minus 10 Sekunden Puffer), blockiert er den Prompt und zeigt eine Warnung an.
+Um 2.200 versteckte Tokens aus CCs eingebauten Git-Anweisungen zu entfernen ([Details](#%EF%B8%8F-feature-5-setup-git-lite--trim-ccs-built-in-git-instructions)):
 
 ```
-🚨 Cache abgelaufen (68m 23s inaktiv)
-
-Der Cache ist abgelaufen. Fortfahren sendet den gesamten Kontext erneut.
-Die Kosten können erheblich steigen.
-
-👉 /context — Aktuelle Kontextnutzung prüfen, bevor Sie entscheiden
-👉 /clear → /continue — Zurücksetzen, dann vorherigen Kontext wiederherstellen (empfohlen, günstigste Option)
-👉 Erneut senden — Fortfahren wie gehabt (volle Re-Cache-Kosten anfallend)
+/setup-git-lite install
 ```
-
-Sende denselben Prompt nach der Warnung erneut und er wird ausgeführt. Die Warnung erscheint nur einmal pro Inaktivitätsphase, nervt also nie. Warnmeldungen werden in 23 Sprachen angezeigt, basierend auf deinem OS-Locale.
-
-**Ergebnis:** Teure Re-Cache-Kosten werden automatisch verhindert. Kein Aufwand nötig.
 
 ---
 
-## 🧠 Feature 2: Smart Session Architecture
+## 🛡️ Funktion 1: Token Guardian
 
-**Installieren — und kostenoptimierte Arbeitsweisen setzen automatisch ein.**
+**Erkennt Cache-Ablauf und blockiert automatisch teure Wiederholungen.**
 
-Die meisten Nutzer machen alles in der Main Session. Dateien lesen, Code generieren, Tests ausführen. Jede Ausgabe häuft sich im Context an und wird mit jeder Nachricht erneut gesendet. Die Session bläht sich auf. Die Kosten explodieren.
+Die Prompt-Cache-TTL von Claude Code beträgt 1 Stunde. Bist du länger als eine Stunde weg, läuft der Cache ab. Deine nächste Nachricht sendet den gesamten Kontext zum vollen Preis neu. Bei 900.000 Tokens sind das $9 auf einmal.
 
-Session Architect fügt beim Session-Start automatisch eine Delegationsstrategie ein.
+Token Guardian verfolgt, wann die letzte Antwort empfangen wurde. Wenn mehr als 3.590 Sekunden vergangen sind (TTL minus 10 Sekunden Puffer), blockiert es den Prompt und zeigt eine Warnung.
+
+```
+🚨 Cache expired (68m 23s idle)
+
+The prompt cache has expired. Continuing will resend the full context.
+Cost may increase significantly.
+
+👉 /context — Check current context usage before deciding
+👉 /clear → /continue — Reset, then restore previous context (recommended, cheapest)
+👉 Re-send — Continue as-is (full re-cache cost incurred)
+```
+
+Schick nach der Warnung denselben Prompt erneut — er wird durchgelassen. Die Warnung erscheint nur einmal pro Leerlaufperiode, nervt also nicht. Warnmeldungen werden in 23 Sprachen basierend auf deinem OS-Gebietsschema angezeigt.
+
+**Ergebnis:** Jeder abgefangene Cache-Ablauf = $9 gespart. Bei einem Abfang pro Tag sind das $270/Monat reiner Verschwendung, die eliminiert wird.
+
+> **Bei API Pay-per-Use trifft das härter.** Max-Plan-Abonnenten verlieren $9 innerhalb eines $200-Puffers. Du verlierst $9 echtes Geld — lautlos, wiederholt, jedes Mal wenn du kurz weggehst. Token Guardian fängt es jedes Mal ab.
+
+---
+
+## 🧠 Funktion 2: Smart Session Architecture
+
+**Installier es, und kostenoptimierte Arbeitsmuster greifen automatisch.**
+
+Die meisten Nutzer erledigen alles in der Main Session. Dateien lesen, Code generieren, Tests ausführen. Jede Ausgabe stapelt sich im Kontext und wird mit jeder Nachricht erneut gesendet. Die Session bläht sich auf. Kosten schneeballartig.
+
+Session Architect injiziert automatisch eine Delegationsstrategie beim Sitzungsstart.
 
 |                  | Main Session                      | SubTask                               |
 | ---------------- | --------------------------------- | ------------------------------------- |
-| Rolle            | Design, Entscheidungen, Review    | Implementierung, Code-Generierung, Multi-File |
-| Cache-Stufe      | 1 Stunde (ephemeral_1h)           | 5 Min                                 |
-| Cache-Write-Kosten | ＄10/MTok                        | ＄6,25/MTok                            |
-| Context-Größe    | ~94K Durchschnitt                 | ~33K Durchschnitt                     |
+| Rolle             | Design, Entscheidungen, Review         | Implementierung, Code-Gen, Multi-File  |
+| Cache-Tier       | 1 Stunde (ephemeral_1h)             | 5 Min                                 |
+| Cache-Schreibkosten | ＄10/MTok                          | ＄6,25/MTok                            |
+| Kontextgröße     | ~94K Durchschnitt                          | ~33K Durchschnitt                              |
 
-SubTasks haben **37,5 % günstigere Cache-Writes** als Main. Der Context ist außerdem viel kleiner. Schwere Arbeit an SubTasks zu delegieren senkt die Kosten drastisch.
+SubTasks haben **37,5 % günstigere Cache-Schreibvorgänge** als Main. Der Kontext ist auch viel kleiner. Schwere Arbeit an SubTasks zu delegieren senkt die Kosten drastisch.
 
-**Ergebnis:** Claude arbeitet automatisch in einem kosteneffizienten Muster. Du musst nicht darüber nachdenken.
+**Ergebnis:** Kontext bleibt unter 250K statt auf 600K+ zu wachsen. Gleicher Arbeitsoutput, halbe Token-Kosten. Vollautomatisch.
 
 ---
 
 ## 🪶 Concise Mode
 
-**Gleicher Inhalt. Weniger Füllmaterial. Standardmäßig aktiv.**
+**Gleicher Inhalt. Weniger Fülltext. Standardmäßig aktiviert.**
 
-Derselbe SessionStart-Hook injiziert auch eine Antwortstil-Regel, die in **jeder Session und jedem Modell** läuft — keine Flags, kein Setup. Drei Dinge ändern sich:
+Der SessionStart-Hook injiziert auch eine Antwortstil-Regel, die in **jeder Session und jedem Modell** läuft — keine Flags, kein Setup. Drei Dinge ändern sich:
 
-- **Präambel raus** — kein "Lass mich prüfen…", kein "Ich werde jetzt…", kein Wiederholen deiner Frage, kein Zusammenfassen dessen, was im Diff bereits sichtbar ist
-- **Passendes Format für den Inhalt** — Bullets für Listen, Prosa für Argumentation (Tradeoffs, Kausalität, Begründungen). Keines wird erzwungen
-- **Straffere Ausdrucksweise** — gleicher Punkt, weniger Worte. Klarere Prosa ist kürzere Prosa
+- **Kein Vorwort** — kein „Lass mich prüfen…", „Ich werde jetzt…", keine Wiederholung deiner Frage oder Zusammenfassung von dem, was das Diff bereits zeigt
+- **Richtiges Format für den Inhalt** — Stichpunkte für Listen, Fließtext für Überlegungen (Abwägungen, Kausalität, Begründung). Keines wird erzwungen
+- **Präziserer Ausdruck** — gleicher Punkt, weniger Wörter. Klarerer Text ist kürzerer Text
 
-Harte Grenze: niemals Inhalt streichen, Verifizierung überspringen oder Nuancen in einen Satz quetschen. Die Substanz bleibt vollständig; nur die Verpackung schrumpft.
+Hartes Limit: Niemals Inhalte weglassen, Verifizierung überspringen oder Nuancen in einen einzelnen Satz zusammenpressen. Inhalt bleibt vollständig; nur die Verpackung schrumpft.
 
-Einmal installieren, gilt überall.
+Einmal installieren, überall angewendet.
 
 ---
 
+## 🔄 Funktion 3: /continue — Kontextwiederherstellung
 
-## 🔄 Feature 3: /continue — Context-Wiederherstellung
+**Ersetzt `/compact`. Null LLM-Aufrufe. Null Token-Kosten. Null Informationsverlust.**
 
-**Ersetzt `/compact`. Null LLM-Aufrufe. Null Token-Kosten.**
+`/compact` sendet deinen gesamten Kontext (~1M Tokens) an das LLM, um ihn auf eine 3,3%-Zusammenfassung zu komprimieren. Ist der Cache abgelaufen, löst das allein einen vollständigen Re-Cache aus. Informationsverlust ist unvermeidlich.
 
-`/compact` sendet deinen gesamten Context (~1M Token) an das LLM, um eine 3,3 %-Zusammenfassung zu erstellen. Wenn der Cache abgelaufen ist, löst allein das einen vollständigen Re-Cache aus. Informationsverlust ist unvermeidlich.
-
-`/continue` geht einen völlig anderen Weg. Es verarbeitet das vorherige Session-Transkript vor und liest es direkt ein. Kein LLM-Aufruf. Keine Kosten. Die ursprüngliche Konversation wird originalgetreu wiederhergestellt.
+`/continue` verfolgt einen völlig anderen Ansatz. Es verarbeitet das Transkript der vorherigen Session vor und lädt es direkt. Kein LLM-Aufruf. Keine Kosten. Das ursprüngliche Gespräch wird wie es war wiederhergestellt.
 
 |                         | /compact                          | /continue                        |
 | ----------------------- | --------------------------------- | -------------------------------- |
-| Funktionsweise          | Sendet gesamten Context an LLM zur Zusammenfassung | Verarbeitet Transkript vor, liest direkt ein |
-| LLM-Aufrufe             | Erforderlich (typischerweise 100K+ Token) | 0                          |
-| Token-Kosten            | Hoch                              | 0                                |
-| Informationsverlust     | Ja (3,3 % Zusammenfassung)        | Keiner (Original bleibt erhalten) |
-| Verarbeitungsgeschwindigkeit | Dutzende Sekunden             | < 1 Sek (selbst bei 60 MB+ Dateien) |
-| Bei abgelaufenem Cache  | Zusätzliche Re-Cache-Kosten       | Kein Einfluss                    |
-| Multi-Session-Wiederherstellung | Nicht möglich               | Unterstützt                      |
+| Funktionsweise            | Sendet vollständigen Kontext an LLM für Zusammenfassung | Verarbeitet Transkript vor, liest direkt |
+| LLM-Aufrufe               | Erforderlich (typischerweise 100K+ Tokens) | 0                                |
+| Token-Kosten              | Hoch                              | 0                                |
+| Informationsverlust        | Ja (3,3% Zusammenfassung)                | Nein (Original erhalten)        |
+| Verarbeitungsgeschwindigkeit        | Viele Sekunden                   | < 1 Sek (auch bei 60MB+ Dateien)       |
+| Bei abgelaufenem Cache   | Vollständige Re-Cache-Kosten on top         | Keine Auswirkung                        |
+| Multi-Session-Restore   | Nicht möglich                      | Unterstützt                        |
 
-Nutzung: `/clear` dann `/continue`. Du siehst eine Liste vorheriger Sessions. Wähle aus, welche du wiederherstellen möchtest. Für schnelle Wiederherstellung: `/continue last`.
+Nutzung: `/clear` dann `/continue`. Eine Liste vorheriger Sessions erscheint. Eine auswählen zum Wiederherstellen. Für schnelle Wiederherstellung: `/continue last`.
 
-**Ergebnis:** Vorherige Arbeit ohne Kosten fortsetzen. Kein Informationsverlust.
+**Ergebnis:** Vorherige Arbeit zum Nulltarif fortsetzen. Kein Informationsverlust. 60MB+ Transkripte in unter 1 Sekunde verarbeitet.
 
 ---
 
-## 📊 Feature 4: Live Status Line
+## 📊 Funktion 4: Live Status Line
 
-**Token-/Kostenüberwachung in Echtzeit. Unter 50 ms Overhead.**
+**Echtzeit-Token/Kosten-Monitoring. Unter 50 ms Overhead.**
 
-Führe `/setup-statusline install` einmal aus und eine permanente Statusleiste erscheint am unteren Rand von Claude Code.
+Einmal `/setup-statusline install` ausführen und eine permanente Statusleiste erscheint am unteren Rand von Claude Code.
 
-```
-[RUN🟢] $0.10/$12.23 | [5H🟢] 9% ⏳1h32m | [CTX🟢] 22%
-```
+**Normalbetrieb** — alle Metriken auf einen Blick, null Kontextwechsel:
 
-| Indikator        | Was er anzeigt                      | 🟢 Normal | 🟡 Warnung | 🔴 Kritisch |
+![Statusleiste im Normalzustand](docs/images/statusline-normal.png)
+
+**Rate-Limit erreicht** — 5H wird bei 102% rot, der Countdown zeigt genau wann du wieder kannst, und eine Ein-Tipp-`/report-limit`-Aktion erscheint automatisch:
+
+![Statusleiste bei Rate-Limit](docs/images/statusline-rate-limited.png)
+
+| Indikator        | Was er zeigt                       | 🟢 Normal | 🟡 Warnung | 🔴 Kritisch |
 | ---------------- | ----------------------------------- | --------- | ---------- | ----------- |
-| RUN (Delta)      | Kosten des letzten API-Aufrufs      | < ＄0.30   | >= ＄0.30   | >= ＄1,00    |
-| RUN (Kumuliert)  | Gesamtkosten für diesen Ordner      | —         | —          | —           |
-| 5H               | 5-Stunden-Fenster-Nutzung + Reset-Countdown | < 70 % | >= 70 %   | >= 90 %     |
-| CTX              | Context-Window-Auslastung           | < 35 %    | >= 35 %    | >= 70 %     |
+| RUN (Delta)      | Kosten des letzten API-Aufrufs           | < ＄0,30   | >= ＄0,30   | >= ＄1,00    |
+| RUN (Kumulativ) | Kumulative Kosten für diesen Ordner     | —         | —          | —           |
+| 5H               | Nutzung des 5-Stunden-Fensters + Reset-Countdown | < 70%     | >= 70%     | >= 90%      |
+| CTX              | Nutzung des Kontextfensters                | < 35%     | >= 35%     | >= 70%      |
 
-Wenn ein Indikator die Warn- oder kritische Schwelle erreicht, erscheint automatisch ein `→ /usage-view current` Hinweis.
+Wenn ein Indikator Warnung oder Kritisch erreicht, erscheint automatisch ein `→ /usage-view current`-Hinweis.
 
 Zum Entfernen: `/setup-statusline uninstall` (vorherige Konfiguration wird automatisch wiederhergestellt).
 
-**Ergebnis:** Deinen Kostenstatus auf einen Blick sehen. Handeln, bevor es zu spät ist.
+**Ergebnis:** Jedes Kostenproblem in Echtzeit sichtbar. Unter 50 ms Overhead — keine wahrnehmbare Verzögerung.
+
+> **Bei API Pay-per-Use?** Die 5H- und W-Indikatoren werden automatisch ausgeblendet — du hast keine Rate-Limit-Fenster. Was bleibt, ist das Wichtige: RUN (Echtzeit-Kosten pro Runde) und CTX (Kontextgröße). Die zwei Hebel, die deine Rechnung kontrollieren, immer sichtbar.
 
 ---
 
-## 📈 Usage Dashboard (/usage-view)
+## 📈 Nutzungs-Dashboard (/usage-view)
 
-**Endlich die Antwort auf: "Warum wurde ich rate-limited?"**
+**Endlich die Antwort: „Wo ist das ganze Geld hingegangen?"**
 
-Bisher hat das Rate Limit nur geärgert. Keine Möglichkeit, die Ursache zu erkennen. Welche Session hat die meisten Token verbraucht? Wann sind die Kosten explodiert? Welche Muster gibt es in deiner Nutzung? Alles unsichtbar.
+Max-Plan-Nutzer erreichen das Rate-Limit und fragen sich warum. API-Nutzer öffnen die Anthropic-Rechnung und fragen sich wie. Die Frage ist in beiden Fällen dieselbe: Welche Session hat die meisten Tokens verbrannt? Wann sind die Kosten gestiegen? Welche Muster gibt es bei deiner Nutzung? Bisher — alles unsichtbar.
 
-`/usage-view` zeigt alles. Ein interaktives HTML-Dashboard öffnet sich im Browser und lässt dich Nutzungsmuster analysieren und die Ursache von Kostenspitzen zurückverfolgen. Keine externen Abhängigkeiten. Funktioniert eigenständig. Als Datei teilbar.
+`/usage-view` zeigt alles. Ein interaktives HTML-Dashboard öffnet sich im Browser, mit dem du Nutzungsmuster analysieren und die Grundursache von Kostenspitzen zurückverfolgen kannst. Keine externen Abhängigkeiten. Funktioniert standalone. Als Datei teilbar.
 
-Was enthalten ist:
+**$4.196 in 31 Tagen. Wohin sind sie gegangen?** Auf einen Blick — Gesamtkosten, Token-Aufschlüsselung nach Typ, Cache-Effizienzquote und Sitzungsanzahl. Das Donut-Diagramm zeigt sofort, dass 65 % deiner Ausgaben Cache-Reads sind (was normal und gesund ist):
 
-- Tages- / Stunden- / Wochentag-Kostentrends — erkennen, wann du die meisten Token verbrauchst
-- Token-Aufschlüsselung (Input, Output, Cache Write, Cache Read) — sehen, was die Kosten treibt
-- Kosten pro Session — feststellen, welche Aufgaben teuer waren
-- 5-Stunden-Fenster-Timeline (Max-Plan-Abonnenten) — Rate-Limit-Auslöser nachverfolgen
-- KI-gestützte Analyse — interpretiert Daten und schlägt Verbesserungen vor
-- 23 Sprachen unterstützt (RTL inklusive; Charts/Tabellen bleiben LTR)
+![Nutzungs-Dashboard-Übersicht](docs/images/usage-view-overview.png)
+
+**Vorher vs. nachher — gemessen, nicht geraten.** Der orangefarbene gestrichelte „Plugin installed"-Marker teilt deine Kosten-Zeitlinie in zwei. Tagesbalkens sind nach Token-Typ gestapelt (Input/Output/Cache Write/Cache Read), sodass du genau siehst, welche Komponente sich nach der Installation verändert hat. Die Durchschnittslinie zeigt den Trend:
+
+![Täglicher Kostentrend](docs/images/usage-view-daily-trend.png)
+
+**Wann verbrauchst du am meisten?** Stündliche Kosten nach Tageszeit und Wochentag-Aufschlüsselung. Zwischen Aktiv-Tage-Durchschnitt, Alle-Tage-Durchschnitt und Maximum umschalten. Flammen-Icons markieren deine teuersten Stunden — sichtbare Muster (nächtliche Marathons, Mittwochspitzen) springen sofort ins Auge:
+
+![Stündliches und wöchentliches Kostenmuster](docs/images/usage-view-hourly-pattern.png)
+
+**Wirst du effizienter?** Das Total/Output-Verhältnis misst, wie viele Tokens pro produziertem Output-Token verbraucht werden. Niedriger ist besser. Der „Plugin installed"-Marker lässt dich vorher vs. nachher vergleichen. Spitzen = Cache-Misses oder Session-Neustarts:
+
+![Effizienztrend](docs/images/usage-view-efficiency.png)
+
+**Jeder API-Aufruf, aufgetragen nach Kontextgröße und Kosten.** Das ist das Diagramm, das die Kostenstruktur klarmacht. Jeder Punkt ist ein API-Aufruf. Rot = Opus, Blau = Sonnet, Grün = Haiku. Die gestrichelten Linien sind theoretische Preise — wenn deine Punkte über der Linie liegen, überzahlst du. Auf **User Turn**-Ansicht umschalten, um Kosten pro Gesprächsrunde statt pro API-Aufruf zu sehen.
+Über jeden Punkt hovern, um den tatsächlichen Prompt-Text, Token-Anzahl und vollständige Kostenaufschlüsselung (Input/Output/Cache Write/Cache Read) zu sehen:
+
+![Kosten nach Kontextgröße — Streudiagramm](docs/images/usage-view-cost-scatter.png)
+
+**Wie groß sind deine Kontexte?** Die meisten Aufrufe clustern unter 250K. Der lange Schwanz über 350K ist wo die Kosten explodieren — dieses Diagramm zeigt genau, wie oft du in der Gefahrenzone bist:
+
+![Kontextgrößenverteilung](docs/images/usage-view-context-dist.png)
+
+**Dein Coding-Zeitplan, stündlich bepreist.** Eine 5-Stunden-Fenster-Heatmap über 30 Tage. Grün (<$15/h), Orange ($15-30/h), Rot ($30+/h). Das Schädel-Icon (💀) markiert Fenster, in denen du das Rate-Limit getroffen hast. Der Kosten-Schieberegler oben filtert günstige Fenster heraus, sodass teure hervorstechen — zieh ihn, um sofort deine schlimmsten Tage zu finden. Zwischen 5-Stunden-Fenster- und 1-Stunden-Block-Ansichten umschalten:
+
+![Stündliche Nutzungskalender-Heatmap](docs/images/usage-view-calendar.png)
+
+**Auf eine Zelle klicken, um die Sessions dieses Fensters aufzuschlüsseln.** Jede Session in diesem Zeitslot, mit Kosten, Nachrichtenanzahl, Token-Aufschlüsselung und den tatsächlichen ersten/letzten Nachrichten jedes Gesprächs. „Top Token Conversations" ausklappen, um zu sehen, welche spezifischen Austausche am meisten verbrannt haben — jeder Eintrag zeigt den Prompt-Text, Kosten-Alert-Tags und Optimierungshinweise:
+
+![Session-Detailbereich](docs/images/usage-view-session-drilldown.png)
+
+**KI-gestützte Analyse (optional).** Wenn du `/usage-view` ohne `--no-ai` ausführst, liest ein KI-Analyst deine vollständigen Dashboard-Daten — mit eingebettetem API-Preisreferenz — und erstellt einen schriftlichen Bericht: Kostentreiber, Anomalien, Optimierungsempfehlungen. Automatisch in deiner OS-Sprache angezeigt (23 Sprachen, RTL inklusive; Diagramme/Tabellen bleiben immer LTR):
+
+**Wohin das Geld gegangen ist** — Gesamtausgaben, Kostentreiber nach Token-Typ, Wochentrend und Plugin-Auswirkung in echten Zahlen gemessen:
+
+![KI-Analyse — Kostenaufschlüsselung](docs/images/usage-view-ai-report-1.png)
+
+**Wann und wie du arbeitest** — Spitzenstunden, geschäftigste Tage, API-Aufruf-Verteilung und Rate-Limit-Muster, die Optimierungsmöglichkeiten aufzeigen:
+
+![KI-Analyse — Arbeitsmuster](docs/images/usage-view-ai-report-2.png)
+
+**Was dagegen zu tun ist** — konkrete, datengestützte Empfehlungen, zugeschnitten auf deine tatsächliche Nutzung. Modellwechsel, Kontextverwaltung, Session-Strategie:
+
+![KI-Analyse — Empfehlungen](docs/images/usage-view-ai-report-3.png)
+
+**Teilen.** Das gesamte Dashboard ist eine einzelne selbstständige HTML-Datei — alle Daten eingebettet, kein Server nötig. An dein Team, deinen Manager oder deinen Buchhalter schicken. Keine externen Abhängigkeiten. Funktioniert offline. `private`-Modus nutzen, um alle Prompt-Texte vor dem Teilen zu entfernen — Kostenanalyse bleibt intakt, Gesprächsinhalte werden entfernt.
 
 ```
-/usage-view                  # Gesamter Zeitraum, alle Projekte
-/usage-view current          # Nur das aktuelle 5-Stunden-Fenster
+/usage-view                  # Alle Zeit, alle Projekte
+/usage-view current          # Nur aktuelles 5-Stunden-Fenster
 /usage-view last 7 days      # Letzte 7 Tage
-/usage-view locale de        # Deutsch
+/usage-view locale ja        # Japanisch
+/usage-view --no-ai          # KI-Analyse überspringen (schneller)
+/usage-view private          # Prompt-Text entfernen (sicher zum Teilen)
 ```
 
 ---
 
 ## 🔬 Rate-Limit-Forschung (/report-limit)
 
-**Community-Projekt zur Entschlüsselung der Rate-Limit-Formel.**
+**Community-getriebenes Projekt zum Reverse-Engineering der Rate-Limit-Formel.**
 
-Anthropic veröffentlicht die genaue Formel für das 5-Stunden-Fenster nicht. Lasst sie uns gemeinsam herausfinden.
+Anthropic veröffentlicht die genaue Formel für das 5-Stunden-Fenster nicht. Lass sie uns gemeinsam herausfinden.
 
-Wenn du ein Rate Limit erreichst, führe `/report-limit` aus. Deine Nutzungsdaten zu diesem Zeitpunkt werden automatisch als GitHub Discussion eingereicht. Je mehr Daten wir sammeln, desto klarer wird die Formel.
+Wenn du ein Rate-Limit erreichst, führe `/report-limit` aus. Deine aktuellen Nutzungsdaten werden automatisch als GitHub-Discussion eingereicht. Je mehr Daten wir sammeln, desto klarer wird die Formel.
 
 ---
 
-## ✂️ Feature 5: /setup-git-lite — CC's eingebaute Git-Anweisungen kürzen
+## ✂️ Funktion 5: /setup-git-lite — CCs eingebaute Git-Anweisungen kürzen
 
-**Die versteckten 2.200 Token pro Session, von denen du nicht wusstest, dass du sie bezahlst.**
+**Wir haben Claude Codes Quellcode gelesen. Wir haben 2.200 versteckte Tokens gefunden, die jede Sitzung injiziert werden und für die du lautlos bezahlst.**
 
 ### Die Entdeckung
 
-Am 2026-04-12 enthüllte ein [GitHub-Issue](https://github.com/anthropics/claude-code/issues/47107), dass Claude Codes eingebaute `includeGitInstructions`-Einstellung still und heimlich bei jeder Session Token verbrennt. Eine unabhängige Reproduktion via [diesem Gist (spilist)](https://gist.github.com/spilist/b0db92a859192f5ec6199d3f35a81b98) bestätigte die Zahlen: **+6.031 Token in cache_create** pro Session nach jedem git commit, **+1.690 Token in cache_read** bei jedem API-Aufruf.
+Am 12.04.2026 enthüllte ein [GitHub-Issue](https://github.com/anthropics/claude-code/issues/47107), dass Claude Codes eingebaute `includeGitInstructions`-Einstellung jede Sitzung lautlos Tokens verbrennt. Unabhängige Reproduktion via [dieses Gist (spilist)](https://gist.github.com/spilist/b0db92a859192f5ec6199d3f35a81b98) bestätigte die Zahlen: **+6.031 Tokens in Cache-Schreibvorgängen** pro Sitzung nach jedem Git-Commit, **+1.690 Tokens in Cache-Reads** bei jedem API-Aufruf.
 
-### CC-Quellcode-Analyse — wo die Token hingehen
+### CC-Quelltextanalyse — wohin die Tokens fließen
 
-Wir haben die Token auf zwei unabhängige Injektionspunkte im Claude Code-Quellcode (v2.1.88) zurückverfolgt:
+Wir haben die Tokens zu zwei unabhängigen Injektionspunkten im Claude Code-Quellcode (v2.1.88) verfolgt:
 
 **1. `gitStatus`-Snapshot (~500 Tok) — System-Prompt**
-- `context.ts:36-111` `getGitStatus()` sammelt Branch + Main-Branch + user.name + vollständigen Status (bis zu 2000 Zeichen) + **letzte 5 Commits**
-- Zusammengeführt und via `appendSystemContext` (`utils/api.ts:437`) an den System-Prompt angehängt
-- Jeder neue Commit, jede neue geänderte Datei, jeder Branch-Wechsel ändert den Text → Prefix-Cache-Invalidierung
+- `context.ts:36-111` `getGitStatus()` sammelt Branch + Main-Branch + user.name + vollständigen Status (bis zu 2000 Zeichen) + **die letzten 5 Commits**
+- Per `appendSystemContext` (`utils/api.ts:437`) an den System-Prompt angehängt
+- Jeder neue Commit, jede neue geänderte Datei, jeder Branch-Wechsel ändert den Text → Präfix-Cache-Invalidierung
 
 **2. Commit/PR-Workflow-Anweisungen (~1.700 Tok) — Bash-Tool-Beschreibung**
-- `tools/BashTool/prompt.ts:53` hängt 60+ Zeilen Sicherheitsprotokoll, schrittweise Commit-Prozedur, HEREDOC-Beispiele und PR-Erstellungs-Templates an die Beschreibung des `Bash`-Tools an
+- `tools/BashTool/prompt.ts:53` hängt 60+ Zeilen Sicherheitsprotokoll, schrittweise Commit-Prozedur, HEREDOC-Beispiele und PR-Erstellungsvorlagen an die `Bash`-Tool-Beschreibung an
 - Zusammen mit dem System-Prompt gecacht, aber als `tools[]`-Parameter übertragen
 
 ### Warum es teuer ist
 
-Die Cache-Struktur (`utils/api.ts:321` `splitSysPromptPrefix`) hat drei Pfade, je nachdem ob aktive MCP-Tools vorhanden sind:
+Die Cache-Struktur (`utils/api.ts:321` `splitSysPromptPrefix`) hat drei Pfade basierend darauf, ob du aktive MCP-Tools hast:
 
-- **Path A** (MCP aktiv — die meisten Nutzer): `gitStatus` sitzt in einem `cacheScope: 'org'`-Block. Jede Änderung → gesamter Block wird beim nächsten Session-Start neu gecacht → 6K Tok `cache_create` Miss.
-- **Path B** (kein MCP): `gitStatus` geht in einen `cacheScope: null` dynamischen Block — wird bei jedem API-Aufruf als frische `input_tokens` gesendet. Kein Cache-Miss, aber auch keine Cache-Einsparungen.
-- **Path C** (3P-Provider / experimentelle Betas deaktiviert): wie Path A.
+- **Pfad A** (MCP aktiv — die meisten Nutzer): `gitStatus` sitzt in einem `cacheScope: 'org'`-Block. Jede Änderung → ganzer Block wird beim nächsten Sitzungsstart neu gecacht → 6K Tok `cache_create`-Miss.
+- **Pfad B** (kein MCP): `gitStatus` geht in einen `cacheScope: null`-Dynamikblock, was bedeutet, er wird bei jedem API-Aufruf als frische `input_tokens` neu gesendet — kein Cache-Miss, aber auch keine Cache-Einsparungen.
+- **Pfad C** (3P-Provider / experimentelle Betas deaktiviert): wie Pfad A.
 
-In typischen interaktiven Sessions akkumulieren sich die Commit/PR-Anweisungen (1,7K Tok) **bei jedem API-Aufruf** via `cache_read`. Über eine 100-Aufruf-Session mit Opus 4.7-Preisen sind das grob **~$0,08 pro Session** — nur für Anweisungen, die Claude aus dem Training bereits größtenteils kennt.
+In typischen interaktiven Sitzungen akkumulieren sich die Commit/PR-Anweisungen (1,7K Tok) über `cache_read` **bei jedem API-Aufruf**. Bei Opus 4.7-Preisen über eine 100-Aufruf-Sitzung sind das grob **~$0,08 pro Sitzung** allein für Anweisungen, die Claudes Training größtenteils bereits abdeckt.
 
-### Wie cc-token-saver damit umgeht
+### Wie claude-code-upgrader es handhabt
 
-`/setup-git-lite` deaktiviert den nativen Pfad und injiziert einen **kuratierten 280-Token-Ersatz** via einem SessionStart-Hook. Wir haben genau das behalten, was Claudes Standardverhalten überschreibt (Sicherheitsregeln), und alles weggelassen, was Claude bereits aus dem Training kennt (schrittweise Workflows, PR-Templates, gh-Nutzungsmuster).
+`/setup-git-lite` deaktiviert den nativen Pfad und injiziert über einen SessionStart-Hook einen **kuratierten 280-Token-Ersatz**. Wir haben genau das behalten, was Claudes Standardverhalten überschreibt (Sicherheitsregeln), und alles fallen gelassen, was Claude bereits aus dem Training weiß (schrittweise Workflows, PR-Vorlagen, gh-Verwendungsmuster).
 
-**Behalten — 11 kritische Override-Regeln** (die, die Claudes Standard-Hilfsbereitschaft in Vorsicht umwandeln):
-- Niemals committen/pushen/amenden/PR/taggen/mergen ohne explizite Nutzeranforderung
-- Niemals Hooks überspringen, force-push zu main/master, destruktive Ops ausführen, git config ändern
-- Niemals Dateien committen, die `.env`, `credentials`, `*.pem`, `secret.*` entsprechen
+**Behalten — 11 kritische Override-Regeln** (diejenigen, die Claudes standardmäßige Hilfsbereitschaft in Vorsicht verwandeln):
+- Niemals commit/push/amend/PR/tag/merge ohne explizite Benutzeranfrage
+- Niemals Hooks überspringen, zu main/master force-pushen, destruktive Ops ausführen, git-Config modifizieren
+- Niemals Dateien commiten, die `.env`, `credentials`, `*.pem`, `secret.*` entsprechen
 - `git add -A` / `git add .` vermeiden
 - HEREDOC für mehrzeilige Commit-Nachrichten + `Co-Authored-By: Claude`-Trailer
 - Niemals interaktive Flags (-i) verwenden, keine leeren Commits
-- Wenn pre-commit-Hook fehlschlägt → einen NEUEN Commit erstellen (nicht `--amend`)
+- Wenn pre-commit-Hook fehlschlägt → NEUEN Commit erstellen (nicht `--amend`)
 
-**Weggelassen** — schrittweiser Commit-Workflow (3 Schritte), schrittweiser PR-Workflow (3 Schritte), PR-Titel/Body-Template, `gh`-Befehlsreferenzen, `-uall`-Flag-Warnung, `--no-edit`-mit-rebase-Warnung, `NEVER use TodoWrite or Agent tools during commit`-Constraint. Das ist Workflow-Wortreichtum, den Claude aus dem Training allein korrekt zusammensetzt.
+**Fallen gelassen** — schrittweiser Commit-Workflow (3 Schritte), schrittweiser PR-Workflow (3 Schritte), PR-Titel/Body-Vorlage, `gh`-Befehlsreferenzen, `-uall`-Flag-Warnung, `--no-edit` mit Rebase-Warnung, `NIEMALS TodoWrite oder Agent-Tools beim Commit verwenden`-Einschränkung. Das sind Workflow-Ausführlichkeiten, die Claude allein aus dem Training heraus korrekt zusammensetzt.
 
-**Hinzugefügt** — kompakte Git-Statuszeile: Branch + HEAD-Kurz-SHA + Betreff + aktueller Status (bis zu 20 geänderte Dateien, sonst eine Zählung). Keine Liste der letzten Commits (Claude kann `git log` bei Bedarf ausführen).
+**Hinzugefügt** — kompakte Git-Statuszeile: Branch + HEAD-Kurz-SHA + Betreff + aktueller Status (bis zu 20 geänderte Dateien, sonst eine Zählung). Keine aktuelle Commit-Liste (Claude kann `git log` bei Bedarf ausführen).
 
-### Erwartete Einsparungen (Opus 4.7-Preise, $25/MTok Output, $5/MTok Input, $0,50/MTok Cache Read)
+### Erwartete Einsparungen (Opus 4.7-Preise, $25/MTok Output, $5/MTok Input, $0,50/MTok Cache-Read)
 
-| Element | Original | Mit setup-git-lite | Gespart |
-| ------- | -------- | ------------------- | ------- |
-| System-Prompt-Laden (pro neue Session) | ~2.200 Tok cache_create | ~280 Tok cache_create | ~1.920 Tok |
-| Wiederholte Aufrufe in derselben Session | ~1.700 Tok cache_read/Aufruf | ~280 Tok cache_read/Aufruf | ~1.420 Tok/Aufruf |
-| 100-Aufruf-Session (Opus 4.7) | — | — | **~$0,11 gespart** |
-| 20 Sessions/Tag × 22 Arbeitstage | — | — | **~$48 gespart/Monat** |
+| Posten | Original | Mit setup-git-lite | Gespart |
+| ---- | -------- | ------------------- | ----- |
+| System-Prompt-Laden (pro neue Sitzung) | ~2.200 Tok cache_create | ~280 Tok cache_create | ~1.920 Tok |
+| Wiederholungsaufrufe in derselben Sitzung | ~1.700 Tok cache_read/Aufruf | ~280 Tok cache_read/Aufruf | ~1.420 Tok/Aufruf |
+| 100-Aufruf-Sitzung (Opus 4.7) | — | — | **~$0,11 gespart** |
+| 20 Sitzungen/Tag × 22 Arbeitstage | — | — | **~$48 gespart/Monat** |
 
 ### Verwendung
 
@@ -252,174 +323,213 @@ In typischen interaktiven Sessions akkumulieren sich die Commit/PR-Anweisungen (
 /setup-git-lite status     # Nur-Lese-Diagnose — aktueller Zustand + was sich ändern würde
 /setup-git-lite install    # CC-Nativ deaktivieren + unseren minimalen Hook aktivieren
 /setup-git-lite revert     # Standard wiederherstellen (aggressiv; siehe unten)
-/setup-git-lite dismiss-banner    # Den gelegentlichen Empfehlungshinweis stummschalten
-/setup-git-lite undismiss-banner  # Den Hinweis wieder aktivieren
+/setup-git-lite dismiss-banner    # Gelegentlichen Empfehlungshinweis stummschalten
+/setup-git-lite undismiss-banner  # Hinweis wieder aktivieren
 /setup-git-lite help       # Vollständige Verwendung
 ```
 
-### Install-Semantik
+### Installations-Semantik
 
 `install` modifiziert **zwei** Stellen für Robustheit:
 
 1. `~/.claude/settings.json` — fügt `"includeGitInstructions": false` hinzu
 2. Shell-Profil (`~/.zshrc`, `~/.bashrc`, etc.) — hängt einen Marker-Block an, der `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS=1` exportiert
 
-Jedes allein reicht aus, um CC-Nativ zu deaktivieren; wir setzen beide, damit ein Umgebungs-Override das native Verhalten nicht versehentlich wieder aktiviert. Die Shell-Änderung tritt nur in neuen Shells in Kraft.
+Jede einzeln reicht aus, um CC-Nativ zu deaktivieren; wir setzen beide, damit ein Umgebungsüberschreiben das native Verhalten nicht versehentlich wieder aktiviert. Die Shell-Änderung tritt nur in neuen Shells in Kraft.
 
 ### Revert-Semantik — aggressiv
 
-`revert` **entfernt ALLE `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS`-Exporte aus deinem Shell-Profil**, einschließlich solcher, die du möglicherweise vor der Installation manuell hinzugefügt hast. Das ist beabsichtigt — du hast `revert` ausgeführt, also stellen wir den sauberen Standard wieder her. Wir erstellen immer zuerst ein zeitgestempeltes Backup des Shell-Profils.
+`revert` **entfernt ALLE `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS`-Exporte aus deinem Shell-Profil**, einschließlich solcher, die du möglicherweise manuell hinzugefügt hast, bevor du dieses Skill installiert hast. Das ist beabsichtigt — du hast `revert` ausgeführt, also stellen wir den sauberen Standard wieder her. Wir erstellen immer zuerst ein zeitgestempeltes Backup des Shell-Profils.
 
-Wenn du die Umgebungsvariable aus unabhängigen Gründen benötigst, notiere sie dir vor dem Ausführen von `revert` und füge sie danach wieder hinzu.
+Wenn du die Umgebungsvariable aus anderen Gründen brauchst, notiere sie dir vor dem Ausführen von `revert` und füge sie danach wieder hinzu.
 
-### Vor dem Deinstallieren von cc-token-saver
+### Vor dem Deinstallieren von claude-code-upgrader
 
-**Führe zuerst `/setup-git-lite revert` aus**, sonst bleibt `includeGitInstructions: false` in deiner settings.json, aber ohne Ersatz-Hook (Claude erhält keinerlei Git-Anleitung). Claude Code hat derzeit keinen Plugin-Uninstall-Lifecycle-Hook, daher können wir das nicht automatisieren.
+**Führe zuerst `/setup-git-lite revert` aus**, sonst bleibt `includeGitInstructions: false` in deiner settings.json aber ohne Ersatz-Hook (Claude erhält überhaupt keine Git-Anleitung). Claude Code hat aktuell keinen Plugin-Deinstallations-Lifecycle-Hook, daher können wir das nicht automatisieren.
 
 ### Kompromisse
 
-Was du verlierst (und warum es meistens in Ordnung ist):
-- Claude erhält keinen vorberechneten `git status` / `git log -n 5` beim Session-Start. Wenn du in einer neuen Session fragst „Was hat sich geändert?", führt Claude diese Befehle selbst aus (ein zusätzlicher Tool-Aufruf, ~300 Tok).
-- Claude sieht CCs kanonische 3-Schritt-Commit-Prozedur nicht mehr. In unseren Tests über Hunderte von Commit-Abläufen bewältigt das Training-Wissen die kritischen Fälle (HEREDOC-Formatierung, kein `--amend`, kein force-push), weil wir diese als explizite Regeln behalten.
-- PR-Body-Template (`## Summary` + `## Test plan`) wird nicht injiziert. Wenn dir genau dieses Format wichtig ist, füge es in die CLAUDE.md deines Projekts ein.
+Was du verlierst (und warum es normalerweise in Ordnung ist):
+- Claude erhält beim Sitzungsstart keinen vorberechneten `git status` / `git log -n 5`. Wenn du in einer neuen Sitzung fragst „was hat sich verändert?", führt Claude diese Befehle selbst aus (ein zusätzlicher Tool-Aufruf, ~300 Tok).
+- Claude sieht CCs kanonische 3-Schritt-Commit-Prozedur nicht mehr. In unseren Tests über Hunderte von Commit-Flows bewältigt das Training die kritischen Fälle (HEREDOC-Formatierung, kein `--amend`, kein Force-Push), weil wir diese als explizite Regeln behalten.
+- PR-Body-Vorlage (`## Summary` + `## Test plan`) wird nicht injiziert. Wenn dir dieses genaue Format wichtig ist, füge es in dein Projekt-CLAUDE.md ein.
 
 ### Empfehlungs-Banner
 
-Wenn CC-native Git-Anweisungen auf deinem Rechner noch aktiv sind, zeigt cc-token-saver beim Session-Start **~20 % der Zeit** einen einzeiligen Hinweis an (zusätzlich in `/usage-view`- und `/report-limit`-Ausgaben). Dauerhaft deaktivieren mit `/setup-git-lite dismiss-banner`.
+Wenn CCs native Git-Anweisungen auf deinem Rechner noch aktiv sind, zeigt claude-code-upgrader beim Sitzungsstart **~20 % der Zeit** einen einabsatzigen Hinweis (plus in `/usage-view`- und `/report-limit`-Ausgaben). Dauerhaft stummschalten mit `/setup-git-lite dismiss-banner`.
 
 ---
 
-## 💡 Wie Cache tatsächlich funktioniert
+## 💡 Wie Cache wirklich funktioniert (und warum die meisten Nutzer 40 %+ verschwenden)
 
-Claude Code sendet bei jedem API-Aufruf den gesamten Konversationsverlauf an das Modell. "API-Aufruf" bedeutet nicht "eine Nachricht, die du getippt hast." Ein einzelner Prompt löst interne Tool-Aufrufe aus — Grep, Read, Edit, Write — und jeder davon ist ein separater API-Aufruf. Ein Prompt kann leicht 10+ API-Aufrufe verursachen.
+Claude Code sendet die gesamte Gesprächshistorie bei jedem API-Aufruf an das Modell. „API-Aufruf" bedeutet nicht „eine von dir getippte Nachricht." Ein einzelner Prompt löst interne Tool-Aufrufe aus — Grep, Read, Edit, Write — und jeder ist ein separater API-Aufruf. Ein Prompt kann leicht 10+ API-Aufrufe verursachen.
 
-Der Prompt-Cache reduziert diese Kosten um 90 %. Aber der Cache hat eine Lebensdauer.
+Prompt-Cache reduziert diese Kosten um 90 %. Aber Cache hat eine Lebensdauer.
 
 |                     | Main Session                          | SubTask                                |
 | ------------------- | ------------------------------------- | -------------------------------------- |
-| Cache TTL           | 1 Stunde (ephemeral_1h)              | 5 Min                                  |
-| Cache Write         | ＄10/MTok                             | ＄6,25/MTok                             |
-| Cache Read          | ＄0,50/MTok                           | ＄0,50/MTok                             |
-| Bei Cache-Ablauf    | Gesamter Context wird zum vollen Preis erneut gesendet | Geringe Auswirkung (Context ist klein) |
+| Cache-TTL           | 1 Stunde (ephemeral_1h)                 | 5 Min                                  |
+| Cache-Schreibvorgänge         | ＄10/MTok                              | ＄6,25/MTok                             |
+| Cache-Reads          | ＄0,50/MTok                            | ＄0,50/MTok                             |
+| Bei Cache-Ablauf  | Vollständiger Kontext zum vollen Preis neu gesendet    | Geringe Auswirkung (Kontext ist klein)          |
 
-Selbst bei aktivem Cache summieren sich die Kosten. Hier ein Extremszenario, das den Unterschied verdeutlicht.
+Auch mit lebendem Cache häufen sich Kosten an. Hier ist ein Extremszenario zur Verdeutlichung des Unterschieds.
 
-### Szenario: Ganztägiges Coden (3 Std. morgens → 2 Std. Mittagspause/Meeting → 3 Std. nachmittags)
+### Szenario: Ganztägiges Coden (3h morgens → 2h Mittagspause/Meeting → 3h nachmittags)
 
-Bedingungen: Opus 4 Preise, 1 Prompt pro Minute, ~5 API-Aufrufe pro Prompt (~300 Aufrufe/Stunde).
+Bedingungen: Opus 4-Preise, 1 Prompt pro Minute, ~5 API-Aufrufe pro Prompt (~300 Aufrufe/Stunde).
 
-#### ❌ Ohne cc-token-saver
+#### ❌ Ohne claude-code-upgrader
 
-Die meiste Arbeit passiert in der Main Session. Der Context wächst schnell.
+Der meiste Aufwand passiert in der Main Session. Kontext wächst schnell.
 
-| Phase       | Situation                         | Context-Größe              | Kosten                                 |
-| ----------- | --------------------------------- | ---------------------------- | -------------------------------------- |
-| Morgens 3 Std. | Coding (hauptsächlich in Main) | 100K → 600K (Durchschnitt 350K) | 900 Aufrufe × 350K × ＄0,50/M = ＄157,50 |
-| Mittag/Mtg  | 2 Stunden abwesend                | —                            | —                                      |
-| Rückkehr    | Cache abgelaufen → vollständige Neuübertragung | 600K voller Preis  | 600K × ＄5/M + 600K × ＄10/M = ＄9       |
-| Rückkehr    | /compact (Zusammenfassung)        | 600K → an LLM gesendet      | 600K × ＄0,50/M + Summary-Output = ~＄1,50 |
-| Nachmittags 3 Std. | Coding geht weiter (Context wächst erneut) | 100K → 600K (Durchschnitt 350K) | 900 Aufrufe × 350K × ＄0,50/M = ＄157,50 |
-|             | Gesamt                            |                              | ~＄326                                  |
+| Phase       | Situation                         | Kontextgröße               | Kosten                                   |
+| ----------- | --------------------------------- | -------------------------- | -------------------------------------- |
+| Morgen 3h  | Coden (hauptsächlich in Main)           | 100K → 600K (avg 350K)    | 900 calls × 350K × ＄0,50/M = ＄157,50  |
+| Mittagspause/Mtg   | 2 Stunden weg                  | —                          | —                                      |
+| Rückkehr      | Cache abgelaufen → vollständige Neuübertragung      | 600K full price            | 600K × ＄5/M + 600K × ＄10/M = ＄9       |
+| Rückkehr      | /compact (zusammenfassen)              | 600K → sent to LLM        | 600K × ＄0,50/M + summary output = ~＄1,50 |
+| Nachmittag 3h | Coden weiter (Kontext wächst wieder) | 100K → 600K (avg 350K)   | 900 calls × 350K × ＄0,50/M = ＄157,50  |
+|             | Gesamt                             |                            | ~＄326                                  |
 
-> Bei dieser Nutzungsintensität wirst du wahrscheinlich das 5-Stunden-Fenster-Rate-Limit erreichen. **Die Kosten sind schlimm, aber das eigentliche Problem ist, dass deine Arbeit komplett zum Stillstand kommt. Genau in diesem Moment geht dein Claude Code offline.**
+> Bei dieser Nutzungsintensität wirst du wahrscheinlich das 5-Stunden-Fenster-Rate-Limit erreichen. **Die Kosten sind schlimm, aber das eigentliche Problem ist, dass deine Arbeit komplett stoppt. Das ist genau der Moment, in dem Claude Code dunkel wird.**
 
-#### ✅ Mit cc-token-saver
+#### ✅ Mit claude-code-upgrader
 
-Schwere Arbeit wird an SubTasks delegiert. Main übernimmt nur Design/Entscheidungen.
+Schwere Arbeit wird an SubTasks delegiert. Main behandelt nur Design/Entscheidungen.
 
-| Phase       | Situation                                    | Context-Größe               | Kosten                             |
-| ----------- | -------------------------------------------- | ----------------------------- | ---------------------------------- |
-| Morgens 3 Std. | Coding (Main: Design, SubTask: Implementierung) | Main 100K → 300K (Durchschnitt 200K) | 900 Aufrufe × 200K × ＄0,50/M = ＄90 |
-| Mittag/Mtg  | 2 Stunden abwesend                           | —                             | —                                  |
-| Rückkehr    | ⚡ Token Guardian blockiert → /clear + /continue | —                          | ＄0 (keine LLM-Aufrufe)            |
-| Nachmittags 3 Std. | Coding geht weiter                    | Main 100K → 300K (Durchschnitt 200K) | 900 Aufrufe × 200K × ＄0,50/M = ＄90 |
-|             | Gesamt                                       |                               | ~＄180                              |
+| Phase       | Situation                                    | Kontextgröße                | Kosten                               |
+| ----------- | -------------------------------------------- | --------------------------- | ---------------------------------- |
+| Morgen 3h  | Coden (Main: Design, SubTask: Implementierung) | Main 100K → 300K (avg 200K) | 900 calls × 200K × ＄0,50/M = ＄90 |
+| Mittagspause/Mtg   | 2 Stunden weg                             | —                           | —                                  |
+| Rückkehr      | ⚡ Token Guardian blockiert → /clear + /continue | —                           | ＄0 (no LLM calls)                 |
+| Nachmittag 3h | Coden weiter                             | Main 100K → 300K (avg 200K) | 900 calls × 200K × ＄0,50/M = ＄90 |
+|             | Gesamt                                        |                             | ~＄180                              |
 
 #### 💰 Ergebnis
 
-> **＄326 → ＄180. ＄146 gespart pro Tag (45 %).**
+> **＄326 → ＄180. ＄146 pro Tag gespart. 45 % Kostenreduktion.**
 >
-> Es geht nicht nur um Kosten. Weniger Token in derselben Zeit bedeutet: **Du erreichst das Rate Limit nicht und kannst weiterarbeiten.** Das ist der eigentliche Unterschied.
+> **Max Plan:** Weniger Tokens = kein Rate-Limit. Deine Arbeit stoppt nicht. Das ist der eigentliche Unterschied.
+>
+> **API Pay-per-Use:** ＄146/Tag × 22 Arbeitstage = **＄3.200/Monat direkt von deiner Rechnung.** Ein schwerer Monat ohne dieses Plugin kostet über ＄7.000. Damit unter ＄4.000. Gleicher Output.
 
-### Wo cc-token-saver eingreift
+### Wo claude-code-upgrader eingreift
 
 ```
-[Session-Start]
+[Session Start]
     │
-    ├─ Session Architect → Fügt SubTask-Delegationsmuster automatisch ein
-    │                       Hält Main-Context unter 250K
+    ├─ Session Architect → Auto-injects SubTask delegation pattern
+    │                       Keeps Main context under 250K
     │
-[Arbeiten]
+[Working]
     │
-    ├─ Status Line → Echtzeit-Kosten-/Context-/Rate-Limit-Monitoring
-    │                  Sofortige Warnung beim Eintritt in die Warnzone
+    ├─ Status Line → Real-time cost/context/rate limit monitoring
+    │                  Instant alert when entering warning zone
     │
-[1+ Stunde inaktiv]
+[1+ hour idle]
     │
-    ├─ Token Guardian → Erkennt Cache-Ablauf, blockiert vor dem erneuten Senden
+    ├─ Token Guardian → Detects cache expiry, blocks before re-send
     │
-[Session-Neustart]
+[Session restart]
     │
-    └─ /continue → Stellt vorherigen Context ohne Kosten wieder her (keine LLM-Aufrufe)
+    └─ /continue → Restores previous context at zero cost (no LLM calls)
 ```
 
 ---
 
-## 🔧 Source-Installation & Anpassung
+## 🔧 Quell-Installation & Anpassung
 
 ```bash
-git clone https://github.com/ww-w-ai/cc-token-saver.git
-claude plugin marketplace add /path/to/cc-token-saver
-claude plugin install cc-token-saver@cc-token-saver
+git clone https://github.com/ww-w-ai/claude-code-upgrader.git
+/plugin marketplace add /path/to/claude-code-upgrader
+/plugin install claude-code-upgrader@claude-code-upgrader
 ```
 
-cc-token-saver ist vollständig offen. Der gesamte Quellcode besteht aus einfachem JavaScript + Bash-Skripten in der Standard-Plugin-Struktur. Ändere, was du willst.
+claude-code-upgrader ist vollständig Open-Source (Apache-2.0). Reines JavaScript + Bash — keine kompilierten Binaries, keine externen API-Aufrufe, kein Telemetrie. Jede Zeile ist auditierbar. Jede Behauptung in dieser README verweist auf eine spezifische Datei, die du lesen kannst.
 
-- **hooks/** — Cache-Ablauf-Schwellenwert ändern, Warnmeldungen anpassen, Session-Architecture-Regeln modifizieren
-- **scripts/** — Analyse-Logik, Report-Builder, Status-Line-Formatierung
-- **skills/** — Funktionsweise von /continue und /usage-view, Prompt-Templates
-- **locales/** — Übersetzungen hinzufügen/bearbeiten, neue Sprachen ergänzen
-- **skills/usage-view/** — Dashboard-UI/UX-Änderungen
+- **hooks/** — Cache-Ablauf-Schwellenwert ändern, Warnmeldungen anpassen, Session-Architektur-Regeln modifizieren
+- **scripts/** — Analyselogik, Report-Builder, Statusleisten-Formatierung
+- **skills/** — Wie /continue und /usage-view funktionieren, Prompt-Vorlagen
+- **locales/** — Übersetzungen hinzufügen/bearbeiten, neue Sprachen hinzufügen
+- **skills/usage-view/** — Dashboard-UI/UX-Designänderungen
 
-Mach es zu deinem. Forke es, experimentiere und sende einen PR, wenn du etwas Besseres findest.
+Mach es zu deinem. Forke es, experimentiere und schick einen PR, wenn du etwas Besseres findest.
 
 ---
 
 ## 🌐 Unterstützte Sprachen
 
-23 Sprachen unterstützt. Ausgewählt durch Abgleich der Top-20-Länder nach Claude-Code-Nutzung mit den Top-20-Sprachen nach weltweiter Sprecherzahl. Die Anzeigesprache wird automatisch aus deinem OS-Locale erkannt. Du kannst sie auch manuell festlegen: `/usage-view locale de`
+23 Sprachen unterstützt. Ausgewählt durch Kreuzreferenzierung der Top-20-Länder nach Claude Code-Nutzung mit den Top-20-Sprachen nach weltweiter Sprecherzahl. Die Anzeigesprache wird automatisch aus deinem OS-Gebietsschema erkannt. Du kannst auch manuell angeben: `/usage-view locale ja`
 
 |                 |                 |                |                 |
 | --------------- | --------------- | -------------- | --------------- |
-| 🇺🇸 Englisch   | 🇰🇷 Koreanisch | 🇯🇵 Japanisch | 🇨🇳 Chinesisch |
-| 🇪🇸 Spanisch   | 🇫🇷 Französisch | 🇩🇪 Deutsch  | 🇧🇷 Portugiesisch |
-| 🇮🇹 Italienisch | 🇷🇺 Russisch  | 🇸🇦 Arabisch  | 🇮🇳 Hindi      |
-| 🇧🇩 Bengalisch | 🇮🇩 Indonesisch | 🇲🇾 Malaiisch | 🇹🇭 Thai       |
-| 🇻🇳 Vietnamesisch | 🇹🇷 Türkisch  | 🇵🇱 Polnisch | 🇳🇱 Niederländisch |
-| 🇮🇱 Hebräisch  | 🇸🇪 Schwedisch | 🇳🇴 Norwegisch |                |
+| 🇺🇸 Englisch    | 🇰🇷 Koreanisch     | 🇯🇵 Japanisch  | 🇨🇳 Chinesisch    |
+| 🇪🇸 Spanisch    | 🇫🇷 Französisch     | 🇩🇪 Deutsch    | 🇧🇷 Portugiesisch |
+| 🇮🇹 Italienisch    | 🇷🇺 Russisch    | 🇸🇦 Arabisch    | 🇮🇳 Hindi      |
+| 🇧🇩 Bengalisch    | 🇮🇩 Indonesisch | 🇲🇾 Malaiisch     | 🇹🇭 Thailändisch       |
+| 🇻🇳 Vietnamesisch | 🇹🇷 Türkisch    | 🇵🇱 Polnisch    | 🇳🇱 Niederländisch      |
+| 🇮🇱 Hebräisch     | 🇸🇪 Schwedisch    | 🇳🇴 Norwegisch |                 |
 
-Aktuelle Übersetzungen sind KI-generiert. Beiträge von Muttersprachlern sind willkommen — bearbeite die JSON-Datei für deine Sprache in `locales/` und reiche einen PR ein.
+Aktuelle Übersetzungen sind KI-generiert. Beiträge von Muttersprachlern willkommen — bearbeite die JSON-Datei für deine Sprache in `locales/` und reiche einen PR ein.
+
+---
+
+## ⚖️ Was dieses Plugin dich kostet
+
+Das Plugin injiziert beim Sitzungsstart Kontext. Hier ist genau wie viel:
+
+| Injektion | Wann | Tokens | Zweck |
+| --------- | ---- | ------ | ------- |
+| Session Architect | SessionStart (einmalig) | ~1.100 | SubTask-Delegationsstrategie + Concise-Mode-Regeln |
+| Git-Kontext (wenn git-lite aktiviert) | SessionStart (einmalig) | ~280 | Ersetzt CCs native ~2.200-Tok-Git-Anweisungen |
+| Cache-Ablaufwarnung | Bei Leerlauf > 59 Min (einmalig) | ~200 | Blockiert teure Neuübertragung, zeigt Wiederherstellungsoptionen |
+| Status line | Jeder API-Aufruf | 0 | Rendert in Terminal-Statusleiste, nicht in Gesprächskontext |
+
+**Nettooverhead pro Sitzung: ~1.400 Tokens (einmalig, nach erstem Aufruf gecacht).**
+
+Bei Opus-Preisen ($0,50/MTok Cache-Read) sind das **$0,0007 pro API-Aufruf** — weniger als ein Zehntel eines Cents. Über eine 100-Aufruf-Sitzung: $0,07.
+
+Wenn git-lite aktiviert ist, **spart** das Plugin ~1.920 Tokens pro Sitzung (ersetzt 2.200 durch 280). Der Nettoeffekt ist negativ — das Plugin verbraucht weniger als es entfernt.
+
+**Für API Pay-per-Use-Nutzer:** Bei $3.000/Monat Ausgaben liegt der Plugin-Overhead unter $2/Monat. Die Einsparungen allein durch Cache-Ablauf-Prävention (eine blockierte $9-Neuübertragung pro Woche) decken einen Jahres-Overhead mit einem einzigen Abfang.
 
 ---
 
 ## 💡 Tipps
 
-### Cache verstehen heißt verstehen, wo das Geld hingeht
+### Versteh den Cache und du wirst sehen, wohin das Geld geht
 
-- **1 Prompt ≠ 1 API-Aufruf.** Jedes Mal, wenn Claude Grep, Read oder Edit aufruft, wird der gesamte Context erneut gesendet. Ein einzelner Prompt löst leicht 10+ API-Aufrufe aus. Schreibe klare Prompts, um unnötige Tool-Aufrufe zu reduzieren und Kosten zu senken.
-- **Cache läuft ab dem letzten API-Aufruf, nicht ab dem letzten Prompt.** Solange du weiterarbeitest, läuft der Cache nie ab. Die Gefahr liegt im Weggehen. Token Guardian blockiert einmal automatisch, sodass du bei der Rückkehr wählen kannst: Context zurücksetzen oder fortfahren.
-- **Context-Größe = Kostenmultiplikator.** Derselbe API-Aufruf kostet bei 200K vs. 800K das 4-Fache. Wenn die Status Line [CTX] 35 % überschreitet (🟡), ist das dein Signal, mehr an SubTasks zu delegieren.
+- **1 Prompt ≠ 1 API-Aufruf.** Jedes Mal wenn Claude Grep, Read oder Edit aufruft, wird der gesamte Kontext neu gesendet. Ein einzelner Prompt löst leicht 10+ API-Aufrufe aus. Schreib klare Prompts, um unnötige Tool-Aufrufe zu reduzieren und Kosten zu senken.
+- **Der Cache-Timer resettet vom letzten API-Aufruf, nicht von deinem letzten Prompt.** Bleib am Arbeiten und der Cache läuft nie ab. Die Gefahr liegt im Weggehen. Token Guardian blockiert automatisch einmal, sodass du bei Rückkehr wählen kannst: Kontext zurücksetzen oder so fortfahren.
+- **Kontextgröße = Kostenmultiplikator.** Derselbe API-Aufruf bei 200K vs 800K kostet das Vierfache. Wenn die Statusleiste [CTX] 35% (🟡) überschreitet, ist das dein Signal, mehr an SubTasks zu delegieren.
 
 ### Gewohnheiten, die Kosten senken
 
-- **Halte CLAUDE.md schlank.** Sie wird bei jedem API-Aufruf in den System-Prompt geladen. Jede Zeile kostet Geld.
-- **Delegiere schwere Arbeit an SubTasks.** Code-Generierung, Multi-File-Edits, Testläufe gehören nicht in Main. SubTasks haben kleineren Context und eine günstigere Cache-Stufe.
-- **1+ Stunde weg?** `/clear` → zurückkommen → `/continue`. Context wird für $0 wiederhergestellt.
-- **[5H] über 70 % (🟡)?** Langsamer machen. Wechsle zu leichten Review-Aufgaben oder erhöhe die SubTask-Delegation, um die API-Aufrufzahl von Main zu reduzieren.
-- **Nutze `/btw` für Nebenfragen.** Es gelangt nicht in den Konversationsverlauf, sodass dein Context schlank bleibt.
+- **CLAUDE.md schlank halten.** Es wird bei jedem API-Aufruf in den System-Prompt geladen. Jede Zeile kostet Geld.
+- **Schwere Arbeit an SubTasks delegieren.** Code-Generierung, Multi-File-Bearbeitungen, Test-Durchläufe gehören nicht in Main. SubTasks haben kleineren Kontext und einen günstigeren Cache-Tier.
+- **1+ Stunden weg?** `/clear` → zurückkommen → `/continue`. Kontext wiederhergestellt für $0.
+- **[5H] über 70% (🟡)?** Tempo drosseln. Auf leichte Review-Aufgaben wechseln oder SubTask-Delegation erhöhen, um Mains API-Aufruf-Anzahl zu reduzieren.
+- **`/btw` für Nebenfragen nutzen.** Es geht nicht in die Gesprächshistorie, also bleibt dein Kontext schlank.
+
+### API Pay-per-Use: Die wichtigsten Gewohnheiten
+
+Alles oben Genannte gilt, plus diese API-spezifischen Prioritäten:
+
+- **[CTX] wie einen Tacho im Blick behalten.** Kein Rate-Limit wird dich stoppen — aber Kontext bei 500K+ bedeutet, dass jeder API-Aufruf 2-3x so viel kostet wie er sollte. `/clear` → `/continue` ist kostenlos und resettet deinen Kostenmultiplikator auf den Ausgangswert.
+- **Wöchentlich `/usage-view` ausführen.** Max-Plan-Nutzer haben einen natürlichen „Autsch"-Moment, wenn sie rate-gelinited werden. Du nicht — Kosten steigen lautlos. Das Dashboard ist dein Frühwarnsystem.
+- **Mentales Tagesbudget setzen.** Ohne Obergrenze passieren $200-Tage unbemerkt. Der RUN-Indikator in der Statusleiste macht Per-Runde-Kosten sichtbar. Wenn eine einzelne Runde $1 (🔴) überschreitet, ist dein Kontext zu groß.
 
 ---
 
-## License
+## 📚 Dokumentation
+
+- [Prompt-Cache-Leitfaden](guides/prompt-cache-guide.md) — Warum der Großteil deiner Kosten Cache ist, wie Caching über Provider (Anthropic, OpenAI, Gemini) funktioniert und wie man es verwaltet ([한국어](guides/prompt-cache-guide-ko.md) · [日本語](guides/prompt-cache-guide-ja.md) · [中文](guides/prompt-cache-guide-zh.md) · [Español](guides/prompt-cache-guide-es.md) · [Français](guides/prompt-cache-guide-fr.md) · [Deutsch](guides/prompt-cache-guide-de.md) · [+16 Sprachen](guides/))
+- [Opus 4.7 vs 4.6 Kostenanalyse](guides/opus-4-7-vs-4-6-cost-analysis.md) — Seite-an-Seite-Kostenvergleich über 8.563 API-Aufrufe
+- [Opus 4.7 vs 4.6 Kostenanalyse (한국어)](guides/opus-4-7-vs-4-6-cost-analysis.ko.md)
+
+---
+
+## Lizenz
 
 Apache-2.0

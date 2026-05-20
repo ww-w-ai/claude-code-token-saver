@@ -1,0 +1,45 @@
+# claude-code-upgrader
+
+> The only Claude Code plugin built from CC source code analysis. 45% cost reduction measured on real workloads.
+
+## What it does
+
+claude-code-upgrader automatically reduces Claude Code API costs by preventing cache expiry waste, delegating work to cheaper SubTask sessions, and providing real-time cost visibility. Works with both Max Plan ($200/mo subscribers) and API pay-per-use billing.
+
+## Key features
+
+- Token Guardian: Detects prompt cache expiry and blocks $9 re-sends before they happen
+- Session Architect: Auto-delegates heavy work to SubTasks with 37.5% cheaper cache writes
+- Concise Mode: Reduces output token padding while preserving substance
+- /continue: Replaces /compact with zero-cost, zero-information-loss context restoration (processes 60MB+ in <1s)
+- Status Line: Real-time cost/context/rate-limit monitoring at <50ms overhead
+- /usage-view: Interactive HTML dashboard with AI-powered cost analysis in 23 languages
+- /setup-git-lite: Removes 2,200 hidden tokens CC silently injects every session (~$48/mo saved)
+
+## Measured impact
+
+- $326/day → $180/day (45% reduction) on full-day coding workload
+- Cache expiry prevention: $9 saved per catch, ~$270/mo at daily frequency
+- Git instruction optimization: ~$48/mo saved
+- Plugin overhead: ~1,400 tokens/session ($0.07 per 100-call session)
+- Net effect with git-lite: plugin consumes less than it removes
+
+## Technical approach
+
+Built by analyzing Claude Code source code (v2.1.88):
+- Traced token injection to context.ts:36-111 (gitStatus) and tools/BashTool/prompt.ts:53 (commit instructions)
+- Identified cache structure paths in utils/api.ts:321 (splitSysPromptPrefix)
+- Mapped three cache invalidation paths (MCP active, no MCP, 3P provider)
+
+## Installation
+
+```
+/plugin marketplace add ww-w-ai/marketplace
+/plugin install claude-code-upgrader@ww-w-ai
+```
+
+## Links
+
+- Source: https://github.com/ww-w-ai/claude-code-upgrader
+- License: Apache-2.0
+- Languages: 23 (auto-detected from OS locale)

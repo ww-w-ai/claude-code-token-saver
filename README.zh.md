@@ -1,37 +1,53 @@
-# cc-token-saver
+# claude-code-upgrader
 
-> **Claude Code 老是把你限速？这事到此为止。**
->
-> 花更少的钱，写更久的代码，清楚看到每个 token 的去向——零配置。
+**唯一真正读取 CC 源代码、找出 token 流向并自动修复的 Claude Code 插件。花更少的钱，写更久的代码。**
 
-怎么做到的？自动 context 管理、实时费用追踪、cache 感知的 session 控制——全部整合在一个插件里。
+> 实测结果：在真实的 $326/天 工作负载下实现 **45% 成本削减** → $180/天。缓存过期预防、SubTask 自动委托、零成本上下文恢复，以及完整的分析仪表盘——一键安装，零配置。
+
+支持 **Max Plan（$200/月）** 和 **API 按量付费**。同一插件，同样功能。对所有用户都更强大——对每个 token 都是真金白银的用户尤其如此。
+
+![使用仪表盘——精确查看 token 的去向](docs/images/usage-view-overview.png)
+
+### 30 秒速览功能
+
+| 功能 | 效果 | 影响 |
+| ------- | ------------ | ------ |
+| 🛡️ Token Guardian | 检测缓存过期，在 $9 重发前提前拦截 | 防止头号隐性成本飙升 |
+| 🧠 Session Architect | 自动将繁重工作委托给 SubTask（缓存便宜 37.5%） | 上下文保持精简，成本下降 |
+| 🪶 Concise Mode | 削减冗余填充，保留核心内容 | 每次响应的输出 token 减少 |
+| 🔄 /continue | 替代 /compact——零 LLM 调用，零成本，零信息损失 | 免费恢复上下文 |
+| 📊 Status Line | 实时成本、上下文大小、速率限制——延迟低于 50ms | 在问题产生费用之前发现它 |
+| 📈 /usage-view | 带 AI 分析的交互式 HTML 仪表盘 | 一键完成成本全面溯源 |
+| ✂️ /setup-git-lite | 移除 CC 每次会话注入的 2,200 个隐藏 token | 仅 git 指令每月节省约 $48 |
 
 ---
 
-## 😤 问题：每月 $200，你还是干不完活
+## 😤 问题所在
 
-Claude Code Max Plan（$200/月）。应该够了吧。然而并不够。
+**缓存过期。** 你去吃了个午饭，回来缓存已经没了。下一条消息以全价重发 90 万 token，一次 $9。
 
-**5 小时滚动窗口 rate limit。** 你正在专注写代码，它突然停了。没有倒计时，没有预计恢复时间。只能等。
+**隐形成本。** 没有实时可见性。没有"你的上下文已达 80 万 token"的警告。没有"缓存 3 分钟前已过期"的提示。等你发现时，损失已经造成。
 
-**Cache 过期。** 你去吃个午饭回来，已经超过一小时。你发一条 prompt，900K token 按原价重新发送。费用？一次 $9。
+**上下文膨胀。** 同样的提示，20 万 token 上下文和 80 万 token 上下文的成本相差 4 倍。每次 Read、Grep、Edit 都会重发整个上下文。一个复杂提示轻松触发 15 次以上 API 调用，每次都乘以你的上下文大小。
 
-**费用不可见。** 没有任何方式能实时看到你在花多少钱。直到撞上 rate limit 你才知道。
+**全靠手动。** 上下文管理、缓存过期时机、SubTask 委托、会话清理。没有人能在真正写代码的同时追踪这一切。
 
-**全靠手动。** Context 大小、cache 过期时间、SubTask 委派、session 清理。没人能在写代码的同时追踪这一切。
+**用的是 Max Plan（$200/月）？** 以上全部，再加上没有倒计时、没有预计恢复时间的 5 小时速率限制，随时打断你的工作流。
 
-cc-token-saver 自动处理所有这些。**安装一次，搞定。**
+**API 按量付费？** 以上全部，而且没有上限。一次缓存未命中 = $9 真实资金。每周十次 = 仅事故就 $360/月。一个上下文膨胀的糟糕星期二，花费可能超过 Max Plan 用户一整个月的订阅费。
+
+claude-code-upgrader 自动处理这一切。**安装一次，搞定。**
 
 ---
 
 ## 🚀 安装
 
 ```
-claude plugin marketplace add ww-w-ai/cc-token-saver
-claude plugin install cc-token-saver
+/plugin marketplace add ww-w-ai/marketplace
+/plugin install claude-code-upgrader@ww-w-ai
 ```
 
-安装后自动生效。零配置。需要 [Claude Code](https://claude.ai/claude-code) v2.1.71+。
+安装后自动运行。零配置。需要 [Claude Code](https://claude.ai/claude-code) v2.1.71+。
 
 实时监控：
 
@@ -39,387 +55,481 @@ claude plugin install cc-token-saver
 /setup-statusline install
 ```
 
+从 CC 内置 git 指令中移除 2,200 个隐藏 token（[详情](#%EF%B8%8F-feature-5-setup-git-lite--trim-ccs-built-in-git-instructions)）：
+
+```
+/setup-git-lite install
+```
+
 ---
 
 ## 🛡️ 功能 1：Token Guardian
 
-**检测 cache 过期，自动阻止高价重发。**
+**检测缓存过期，自动拦截昂贵的重发。**
 
-Claude Code 的 prompt cache TTL 是 1 小时。离开超过一小时，cache 就过期了。你的下一条消息会按原价重新发送整个 context。在 900K token 的情况下，一次就是 $9。
+Claude Code 的提示缓存 TTL 为 1 小时。离开超过一小时，缓存过期。下一条消息以全价重发整个上下文。90 万 token，一次 $9。
 
-Token Guardian 追踪上一次响应的时间。如果超过 3,590 秒（TTL 减去 10 秒缓冲），它会阻止 prompt 并显示警告。
+Token Guardian 追踪最后一次收到响应的时间。如果超过 3,590 秒（TTL 减去 10 秒缓冲），它会拦截提示并显示警告。
 
 ```
-🚨 缓存已过期 (已空闲68分23秒)
+🚨 Cache expired (68m 23s idle)
 
-提示缓存已过期，继续将重新发送全部上下文。
-费用可能大幅增加。
+The prompt cache has expired. Continuing will resend the full context.
+Cost may increase significantly.
 
-👉 /context — 查看当前上下文使用量后再决定
-👉 /clear → /continue — 重置后恢复之前的上下文（推荐，费用最低）
-👉 直接重新发送 — 继续当前状态（全量重新缓存费用产生）
+👉 /context — Check current context usage before deciding
+👉 /clear → /continue — Reset, then restore previous context (recommended, cheapest)
+👉 Re-send — Continue as-is (full re-cache cost incurred)
 ```
 
-警告后再次发送同一条 prompt，它就会放行。警告每次空闲期只触发一次，不会反复打扰。警告消息支持 23 种语言，根据操作系统语言环境自动显示。
+警告后，重新发送同一提示即可继续。每次闲置期只触发一次警告，不会反复打扰。警告消息根据你的操作系统语言环境自动以 23 种语言显示。
 
-**效果：** 自动防止昂贵的重新缓存费用。无需任何操作。
+**结果：** 每次拦截缓存过期 = 节省 $9。每天拦截一次，每月消除 $270 的纯浪费。
+
+> **如果你是 API 按量付费用户，影响更大。** Max Plan 用户在 $200 的预算内损失 $9。你损失的是真实资金 $9——悄无声息地，反复地，每次离开都如此。Token Guardian 每次都能拦截。
 
 ---
 
-## 🧠 功能 2：Smart Session Architecture
+## 🧠 功能 2：智能会话架构
 
-**安装即生效，自动进入成本优化的工作模式。**
+**安装即生效，成本优化的工作模式自动启动。**
 
-大多数用户把所有事情都放在 Main session 里做。读文件、生成代码、跑测试。所有输出堆积到 context 中，每条消息都会被重新发送。Session 越来越臃肿，费用滚雪球式增长。
+大多数用户在 Main session 中做所有事情：读文件、生成代码、跑测试。所有输出堆积到上下文中，随每条消息重发。会话越来越臃肿，成本像滚雪球一样增长。
 
-Session Architect 在 session 启动时自动注入委派策略。
+Session Architect 在会话开始时自动注入委托策略。
 
 |                  | Main Session                      | SubTask                               |
 | ---------------- | --------------------------------- | ------------------------------------- |
-| 角色             | 设计、决策、审查                   | 实现、代码生成、多文件操作             |
-| Cache 级别       | 1 小时 (ephemeral_1h)             | 5 分钟                                |
-| Cache 写入费用   | ＄10/MTok                          | ＄6.25/MTok                            |
-| Context 大小     | 平均约 94K                         | 平均约 33K                             |
+| 角色             | 设计、决策、评审         | 实现、代码生成、多文件  |
+| 缓存有效期       | 1 小时 (ephemeral_1h)             | 5 分钟                                 |
+| 缓存写入成本 | ＄10/MTok                          | ＄6.25/MTok                            |
+| 上下文大小     | 平均 ~94K                          | 平均 ~33K                              |
 
-SubTask 的 **cache 写入费用比 Main 便宜 37.5%**。Context 也小得多。把重活委派给 SubTask 可以大幅降低费用。
+SubTask 的缓存写入比 Main **便宜 37.5%**，上下文也小得多。将繁重工作委托给 SubTask 可大幅降低成本。
 
-**效果：** Claude 自动按成本高效的模式工作。你不需要操心。
-
----
-
-## 🪶 简洁模式
-
-**相同内容，更少冗余。默认开启。**
-
-同一个 SessionStart 钩子也注入响应风格规则，在**每个会话、每个模型**中生效——无需标志、无需配置。三个变化：
-
-- **去除前缀** — 没有"让我检查一下…"、"现在我将…"、重复你的问题、或重述 diff 中已经显示的内容
-- **内容匹配的格式** — 列表用 bullet,推理(权衡、因果、依据)用散文。两者都不强制
-- **更紧凑的表达** — 同一个要点,更少的字。更清晰的散文就是更短的散文
-
-硬性限制:绝不删减内容、跳过验证、或将细微差别压缩成一句话。本质保持完整;只有包装收缩。
-
-安装一次,全局生效。
+**结果：** 上下文保持在 250K 以下，而不是膨胀到 600K+。同样的工作产出，token 成本减半。完全自动。
 
 ---
 
+## 🪶 Concise Mode
 
-## 🔄 功能 3：/continue — Context 恢复
+**同样的内容，更少的填充。默认开启。**
 
-**替代 `/compact`。零 LLM 调用。零 token 费用。**
+SessionStart 钩子还会在**每个会话和每个模型**中注入响应风格规则——无需任何标志或设置。三项变化：
 
-`/compact` 会把你的整个 context（约 1M token）发送给 LLM 生成 3.3% 的摘要。如果 cache 已过期，光这一步就会触发全量重新缓存。信息丢失不可避免。
+- **去掉前言** — 不再有"让我来检查一下……"、"我现在将……"、重述你的问题，或概括 diff 已经显示的内容
+- **内容决定格式** — 列表用项目符号，推理（权衡、因果、依据）用散文。不强制任何一种
+- **更精炼的表达** — 同样的观点，更少的字。更清晰的散文就是更短的散文
 
-`/continue` 采用完全不同的方式。它预处理之前的 session 记录并直接读入。不调用 LLM，不产生费用。原始对话原样恢复。
+硬限制：绝不省略内容、跳过验证，或把细微差别压缩成一句话。实质内容完整保留，只有包装缩小。
+
+安装一次，处处生效。
+
+---
+
+## 🔄 功能 3：/continue——上下文恢复
+
+**替代 `/compact`。零 LLM 调用。零 token 成本。零信息损失。**
+
+`/compact` 将你的整个上下文（约 100 万 token）发送给 LLM，压缩成 3.3% 的摘要。如果缓存已过期，光这一步就会触发全量重缓存。信息损失不可避免。
+
+`/continue` 采用完全不同的方式。它对上一个会话的 transcript 进行预处理并直接加载。无 LLM 调用，无成本。原始对话原样恢复。
 
 |                         | /compact                          | /continue                        |
 | ----------------------- | --------------------------------- | -------------------------------- |
-| 工作方式                | 将完整 context 发送给 LLM 生成摘要 | 预处理记录，直接读入              |
-| LLM 调用                | 需要（通常 100K+ token）           | 0                                |
-| Token 费用              | 高                                | 0                                |
-| 信息丢失                | 有（3.3% 摘要）                    | 无（原始内容保留）                |
-| 处理速度                | 数十秒                             | < 1 秒（即使 60MB+ 文件）        |
-| Cache 过期时              | 额外产生全量重新缓存费用           | 无影响                            |
-| 多 session 恢复          | 不支持                             | 支持                              |
+| 工作原理            | 将完整上下文发送给 LLM 生成摘要 | 预处理 transcript，直接读取 |
+| LLM 调用               | 需要（通常 10 万+ token） | 0                                |
+| Token 成本              | 高                              | 0                                |
+| 信息损失        | 有（3.3% 摘要）                | 无（保留原始内容）        |
+| 处理速度        | 数十秒                   | < 1 秒（即使 60MB+ 文件）       |
+| 缓存过期时   | 额外触发全量重缓存费用         | 无影响                        |
+| 多会话恢复   | 不支持                      | 支持                        |
 
-用法：先 `/clear`，再 `/continue`。你会看到之前的 session 列表，选择想恢复的即可。快速恢复：`/continue last`。
+用法：`/clear` 然后 `/continue`。会看到之前会话的列表，选择要恢复的那个。快速恢复：`/continue last`。
 
-**效果：** 零费用恢复之前的工作。无信息丢失。
+**结果：** 零成本恢复之前的工作。无信息损失。60MB+ 的 transcript 在 1 秒内处理完毕。
 
 ---
 
-## 📊 功能 4：Live Status Line
+## 📊 功能 4：实时状态栏
 
-**实时 token/费用监控。开销低于 50ms。**
+**实时 token/成本监控。延迟低于 50ms。**
 
-运行一次 `/setup-statusline install`，Claude Code 底部就会出现一个常驻状态栏。
+运行一次 `/setup-statusline install`，Claude Code 底部就会出现一个持久状态栏。
 
-```
-[RUN🟢] $0.10/$12.23 | [5H🟢] 9% ⏳1h32m | [CTX🟢] 22%
-```
+**正常运行** — 所有指标一目了然，无需切换上下文：
 
-| 指标             | 显示内容                             | 🟢 正常   | 🟡 警告    | 🔴 危险     |
+![正常状态的状态栏](docs/images/statusline-normal.png)
+
+**达到速率限制时** — 5H 变红显示 102%，倒计时精确显示何时恢复，一键 `/report-limit` 操作自动浮现：
+
+![速率限制时的状态栏](docs/images/statusline-rate-limited.png)
+
+| 指标        | 显示内容                       | 🟢 正常 | 🟡 警告 | 🔴 危险 |
 | ---------------- | ----------------------------------- | --------- | ---------- | ----------- |
-| RUN (增量)       | 上一次 API 调用的费用                | < ＄0.30   | >= ＄0.30   | >= ＄1.00    |
-| RUN (累计)       | 当前文件夹的累计费用                 | —         | —          | —           |
-| 5H               | 5 小时窗口使用率 + 重置倒计时        | < 70%     | >= 70%     | >= 90%      |
-| CTX              | Context 窗口使用率                   | < 35%     | >= 35%     | >= 70%      |
+| RUN（差值）      | 上次 API 调用的成本           | < ＄0.30   | >= ＄0.30   | >= ＄1.00    |
+| RUN（累计） | 该文件夹的累计成本     | —         | —          | —           |
+| 5H               | 5 小时窗口使用率 + 重置倒计时 | < 70%     | >= 70%     | >= 90%      |
+| CTX              | 上下文窗口使用率                | < 35%     | >= 35%     | >= 70%      |
 
-当任何指标进入警告或危险状态时，会自动出现 `→ /usage-view current` 提示。
+当任意指标进入警告或危险状态时，`→ /usage-view current` 提示会自动出现。
 
-卸载：`/setup-statusline uninstall`（自动恢复之前的配置）。
+移除：`/setup-statusline uninstall`（之前的配置自动恢复）。
 
-**效果：** 一眼看清费用状态。在为时已晚之前采取行动。
+**结果：** 所有成本问题实时可见。延迟低于 50ms——无可感知的卡顿。
+
+> **API 按量付费？** 5H 和 W 指标自动隐藏——你没有速率限制窗口。保留的是真正重要的：RUN（每轮实时成本）和 CTX（上下文大小）。控制账单的两个杠杆，始终可见。
 
 ---
 
-## 📈 使用仪表盘 (/usage-view)
+## 📈 使用仪表盘（/usage-view）
 
-**终于能回答："我为什么被 rate limit 了？"**
+**终于能回答这个问题："那些钱都去哪了？"**
 
-以前撞上 rate limit 只能生闷气。没法知道原因。哪个 session 烧了最多 token？费用什么时候飙升的？使用模式有什么规律？全是黑箱。
+Max Plan 用户触发速率限制后一脸茫然。API 用户打开 Anthropic 账单后一头雾水。问题都是一样的：哪个会话烧掉了最多 token？成本是什么时候飙升的？使用模式是什么？到目前为止——一切都是不透明的。
 
-`/usage-view` 把一切展示出来。交互式 HTML 仪表盘会在浏览器中打开，让你分析使用模式、追踪费用飙升的根因。无外部依赖。独立运行。可作为文件分享。
+`/usage-view` 把一切都展示出来。一个交互式 HTML 仪表盘在浏览器中打开，让你分析使用模式，追溯成本飙升的根本原因。无外部依赖，可独立运行，可作为文件分享。
 
-包含内容：
+**31 天花了 $4,196，都去哪了？** 一眼看清——总成本、按类型分的 token 明细、缓存效率比、会话数量。环形图立刻显示你 65% 的支出是缓存读取（正常且健康）：
 
-- 每日/每小时/按星期统计的费用趋势——找出什么时候烧 token 最多
-- Token 分类明细（输入、输出、cache 写入、cache 读取）——看清费用驱动因素
-- 按 session 的费用分析——精确定位哪些任务最贵
-- 5 小时窗口时间线（Max Plan 订阅用户）——追踪 rate limit 触发点
-- AI 驱动的洞察分析——解读数据并给出改进建议
-- 支持 23 种语言（包括 RTL；图表/表格保持 LTR）
+![使用仪表盘概览](docs/images/usage-view-overview.png)
+
+**安装前后对比——实测，而非猜测。** 橙色虚线"Plugin installed"标记将成本时间线一分为二。每日柱状图按 token 类型堆叠（Input/Output/Cache Write/Cache Read），精确显示安装后哪个组件发生了变化。平均线展示趋势：
+
+![每日成本趋势](docs/images/usage-view-daily-trend.png)
+
+**什么时候烧得最多？** 按时段的每小时成本和按星期几的分布。可在活跃日均值、全天均值和最大值之间切换。火焰图标标记你最贵的时段——清晰的规律（深夜狂刷、周三峰值）立刻跳出来：
+
+![按时段和星期几的成本规律](docs/images/usage-view-hourly-pattern.png)
+
+**效率在提升吗？** Total/Output 比率衡量每产生一个输出 token 消耗了多少 token。越低越好。"Plugin installed"标记让你对比安装前后。峰值 = 缓存未命中或会话重启：
+
+![效率趋势](docs/images/usage-view-efficiency.png)
+
+**每次 API 调用，按上下文大小和成本绘图。** 这张图让成本结构一目了然。每个点代表一次 API 调用。红色 = Opus，蓝色 = Sonnet，绿色 = Haiku。虚线是理论定价——如果你的点在线上方，说明你多付了钱。切换到 **User Turn** 视图，可以看到每次对话轮次而非每次 API 调用的成本。
+悬停任意点可查看实际提示文本、token 数量和完整成本明细（Input/Output/Cache Write/Cache Read）：
+
+![按上下文大小的成本——散点图](docs/images/usage-view-cost-scatter.png)
+
+**你的上下文有多大？** 大多数调用集中在 250K 以下。350K 以上的长尾才是成本爆炸的地方——这张图精确显示你有多频繁进入危险区：
+
+![上下文大小分布](docs/images/usage-view-context-dist.png)
+
+**按小时计价的编程日程表。** 30 天的 5 小时窗口热力图。绿色（< $15/h）、橙色（$15-30/h）、红色（$30+/h）。骷髅图标（💀）标记你触发速率限制的窗口。顶部的成本滑块过滤掉便宜的窗口，让贵的凸显出来——拖动即可立刻找到你最糟糕的日子。可在 5 小时窗口和 1 小时块视图之间切换：
+
+![每小时使用情况日历热力图](docs/images/usage-view-calendar.png)
+
+**点击任意格子，深入查看该窗口的会话。** 该时段的每个会话，附带成本、消息数、token 明细，以及每次对话的实际首条/最后一条消息。展开"Top Token Conversations"可查看哪些具体对话烧得最多——每条记录显示提示文本、成本警告标签和优化建议：
+
+![会话详情面板](docs/images/usage-view-session-drilldown.png)
+
+**AI 驱动的分析（可选）。** 不带 `--no-ai` 运行 `/usage-view`，AI 分析师会读取你的完整仪表盘数据——内置 API 定价参考——生成一份书面报告：成本驱动因素、异常、优化建议。根据你的操作系统语言自动显示（23 种语言，含从右到左语言；图表/表格始终保持从左到右）：
+
+**钱的去向** — 总支出、按 token 类型分的成本驱动、周趋势、用实际数字衡量的插件效果：
+
+![AI 分析——成本明细](docs/images/usage-view-ai-report-1.png)
+
+**工作时间和方式** — 高峰时段、最忙的日子、API 调用分布，以及揭示优化机会的速率限制规律：
+
+![AI 分析——工作规律](docs/images/usage-view-ai-report-2.png)
+
+**下一步该怎么做** — 基于你实际使用数据的具体、有数据支撑的建议。模型切换、上下文管理、会话策略：
+
+![AI 分析——建议](docs/images/usage-view-ai-report-3.png)
+
+**分享出去。** 整个仪表盘是一个独立自包含的 HTML 文件——所有数据内嵌，无需服务器。发给你的团队、老板或会计。无外部依赖，离线可用。使用 `private` 模式在分享前清除所有提示文本——保留成本分析的同时移除对话内容。
 
 ```
 /usage-view                  # 所有时间，所有项目
 /usage-view current          # 仅当前 5 小时窗口
 /usage-view last 7 days      # 最近 7 天
-/usage-view locale zh        # 中文显示
+/usage-view locale ja        # 日语
+/usage-view --no-ai          # 跳过 AI 分析（更快）
+/usage-view private          # 清除提示文本（安全分享）
 ```
 
 ---
 
-## 🔬 Rate Limit 研究 (/report-limit)
+## 🔬 速率限制研究（/report-limit）
 
-**社区驱动的项目，逆向工程 rate limit 公式。**
+**社区驱动的项目，旨在逆向工程速率限制公式。**
 
-Anthropic 没有公开 5 小时窗口的确切公式。让我们一起把它搞清楚。
+Anthropic 没有公布 5 小时窗口的精确计算公式。让我们一起搞清楚。
 
-当你撞上 rate limit 时，运行 `/report-limit`。你当时的使用数据会自动提交为 GitHub Discussion。收集的数据越多，公式就越清晰。
+触发速率限制时，运行 `/report-limit`。你当前的使用数据会自动提交为 GitHub Discussion。收集的数据越多，公式就越清晰。
 
 ---
 
-## ✂️ 功能 5：/setup-git-lite — 精简 CC 内置 Git 指令
+## ✂️ 功能 5：/setup-git-lite——精简 CC 内置 Git 指令
 
-**你每个 session 都在默默支付的 2,200 个隐藏 token。**
+**我们读了 Claude Code 的源代码。发现了每次会话注入的 2,200 个你在悄悄付费的隐藏 token。**
 
-### 发现过程
+### 这一发现
 
-2026-04-12，一个 [GitHub issue](https://github.com/anthropics/claude-code/issues/47107) 揭示了 Claude Code 内置的 `includeGitInstructions` 设置会在每个 session 中悄悄消耗 token。通过[这个 gist（spilist）](https://gist.github.com/spilist/b0db92a859192f5ec6199d3f35a81b98)独立复现后确认了数据：每次 git commit 后每个 session **cache 写入多消耗 +6,031 token**，每次 API 调用 **cache 读取多消耗 +1,690 token**。
+2026 年 4 月 12 日，一个 [GitHub issue](https://github.com/anthropics/claude-code/issues/47107) 揭示了 Claude Code 内置的 `includeGitInstructions` 设置每次会话都在悄悄消耗 token。通过[这个 gist（spilist）](https://gist.github.com/spilist/b0db92a859192f5ec6199d3f35a81b98)的独立复现确认了数字：每次 git commit 后的会话中，**缓存写入 +6,031 token**，每次 API 调用**缓存读取 +1,690 token**。
 
-### CC 源码分析 — token 去了哪里
+### CC 源代码分析——token 的去向
 
-我们将这些 token 追踪到 Claude Code 源码（v2.1.88）中两个独立的注入点：
+我们在 Claude Code 源码（v2.1.88）中追踪到两个独立的注入点：
 
-**1. `gitStatus` 快照（约 500 tok）— system prompt**
-- `context.ts:36-111` 中的 `getGitStatus()` 收集分支 + 主分支 + user.name + 完整状态（最多 2000 字符）+ **最近 5 条 commit**
-- 通过 `appendSystemContext`（`utils/api.ts:437`）拼接后追加至 system prompt
-- 每次新 commit、每个新修改文件、每次切换分支都会改变文本 → prefix cache 失效
+**1. `gitStatus` 快照（约 500 token）——系统提示**
+- `context.ts:36-111` 中的 `getGitStatus()` 收集分支 + 主分支 + user.name + 完整状态（最多 2000 字符）+ **最近 5 次提交**
+- 通过 `appendSystemContext`（`utils/api.ts:437`）附加到系统提示
+- 每次新提交、新修改文件、分支切换都会改变文本 → 前缀缓存失效
 
-**2. Commit/PR 工作流指令（约 1,700 tok）— Bash 工具描述**
-- `tools/BashTool/prompt.ts:53` 向 `Bash` 工具的描述中追加了 60 多行安全协议、逐步 commit 流程、HEREDOC 示例和 PR 创建模板
-- 与 system prompt 一起缓存，但作为 `tools[]` 参数发送
+**2. Commit/PR 工作流指令（约 1,700 token）——Bash 工具描述**
+- `tools/BashTool/prompt.ts:53` 将 60 多行安全协议、逐步提交流程、HEREDOC 示例和 PR 创建模板附加到 `Bash` 工具的描述中
+- 与系统提示一起缓存，但作为 `tools[]` 参数发送
 
-### 为什么这很贵
+### 为什么如此昂贵
 
-cache 结构（`utils/api.ts:321` 中的 `splitSysPromptPrefix`）根据是否有活跃 MCP 工具分为三条路径：
+缓存结构（`utils/api.ts:321` `splitSysPromptPrefix`）根据是否有活跃的 MCP 工具分为三条路径：
 
-- **Path A**（MCP 启用 — 多数用户）：`gitStatus` 位于 `cacheScope: 'org'` 块内。任何变更 → 下次 session 启动时整块重新缓存 → 6K tok 的 `cache_create` miss。
-- **Path B**（无 MCP）：`gitStatus` 进入 `cacheScope: null` 动态块，即每次 API 调用都作为新鲜的 `input_tokens` 重新发送——没有 cache miss，但也没有 cache 节省。
-- **Path C**（第三方 provider / 实验性 beta 功能禁用）：同 Path A。
+- **路径 A**（MCP 活跃——大多数用户）：`gitStatus` 位于 `cacheScope: 'org'` 块中。任何变化 → 下次会话开始时整块重新缓存 → 6K token 的 `cache_create` 未命中。
+- **路径 B**（无 MCP）：`gitStatus` 进入 `cacheScope: null` 动态块，每次 API 调用作为新鲜的 `input_tokens` 重发——没有缓存未命中，但也没有缓存节省。
+- **路径 C**（第三方提供商 / 实验性 beta 禁用）：与路径 A 相同。
 
-在典型的交互式 session 中，commit/PR 指令（1.7K tok）会**在每次 API 调用时**通过 `cache_read` 累积。以 Opus 4.7 定价计算，100 次调用的 session 光这些指令就要消耗约 **$0.08**——而 Claude 的训练数据本已大部分覆盖了这些内容。
+在典型的交互式会话中，commit/PR 指令（1.7K token）通过 `cache_read` 在**每次 API 调用**中累积。以 Opus 4.7 定价计算，100 次调用的会话中，仅这些 Claude 训练已基本涵盖的指令就要花费约 **$0.08/会话**。
 
-### cc-token-saver 的处理方式
+### claude-code-upgrader 如何处理
 
-`/setup-git-lite` 禁用原生路径，并通过 SessionStart hook 注入一个**精简版 280 token 替代方案**。我们保留了能覆盖 Claude 默认行为的内容（安全规则），去除了 Claude 训练已掌握的内容（逐步工作流、PR 模板、gh 使用模式）。
+`/setup-git-lite` 禁用原生路径，通过 SessionStart 钩子注入一个**精心筛选的 280 token 替代品**。我们只保留了覆盖 Claude 默认行为的内容（安全规则），删除了 Claude 从训练中已经知道的一切（逐步工作流、PR 模板、gh 使用模式）。
 
-**保留 — 11 条关键覆盖规则**（能将 Claude 默认的"帮忙"倾向转变为谨慎的规则）：
-- 未经用户明确要求，绝不 commit/push/amend/PR/tag/merge
-- 绝不跳过 hooks，不向 main/master 强制推送，不执行破坏性操作，不修改 git config
-- 绝不 commit 匹配 `.env`、`credentials`、`*.pem`、`secret.*` 的文件
+**保留——11 条关键覆盖规则**（将 Claude 的默认善意转变为谨慎的规则）：
+- 未经明确用户请求，绝不 commit/push/amend/PR/tag/merge
+- 绝不跳过钩子、强推到 main/master、执行破坏性操作、修改 git 配置
+- 绝不提交匹配 `.env`、`credentials`、`*.pem`、`secret.*` 的文件
 - 避免 `git add -A` / `git add .`
-- 多行 commit 信息使用 HEREDOC + `Co-Authored-By: Claude` 尾注
-- 禁用交互式 flag（-i），不创建空 commit
-- pre-commit hook 失败时 → 创建新 commit（而非 `--amend`）
+- 多行 commit 消息用 HEREDOC + `Co-Authored-By: Claude` 尾注
+- 绝不使用交互式标志（-i），禁止空提交
+- 如果 pre-commit 钩子失败 → 创建新提交（不用 `--amend`）
 
-**移除** — 逐步 commit 工作流（3 步）、逐步 PR 工作流（3 步）、PR 标题/正文模板、`gh` 命令参考、`-uall` flag 警告、rebase 使用 `--no-edit` 警告、`commit 期间绝不使用 TodoWrite 或 Agent 工具` 约束。这些工作流细节 Claude 仅凭训练就能正确组合。
+**删除** — 逐步 commit 工作流（3 步）、逐步 PR 工作流（3 步）、PR 标题/正文模板、`gh` 命令参考、`-uall` 标志警告、rebase 时的 `--no-edit` 警告、`提交期间绝不使用 TodoWrite 或 Agent 工具`约束。这些都是 Claude 从训练中就能正确完成的工作流冗余描述。
 
-**新增** — 紧凑 git 状态行：分支 + HEAD 短 sha + 主题 + 当前状态（最多 20 个修改文件，超出则显示数量）。不包含最近 commit 列表（Claude 可按需运行 `git log`）。
+**新增** — 紧凑的 git 状态行：分支 + HEAD 短 SHA + 主题 + 当前状态（最多 20 个修改文件，超出则显示数量）。不含近期提交列表（Claude 可按需运行 `git log`）。
 
-### 预期节省（Opus 4.7 定价，output $25/MTok，input $5/MTok，cache read $0.50/MTok）
+### 预期节省（Opus 4.7 定价，输出 $25/MTok，输入 $5/MTok，缓存读取 $0.50/MTok）
 
-| 项目 | 原始 | 使用 setup-git-lite | 节省 |
-| ---- | ---- | ------------------- | ---- |
-| System prompt 加载（每个新 session） | 约 2,200 tok cache_create | 约 280 tok cache_create | 约 1,920 tok |
-| 同一 session 中的重复调用 | 约 1,700 tok cache_read/次 | 约 280 tok cache_read/次 | 约 1,420 tok/次 |
-| 100 次调用的 session（Opus 4.7） | — | — | **约节省 $0.11** |
-| 每天 20 个 session × 22 个工作日 | — | — | **约节省 $48/月** |
+| 项目 | 原始 | 使用 setup-git-lite 后 | 节省 |
+| ---- | -------- | ------------------- | ----- |
+| 系统提示加载（每个新会话） | ~2,200 tok cache_create | ~280 tok cache_create | ~1,920 tok |
+| 同一会话中的重复调用 | ~1,700 tok cache_read/次 | ~280 tok cache_read/次 | ~1,420 tok/次 |
+| 100 次调用会话（Opus 4.7） | — | — | **节省约 $0.11** |
+| 每天 20 个会话 × 22 个工作日 | — | — | **每月节省约 $48** |
 
 ### 用法
 
 ```bash
-/setup-git-lite status     # 只读诊断 — 当前状态 + 会有哪些变化
-/setup-git-lite install    # 禁用 CC 原生 + 启用我们的精简 hook
+/setup-git-lite status     # 只读诊断——当前状态 + 将会发生什么变化
+/setup-git-lite install    # 禁用 CC 原生 + 启用我们的最小钩子
 /setup-git-lite revert     # 恢复默认（激进；见下文）
 /setup-git-lite dismiss-banner    # 屏蔽偶尔出现的推荐提示
 /setup-git-lite undismiss-banner  # 重新启用提示
 /setup-git-lite help       # 完整用法
 ```
 
-### 安装语义
+### 安装说明
 
-`install` 为确保稳健性会修改**两个**地方：
+`install` 为稳健性修改**两处**：
 
 1. `~/.claude/settings.json` — 添加 `"includeGitInstructions": false`
 2. Shell 配置文件（`~/.zshrc`、`~/.bashrc` 等）— 追加一个导出 `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS=1` 的标记块
 
-两者单独任一都足以禁用 CC 原生；我们同时设置两处，以防环境变量覆盖意外重新启用原生行为。Shell 配置的变更仅在新 shell 中生效。
+任意一处单独就足以禁用 CC 原生；我们同时设置两处，以防环境变量覆盖意外重新启用原生行为。Shell 变更仅在新 shell 中生效。
 
-### 还原语义 — 激进
+### 还原说明——激进模式
 
-`revert` 会**从你的 shell 配置文件中删除所有 `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS` 导出**，包括你在安装此 skill 之前手动添加的内容。这是有意为之——你运行了 `revert`，所以我们恢复干净的默认状态。操作前会先创建 shell 配置文件的带时间戳备份。
+`revert` 会**从你的 shell 配置文件中移除所有 `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS` 导出**，包括你在安装此技能之前手动添加的那些。这是有意为之——你运行了 `revert`，我们就恢复干净的默认状态。我们总会先创建一个带时间戳的 shell 配置文件备份。
 
-如果你出于其他原因需要该环境变量，请在运行 `revert` 前记下，之后再重新添加。
+如果你因其他原因需要该环境变量，请在运行 `revert` 前记下来，之后再重新添加。
 
-### 卸载 cc-token-saver 前
+### 卸载 claude-code-upgrader 之前
 
-**请先运行 `/setup-git-lite revert`**，否则你的 settings.json 中会残留 `includeGitInstructions: false`，但没有替代 hook（Claude 将完全得不到任何 git 指导）。Claude Code 目前没有插件卸载生命周期 hook，因此无法自动处理。
+**先运行 `/setup-git-lite revert`**，否则你的 settings.json 中会留有 `includeGitInstructions: false` 但没有替代钩子（Claude 完全得不到 git 指导）。Claude Code 目前没有插件卸载生命周期钩子，我们无法自动化这一步。
 
 ### 权衡
 
-你会失去什么（以及为什么通常没关系）：
-- Claude 不再在 session 启动时接收预计算的 `git status` / `git log -n 5`。如果你在新 session 中问"有什么变化？"，Claude 会自行运行这些命令（多一次工具调用，约 300 tok）。
-- Claude 不再看到 CC 标准的 3 步 commit 流程。在我们对数百个 commit 流程的测试中，训练层面的知识能处理关键场景（HEREDOC 格式、不 `--amend`、不强制推送），因为我们将这些保留为明确规则。
-- PR 正文模板（`## Summary` + `## Test plan`）不再注入。如果你需要严格遵循该格式，请将其写入项目的 CLAUDE.md。
+你失去的（以及为什么通常没关系）：
+- Claude 在会话开始时不再收到预先计算的 `git status` / `git log -n 5`。如果你在新会话中问"什么改变了？"，Claude 会自己运行这些命令（额外一次工具调用，约 300 token）。
+- Claude 不再看到 CC 标准的 3 步提交流程。在数百次提交流程的测试中，训练层面的知识能处理关键情况（HEREDOC 格式、无 `--amend`、无强推），因为我们将这些作为明确规则保留。
+- PR 正文模板（`## Summary` + `## Test plan`）不再注入。如果你很在意这个格式，把它放进你项目的 CLAUDE.md。
 
-### 推荐提示横幅
+### 推荐横幅
 
-当你的机器上 CC 原生 git 指令仍处于启用状态时，cc-token-saver 会在 session 启动时**约 20% 的概率**显示一段提示（另外在 `/usage-view` 和 `/report-limit` 输出中也会显示）。可通过 `/setup-git-lite dismiss-banner` 永久屏蔽。
+当 CC 原生 git 指令在你机器上仍处于活跃状态时，claude-code-upgrader 会在会话开始时**约 20% 的概率**显示一段建议提示（在 `/usage-view` 和 `/report-limit` 输出中也会显示）。使用 `/setup-git-lite dismiss-banner` 永久关闭。
 
 ---
 
-## 💡 Cache 的实际工作原理
+## 💡 缓存的实际运作原理（以及为什么大多数用户浪费了 40% 以上）
 
-Claude Code 每次 API 调用都会发送完整的对话历史。"API 调用"不等于"你输入的一条消息"。一条 prompt 会触发内部工具调用——Grep、Read、Edit、Write——每一个都是独立的 API 调用。一条 prompt 轻松产生 10+ 次 API 调用。
+Claude Code 在每次 API 调用时将整个对话历史发送给模型。"API 调用"不等于"你输入的一条消息"。一个提示会触发内部工具调用——Grep、Read、Edit、Write——每次都是单独的 API 调用。一个提示轻易就能触发 10 次以上 API 调用。
 
-Prompt cache 将这个费用降低 90%。但 cache 有生命周期。
+提示缓存能将这个成本降低 90%。但缓存有寿命。
 
 |                     | Main Session                          | SubTask                                |
 | ------------------- | ------------------------------------- | -------------------------------------- |
-| Cache TTL           | 1 小时 (ephemeral_1h)                 | 5 分钟                                 |
-| Cache 写入          | ＄10/MTok                              | ＄6.25/MTok                             |
-| Cache 读取          | ＄0.50/MTok                            | ＄0.50/MTok                             |
-| Cache 过期时         | 全量 context 按原价重发               | 影响小（context 本身就小）              |
+| 缓存 TTL           | 1 小时 (ephemeral_1h)                 | 5 分钟                                  |
+| 缓存写入         | ＄10/MTok                              | ＄6.25/MTok                             |
+| 缓存读取          | ＄0.50/MTok                            | ＄0.50/MTok                             |
+| 缓存过期时  | 整个上下文以全价重发    | 影响小（上下文较小）          |
 
-即使 cache 还活着，费用也在累积。以下是一个极端场景来展示差异。
+即使缓存有效，成本也在累积。下面是一个极端场景，展示差异。
 
-### 场景：全天编码（上午 3 小时 → 午休/会议 2 小时 → 下午 3 小时）
+### 场景：全天写代码（上午 3 小时 → 午饭/会议 2 小时 → 下午 3 小时）
 
-条件：Opus 4 定价，每分钟 1 条 prompt，每条 prompt 约 5 次 API 调用（约 300 次/小时）。
+条件：Opus 4 定价，每分钟一个提示，每个提示约 5 次 API 调用（约 300 次/小时）。
 
-#### ❌ 不使用 cc-token-saver
+#### ❌ 没有 claude-code-upgrader
 
-大部分工作在 Main session 中进行。Context 快速膨胀。
+大多数工作在 Main session 中完成。上下文快速增长。
 
-| 阶段        | 情况                               | Context 大小                | 费用                                   |
+| 阶段       | 情况                         | 上下文大小               | 成本                                   |
 | ----------- | --------------------------------- | -------------------------- | -------------------------------------- |
-| 上午 3 小时  | 编码（主要在 Main 中）             | 100K → 600K（平均 350K）    | 900 次 × 350K × ＄0.50/M = ＄157.50    |
-| 午休/会议    | 离开 2 小时                        | —                          | —                                      |
-| 回来        | Cache 过期 → 全量重发              | 600K 按原价                 | 600K × ＄5/M + 600K × ＄10/M = ＄9      |
-| 回来        | /compact（生成摘要）               | 600K → 发送给 LLM           | 600K × ＄0.50/M + 摘要输出 = 约 ＄1.50   |
-| 下午 3 小时  | 继续编码（context 重新膨胀）        | 100K → 600K（平均 350K）    | 900 次 × 350K × ＄0.50/M = ＄157.50    |
-|             | 合计                               |                            | 约 ＄326                                |
+| 上午 3 小时  | 写代码（主要在 Main session 中）           | 100K → 600K (avg 350K)    | 900 calls × 350K × ＄0.50/M = ＄157.50  |
+| 午饭/会议   | 离开 2 小时                  | —                          | —                                      |
+| 返回      | 缓存过期 → 全量重发      | 600K full price            | 600K × ＄5/M + 600K × ＄10/M = ＄9       |
+| 返回      | /compact（摘要）              | 600K → sent to LLM        | 600K × ＄0.50/M + summary output = ~＄1.50 |
+| 下午 3 小时 | 继续写代码（上下文重新增长） | 100K → 600K (avg 350K)   | 900 calls × 350K × ＄0.50/M = ＄157.50  |
+|             | 合计                             |                            | ~＄326                                  |
 
-> 在这个使用强度下，你很可能撞上 5 小时窗口 rate limit。**费用是一方面，真正的问题是你的工作被完全中断。这就是 Claude Code 突然罢工的那个瞬间。**
+> 在这个使用量级别下，你很可能会触发 5 小时窗口速率限制。**成本固然糟糕，但真正的问题是你的工作完全停止。这就是 Claude Code 变成黑屏的那一刻。**
 
-#### ✅ 使用 cc-token-saver
+#### ✅ 有 claude-code-upgrader
 
-重活委派给 SubTask。Main 只处理设计/决策。
+繁重工作委托给 SubTask，Main 只处理设计/决策。
 
-| 阶段        | 情况                                          | Context 大小                 | 费用                               |
+| 阶段       | 情况                                    | 上下文大小                | 成本                               |
 | ----------- | -------------------------------------------- | --------------------------- | ---------------------------------- |
-| 上午 3 小时  | 编码（Main：设计，SubTask：实现）               | Main 100K → 300K（平均 200K）| 900 次 × 200K × ＄0.50/M = ＄90    |
-| 午休/会议    | 离开 2 小时                                    | —                           | —                                  |
-| 回来        | ⚡ Token Guardian 拦截 → /clear + /continue    | —                           | ＄0（无 LLM 调用）                  |
-| 下午 3 小时  | 继续编码                                       | Main 100K → 300K（平均 200K）| 900 次 × 200K × ＄0.50/M = ＄90    |
-|             | 合计                                           |                             | 约 ＄180                            |
+| 上午 3 小时  | 写代码（Main：设计，SubTask：实现） | Main 100K → 300K (avg 200K) | 900 calls × 200K × ＄0.50/M = ＄90 |
+| 午饭/会议   | 离开 2 小时                             | —                           | —                                  |
+| 返回      | ⚡ Token Guardian 拦截 → /clear + /continue | —                           | ＄0 (no LLM calls)                 |
+| 下午 3 小时 | 继续写代码                             | Main 100K → 300K (avg 200K) | 900 calls × 200K × ＄0.50/M = ＄90 |
+|             | 合计                                        |                             | ~＄180                              |
 
 #### 💰 结果
 
-> **＄326 → ＄180。每天节省 ＄146（45%）。**
+> **＄326 → ＄180。每天节省 ＄146。成本降低 45%。**
 >
-> 不仅仅是省钱。同样的时间内消耗更少的 token 意味着**你不会撞上 rate limit，可以持续工作。** 这才是真正的区别。
+> **Max Plan：** 更少的 token = 不触发速率限制 = 工作不停止。这才是真正的差别。
+>
+> **API 按量付费：** ＄146/天 × 22 个工作日 = **每月账单直接减少 ＄3,200。** 没有这个插件的繁重月份超过 ＄7,000。有了它，不到 ＄4,000。同样的产出。
 
-### cc-token-saver 在哪些环节介入
+### claude-code-upgrader 的介入点
 
 ```
-[Session 开始]
+[Session Start]
     │
-    ├─ Session Architect → 自动注入 SubTask 委派模式
-    │                       保持 Main context 低于 250K
+    ├─ Session Architect → Auto-injects SubTask delegation pattern
+    │                       Keeps Main context under 250K
     │
-[工作中]
+[Working]
     │
-    ├─ Status Line → 实时费用/context/rate limit 监控
-    │                  进入警告区域时立即提醒
+    ├─ Status Line → Real-time cost/context/rate limit monitoring
+    │                  Instant alert when entering warning zone
     │
-[空闲 1 小时以上]
+[1+ hour idle]
     │
-    ├─ Token Guardian → 检测 cache 过期，在重发前拦截
+    ├─ Token Guardian → Detects cache expiry, blocks before re-send
     │
-[Session 重启]
+[Session restart]
     │
-    └─ /continue → 零费用恢复之前的 context（无 LLM 调用）
+    └─ /continue → Restores previous context at zero cost (no LLM calls)
 ```
 
 ---
 
-## 🔧 源码安装与自定义
+## 🔧 源码安装与定制
 
 ```bash
-git clone https://github.com/ww-w-ai/cc-token-saver.git
-claude plugin marketplace add /path/to/cc-token-saver
-claude plugin install cc-token-saver@cc-token-saver
+git clone https://github.com/ww-w-ai/claude-code-upgrader.git
+/plugin marketplace add /path/to/claude-code-upgrader
+/plugin install claude-code-upgrader@claude-code-upgrader
 ```
 
-cc-token-saver 完全开源。整个源码由纯 JavaScript + Bash 脚本组成，遵循标准插件结构。随意修改。
+claude-code-upgrader 完全开源（Apache-2.0）。纯 JavaScript + Bash——无编译二进制文件，无外部 API 调用，无遥测。每一行都可审计。README 中的每项声明都对应一个你可以直接查看的具体文件。
 
-- **hooks/** — 修改 cache 过期阈值、自定义警告消息、调整 session 架构规则
-- **scripts/** — 分析逻辑、报告生成器、状态栏格式化
-- **skills/** — /continue 和 /usage-view 的工作方式、prompt 模板
-- **locales/** — 添加/编辑翻译、添加新语言
-- **skills/usage-view/** — 仪表盘 UI/UX 设计调整
+- **hooks/** — 修改缓存过期阈值，自定义警告消息，修改会话架构规则
+- **scripts/** — 分析逻辑、报告构建器、状态栏格式化
+- **skills/** — /continue 和 /usage-view 的工作原理，提示模板
+- **locales/** — 添加/编辑翻译，添加新语言
+- **skills/usage-view/** — 仪表盘 UI/UX 设计改动
 
-随意改造。Fork 它，实验，发现更好的方案就提 PR。
+把它变成你自己的。Fork 它，实验它，如果你发现更好的方案，发一个 PR 过来。
 
 ---
 
-## 🌐 支持语言
+## 🌐 支持的语言
 
-支持 23 种语言。通过交叉对比 Claude Code 使用量前 20 的国家和全球使用人数前 20 的语言来选定。显示语言根据操作系统语言环境自动检测。也可以手动指定：`/usage-view locale zh`
+支持 23 种语言。通过交叉参考 Claude Code 使用量前 20 的地区与全球使用者数量前 20 的语言来选定。显示语言从你的操作系统语言环境自动检测。也可手动指定：`/usage-view locale ja`
 
 |                 |                 |                |                 |
 | --------------- | --------------- | -------------- | --------------- |
-| 🇺🇸 English    | 🇰🇷 Korean     | 🇯🇵 Japanese  | 🇨🇳 Chinese    |
-| 🇪🇸 Spanish    | 🇫🇷 French     | 🇩🇪 German    | 🇧🇷 Portuguese |
-| 🇮🇹 Italian    | 🇷🇺 Russian    | 🇸🇦 Arabic    | 🇮🇳 Hindi      |
-| 🇧🇩 Bengali    | 🇮🇩 Indonesian | 🇲🇾 Malay     | 🇹🇭 Thai       |
-| 🇻🇳 Vietnamese | 🇹🇷 Turkish    | 🇵🇱 Polish    | 🇳🇱 Dutch      |
-| 🇮🇱 Hebrew     | 🇸🇪 Swedish    | 🇳🇴 Norwegian |                 |
+| 🇺🇸 英语    | 🇰🇷 韩语     | 🇯🇵 日语  | 🇨🇳 中文    |
+| 🇪🇸 西班牙语    | 🇫🇷 法语     | 🇩🇪 德语    | 🇧🇷 葡萄牙语 |
+| 🇮🇹 意大利语    | 🇷🇺 俄语    | 🇸🇦 阿拉伯语    | 🇮🇳 印地语      |
+| 🇧🇩 孟加拉语    | 🇮🇩 印度尼西亚语 | 🇲🇾 马来语     | 🇹🇭 泰语       |
+| 🇻🇳 越南语 | 🇹🇷 土耳其语    | 🇵🇱 波兰语    | 🇳🇱 荷兰语      |
+| 🇮🇱 希伯来语     | 🇸🇪 瑞典语    | 🇳🇴 挪威语 |                 |
 
-当前翻译由 AI 生成。欢迎母语使用者贡献——编辑 `locales/` 中对应语言的 JSON 文件，然后提交 PR。
+当前翻译由 AI 生成。欢迎母语使用者贡献——编辑 `locales/` 中你的语言 JSON 文件并提交 PR。
+
+---
+
+## ⚖️ 这个插件的成本
+
+插件在会话开始时注入上下文。具体数量如下：
+
+| 注入内容 | 时机 | Token 数 | 目的 |
+| --------- | ---- | ------ | ------- |
+| Session Architect | SessionStart（一次） | ~1,100 | SubTask 委托策略 + Concise Mode 规则 |
+| Git 上下文（如果启用了 git-lite） | SessionStart（一次） | ~280 | 替换 CC 原生约 2,200 token 的 git 指令 |
+| 缓存过期警告 | 闲置超过 59 分钟（一次） | ~200 | 拦截昂贵的重发，显示恢复选项 |
+| Status line | 每次 API 调用 | 0 | 渲染到终端状态栏，不进入对话上下文 |
+
+**每个会话的净开销：约 1,400 token（第一次调用后缓存）。**
+
+以 Opus 定价（$0.50/MTok 缓存读取）计算，这是**每次 API 调用 $0.0007**——不到一分钱的十分之一。100 次调用的会话：$0.07。
+
+如果启用了 git-lite，插件每个会话**节省**约 1,920 token（用 280 替换 2,200）。净效果为负——插件消耗的比它移除的少。
+
+**API 按量付费用户：** 在 $3,000/月的支出下，插件开销不到 $2/月。仅缓存过期预防的节省（每周拦截一次 $9 的重发）一次就能覆盖一年的开销。
 
 ---
 
 ## 💡 使用技巧
 
-### 理解 cache，你就能看清钱花在哪里
+### 理解缓存，就能看清钱的去向
 
-- **1 条 prompt ≠ 1 次 API 调用。** 每次 Claude 调用 Grep、Read 或 Edit，整个 context 都会被重新发送。一条 prompt 轻松触发 10+ 次 API 调用。写清晰的 prompt 来减少不必要的工具调用，从而降低费用。
-- **Cache 从上一次 API 调用开始计时，不是上一条 prompt。** 持续工作，cache 就永远不会过期。危险的是中途离开。Token Guardian 会自动拦截一次，所以你回来时可以选择：重置 context 或继续。
-- **Context 大小 = 费用乘数。** 同样的 API 调用，200K 和 800K 的费用差 4 倍。当状态栏 [CTX] 超过 35%（🟡）时，就是你该增加 SubTask 委派的信号。
+- **1 个提示 ≠ 1 次 API 调用。** 每次 Claude 调用 Grep、Read 或 Edit，整个上下文都会重发。一个提示轻易触发 10 次以上 API 调用。写清晰的提示，减少不必要的工具调用，降低成本。
+- **缓存计时器从最后一次 API 调用重置，而不是你最后一个提示。** 持续工作，缓存就不会过期。危险在于离开。Token Guardian 自动拦截一次，回来后你可以选择：重置上下文或继续。
+- **上下文大小 = 成本乘数。** 同样的 API 调用，20 万 token 和 80 万 token 相差 4 倍。当状态栏 [CTX] 超过 35%（🟡），就是将更多工作委托给 SubTask 的信号。
 
-### 省钱好习惯
+### 降低成本的习惯
 
-- **保持 CLAUDE.md 精简。** 它在每次 API 调用时都会加载到 system prompt 中。每一行都要花钱。
-- **把重活委派给 SubTask。** 代码生成、多文件编辑、测试运行不应该在 Main 中进行。SubTask 的 context 更小，cache 级别更便宜。
-- **离开 1 小时以上？** `/clear` → 回来 → `/continue`。$0 恢复 context。
-- **[5H] 超过 70%（🟡）？** 放慢节奏。切换到轻量审查任务，或增加 SubTask 委派来减少 Main 的 API 调用次数。
-- **用 `/btw` 提附带问题。** 它不会进入对话历史，所以你的 context 保持精简。
+- **保持 CLAUDE.md 精简。** 它在每次 API 调用时加载到系统提示。每一行都有成本。
+- **将繁重工作委托给 SubTask。** 代码生成、多文件编辑、测试运行不属于 Main session。SubTask 上下文更小，缓存层更便宜。
+- **离开超过 1 小时？** `/clear` → 回来 → `/continue`。上下文以 $0 恢复。
+- **[5H] 超过 70%（🟡）？** 放慢节奏。切换到轻量级审查任务，或增加 SubTask 委托以减少 Main session 的 API 调用次数。
+- **用 `/btw` 处理旁枝问题。** 它不进入对话历史，你的上下文保持精简。
+
+### API 按量付费：最重要的习惯
+
+以上所有规则都适用，另加这些 API 专属优先项：
+
+- **像盯速度表一样盯 [CTX]。** 没有速率限制会阻止你——但上下文超过 50 万 token 意味着每次 API 调用的成本是应有水平的 2-3 倍。`/clear` → `/continue` 免费将你的成本乘数重置到基准。
+- **每周运行 `/usage-view`。** Max Plan 用户在触发速率限制时会有自然的"心痛"时刻。你没有——成本悄悄攀升。仪表盘是你的早期预警系统。
+- **设定心理日预算。** 没有上限的话，$200 的一天可以在不知不觉中发生。状态栏的 RUN 指标让每轮的成本可见。如果一轮超过 $1（🔴），你的上下文太大了。
 
 ---
 
-## License
+## 📚 文档
+
+- [提示缓存指南](guides/prompt-cache-guide.md) — 为什么你的大部分成本都来自缓存，缓存如何在各提供商（Anthropic、OpenAI、Gemini）间运作，以及如何管理它（[한국어](guides/prompt-cache-guide-ko.md) · [日本語](guides/prompt-cache-guide-ja.md) · [中文](guides/prompt-cache-guide-zh.md) · [Español](guides/prompt-cache-guide-es.md) · [Français](guides/prompt-cache-guide-fr.md) · [Deutsch](guides/prompt-cache-guide-de.md) · [+16 种语言](guides/)）
+- [Opus 4.7 vs 4.6 成本分析](guides/opus-4-7-vs-4-6-cost-analysis.md) — 8,563 次 API 调用的并排成本比较
+- [Opus 4.7 vs 4.6 成本分析（한국어）](guides/opus-4-7-vs-4-6-cost-analysis.ko.md)
+
+---
+
+## 许可证
 
 Apache-2.0

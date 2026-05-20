@@ -1,37 +1,53 @@
-# cc-token-saver
+# claude-code-upgrader
 
-> **Claude Code sürekli mi kesiyor? Artık değil.**
->
-> Daha az harca, daha uzun kodla ve token'larının nereye gittiğini tam olarak gör — yapılandırma gerektirmez.
+**Token'larınızın nereye gittiğini bulmak için CC'nin kaynak kodunu gerçekten okuyan ve bunu otomatik olarak düzelten tek Claude Code eklentisi. Daha az harcayın, daha uzun süre kodlayın.**
 
-Nasıl mı? Otomatik context yönetimi, gerçek zamanlı maliyet takibi ve cache-bilinçli session kontrolü — hepsi tek bir eklentide.
+> Ölçülen sonuç: Gerçek bir $326/gün iş yükünde **%45 maliyet azalması** → $180/gün. Tek bir kurulumda, sıfır yapılandırmayla cache süre sonu önleme, otomatik SubTask devri, sıfır maliyetli context geri yükleme ve eksiksiz bir analitik panosu.
+
+**Max Plan ($200/ay)** ve **API kullandıkça öde** ile çalışır. Aynı eklenti, aynı özellikler. Her kullanıcı için daha güçlü — özellikle her token gerçek para olduğunda.
+
+![Kullanım panosu — token'larınızın tam olarak nereye gittiğini görün](docs/images/usage-view-overview.png)
+
+### 30 saniyede ne yapar
+
+| Özellik | Ne olur | Etki |
+| ------- | ------------ | ------ |
+| 🛡️ Token Guardian | Cache süresinin dolmasını algılar, gerçekleşmeden önce $9'lık yeniden gönderimi engeller | Birinci sessiz maliyet artışını önler |
+| 🧠 Session Architect | Ağır işleri SubTask'lara otomatik devreder (%37,5 daha ucuz cache) | Context küçük kalır, maliyetler düşer |
+| 🪶 Concise Mode | Yanıt dolgusunu keser, özü korur | Yanıt başına daha az output token |
+| 🔄 /continue | /compact'ın yerini alır — sıfır LLM çağrısı, sıfır maliyet, sıfır bilgi kaybı | Ücretsiz context geri yükleme |
+| 📊 Status Line | Gerçek zamanlı maliyet, context boyutu, hız sınırı — 50ms altında | Sorunları size mal olmadan önce görün |
+| 📈 /usage-view | Yapay zeka destekli analizle etkileşimli HTML panosu | Tek tıklamayla eksiksiz maliyet analizi |
+| ✂️ /setup-git-lite | CC'nin her oturuma eklediği 2.200 gizli token'ı kaldırır | Yalnızca git talimatlarından ayda ~$48 tasarruf |
 
 ---
 
-## 😤 Sorun: Aylık $200 ve hâlâ iş yapamıyorsunuz
+## 😤 Sorun
 
-Claude Code Max Plan (aylık $200). Yetmesi lazım. Ama yetmiyor.
+**Cache süresinin dolması.** Öğle yemeğinden dönüyorsunuz. Cache gitmiş. Bir istek 900K token'ı tam fiyatıyla yeniden gönderir. Tek seferde $9.
 
-**5 saatlik kayan pencere rate limit.** Kodlamanın tam ortasındasınız ve bir anda duruyor. Zamanlayıcı yok. Tahmini süre yok. Sadece bekleyin.
+**Görünmez maliyetler.** Gerçek zamanlı görünürlük yok. "Context'iniz 800K'da" uyarısı yok. "Cache 3 dakika önce sona erdi" bildirimi yok. Hasardan sonra öğreniyorsunuz.
 
-**Cache süresi dolması.** Öğle yemeğinden döndünüz. Bir saatten fazla geçmiş. Tek bir prompt gönderdiniz, 900K token tam fiyattan yeniden gönderildi. Maliyet? Tek seferde $9.
+**Context şişmesi.** 200K'lık context'te aynı prompt, 800K'daki kadar 4 kat daha fazla maliyete yol açar. Her Read, Grep, Edit tüm context'i yeniden gönderir. Karmaşık bir prompt 15'ten fazla API çağrısını tetikler ve her biri context boyutunuzla çarpılır.
 
-**Görünmeyen maliyetler.** Gerçek zamanlı ne kadar harcadığınızı görmenin yolu yok. Ancak rate limit'e çarptığınızda fark ediyorsunuz.
+**Her şey manuel.** Context yönetimi, cache süre sonu zamanlaması, SubTask devri, oturum temizliği. Gerçekten kodlarken tüm bunları kimse takip edemez.
 
-**Tamamen manuel.** Context boyutu, cache süresi takibi, SubTask delegasyonu, session temizliği. Kod yazarken bunların hepsini takip etmek imkansız.
+**Max Plan ($200/ay)?** Tüm bunlar, artı zamanlayıcı ve tahmini süre olmaksızın iş akışınızı durduran 5 saatlik hız sınırı.
 
-cc-token-saver hepsini otomatik halleder. **Bir kez kur. Bitti.**
+**API kullandıkça öde?** Tüm bunlar, ancak bir tavan yok. Bir cache ıskalama = $9 gerçek para. Haftada on kez = $360/ay yalnızca kazalar. Şişirilmiş context'li kötü bir Salı, Max Plan abonelerinin bir ayda ödediğinden daha fazlasına mal olabilir.
+
+claude-code-upgrader tümünü otomatik olarak halleder. **Bir kez kurun. Bitti.**
 
 ---
 
 ## 🚀 Kurulum
 
 ```
-claude plugin marketplace add ww-w-ai/cc-token-saver
-claude plugin install cc-token-saver
+/plugin marketplace add ww-w-ai/marketplace
+/plugin install claude-code-upgrader@ww-w-ai
 ```
 
-Kurulumdan sonra otomatik çalışır. Yapılandırma gerektirmez. [Claude Code](https://claude.ai/claude-code) v2.1.71+ gerektirir.
+Kurulumdan sonra otomatik olarak çalışır. Sıfır yapılandırma. [Claude Code](https://claude.ai/claude-code) v2.1.71+ gerektirir.
 
 Canlı izleme için:
 
@@ -39,220 +55,275 @@ Canlı izleme için:
 /setup-statusline install
 ```
 
+CC'nin yerleşik git talimatlarından 2.200 gizli token kırpmak için ([ayrıntılar](#%EF%B8%8F-feature-5-setup-git-lite--trim-ccs-built-in-git-instructions)):
+
+```
+/setup-git-lite install
+```
+
 ---
 
 ## 🛡️ Özellik 1: Token Guardian
 
-**Cache süresinin dolduğunu algılar ve pahalı yeniden gönderimleri otomatik olarak engeller.**
+**Cache süresinin dolmasını algılar ve pahalı yeniden gönderimleri otomatik olarak engeller.**
 
-Claude Code'un prompt cache TTL'si 1 saattir. Bir saatten fazla uzaklaşırsanız cache süresi dolar. Bir sonraki mesajınız tüm context'i tam fiyattan yeniden gönderir. 900K token'da bu tek seferde $9 eder.
+Claude Code'un prompt cache TTL'si 1 saattir. Bir saatten fazla uzaklaşırsanız cache sona erer. Bir sonraki mesajınız tüm context'i tam fiyatıyla yeniden gönderir. 900K token'da bu tek seferde $9 demektir.
 
-Token Guardian, son yanıtın ne zaman alındığını takip eder. 3.590 saniyeden fazla geçtiyse (TTL eksi 10 saniyelik tampon), prompt'u engeller ve bir uyarı gösterir.
+Token Guardian, son yanıtın alındığı zamanı takip eder. 3.590 saniyeden fazla (TTL eksi 10 saniyelik tampon) geçmişse, prompt'u engeller ve bir uyarı gösterir.
 
 ```
-🚨 Önbellek süresi doldu (68dk 23sn boşta)
+🚨 Cache expired (68m 23s idle)
 
-Önbellek süresi doldu. Devam etmek tüm bağlamı yeniden gönderecektir.
-Maliyet önemli ölçüde artabilir.
+The prompt cache has expired. Continuing will resend the full context.
+Cost may increase significantly.
 
-👉 /context — Karar vermeden önce mevcut bağlam kullanımını kontrol edin
-👉 /clear → /continue — Sıfırla, ardından önceki bağlamı geri yükle (önerilen, en düşük maliyet)
-👉 Tekrar gönder — Olduğu gibi devam et (tam re-cache maliyeti oluşur)
+👉 /context — Check current context usage before deciding
+👉 /clear → /continue — Reset, then restore previous context (recommended, cheapest)
+👉 Re-send — Continue as-is (full re-cache cost incurred)
 ```
 
-Uyarıdan sonra aynı prompt'u tekrar gönderin — geçer. Uyarı her boşta kalma süresi başına yalnızca bir kez tetiklenir, bu yüzden asla rahatsız etmez. Uyarı mesajları işletim sistemi yerel ayarınıza göre 23 dilde gösterilir.
+Uyarıdan sonra aynı prompt'u yeniden gönderin -- geçecektir. Uyarı her boşta kalma süresi için yalnızca bir kez tetiklenir, bu nedenle asla sıkıştırmaz. Uyarı mesajları OS yerel ayarınıza göre 23 dilde görüntülenir.
 
-**Sonuç:** Pahalı yeniden cache maliyetleri otomatik olarak önlenir. Hiçbir çaba gerekmez.
+**Sonuç:** Her yakalanan cache süre sonu = $9 tasarruf. Günde bir yakalamada bu $270/ay saf israf önlenmesidir.
+
+> **API kullandıkça ödedeyseniz, bu daha sert çarpar.** Max Plan aboneleri $200'lük bir tampon içinde $9 kaybeder. Siz $9 gerçek para kaybedersiniz — sessizce, tekrar tekrar, her uzaklaştığınızda. Token Guardian her seferinde yakalar.
 
 ---
 
-## 🧠 Özellik 2: Akıllı Session Mimarisi
+## 🧠 Özellik 2: Akıllı Oturum Mimarisi
 
-**Kurun, maliyet açısından optimize çalışma düzenleri otomatik devreye girsin.**
+**Kurun ve maliyet optimize edilmiş çalışma kalıpları otomatik olarak devreye girer.**
 
-Çoğu kullanıcı her şeyi Main session'da yapar. Dosya okuma, kod üretme, test çalıştırma. Her çıktı context'e eklenir ve her mesajla birlikte yeniden gönderilir. Session şişer. Maliyetler katlanarak artar.
+Çoğu kullanıcı her şeyi Main oturumda yapar. Dosya okuma, kod üretimi, test çalıştırmaları. Her çıktı context'e yığılır ve her mesajla yeniden gönderilir. Oturum şişer. Maliyetler kartopu gibi büyür.
 
-Session Architect, session başlangıcında otomatik olarak bir delegasyon stratejisi enjekte eder.
+Session Architect, oturum başlangıcında otomatik olarak bir devir stratejisi ekler.
 
 |                  | Main Session                      | SubTask                               |
 | ---------------- | --------------------------------- | ------------------------------------- |
-| Rol              | Tasarım, kararlar, inceleme       | Uygulama, kod üretme, çoklu dosya    |
-| Cache katmanı    | 1 saat (ephemeral_1h)             | 5 dk                                  |
-| Cache yazma maliyeti | ＄10/MTok                       | ＄6.25/MTok                            |
-| Context boyutu   | ~94K ort                          | ~33K ort                              |
+| Rol              | Tasarım, kararlar, inceleme       | Uygulama, kod üretimi, çoklu dosya    |
+| Cache katmanı    | 1 saat (ephemeral_1h)             | 5 dakika                              |
+| Cache yazma maliyeti | ＄10/MTok                      | ＄6.25/MTok                            |
+| Context boyutu   | ~94K ortalama                     | ~33K ortalama                         |
 
-SubTask'lar Main'e göre **%37,5 daha ucuz cache yazma** maliyetine sahiptir. Context de çok daha küçüktür. Ağır işleri SubTask'lara devretmek maliyetleri önemli ölçüde düşürür.
+SubTask'ların Main'e kıyasla **%37,5 daha ucuz cache yazma** maliyeti vardır. Context de çok daha küçüktür. Ağır işlerin SubTask'lara devredilmesi maliyetleri önemli ölçüde azaltır.
 
-**Sonuç:** Claude otomatik olarak maliyet verimli bir düzende çalışır. Bunu düşünmenize gerek yok.
+**Sonuç:** Context, 600K+'ya büyümek yerine 250K'nın altında kalır. Aynı iş çıktısı, token maliyetinin yarısı. Tamamen otomatik.
 
 ---
 
-## 🪶 Özlü Mod
+## 🪶 Concise Mode
 
 **Aynı içerik. Daha az dolgu. Varsayılan olarak açık.**
 
-Aynı SessionStart hook'u **her oturum ve her model**de çalışan bir yanıt stili kuralı da enjekte eder — bayrak yok, kurulum yok. Üç şey değişir:
+SessionStart hook'u aynı zamanda **her oturumda ve her modelde** çalışan bir yanıt stili kuralı ekler — bayrak yok, kurulum yok. Üç şey değişir:
 
-- **Giriş cümlesi yok** — "Bir bakayım…", "Şimdi yapacağım…", sorunun tekrarı veya diff'te zaten görünenin özetlemesi yok
-- **İçeriğe uygun format** — listeler için madde işaretleri, akıl yürütme için düz yazı (ödünleşimler, nedensellik, gerekçeler). Hiçbiri zorlanmaz
-- **Daha sıkı ifade** — aynı nokta, daha az kelime. Daha net düz yazı, daha kısa düz yazıdır
+- **Önsöz çıkar** — "Hemen kontrol edeyim…", "Şimdi yapacağım…", sorunuzu tekrarlamak veya diff'in zaten gösterdiklerini özetlemek yok
+- **İçeriğe uygun biçim** — listeler için madde işaretleri, akıl yürütme için düz metin (takas, nedensellik, gerekçe). Hiçbiri zorlanmaz
+- **Daha sıkı ifade** — aynı nokta, daha az kelime. Daha açık düz metin, daha kısa düz metindir
 
-Sıkı sınır: asla içerik atmayın, doğrulamayı atlamayın veya nüansı tek cümleye sıkıştırmayın. Öz bütün kalır; sadece ambalaj küçülür.
+Sert sınır: asla içerik düşürme, doğrulamayı atlama veya nüansı tek bir cümleye sıkıştırma. Öz tam kalır; yalnızca paket küçülür.
 
-Bir kez kurun, her yerde geçerli.
+Bir kez kurun, her yerde uygulanır.
 
 ---
 
-
 ## 🔄 Özellik 3: /continue — Context Geri Yükleme
 
-**`/compact`'ın yerini alır. Sıfır LLM çağrısı. Sıfır token maliyeti.**
+**`/compact`'ın yerini alır. Sıfır LLM çağrısı. Sıfır token maliyeti. Sıfır bilgi kaybı.**
 
-`/compact` tüm context'inizi (~1M token) sıkıştırmak için LLM'e gönderir ve %3,3'lük bir özet oluşturur. Cache süresi dolmuşsa, bu tek başına tam bir yeniden cache'leme tetikler. Bilgi kaybı kaçınılmazdır.
+`/compact`, tüm context'inizi (~1M token) LLM'ye göndererek %3,3'lük bir özette sıkıştırır. Cache sona ermişse, bu tek başına tam bir yeniden önbelleklemeyi tetikler. Bilgi kaybı kaçınılmazdır.
 
-`/continue` tamamen farklı bir yaklaşım benimser. Önceki session transkriptini ön işlemden geçirir ve doğrudan yükler. LLM çağrısı yok. Maliyet yok. Orijinal konuşma olduğu gibi geri yüklenir.
+`/continue` tamamen farklı bir yaklaşım benimsemektedir. Önceki oturum transkriptini ön işler ve doğrudan yükler. LLM çağrısı yok. Maliyet yok. Orijinal konuşma olduğu gibi geri yüklenir.
 
 |                         | /compact                          | /continue                        |
 | ----------------------- | --------------------------------- | -------------------------------- |
-| Nasıl çalışır           | Tam context'i özet için LLM'e gönderir | Transkripti ön işler, doğrudan okur |
+| Nasıl çalışır           | Özet için tüm context'i LLM'ye gönderir | Transkripti ön işler, doğrudan okur |
 | LLM çağrıları           | Gerekli (genellikle 100K+ token)  | 0                                |
-| Token maliyeti          | Yüksek                           | 0                                |
+| Token maliyeti          | Yüksek                            | 0                                |
 | Bilgi kaybı             | Evet (%3,3 özet)                  | Yok (orijinal korunur)           |
-| İşlem hızı              | Onlarca saniye                    | < 1 sn (60MB+ dosyalarda bile)   |
-| Cache süresi dolduğunda | Ek tam yeniden cache maliyeti     | Etkisi yok                       |
-| Çoklu session geri yükleme | Mümkün değil                   | Desteklenir                      |
+| İşleme hızı             | Onlarca saniye                    | < 1 sn (60MB+ dosyalar dahil)    |
+| Cache sona erdiğinde    | Üstüne tam yeniden önbellekleme maliyeti | Etki yok                    |
+| Çok oturumlu geri yükleme | Mümkün değil                    | Desteklenir                      |
 
-Kullanım: `/clear` ardından `/continue`. Önceki session'ların listesini görürsünüz. Geri yüklemek istediğinizi seçin. Hızlı kurtarma için: `/continue last`.
+Kullanım: `/clear` ardından `/continue`. Önceki oturumların listesini göreceksiniz. Geri yüklemek için birini seçin. Hızlı kurtarma için: `/continue last`.
 
-**Sonuç:** Önceki çalışmaya sıfır maliyetle devam edin. Bilgi kaybı yok.
+**Sonuç:** Önceki çalışmaya sıfır maliyetle devam edin. Bilgi kaybı yok. 60MB+ transkriptleri 1 saniyenin altında işler.
 
 ---
 
 ## 📊 Özellik 4: Canlı Durum Çubuğu
 
-**Gerçek zamanlı token/maliyet izleme. 50ms'nin altında yük.**
+**Gerçek zamanlı token/maliyet izleme. 50ms altında ek yük.**
 
-`/setup-statusline install` komutunu bir kez çalıştırın; Claude Code'un altında kalıcı bir durum çubuğu belirir.
+`/setup-statusline install`'ı bir kez çalıştırın ve Claude Code'un altında kalıcı bir durum çubuğu belirir.
 
-```
-[RUN🟢] $0.10/$12.23 | [5H🟢] 9% ⏳1h32m | [CTX🟢] 22%
-```
+**Normal işlem** — tek bakışta her ölçüt, sıfır bağlam geçişi:
 
-| Gösterge         | Ne gösterir                         | 🟢 Normal | 🟡 Uyarı  | 🔴 Kritik   |
+![Normal durumda durum çubuğu](docs/images/statusline-normal.png)
+
+**Hız sınırına ulaşıldı** — 5H %102'de kırmızıya döner, geri sayım tam olarak ne zaman döneceğinizi gösterir ve tek dokunuşluk `/report-limit` eylemi otomatik olarak çıkar:
+
+![Hız sınırlandığında durum çubuğu](docs/images/statusline-rate-limited.png)
+
+| Gösterge         | Neyi gösterir                       | 🟢 Normal | 🟡 Uyarı | 🔴 Kritik |
 | ---------------- | ----------------------------------- | --------- | ---------- | ----------- |
 | RUN (delta)      | Son API çağrısının maliyeti         | < ＄0.30   | >= ＄0.30   | >= ＄1.00    |
-| RUN (kümülatif)  | Bu klasörün toplam maliyeti         | —         | —          | —           |
-| 5H               | 5 saatlik pencere kullanımı + sıfırlanma geri sayımı | < %70  | >= %70     | >= %90      |
-| CTX              | Context penceresi kullanımı         | < %35     | >= %35     | >= %70      |
+| RUN (cumulative) | Bu klasör için birikimli maliyet    | —         | —          | —           |
+| 5H               | 5 saatlik pencere kullanımı + sıfırlama geri sayımı | < 70%     | >= 70%     | >= 90%      |
+| CTX              | Context penceresi kullanımı         | < 35%     | >= 35%     | >= 70%      |
 
-Herhangi bir gösterge uyarı veya kritik seviyeye ulaştığında, otomatik olarak `→ /usage-view current` ipucu görünür.
+Herhangi bir gösterge uyarı veya kritik seviyeye ulaştığında, otomatik olarak `→ /usage-view current` ipucu belirir.
 
-Kaldırmak için: `/setup-statusline uninstall` (önceki yapılandırma otomatik geri yüklenir).
+Kaldırmak için: `/setup-statusline uninstall` (önceki yapılandırma otomatik olarak geri yüklenir).
 
-**Sonuç:** Maliyet durumunuzu bir bakışta görün. Çok geç olmadan harekete geçin.
+**Sonuç:** Her maliyet sorunu gerçek zamanlı olarak görünür. 50ms altında ek yük — fark edilebilir gecikme yok.
+
+> **API kullandıkça ödedeyseniz?** 5H ve W göstergeleri otomatik olarak gizlenir — hız sınırı pencereleriniz yok. Kalan şey önemli olan: RUN (lür başına gerçek zamanlı maliyet) ve CTX (context boyutu). Faturanızı kontrol eden iki kaldıraç, her zaman görünür.
 
 ---
 
-## 📈 Kullanım Paneli (/usage-view)
+## 📈 Kullanım Panosu (/usage-view)
 
-**Sonunda bir cevap: "Neden rate limit'e takıldım?"**
+**Sonunda yanıtlayın: "Tüm o para nereye gitti?"**
 
-Şimdiye kadar rate limit'e çarpmak sadece sinir bozucuydu. Sebebini bilmenin yolu yoktu. Hangi session en çok token yaktı? Maliyetler ne zaman tırmandı? Kullanım düzeninizde ne gibi kalıplar var? Hepsi görünmezdi.
+Max Plan kullanıcıları hız sınırına çarpar ve neden diye merak eder. API kullanıcıları Anthropic faturasını açar ve nasıl diye merak eder. Her iki durumda da soru aynıdır: hangi oturum en fazla token yaktı? Maliyetler ne zaman fırladı? Kullanımınızda hangi kalıplar var? Şimdiye kadar — hepsi görünmezdi.
 
-`/usage-view` her şeyi gösterir. Tarayıcınızda interaktif bir HTML paneli açılır; kullanım kalıplarını analiz edip maliyet artışlarının kök nedenini izlemenizi sağlar. Harici bağımlılık yok. Bağımsız çalışır. Dosya olarak paylaşılabilir.
+`/usage-view` her şeyi gösterir. Tarayıcınızda etkileşimli bir HTML panosu açılır, kullanım kalıplarını analiz etmenizi ve maliyet artışlarının temel nedenini izlemenizi sağlar. Dış bağımlılık yok. Bağımsız çalışır. Dosya olarak paylaşılabilir.
 
-Neler dahil:
+**31 günde $4.196. Hepsi nereye gitti?** Tek bakış — toplam maliyet, türe göre token dökümü, cache verimlilik oranı ve oturum sayısı. Halka grafiği, harcamanızın %65'inin cache okumalarından (normal ve sağlıklı) oluştuğunu anında gösterir:
 
-- Günlük / saatlik / haftanın günü maliyet trendleri — en çok token yaktığınız zamanları tespit edin
-- Token dağılımı (input, output, cache write, cache read) — maliyetleri neyin artırdığını görün
-- Session bazlı maliyet analizi — hangi görevlerin pahalıya mal olduğunu belirleyin
-- 5 saatlik pencere zaman çizelgesi (Max Plan aboneleri) — rate limit tetikleyicilerini izleyin
-- Yapay zeka destekli analiz — verileri yorumlar ve iyileştirme önerileri sunar
-- 23 dil desteklenir (RTL dahil; grafikler/tablolar LTR kalır)
+![Kullanım panosuna genel bakış](docs/images/usage-view-overview.png)
+
+**Önce ve sonra — ölçülmüş, tahmin edilmemiş.** Turuncu kesik çizgili "Plugin installed" işareti maliyet zaman çizelgenizi ikiye böler. Günlük çubuklar token türüne göre yığınlanır (Input/Output/Cache Write/Cache Read), böylece kurulumdan sonra tam olarak hangi bileşenin değiştiğini görebilirsiniz. Ortalama çizgisi eğilimi gösterir:
+
+![Günlük maliyet eğilimi](docs/images/usage-view-daily-trend.png)
+
+**En çok ne zaman yakıyorsunuz?** Günün saatine göre saatlik maliyet ve haftanın günü dökümü. Aktif gün ortalaması, tüm gün ortalaması veya maksimum arasında geçiş yapın. Ateş simgeleri en pahalı saatlerinizi işaretler — belirgin kalıplar (gece geç saatlerde çalışma, Çarşamba artışları) anında göze çarpar:
+
+![Saatlik ve haftanın günü maliyet kalıbı](docs/images/usage-view-hourly-pattern.png)
+
+**Daha verimli oluyor musunuz?** Total/Output oranı, üretilen her output token için tüketilen token sayısını ölçer. Düşük daha iyidir. "Plugin installed" işareti önce ve sonrayı karşılaştırmanıza olanak tanır. Artışlar = cache ıskalamalar veya oturum yeniden başlatmaları:
+
+![Verimlilik eğilimi](docs/images/usage-view-efficiency.png)
+
+**Her API çağrısı, context boyutuna ve maliyete göre çizildi.** Bu, maliyet yapısını netleştiren grafiktir. Her nokta bir API çağrısıdır. Kırmızı = Opus, mavi = Sonnet, yeşil = Haiku. Kesik çizgiler teorik fiyatlandırmadır — noktalarınız çizginin üzerindeyse fazla ödüyorsunuz. API çağrısı başına değil, konuşma turu başına maliyet görmek için **User Turn** görünümüne geçin.
+Gerçek prompt metnini, token sayısını ve tam maliyet dökümünü (Input/Output/Cache Write/Cache Read) görmek için herhangi bir noktanın üzerine gelin:
+
+![Context Boyutuna Göre Maliyet — dağılım grafiği](docs/images/usage-view-cost-scatter.png)
+
+**Context'leriniz ne kadar büyük?** Çoğu çağrı 250K'nın altında kümelenir. 350K'nın üzerindeki uzun kuyruk, maliyetlerin patladığı yerdir — bu grafik tam olarak ne sıklıkla tehlike bölgesinde olduğunuzu gösterir:
+
+![Context Boyutu Dağılımı](docs/images/usage-view-context-dist.png)
+
+**Kodlama takviminiz, saate göre fiyatlandırılmış.** 30 gün boyunca 5 saatlik pencere ısı haritası. Yeşil (<$15/s), turuncu ($15-30/s), kırmızı ($30+/s). Kafatası simgesi (💀), hız sınırına ulaştığınız pencereleri işaretler. Üstteki maliyet kaydırıcısı ucuz pencereleri filtreler, böylece pahalılar öne çıkar — en kötü günleri anında bulmak için sürükleyin. 5 saatlik pencere ve 1 saatlik blok görünümleri arasında geçiş yapın:
+
+![Saatlik kullanım takvimi ısı haritası](docs/images/usage-view-calendar.png)
+
+**O penceredeki oturumların ayrıntılarını açmak için herhangi bir hücreye tıklayın.** O zaman dilimindeki her oturum, maliyet, mesaj sayısı, token dökümü ve her konuşmadan gerçek ilk/son mesajlarla birlikte. En fazla token yakan belirli alışverişleri görmek için "Top Token Conversations"ı genişletin — her giriş prompt metnini, maliyet uyarı etiketlerini ve optimizasyon ipuçlarını gösterir:
+
+![Oturum ayrıntı paneli](docs/images/usage-view-session-drilldown.png)
+
+**Yapay zeka destekli analiz (isteğe bağlı).** `/usage-view`'ı `--no-ai` olmadan çalıştırdığınızda, bir yapay zeka analisti tüm pano verilerinizi okur — API fiyatlandırma referansı dahil — ve yazılı bir rapor üretir: maliyet sürücüleri, anomaliler, optimizasyon önerileri. OS dilinizde otomatik olarak görüntülenir (23 dil, RTL dahil; grafikler/tablolar her zaman LTR kalır):
+
+**Para nereye gitti** — toplam harcama, token türüne göre maliyet sürücüleri, haftalık eğilim ve gerçek sayılarla ölçülen eklenti etkisi:
+
+![Yapay zeka analizi — maliyet dökümü](docs/images/usage-view-ai-report-1.png)
+
+**Ne zaman ve nasıl çalışıyorsunuz** — yoğun saatler, en yoğun günler, API çağrısı dağılımı ve optimizasyon fırsatlarını ortaya çıkaran hız sınırı kalıpları:
+
+![Yapay zeka analizi — çalışma kalıpları](docs/images/usage-view-ai-report-2.png)
+
+**Ne yapmalısınız** — gerçek kullanımınıza göre uyarlanmış somut, veri destekli öneriler. Model değiştirme, context yönetimi, oturum stratejisi:
+
+![Yapay zeka analizi — öneriler](docs/images/usage-view-ai-report-3.png)
+
+**Paylaşın.** Panoların tamamı, tüm veriler gömülü olarak tek bir bağımsız HTML dosyasıdır — sunucu gerekmez. Ekibinize, yöneticinize veya muhasebecinize gönderin. Dış bağımlılık yok. Çevrimdışı çalışır. Paylaşmadan önce tüm prompt metnini çıkarmak için `private` modunu kullanın — konuşma içeriğini kaldırırken maliyet analitiğini korur.
 
 ```
 /usage-view                  # Tüm zamanlar, tüm projeler
 /usage-view current          # Yalnızca mevcut 5 saatlik pencere
 /usage-view last 7 days      # Son 7 gün
-/usage-view locale tr        # Türkçe
+/usage-view locale ja        # Japonca
+/usage-view --no-ai          # Yapay zeka analizini atla (daha hızlı)
+/usage-view private          # Prompt metnini sil (paylaşmak için güvenli)
 ```
 
 ---
 
-## 🔬 Rate Limit Araştırması (/report-limit)
+## 🔬 Hız Sınırı Araştırması (/report-limit)
 
-**Rate limit formülünü tersine mühendislikle çözmek için topluluk odaklı proje.**
+**Hız sınırı formülünü tersine mühendislik yapmak için topluluk güdümlü proje.**
 
-Anthropic, 5 saatlik pencerenin tam formülünü yayınlamıyor. Bunu birlikte çözelim.
+Anthropic, 5 saatlik pencere için tam formülü yayımlamıyor. Birlikte çözelim.
 
-Rate limit'e çarptığınızda `/report-limit` çalıştırın. Mevcut kullanım verileriniz otomatik olarak GitHub Discussion olarak gönderilir. Ne kadar çok veri toplarsak, formül o kadar netleşir.
+Hız sınırına ulaştığınızda `/report-limit`'i çalıştırın. Mevcut kullanım verileriniz otomatik olarak bir GitHub Discussion olarak gönderilir. Ne kadar çok veri toplarsak, formül o kadar netleşir.
 
 ---
 
-## ✂️ Özellik 5: /setup-git-lite — CC'nin Yerleşik Git Talimatlarını Kırp
+## ✂️ Özellik 5: /setup-git-lite — CC'nin Yerleşik Git Talimatlarını Kırpın
 
-**Her session için farkında olmadan ödediğiniz gizli 2.200 token.**
+**Claude Code'un kaynak kodunu okuduk. Her oturum için sessizce ödediğiniz 2.200 gizli token bulduk.**
 
 ### Keşif
 
-2026-04-12'de bir [GitHub issue](https://github.com/anthropics/claude-code/issues/47107), Claude Code'un yerleşik `includeGitInstructions` ayarının her session'da sessizce token yaktığını ortaya koydu. [Bu gist (spilist)](https://gist.github.com/spilist/b0db92a859192f5ec6199d3f35a81b98) aracılığıyla bağımsız olarak doğrulanan sayılar: her git commit sonrasında session başına **cache write'ta +6.031 token**, her API çağrısında **cache read'de +1.690 token**.
+2026-04-12'de bir [GitHub issue](https://github.com/anthropics/claude-code/issues/47107), Claude Code'un yerleşik `includeGitInstructions` ayarının her oturumda sessizce token yaktığını ortaya koydu. [Bu gist (spilist)](https://gist.github.com/spilist/b0db92a859192f5ec6199d3f35a81b98) aracılığıyla bağımsız yeniden üretim sayıları doğruladı: her git commit sonrasında oturum başına cache yazmada **+6.031 token**, her API çağrısında cache okumada **+1.690 token**.
 
-### CC kaynak analizi — tokenlar nereye gidiyor
+### CC kaynak analizi — token'lar nereye gider
 
-Tokenları Claude Code kaynağındaki (v2.1.88) iki bağımsız enjeksiyon noktasına kadar izledik:
+Token'ları Claude Code kaynak kodundaki (v2.1.88) iki bağımsız enjeksiyon noktasına kadar izledik:
 
-**1. `gitStatus` anlık görüntüsü (~500 tok) — sistem promptu**
-- `context.ts:36-111` `getGitStatus()`: branch + main branch + user.name + tam durum (2000 karaktere kadar) + **son 5 commit** toplar
-- `appendSystemContext` (`utils/api.ts:437`) aracılığıyla sistem promptuna eklenir
-- Her yeni commit, her yeni değiştirilmiş dosya, her branch değişikliği metni değiştirir → prefix cache geçersiz kılınması
+**1. `gitStatus` anlık görüntüsü (~500 tok) — system prompt**
+- `context.ts:36-111` `getGitStatus()`, dal + ana dal + user.name + tam durum (2000 karaktere kadar) + **son 5 commit**'i toplar
+- `appendSystemContext` (`utils/api.ts:437`) aracılığıyla system prompt'a birleştirilip eklenir
+- Her yeni commit, her yeni değiştirilen dosya, her dal geçişi metni değiştirir → ön ek cache geçersizleştirmesi
 
-**2. Commit/PR iş akışı talimatları (~1.700 tok) — Bash araç açıklaması**
+**2. Commit/PR iş akışı talimatları (~1.700 tok) — Bash aracı açıklaması**
 - `tools/BashTool/prompt.ts:53`, `Bash` aracının açıklamasına 60'tan fazla satır güvenlik protokolü, adım adım commit prosedürü, HEREDOC örnekleri ve PR oluşturma şablonları ekler
-- Sistem promptuyla birlikte önbelleğe alınır, ancak `tools[]` parametresi olarak gönderilir
+- System prompt ile birlikte önbelleğe alınır, ancak `tools[]` parametresi olarak gönderilir
 
 ### Neden pahalı
 
-Cache yapısı (`utils/api.ts:321` `splitSysPromptPrefix`), aktif MCP araçlarınızın olup olmadığına göre üç yol izler:
+Cache yapısı (`utils/api.ts:321` `splitSysPromptPrefix`), aktif MCP araçlarınız olup olmadığına göre üç yola sahiptir:
 
-- **Path A** (MCP aktif — çoğu kullanıcı): `gitStatus`, `cacheScope: 'org'` bloğunun içindedir. Herhangi bir değişiklik → bir sonraki session başlangıcında tüm blok yeniden önbelleğe alınır → 6K tok `cache_create` kaçırma.
-- **Path B** (MCP yok): `gitStatus`, `cacheScope: null` dinamik bloğuna gider; bu, her API çağrısında taze `input_tokens` olarak yeniden gönderildiği anlamına gelir — cache kaçırma yok, ama cache tasarrufu da yok.
-- **Path C** (3. taraf sağlayıcı / deneysel beta devre dışı): Path A ile aynı.
+- **Yol A** (MCP etkin — çoğu kullanıcı): `gitStatus`, `cacheScope: 'org'` bloğunun içindedir. Herhangi bir değişiklik → bir sonraki oturum başlangıcında tüm blok yeniden önbelleğe alınır → 6K tok `cache_create` ıskalama.
+- **Yol B** (MCP yok): `gitStatus`, `cacheScope: null` dinamik bloğuna gider, yani her API çağrısında yeni `input_tokens` olarak yeniden gönderilir — cache ıskalama yok, ama cache tasarrufu da yok.
+- **Yol C** (3. taraf sağlayıcı / deneysel betalar devre dışı): Yol A ile aynı.
 
-Tipik interaktif session'larda commit/PR talimatları (1.7K tok), `cache_read` aracılığıyla **her API çağrısında** birikir. Opus 4.7 fiyatlandırmasıyla 100 çağrılık bir session'da bu, Claude'un eğitiminden zaten büyük ölçüde bildiği talimatlar için yaklaşık **session başına $0,08** eder.
+Tipik etkileşimli oturumlarda, commit/PR talimatları (1,7K tok) `cache_read` aracılığıyla **her API çağrısında** birikir. Opus 4.7 fiyatlandırmasında 100 çağrılık bir oturumda, bu yalnızca Claude'un eğitiminin büyük ölçüde zaten kapsadığı talimatlar için oturum başına yaklaşık **$0,08**'dir.
 
-### cc-token-saver nasıl ele alır
+### claude-code-upgrader nasıl halleder
 
-`/setup-git-lite`, yerel yolu devre dışı bırakır ve SessionStart hook'u aracılığıyla **280 tokenlik özenle seçilmiş bir yedek** enjekte eder. Claude'un varsayılan davranışını geçersiz kılan şeyleri koruduk (güvenlik kuralları), Claude'un eğitimden zaten bildiği her şeyi çıkardık (adım adım iş akışları, PR şablonları, gh kullanım kalıpları).
+`/setup-git-lite`, yerel yolu devre dışı bırakır ve SessionStart hook'u aracılığıyla **özenle seçilmiş 280 token'lık bir yedek** ekler. Claude'un varsayılan davranışını geçersiz kılan şeyleri tam olarak koruduk (güvenlik kuralları) ve Claude'un eğitimden zaten bildiği her şeyi bıraktık (adım adım iş akışları, PR şablonları, gh kullanım kalıpları).
 
-**Korunanlar — 11 kritik geçersiz kılma kuralı** (Claude'un varsayılan yardımseverliğini ihtiyata çeviren kurallar):
+**Korunan — 11 kritik geçersiz kılma kuralı** (Claude'un varsayılan yardımseverliğini dikkat moduna geçirenler):
 - Açık kullanıcı isteği olmadan asla commit/push/amend/PR/tag/merge yapma
-- Asla hook'ları atlama, main/master'a force-push yapma, yıkıcı işlemler çalıştırma, git config'i değiştirme
-- `.env`, `credentials`, `*.pem`, `secret.*` ile eşleşen dosyaları asla commit etme
-- `git add -A` / `git add .` kullanmaktan kaçın
-- Çok satırlı commit mesajları için HEREDOC + `Co-Authored-By: Claude` eki
-- Asla interaktif flag'ler (-i) kullanma, boş commit oluşturma
-- Pre-commit hook başarısız olursa → YENİ bir commit oluştur (`--amend` değil)
+- Asla hook atlamak, main/master'a zorla itmek, yıkıcı işlemler çalıştırmak, git config değiştirmek
+- `.env`, `credentials`, `*.pem`, `secret.*` ile eşleşen dosyaları asla commit yapma
+- `git add -A` / `git add .`'den kaçın
+- Çok satırlı commit mesajları için HEREDOC + `Co-Authored-By: Claude` son eki
+- Asla etkileşimli bayraklar kullanma (-i), boş commit yok
+- Ön commit hook başarısız olursa → YENİ bir commit oluştur (`--amend` değil)
 
-**Çıkarılanlar** — adım adım commit iş akışı (3 adım), adım adım PR iş akışı (3 adım), PR başlık/gövde şablonu, `gh` komut referansları, `-uall` flag uyarısı, rebase ile `--no-edit` uyarısı, `commit sırasında asla TodoWrite veya Agent araçları kullanma` kısıtlaması. Bunlar, Claude'un yalnızca eğitiminden doğru biçimde oluşturduğu iş akışı ayrıntısıdır.
+**Bırakılanlar** — adım adım commit iş akışı (3 adım), adım adım PR iş akışı (3 adım), PR başlık/gövde şablonu, `gh` komut referansları, `-uall` bayrağı uyarısı, yeniden temel oluşturmayla `--no-edit` uyarısı, `NEVER use TodoWrite or Agent tools during commit` kısıtlaması. Bunlar, Claude'un yalnızca eğitimden doğru şekilde oluşturduğu iş akışı ayrıntısıdır.
 
-**Eklenenler** — kompakt git durum satırı: branch + HEAD kısa-sha + konu + mevcut durum (en fazla 20 değiştirilmiş dosya, aksi hâlde sayı). Son commit listesi yok (Claude talep üzerine `git log` çalıştırabilir).
+**Eklenen** — kompakt git durum satırı: dal + HEAD kısa-sha + konu + mevcut durum (20'ye kadar değiştirilen dosya, aksi takdirde sayım). Son commit listesi yok (Claude isteğe bağlı olarak `git log` çalıştırabilir).
 
-### Beklenen tasarruf (Opus 4.7 fiyatlandırması, $25/MTok çıktı, $5/MTok giriş, $0,50/MTok cache okuma)
+### Beklenen tasarruflar (Opus 4.7 fiyatlandırması, $25/MTok output, $5/MTok input, $0,50/MTok cache okuma)
 
 | Öğe | Orijinal | setup-git-lite ile | Tasarruf |
 | ---- | -------- | ------------------- | ----- |
-| Sistem promptu yüklemesi (yeni session başına) | ~2.200 tok cache_create | ~280 tok cache_create | ~1.920 tok |
-| Aynı session'da tekrar çağrılar | ~1.700 tok cache_read/çağrı | ~280 tok cache_read/çağrı | ~1.420 tok/çağrı |
-| 100 çağrılık session (Opus 4.7) | — | — | **~$0,11 tasarruf** |
-| Günde 20 session × 22 iş günü | — | — | **~$48 tasarruf/ay** |
+| System prompt yükleme (her yeni oturum) | ~2.200 tok cache_create | ~280 tok cache_create | ~1.920 tok |
+| Aynı oturumdaki tekrar çağrılar | ~1.700 tok cache_read/çağrı | ~280 tok cache_read/çağrı | ~1.420 tok/çağrı |
+| 100 çağrılık oturum (Opus 4.7) | — | — | **~$0,11 tasarruf** |
+| 20 oturum/gün × 22 iş günü | — | — | **~ayda $48 tasarruf** |
 
 ### Kullanım
 
 ```bash
-/setup-git-lite status     # Salt okunur tanılama — mevcut durum + ne değişeceği
-/setup-git-lite install    # CC yerelini devre dışı bırak + minimal hook'u etkinleştir
-/setup-git-lite revert     # Varsayılana geri yükle (agresif; aşağıya bakın)
-/setup-git-lite dismiss-banner    # Ara sıra gösterilen tavsiye ipucunu sessize al
+/setup-git-lite status     # Salt okunur tanı — mevcut durum + ne değişeceği
+/setup-git-lite install    # CC yerelini devre dışı bırak + minimal hook'umuzu etkinleştir
+/setup-git-lite revert     # Varsayılanı geri yükle (agresif; aşağıya bakın)
+/setup-git-lite dismiss-banner    # Ara sıra gelen öneri ipucunu sustur
 /setup-git-lite undismiss-banner  # İpucunu yeniden etkinleştir
 /setup-git-lite help       # Tam kullanım
 ```
@@ -262,161 +333,200 @@ Tipik interaktif session'larda commit/PR talimatları (1.7K tok), `cache_read` a
 `install`, sağlamlık için **iki** yeri değiştirir:
 
 1. `~/.claude/settings.json` — `"includeGitInstructions": false` ekler
-2. Shell profili (`~/.zshrc`, `~/.bashrc`, vb.) — `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS=1` dışa aktaran bir işaret bloğu ekler
+2. Shell profili (`~/.zshrc`, `~/.bashrc`, vb.) — `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS=1`'i dışa aktaran bir işaret bloğu ekler
 
-Her biri tek başına CC yerelini devre dışı bırakmaya yeterlidir; bir ortam geçersiz kılmanın yanlışlıkla yerel davranışı yeniden etkinleştirmemesi için ikisini de ayarlarız. Shell değişikliği yalnızca yeni shell'lerde geçerli olur.
+İkisinden biri CC yerelini devre dışı bırakmak için yeterlidir; bir ortam geçersiz kılmasının yanlışlıkla yerel davranışı yeniden etkinleştirmemesi için ikisini de ayarlarız. Shell değişikliği yalnızca yeni shell'lerde geçerli olur.
 
-### Geri alma semantiği — agresif
+### Geri dönme semantiği — agresif
 
-`revert`, **shell profilinizden TÜM `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS` dışa aktarmalarını kaldırır**; bu skill'i kurmadan önce manuel olarak eklemiş olduklarınız dahil. Bu kasıtlıdır — `revert` çalıştırdınız, dolayısıyla temiz varsayılanı geri yüklüyoruz. Shell profilinin zaman damgalı yedeğini her seferinde önce oluşturuyoruz.
+`revert`, **tüm `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS` dışa aktarmalarını shell profilinizden kaldırır**, bu skill'i kurmadan önce manuel olarak eklemiş olabilecekleriniz dahil. Bu kasıtlıdır — `revert` çalıştırdınız, bu yüzden temiz varsayılanı geri yükleriz. Shell profilinin zaman damgalı bir yedeğini her zaman önce oluştururuz.
 
-Env değişkenine ilgisiz nedenlerle ihtiyacınız varsa, `revert` çalıştırmadan önce not edin ve sonra yeniden ekleyin.
+Env değişkenine ilgisiz nedenlerle ihtiyacınız varsa, `revert`'i çalıştırmadan önce not alın ve sonra tekrar ekleyin.
 
-### cc-token-saver'ı kaldırmadan önce
+### claude-code-upgrader'ı kaldırmadan önce
 
-**Önce `/setup-git-lite revert` çalıştırın**; aksi takdirde settings.json'da `includeGitInstructions: false` kalır ama yedek hook olmaz (Claude hiç git rehberliği almaz). Claude Code'un şu anda bir plugin kaldırma yaşam döngüsü hook'u yoktur, bu yüzden bunu otomatikleştiremiyoruz.
+**Önce `/setup-git-lite revert`'i çalıştırın**, aksi takdirde settings.json'da `includeGitInstructions: false` ile bırakılırsınız ama yedek hook olmadan (Claude hiç git kılavuzu almaz). Claude Code'un şu anda eklenti kaldırma yaşam döngüsü hook'u yok, bu yüzden bunu otomatikleştiremeyiz.
 
-### Ödünleşimler
+### Takas noktaları
 
 Kaybettikleriniz (ve neden genellikle sorun olmadığı):
-- Claude artık session başlangıcında önceden hesaplanmış `git status` / `git log -n 5` almaz. Yeni bir session'da "ne değişti?" diye sorarsanız, Claude bu komutları kendisi çalıştırır (bir ekstra araç çağrısı, ~300 tok).
-- Claude artık CC'nin standart 3 adımlı commit prosedürünü görmez. Yüzlerce commit akışı üzerinde yaptığımız testlerde, kritik durumları (HEREDOC biçimlendirmesi, `--amend` yok, force-push yok) eğitim düzeyindeki bilgi karşılar; çünkü bunları açık kurallar olarak saklarız.
-- PR gövde şablonu (`## Summary` + `## Test plan`) enjekte edilmez. Bu biçimi önemsiyorsanız, projenizin CLAUDE.md dosyasına ekleyin.
+- Claude artık oturum başlangıcında önceden hesaplanmış `git status` / `git log -n 5` almaz. Yeni bir oturumda "ne değişti?" diye sorarsanız, Claude bu komutları kendisi çalıştırır (bir ekstra araç çağrısı, ~300 tok).
+- Claude artık CC'nin kanonik 3 adımlı commit prosedürünü görmez. Yüzlerce commit akışı boyunca yaptığımız testlerde, eğitim düzeyi bilgisi kritik vakaları halleder (HEREDOC biçimlendirmesi, `--amend` yok, force-push yok) çünkü bunları açık kurallar olarak tutuyoruz.
+- PR gövde şablonu (`## Summary` + `## Test plan`) eklenmez. Tam olarak bu formatı önemsiyorsanız, projenizin CLAUDE.md dosyasına koyun.
 
-### Tavsiye banner'ı
+### Öneri başlığı
 
-Makinenizde CC yerel git talimatları hâlâ aktifken cc-token-saver, session başlangıcında **yaklaşık %20 oranında** (ayrıca `/usage-view` ve `/report-limit` çıktılarında) tek paragraflık bir ipucu gösterir. Kalıcı olarak kapatmak için `/setup-git-lite dismiss-banner`.
+Makinenizde CC yerel git talimatları hâlâ etkinken, claude-code-upgrader oturum başlangıcında **~%20 oranında** bir paragraf ipucu gösterir (ayrıca `/usage-view` ve `/report-limit` çıktılarında). `/setup-git-lite dismiss-banner` ile kalıcı olarak kapatın.
 
 ---
 
-## 💡 Cache Gerçekte Nasıl Çalışır
+## 💡 Cache Gerçekte Nasıl Çalışır (Ve Çoğu Kullanıcının Neden %40'tan Fazlasını Buna Harcadığı)
 
-Claude Code, her API çağrısında tüm konuşma geçmişini modele gönderir. "API çağrısı" demek "yazdığınız tek mesaj" demek değil. Tek bir prompt dahili araç çağrılarını tetikler — Grep, Read, Edit, Write — ve her biri ayrı bir API çağrısıdır. Tek bir prompt kolayca 10'dan fazla API çağrısına neden olabilir.
+Claude Code, her API çağrısında modele tüm konuşma geçmişini gönderir. "API çağrısı", "yazdığınız bir mesaj" anlamına gelmez. Tek bir prompt dahili araç çağrılarını tetikler — Grep, Read, Edit, Write — ve her biri ayrı bir API çağrısıdır. Tek bir prompt kolayca 10'dan fazla API çağrısına neden olabilir.
 
-Prompt cache bu maliyeti %90 azaltır. Ancak cache'in bir ömrü vardır.
+Prompt cache bu maliyeti %90 azaltır. Ama cache'in bir ömrü vardır.
 
 |                     | Main Session                          | SubTask                                |
 | ------------------- | ------------------------------------- | -------------------------------------- |
-| Cache TTL           | 1 saat (ephemeral_1h)                 | 5 dk                                   |
+| Cache TTL           | 1 saat (ephemeral_1h)                 | 5 dakika                               |
 | Cache yazma         | ＄10/MTok                              | ＄6.25/MTok                             |
 | Cache okuma         | ＄0.50/MTok                            | ＄0.50/MTok                             |
-| Cache süresi dolduğunda | Tam context tam fiyattan yeniden gönderilir | Düşük etki (context küçüktür)     |
+| Cache sona erdiğinde | Tam context tam fiyatıyla yeniden gönderilir | Düşük etki (context küçüktür)       |
 
-Cache aktif olsa bile maliyetler birikir. Farkı göstermek için aşırı bir senaryo:
+Cache canlı olsa bile maliyetler birikir. Farkı göstermek için aşırı bir senaryo.
 
-### Senaryo: Tam gün kodlama (sabah 3 saat → 2 saat öğle/toplantı → öğleden sonra 3 saat)
+### Senaryo: Tam günlük kodlama (sabah 3 saat → öğle/toplantı 2 saat → öğleden sonra 3 saat)
 
 Koşullar: Opus 4 fiyatlandırması, dakikada 1 prompt, prompt başına ~5 API çağrısı (~300 çağrı/saat).
 
-#### ❌ cc-token-saver olmadan
+#### ❌ claude-code-upgrader olmadan
 
-İşlerin çoğu Main session'da yapılır. Context hızla büyür.
+Çoğu çalışma Main oturumda gerçekleşir. Context hızla büyür.
 
-| Aşama           | Durum                             | Context boyutu              | Maliyet                                |
-| --------------- | --------------------------------- | --------------------------- | -------------------------------------- |
-| Sabah 3 saat    | Kodlama (çoğunlukla Main'de)     | 100K → 600K (ort 350K)     | 900 çağrı × 350K × ＄0.50/M = ＄157.50  |
-| Öğle/toplantı   | 2 saat uzakta                     | —                           | —                                      |
-| Dönüş           | Cache süresi doldu → tam yeniden gönderim | 600K tam fiyat         | 600K × ＄5/M + 600K × ＄10/M = ＄9       |
-| Dönüş           | /compact (özetleme)               | 600K → LLM'e gönderildi    | 600K × ＄0.50/M + özet çıktısı = ~＄1.50  |
-| Öğleden sonra 3 saat | Kodlama devam (context tekrar büyür) | 100K → 600K (ort 350K) | 900 çağrı × 350K × ＄0.50/M = ＄157.50  |
-|                 | Toplam                            |                             | ~＄326                                  |
+| Aşama       | Durum                             | Context boyutu              | Maliyet                                   |
+| ----------- | --------------------------------- | -------------------------- | -------------------------------------- |
+| Sabah 3s    | Kodlama (çoğunlukla Main'de)      | 100K → 600K (ort 350K)     | 900 çağrı × 350K × ＄0.50/M = ＄157.50  |
+| Öğle/top.   | 2 saat uzakta                     | —                          | —                                      |
+| Dönüş       | Cache sona erdi → tam yeniden gönderim | 600K tam fiyat        | 600K × ＄5/M + 600K × ＄10/M = ＄9       |
+| Dönüş       | /compact (özetle)                 | 600K → LLM'ye gönderildi  | 600K × ＄0.50/M + özet çıktısı = ~＄1.50 |
+| Öğleden sonra 3s | Kodlama devam (context yeniden büyür) | 100K → 600K (ort 350K) | 900 çağrı × 350K × ＄0.50/M = ＄157.50 |
+|             | Toplam                            |                            | ~＄326                                  |
 
-> Bu kullanım seviyesinde büyük olasılıkla 5 saatlik pencere rate limit'ine çarparsınız. **Maliyet kötü, ama asıl sorun işinizin tamamen durması. Claude Code'un tamamen kapandığı an tam olarak burasıdır.**
+> Bu kullanım düzeyinde, büyük olasılıkla 5 saatlik pencere hız sınırına ulaşacaksınız. **Maliyet kötü, ama asıl sorun çalışmanızın tamamen durmasıdır. Claude Code'un tam olarak karardığı an budur.**
 
-#### ✅ cc-token-saver ile
+#### ✅ claude-code-upgrader ile
 
-Ağır işler SubTask'lara devredilir. Main yalnızca tasarım/kararlarla ilgilenir.
+Ağır çalışma SubTask'lara devredilir. Main yalnızca tasarım/kararları yönetir.
 
-| Aşama           | Durum                                        | Context boyutu               | Maliyet                            |
-| --------------- | -------------------------------------------- | ---------------------------- | ---------------------------------- |
-| Sabah 3 saat    | Kodlama (Main: tasarım, SubTask: uygulama)   | Main 100K → 300K (ort 200K)  | 900 çağrı × 200K × ＄0.50/M = ＄90 |
-| Öğle/toplantı   | 2 saat uzakta                                | —                            | —                                  |
-| Dönüş           | ⚡ Token Guardian engeller → /clear + /continue | —                          | ＄0 (LLM çağrısı yok)              |
-| Öğleden sonra 3 saat | Kodlama devam                            | Main 100K → 300K (ort 200K)  | 900 çağrı × 200K × ＄0.50/M = ＄90 |
-|                 | Toplam                                       |                              | ~＄180                              |
+| Aşama       | Durum                                        | Context boyutu                | Maliyet                               |
+| ----------- | -------------------------------------------- | --------------------------- | ---------------------------------- |
+| Sabah 3s    | Kodlama (Main: tasarım, SubTask: uygulama)   | Main 100K → 300K (ort 200K) | 900 çağrı × 200K × ＄0.50/M = ＄90 |
+| Öğle/top.   | 2 saat uzakta                                | —                           | —                                  |
+| Dönüş       | ⚡ Token Guardian engeller → /clear + /continue | —                        | ＄0 (LLM çağrısı yok)              |
+| Öğleden sonra 3s | Kodlama devam eder                      | Main 100K → 300K (ort 200K) | 900 çağrı × 200K × ＄0.50/M = ＄90 |
+|             | Toplam                                       |                             | ~＄180                              |
 
 #### 💰 Sonuç
 
-> **＄326 → ＄180. Günlük ＄146 tasarruf (%45).**
+> **＄326 → ＄180. Günde ＄146 tasarruf. %45 maliyet azalması.**
 >
-> Mesele sadece maliyet değil. Aynı sürede daha az token demek **rate limit'e çarpmadan çalışmaya devam edebilmeniz** demektir. Asıl fark budur.
+> **Max Plan:** Daha az token = hız sınırına ulaşmazsınız. Çalışmanız durmaz. İşte gerçek fark budur.
+>
+> **API kullandıkça öde:** ＄146/gün × 22 iş günü = **faturanızdan doğrudan ＄3.200/ay.** Bu eklenti olmadan yoğun bir ay ＄7.000'i aşar. Onunla ＄4.000'in altında. Aynı çıktı.
 
-### cc-token-saver nerede devreye girer
+### claude-code-upgrader nerede devreye girer
 
 ```
-[Session Başlangıcı]
+[Session Start]
     │
-    ├─ Session Architect → SubTask delegasyon kalıbını otomatik enjekte eder
+    ├─ Session Architect → SubTask devir kalıbını otomatik ekler
     │                       Main context'i 250K altında tutar
     │
-[Çalışma]
+[Çalışırken]
     │
-    ├─ Durum Çubuğu → Gerçek zamanlı maliyet/context/rate limit izleme
-    │                   Uyarı bölgesine girildiğinde anında bildirim
+    ├─ Status Line → Gerçek zamanlı maliyet/context/hız sınırı izleme
+    │                  Uyarı bölgesine girildiğinde anında uyarı
     │
 [1+ saat boşta]
     │
-    ├─ Token Guardian → Cache süresinin dolduğunu algılar, yeniden gönderim öncesi engeller
+    ├─ Token Guardian → Cache süresinin dolmasını algılar, yeniden göndermeden önce engeller
     │
-[Session yeniden başlatma]
+[Oturum yeniden başlatma]
     │
     └─ /continue → Önceki context'i sıfır maliyetle geri yükler (LLM çağrısı yok)
 ```
 
 ---
 
-## 🔧 Kaynak Koddan Kurulum ve Özelleştirme
+## 🔧 Kaynaktan Kurulum ve Özelleştirme
 
 ```bash
-git clone https://github.com/ww-w-ai/cc-token-saver.git
-claude plugin marketplace add /path/to/cc-token-saver
-claude plugin install cc-token-saver@cc-token-saver
+git clone https://github.com/ww-w-ai/claude-code-upgrader.git
+/plugin marketplace add /path/to/claude-code-upgrader
+/plugin install claude-code-upgrader@claude-code-upgrader
 ```
 
-cc-token-saver tamamen açık kaynaklıdır. Tüm kaynak kod, standart eklenti yapısını izleyen düz JavaScript + Bash scriptlerinden oluşur. İstediğiniz her şeyi değiştirin.
+claude-code-upgrader tamamen açık kaynaklıdır (Apache-2.0). Düz JavaScript + Bash — derlenmiş ikili yok, harici API çağrısı yok, telemetri yok. Her satır denetlenebilir. Bu README'deki her iddia, okuyabileceğiniz belirli bir dosyayla eşleşir.
 
-- **hooks/** — Cache süresi eşiğini değiştirin, uyarı mesajlarını özelleştirin, session mimarisi kurallarını düzenleyin
-- **scripts/** — Analiz mantığı, rapor oluşturucu, durum çubuğu biçimlendirmesi
-- **skills/** — /continue ve /usage-view nasıl çalışır, prompt şablonları
+- **hooks/** — Cache süre sonu eşiğini değiştirin, uyarı mesajlarını özelleştirin, oturum mimarisi kurallarını değiştirin
+- **scripts/** — Analiz mantığı, rapor oluşturucu, durum çubuğu biçimlendirme
+- **skills/** — /continue ve /usage-view'ın nasıl çalıştığı, prompt şablonları
 - **locales/** — Çevirileri ekleyin/düzenleyin, yeni diller ekleyin
-- **skills/usage-view/** — Panel UI/UX tasarım değişiklikleri
+- **skills/usage-view/** — Pano UI/UX tasarım değişiklikleri
 
-Kendinize göre uyarlayın. Fork'layın, deneyin ve daha iyi bir şey bulursanız PR gönderin.
+Kendinizinkini yapın. Fork edin, deneyin ve daha iyi bir şey bulursanız PR gönderin.
 
 ---
 
 ## 🌐 Desteklenen Diller
 
-23 dil desteklenmektedir. Claude Code kullanımına göre ilk 20 ülke ile küresel konuşmacı sayısına göre ilk 20 dil karşılaştırılarak seçilmiştir. Görüntüleme dili işletim sistemi yerel ayarınızdan otomatik algılanır. Manuel olarak da belirtebilirsiniz: `/usage-view locale tr`
+23 dil desteklenir. Claude Code kullanımına göre ilk 20 ülke ile küresel konuşmacı sayısına göre ilk 20 dil çapraz referanslanarak seçilmiştir. Görüntüleme dili, OS yerel ayarınızdan otomatik olarak algılanır. Manuel olarak da belirtebilirsiniz: `/usage-view locale ja`
 
 |                 |                 |                |                 |
 | --------------- | --------------- | -------------- | --------------- |
-| 🇺🇸 İngilizce  | 🇰🇷 Korece     | 🇯🇵 Japonca   | 🇨🇳 Çince      |
-| 🇪🇸 İspanyolca | 🇫🇷 Fransızca  | 🇩🇪 Almanca   | 🇧🇷 Portekizce |
-| 🇮🇹 İtalyanca  | 🇷🇺 Rusça      | 🇸🇦 Arapça    | 🇮🇳 Hintçe     |
-| 🇧🇩 Bengalce   | 🇮🇩 Endonezce  | 🇲🇾 Malayca   | 🇹🇭 Tayca      |
-| 🇻🇳 Vietnamca  | 🇹🇷 Türkçe     | 🇵🇱 Lehçe     | 🇳🇱 Felemenkçe |
-| 🇮🇱 İbranice   | 🇸🇪 İsveççe    | 🇳🇴 Norveççe  |                 |
+| 🇺🇸 English    | 🇰🇷 Korean     | 🇯🇵 Japanese  | 🇨🇳 Chinese    |
+| 🇪🇸 Spanish    | 🇫🇷 French     | 🇩🇪 German    | 🇧🇷 Portuguese |
+| 🇮🇹 Italian    | 🇷🇺 Russian    | 🇸🇦 Arabic    | 🇮🇳 Hindi      |
+| 🇧🇩 Bengali    | 🇮🇩 Indonesian | 🇲🇾 Malay     | 🇹🇭 Thai       |
+| 🇻🇳 Vietnamese | 🇹🇷 Turkish    | 🇵🇱 Polish    | 🇳🇱 Dutch      |
+| 🇮🇱 Hebrew     | 🇸🇪 Swedish    | 🇳🇴 Norwegian |                 |
 
-Mevcut çeviriler yapay zeka tarafından oluşturulmuştur. Anadili konuşanların katkıları memnuniyetle karşılanır — `locales/` klasöründeki kendi dilinizin JSON dosyasını düzenleyip PR gönderin.
+Mevcut çeviriler yapay zeka tarafından oluşturulmuştur. Anadili konuşan katkılar memnuniyetle karşılanır — `locales/` içindeki diliniz için JSON dosyasını düzenleyin ve bir PR gönderin.
+
+---
+
+## ⚖️ Bu Eklentinin Size Maliyeti
+
+Eklenti, oturum başlangıcında context ekler. İşte tam olarak ne kadar:
+
+| Ekleme | Ne zaman | Token | Amaç |
+| --------- | ---- | ------ | ------- |
+| Session Architect | SessionStart (bir kez) | ~1.100 | SubTask devir stratejisi + concise mode kuralları |
+| Git context (git-lite etkinse) | SessionStart (bir kez) | ~280 | CC'nin yerel ~2.200 tok git talimatlarının yerini alır |
+| Cache süre sonu uyarısı | Boşta > 59 dakikada (bir kez) | ~200 | Pahalı yeniden gönderimi engeller, kurtarma seçeneklerini gösterir |
+| Status line | Her API çağrısı | 0 | Terminal durum çubuğuna render edilir, konuşma context'ine değil |
+
+**Oturum başına net ek yük: ~1.400 token (bir kez, ilk çağrıdan sonra önbelleğe alınır).**
+
+Opus fiyatlandırmasında ($0,50/MTok cache okuma), bu **API çağrısı başına $0,0007**'dir — bir sentin onda birinden az. 100 çağrılık bir oturumda: $0,07.
+
+git-lite etkinse, eklenti oturum başına ~1.920 token **tasarruf eder** (2.200'ü 280 ile değiştirir). Net etki negatiftir — eklenti kaldırdığından daha az tüketir.
+
+**API kullandıkça öde kullanıcıları için:** aylık $3.000 harcamada, eklenti ek yükü ayda $2'nin altındadır. Yalnızca cache süre sonu önlemesinden elde edilen tasarruf (haftada bir engellenen $9'lık yeniden gönderim), tek bir yakalamada bir yıllık ek yük maliyetini karşılar.
 
 ---
 
 ## 💡 İpuçları
 
-### Cache'i anlayın, paranın nereye gittiğini görün
+### Cache'i anlayın ve paranın nereye gittiğini görün
 
-- **1 prompt ≠ 1 API çağrısı.** Claude her Grep, Read veya Edit çağrısında tüm context'i yeniden gönderir. Tek bir prompt kolayca 10'dan fazla API çağrısı tetikler. Gereksiz araç çağrılarını azaltmak ve maliyetleri düşürmek için net prompt'lar yazın.
-- **Cache zamanlayıcısı son prompt'unuzdan değil, son API çağrısından itibaren sıfırlanır.** Çalışmaya devam ettikçe cache süresi asla dolmaz. Tehlike uzaklaşmaktır. Token Guardian bir kez otomatik engeller, döndüğünüzde seçersiniz: context'i sıfırla veya olduğu gibi devam et.
-- **Context boyutu = maliyet çarpanı.** Aynı API çağrısı 200K'da 800K'ya kıyasla 4 kat daha ucuzdur. Durum çubuğunda [CTX] %35'i (🟡) geçtiğinde, SubTask'lara daha fazla iş devretme sinyalidir.
+- **1 prompt ≠ 1 API çağrısı.** Claude her Grep, Read veya Edit çağrısında tüm context yeniden gönderilir. Tek bir prompt kolayca 10'dan fazla API çağrısını tetikler. Gereksiz araç çağrılarını azaltmak ve maliyetleri düşürmek için net promptlar yazın.
+- **Cache zamanlayıcısı son API çağrısından sıfırlanır, son prompt'unuzdan değil.** Çalışmaya devam edin ve cache asla sona ermez. Tehlike uzaklaşmaktır. Token Guardian bir kez otomatik engeller, bu yüzden döndüğünüzde seçebilirsiniz: context sıfırla veya olduğu gibi devam et.
+- **Context boyutu = maliyet çarpanı.** 200K'da aynı API çağrısı, 800K'da 4 kat daha pahalıdır. Durum çubuğu [CTX] %35'i (🟡) geçtiğinde, bu SubTask'lara daha fazla devretme sinyalidir.
 
-### Maliyeti düşüren alışkanlıklar
+### Maliyetleri düşüren alışkanlıklar
 
-- **CLAUDE.md'yi yalın tutun.** Her API çağrısında system prompt'a yüklenir. Her satır para eder.
-- **Ağır işleri SubTask'lara devredin.** Kod üretme, çoklu dosya düzenleme, test çalıştırma Main'de olmamalı. SubTask'lar daha küçük context'e ve daha ucuz cache katmanına sahiptir.
-- **1+ saat uzakta mı?** `/clear` → dönün → `/continue`. Context $0'a geri yüklenir.
-- **[5H] %70'in üzerinde mi (🟡)?** Yavaşlayın. Hafif inceleme görevlerine geçin veya Main'in API çağrı sayısını azaltmak için SubTask delegasyonunu artırın.
-- **Ara sorular için `/btw` kullanın.** Konuşma geçmişine girmez, böylece context'iniz yalın kalır.
+- **CLAUDE.md'yi kısa tutun.** Her API çağrısında system prompt'a yüklenir. Her satır para harcar.
+- **Ağır işleri SubTask'lara devredin.** Kod üretimi, çoklu dosya düzenlemeleri, test çalıştırmaları Main'e ait değil. SubTask'ların daha küçük context ve daha ucuz cache katmanı vardır.
+- **1+ saat uzaktaysanız?** `/clear` → dönün → `/continue`. Context $0 ile geri yüklendi.
+- **[5H] %70'in üzerinde (🟡)?** Yavaşlayın. Hafif inceleme görevlerine geçin veya Main'in API çağrısı sayısını azaltmak için SubTask devrini artırın.
+- **Yan sorular için `/btw` kullanın.** Konuşma geçmişine girmez, bu yüzden context'iniz kısa kalır.
+
+### API kullandıkça öde: en önemli alışkanlıklar
+
+Yukarıdakilerin hepsi geçerlidir, artı bu API'ye özgü öncelikler:
+
+- **[CTX]'i hız göstergesi gibi izleyin.** Hiçbir hız sınırı sizi durdurmaz — ancak 500K+'da context, her API çağrısının olması gerekenden 2-3 kat daha fazlaya mal olduğu anlamına gelir. `/clear` → `/continue` ücretsizdir ve maliyet çarpanınızı taban çizgisine sıfırlar.
+- **Haftalık `/usage-view` çalıştırın.** Max Plan kullanıcıları hız sınırına çarptıklarında doğal bir "ah" anına sahiptir. Siz değil — maliyetler sessizce tırmanır. Pano erken uyarı sisteminizdir.
+- **Zihinsel bir günlük bütçe belirleyin.** Bir tavan olmadan, $200'lük günler fark edilmeden gerçekleşir. Durum çubuğunun RUN göstergesi tur başına maliyeti görünür kılar. Tek bir tur $1'ı (🔴) aşarsa, context'iniz çok büyüktür.
+
+---
+
+## 📚 Belgeler
+
+- [Prompt Cache Kılavuzu](guides/prompt-cache-guide.md) — Maliyetinizin büyük bölümünün neden cache olduğu, sağlayıcılar genelinde caching'in nasıl çalıştığı (Anthropic, OpenAI, Gemini) ve nasıl yönetileceği ([한국어](guides/prompt-cache-guide-ko.md) · [日本語](guides/prompt-cache-guide-ja.md) · [中文](guides/prompt-cache-guide-zh.md) · [Español](guides/prompt-cache-guide-es.md) · [Français](guides/prompt-cache-guide-fr.md) · [Deutsch](guides/prompt-cache-guide-de.md) · [+16 languages](guides/))
+- [Opus 4.7 - 4.6 Maliyet Analizi](guides/opus-4-7-vs-4-6-cost-analysis.md) — 8.563 API çağrısı genelinde yan yana maliyet karşılaştırması
+- [Opus 4.7 - 4.6 Maliyet Analizi (한국어)](guides/opus-4-7-vs-4-6-cost-analysis.ko.md)
 
 ---
 

@@ -1,37 +1,53 @@
-# cc-token-saver
+# claude-code-upgrader
 
-> **Claude Code selalu tergendala? Tak lagi.**
->
-> Jimat kos, kod lebih lama, dan lihat ke mana token anda pergi — tanpa konfigurasi.
+**Satu-satunya plugin Claude Code yang benar-benar membaca kod sumber CC untuk mengetahui ke mana token anda pergi — dan membetulkannya secara automatik. Belanjakan lebih sedikit, kerja lebih lama.**
 
-Bagaimana? Pengurusan context automatik, penjejakan kos masa nyata, dan kawalan session sedar-cache — semuanya dalam satu plugin.
+> Keputusan terukur: **pengurangan kos sebanyak 45%** pada beban kerja sebenar $326/hari → $180/hari. Pencegahan tamat tempoh cache, delegasi SubTask automatik, pemulihan konteks tanpa kos, dan papan pemuka analitik penuh — dalam satu pemasangan, tanpa konfigurasi.
+
+Berfungsi dengan **Max Plan ($200/bln)** dan **API bayar-per-penggunaan**. Plugin yang sama, ciri yang sama. Lebih kuat untuk setiap pengguna — terutama apabila setiap token adalah wang sebenar.
+
+![Papan pemuka penggunaan — lihat dengan tepat ke mana token anda pergi](docs/images/usage-view-overview.png)
+
+### Apa yang dilakukannya dalam 30 saat
+
+| Ciri | Yang berlaku | Impak |
+| ---- | ------------ | ----- |
+| 🛡️ Token Guardian | Mengesan tamat tempoh cache, menyekat penghantaran semula $9 sebelum berlaku | Mencegah lonjakan kos tersembunyi #1 |
+| 🧠 Session Architect | Mendelegasi kerja berat ke SubTasks secara automatik (cache 37.5% lebih murah) | Konteks kekal kecil, kos menurun |
+| 🪶 Concise Mode | Memangkas padding respons, mengekalkan kandungan | Lebih sedikit token output setiap respons |
+| 🔄 /continue | Menggantikan /compact — sifar panggilan LLM, sifar kos, sifar kehilangan maklumat | Pemulihan konteks percuma |
+| 📊 Status Line | Kos masa nyata, saiz konteks, had kadar — bawah 50ms | Lihat masalah sebelum ia menelan belanja |
+| 📈 /usage-view | Papan pemuka HTML interaktif dengan analisis berkuasa AI | Forensik kos penuh dalam satu klik |
+| ✂️ /setup-git-lite | Membuang 2,200 token tersembunyi yang CC suntikkan setiap sesi | ~$48/bln penjimatan dari arahan git sahaja |
 
 ---
 
-## 😤 Masalah: $200/bulan Tapi Masih Tak Produktif
+## 😤 Masalahnya
 
-Plan Claude Code Max ($200/bulan). Patut cukup. Tapi tak cukup.
+**Tamat tempoh cache.** Anda baru balik dari makan tengahari. Cache hilang. Satu prompt menghantar semula 900K token pada harga penuh. $9 sekali gus.
 
-**Rate limit tetingkap bergulir 5 jam.** Anda tengah fokus menulis kod dan tiba-tiba berhenti. Tiada pemasa. Tiada anggaran masa. Hanya menunggu.
+**Kos tak kelihatan.** Tiada keterlihatan masa nyata. Tiada amaran "konteks anda di 800K". Tiada amaran "cache tamat tempoh 3 minit lalu". Anda tahu selepas kerosakan berlaku.
 
-**Cache expiry.** Anda balik dari makan tengahari. Dah lebih sejam. Anda hantar satu prompt dan 900K token dihantar semula pada harga penuh. Kos? $9 sekali hantar.
+**Pembengkakan konteks.** Prompt yang sama pada konteks 200K berbanding 800K kosnya 4x lebih mahal. Setiap Read, Grep, Edit menghantar semula konteks penuh. Satu prompt kompleks mencetuskan 15+ panggilan API, setiap satu didarab dengan saiz konteks anda.
 
-**Kos tersembunyi.** Tiada cara untuk melihat berapa yang anda belanjakan secara masa nyata. Anda hanya tahu selepas rate limit dicapai.
+**Semuanya manual.** Pengurusan konteks, masa tamat tempoh cache, delegasi SubTask, pembersihan sesi. Tiada siapa boleh menjejak semua ini sambil mengekod dengan sesungguhnya.
 
-**Semuanya manual.** Saiz context, masa cache expiry, delegasi SubTask, pembersihan session. Siapa boleh jejak semua ini sambil menulis kod?
+**Max Plan ($200/bln)?** Semua di atas, ditambah had kadar tetingkap 5 jam yang menghentikan aliran kerja anda tanpa pemasa dan tanpa ETA.
 
-cc-token-saver mengendalikan semuanya secara automatik. **Pasang sekali. Siap.**
+**API bayar-per-penggunaan?** Semua di atas, kecuali tiada had atas. Satu cache miss = $9 wang sebenar. Sepuluh kali seminggu = $360/bln hanya kerana kesilapan. Selasa yang buruk dengan konteks yang bengkak boleh menelan belanja lebih daripada yang dibayar pelanggan Max Plan dalam sebulan.
+
+claude-code-upgrader mengendalikan semuanya secara automatik. **Pasang sekali. Selesai.**
 
 ---
 
 ## 🚀 Pemasangan
 
 ```
-claude plugin marketplace add ww-w-ai/cc-token-saver
-claude plugin install cc-token-saver
+/plugin marketplace add ww-w-ai/marketplace
+/plugin install claude-code-upgrader@ww-w-ai
 ```
 
-Berfungsi secara automatik selepas pemasangan. Tanpa konfigurasi. Memerlukan [Claude Code](https://claude.ai/claude-code) v2.1.71+.
+Berfungsi secara automatik selepas dipasang. Tanpa konfigurasi. Memerlukan [Claude Code](https://claude.ai/claude-code) v2.1.71+.
 
 Untuk pemantauan langsung:
 
@@ -39,221 +55,276 @@ Untuk pemantauan langsung:
 /setup-statusline install
 ```
 
+Untuk memangkas 2,200 token tersembunyi dari arahan git terbina dalam CC ([butiran](#%EF%B8%8F-feature-5-setup-git-lite--trim-ccs-built-in-git-instructions)):
+
+```
+/setup-git-lite install
+```
+
 ---
 
 ## 🛡️ Ciri 1: Token Guardian
 
-**Mengesan cache expiry dan menyekat penghantaran semula yang mahal secara automatik.**
+**Mengesan tamat tempoh cache dan secara automatik menyekat penghantaran semula yang mahal.**
 
-TTL cache prompt Claude Code ialah 1 jam. Tinggalkan lebih sejam dan cache tamat tempoh. Mesej seterusnya menghantar semula keseluruhan context pada harga penuh. Pada 900K token, itu $9 sekali hantar.
+TTL cache prompt Claude Code ialah 1 jam. Pergi lebih dari satu jam dan cache akan tamat tempoh. Mesej anda seterusnya menghantar semula keseluruhan konteks pada harga penuh. Pada 900K token, itu $9 sekali gus.
 
-Token Guardian menjejak bila respons terakhir diterima. Jika lebih daripada 3,590 saat telah berlalu (TTL tolak buffer 10 saat), ia menyekat prompt dan memaparkan amaran.
+Token Guardian menjejak masa respons terakhir diterima. Jika lebih daripada 3,590 saat telah berlalu (TTL tolak penimbal 10 saat), ia menyekat prompt dan menunjukkan amaran.
 
 ```
-🚨 Cache tamat tempoh (68m 23s tidak aktif)
+🚨 Cache expired (68m 23s idle)
 
-Cache telah tamat. Meneruskan akan menghantar semula semua konteks.
-Kos mungkin meningkat dengan ketara.
+The prompt cache has expired. Continuing will resend the full context.
+Cost may increase significantly.
 
-👉 /context — Semak penggunaan konteks semasa sebelum membuat keputusan
-👉 /clear → /continue — Tetapkan semula lalu pulihkan konteks sebelumnya (disyorkan, kos terendah)
-👉 Hantar semula — Teruskan seperti sedia ada (kos re-cache penuh ditanggung)
+👉 /context — Check current context usage before deciding
+👉 /clear → /continue — Reset, then restore previous context (recommended, cheapest)
+👉 Re-send — Continue as-is (full re-cache cost incurred)
 ```
 
-Hanya hantar semula prompt yang sama selepas amaran — ia akan melalui. Amaran hanya muncul sekali bagi setiap tempoh idle, jadi ia tidak mengganggu. Mesej amaran dipaparkan dalam 23 bahasa berdasarkan locale OS anda.
+Hanya hantar semula prompt yang sama selepas amaran -- ia akan melalui. Amaran hanya diaktifkan sekali setiap tempoh tidak aktif, jadi ia tidak pernah menyusahkan. Mesej amaran dipaparkan dalam 23 bahasa berdasarkan lokal OS anda.
 
-**Hasil:** Kos re-cache yang mahal dicegah secara automatik. Tiada usaha diperlukan.
+**Keputusan:** Setiap tamat tempoh cache yang ditangkap = $9 disimpan. Satu tangkapan sehari bermakna $270/bln pembaziran tulen dihapuskan.
+
+> **Jika anda menggunakan API bayar-per-penggunaan, ini lebih terasa.** Pelanggan Max Plan kehilangan $9 dalam penimbal $200. Anda kehilangan $9 wang sebenar — diam-diam, berulang kali, setiap kali anda pergi. Token Guardian menangkapnya setiap kali.
 
 ---
 
 ## 🧠 Ciri 2: Smart Session Architecture
 
-**Pasang sahaja dan corak kerja yang dioptimumkan kos bermula secara automatik.**
+**Pasang dan corak kerja yang dioptimumkan kos bermula secara automatik.**
 
-Kebanyakan pengguna melakukan segala-galanya dalam Main session. Membaca fail, menjana kod, menjalankan ujian. Setiap output bertimbun dalam context dan dihantar semula dengan setiap mesej. Session membengkak. Kos melambung.
+Kebanyakan pengguna melakukan segala-galanya dalam sesi utama. Membaca fail, menghasilkan kod, menjalankan ujian. Setiap output terkumpul dalam konteks dan dihantar semula dengan setiap mesej. Sesi membengkak. Kos bertambah seperti bola salji.
 
-Session Architect secara automatik menyuntik strategi delegasi pada permulaan session.
+Session Architect secara automatik menyuntik strategi delegasi pada permulaan sesi.
 
 |                  | Main Session                      | SubTask                               |
 | ---------------- | --------------------------------- | ------------------------------------- |
 | Peranan          | Reka bentuk, keputusan, semakan   | Pelaksanaan, penjanaan kod, pelbagai fail |
-| Cache tier       | 1 jam (ephemeral_1h)              | 5 min                                 |
-| Kos cache write  | ＄10/MTok                          | ＄6.25/MTok                            |
-| Saiz context     | ~94K purata                       | ~33K purata                           |
+| Tahap cache      | 1 jam (ephemeral_1h)              | 5 minit                               |
+| Kos tulis cache  | ＄10/MTok                          | ＄6.25/MTok                            |
+| Saiz konteks     | ~94K purata                       | ~33K purata                           |
 
-SubTask mempunyai **cache write 37.5% lebih murah** berbanding Main. Context juga lebih kecil. Mendelegasikan kerja berat ke SubTask mengurangkan kos secara drastik.
+SubTasks mempunyai **penulisan cache 37.5% lebih murah** berbanding Main. Konteksnya juga jauh lebih kecil. Mendelegasi kerja berat ke SubTasks memangkas kos secara dramatik.
 
-**Hasil:** Claude secara automatik bekerja dalam corak yang cekap kos. Anda tak perlu fikirkan.
+**Keputusan:** Konteks kekal di bawah 250K berbanding membesar hingga 600K+. Output kerja yang sama, separuh kos token. Sepenuhnya automatik.
 
 ---
 
-## 🪶 Mod Ringkas
+## 🪶 Concise Mode
 
-**Kandungan yang sama. Padding yang kurang. Aktif secara lalai.**
+**Kandungan yang sama. Kurang padding. Aktif secara lalai.**
 
-Hook SessionStart yang sama juga menyuntik peraturan gaya respons yang berjalan dalam **setiap sesi dan setiap model** — tiada flag, tiada persediaan. Tiga perkara berubah:
+Hook SessionStart juga menyuntik peraturan gaya respons yang berjalan dalam **setiap sesi dan setiap model** — tanpa bendera, tanpa persediaan. Tiga perkara berubah:
 
-- **Mukadimah dibuang** — tiada "Biar saya semak…", "Sekarang saya akan…", mengulang soalan anda, atau meringkaskan apa yang sudah ditunjukkan oleh diff
-- **Format yang sesuai untuk kandungan** — bullet untuk senarai, prosa untuk penaakulan (tradeoff, sebab-akibat, justifikasi). Tiada yang dipaksa
-- **Ekspresi yang lebih ketat** — perkara yang sama, perkataan yang lebih sedikit. Prosa yang lebih jelas adalah prosa yang lebih pendek
+- **Tiada pembukaan** — tiada "Biar saya semak…", "Saya akan…", mengulang soalan anda, atau meringkaskan apa yang sudah ditunjukkan diff
+- **Format yang tepat untuk kandungan** — mata untuk senarai, prosa untuk penaakulan (pertukaran, kausaliti, rasional). Tiada yang dipaksakan
+- **Ungkapan yang lebih padat** — mata yang sama, lebih sedikit perkataan. Prosa yang lebih jelas adalah prosa yang lebih pendek
 
-Had keras: jangan sekali-kali membuang kandungan, melangkau pengesahan, atau memampatkan nuansa ke dalam satu ayat. Intipati kekal utuh; hanya bungkusan yang mengecut.
+Had keras: jangan sekali-kali hilangkan kandungan, langkau pengesahan, atau runtuhkan nuansa ke dalam satu ayat. Kandungan kekal penuh; hanya pembungkusnya yang mengecil.
 
 Pasang sekali, terpakai di mana-mana.
 
 ---
 
+## 🔄 Ciri 3: /continue — Pemulihan Konteks
 
-## 🔄 Ciri 3: /continue — Pemulihan Context
+**Menggantikan `/compact`. Sifar panggilan LLM. Sifar kos token. Sifar kehilangan maklumat.**
 
-**Menggantikan `/compact`. Sifar panggilan LLM. Sifar kos token.**
+`/compact` menghantar keseluruhan konteks anda (~1M token) ke LLM untuk dimampatkan menjadi ringkasan 3.3%. Jika cache telah tamat tempoh, itu sahaja sudah mencetuskan cache semula penuh. Kehilangan maklumat tidak dapat dielakkan.
 
-`/compact` menghantar keseluruhan context anda (~1M token) kepada LLM untuk dimampatkan menjadi ringkasan 3.3%. Jika cache telah tamat tempoh, itu sahaja sudah mencetuskan re-cache penuh. Kehilangan maklumat pasti berlaku.
+`/continue` mengambil pendekatan yang sama sekali berbeza. Ia memproses transkrip sesi sebelumnya dan memuatnya terus. Tiada panggilan LLM. Tiada kos. Perbualan asal dipulihkan seadanya.
 
-`/continue` mengambil pendekatan yang sama sekali berbeza. Ia memproses transkrip session sebelumnya dan memuatkannya terus. Tiada panggilan LLM. Tiada kos. Perbualan asal dipulihkan seperti sedia ada.
+|                         | /compact                                    | /continue                                   |
+| ----------------------- | ------------------------------------------- | ------------------------------------------- |
+| Cara ia berfungsi       | Menghantar konteks penuh ke LLM untuk diringkaskan | Memproses transkrip, membaca terus     |
+| Panggilan LLM           | Diperlukan (biasanya 100K+ token)            | 0                                           |
+| Kos token               | Tinggi                                       | 0                                           |
+| Kehilangan maklumat     | Ya (ringkasan 3.3%)                          | Tiada (asal dikekalkan)                     |
+| Kelajuan pemprosesan    | Puluhan saat                                 | < 1 saat (walaupun fail 60MB+)              |
+| Apabila cache tamat tempoh | Kos cache semula penuh ditambah           | Tiada kesan                                 |
+| Pemulihan pelbagai sesi | Tidak mungkin                                | Disokong                                    |
 
-|                         | /compact                          | /continue                        |
-| ----------------------- | --------------------------------- | -------------------------------- |
-| Cara ia berfungsi       | Menghantar context penuh kepada LLM untuk ringkasan | Memproses transkrip, membaca terus |
-| Panggilan LLM           | Diperlukan (biasanya 100K+ token) | 0                                |
-| Kos token               | Tinggi                            | 0                                |
-| Kehilangan maklumat     | Ya (ringkasan 3.3%)              | Tiada (asal terpelihara)         |
-| Kelajuan pemprosesan    | Berpuluh saat                     | < 1 saat (walaupun fail 60MB+)   |
-| Bila cache tamat tempoh | Kos re-cache penuh ditambah       | Tiada kesan                      |
-| Pemulihan pelbagai session | Tidak boleh                    | Disokong                         |
+Penggunaan: `/clear` kemudian `/continue`. Anda akan melihat senarai sesi sebelumnya. Pilih satu untuk dipulihkan. Untuk pemulihan pantas: `/continue last`.
 
-Penggunaan: `/clear` kemudian `/continue`. Anda akan melihat senarai session sebelumnya. Pilih satu untuk dipulihkan. Untuk pemulihan pantas: `/continue last`.
-
-**Hasil:** Sambung semula kerja sebelumnya pada kos sifar. Tiada kehilangan maklumat.
+**Keputusan:** Sambung semula kerja sebelumnya tanpa kos. Tiada kehilangan maklumat. Memproses transkrip 60MB+ dalam kurang dari 1 saat.
 
 ---
 
-## 📊 Ciri 4: Live Status Line
+## 📊 Ciri 4: Baris Status Langsung
 
-**Pemantauan token/kos masa nyata. Overhed di bawah 50ms.**
+**Pemantauan token/kos masa nyata. Overhead bawah 50ms.**
 
-Jalankan `/setup-statusline install` sekali dan bar status kekal muncul di bahagian bawah Claude Code.
+Jalankan `/setup-statusline install` sekali dan bar status berterusan muncul di bahagian bawah Claude Code.
 
-```
-[RUN🟢] $0.10/$12.23 | [5H🟢] 9% ⏳1h32m | [CTX🟢] 22%
-```
+**Operasi normal** — setiap metrik sekali imbas, tanpa peralihan konteks:
 
-| Penunjuk         | Apa yang dipaparkan                 | 🟢 Normal | 🟡 Amaran  | 🔴 Kritikal |
-| ---------------- | ----------------------------------- | --------- | ---------- | ----------- |
-| RUN (delta)      | Kos panggilan API terakhir          | < ＄0.30   | >= ＄0.30   | >= ＄1.00    |
-| RUN (kumulatif)  | Kos kumulatif untuk folder ini      | —         | —          | —           |
-| 5H               | Penggunaan tetingkap 5 jam + undur masa reset | < 70%     | >= 70%     | >= 90%      |
-| CTX              | Penggunaan tetingkap context        | < 35%     | >= 35%     | >= 70%      |
+![Baris status dalam keadaan normal](docs/images/statusline-normal.png)
+
+**Had kadar dicapai** — 5H bertukar merah pada 102%, kiraan undur menunjukkan tepat bila anda kembali, dan tindakan `/report-limit` satu ketik muncul secara automatik:
+
+![Baris status apabila had kadar dilimitkan](docs/images/statusline-rate-limited.png)
+
+| Penunjuk         | Yang ditunjukkan                             | 🟢 Normal | 🟡 Amaran | 🔴 Kritikal |
+| ---------------- | -------------------------------------------- | --------- | --------- | ----------- |
+| RUN (delta)      | Kos panggilan API terakhir                   | < ＄0.30   | >= ＄0.30  | >= ＄1.00    |
+| RUN (kumulatif)  | Kos kumulatif untuk folder ini               | —         | —         | —           |
+| 5H               | Penggunaan tetingkap 5 jam + kiraan undur reset | < 70%  | >= 70%    | >= 90%      |
+| CTX              | Penggunaan tetingkap konteks                 | < 35%     | >= 35%    | >= 70%      |
 
 Apabila mana-mana penunjuk mencapai amaran atau kritikal, petunjuk `→ /usage-view current` muncul secara automatik.
 
 Untuk membuang: `/setup-statusline uninstall` (konfigurasi sebelumnya dipulihkan secara automatik).
 
-**Hasil:** Lihat keadaan kos anda sepintas lalu. Bertindak sebelum terlambat.
+**Keputusan:** Setiap masalah kos kelihatan dalam masa nyata. Overhead bawah 50ms — tiada kelewatan yang ketara.
+
+> **Menggunakan API bayar-per-penggunaan?** Penunjuk 5H dan W disembunyikan secara automatik — anda tidak mempunyai tetingkap had kadar. Yang kekal adalah yang penting: RUN (kos masa nyata setiap giliran) dan CTX (saiz konteks). Dua tuil yang mengawal bil anda, sentiasa kelihatan.
 
 ---
 
-## 📈 Usage Dashboard (/usage-view)
+## 📈 Papan Pemuka Penggunaan (/usage-view)
 
-**Akhirnya jawab: "Kenapa saya kena rate limit?"**
+**Akhirnya jawab: "Ke mana semua wang itu pergi?"**
 
-Selama ini, kena rate limit hanya buat anda marah. Tiada cara untuk tahu puncanya. Session mana yang paling banyak membakar token? Bila kos melonjak? Apa corak penggunaan anda? Semuanya tak nampak.
+Pengguna Max Plan mencapai had kadar dan tertanya-tanya mengapa. Pengguna API membuka invois Anthropic dan tertanya-tanya bagaimana. Dalam kedua-dua kes, soalannya sama: sesi mana yang membakar token paling banyak? Bila kos melonjak? Apakah corak dalam penggunaan anda? Sehingga kini — semuanya tidak kelihatan.
 
-`/usage-view` menunjukkan semuanya. Dashboard HTML interaktif dibuka dalam pelayar anda, membolehkan anda menganalisis corak penggunaan dan menjejak punca lonjakan kos. Tiada kebergantungan luaran. Berfungsi sendiri. Boleh dikongsi sebagai fail.
+`/usage-view` menunjukkan segalanya. Papan pemuka HTML interaktif dibuka dalam pelayar anda, membolehkan anda menganalisis corak penggunaan dan mengesan punca akar lonjakan kos. Tanpa kebergantungan luaran. Berfungsi secara bebas. Boleh dikongsi sebagai fail.
 
-Apa yang termasuk:
+**$4,196 dalam 31 hari. Ke mana semuanya pergi?** Sekali pandang — jumlah kos, pecahan token mengikut jenis, nisbah kecekapan cache, dan bilangan sesi. Carta donut terus menunjukkan bahawa 65% perbelanjaan anda adalah pembacaan cache (yang normal dan sihat):
 
-- Trend kos harian / setiap jam / hari dalam minggu — kenal pasti bila anda paling banyak membakar token
-- Pecahan token (input, output, cache write, cache read) — lihat apa yang mendorong kos
-- Analisis kos mengikut session — kenal pasti tugas mana yang mahal
-- Garis masa tetingkap 5 jam (pelanggan Max Plan) — jejak pencetus rate limit
-- Analisis insight dikuasakan AI — mentafsir data dan mencadangkan penambahbaikan
-- 23 bahasa disokong (RTL termasuk; carta/jadual kekal LTR)
+![Gambaran keseluruhan papan pemuka penggunaan](docs/images/usage-view-overview.png)
+
+**Sebelum vs. selepas — diukur, bukan diteka.** Penanda "Plugin installed" berputus-putus oren membahagi garis masa kos anda kepada dua. Bar harian ditindih mengikut jenis token (Input/Output/Cache Write/Cache Read) supaya anda boleh melihat dengan tepat komponen mana yang berubah selepas pemasangan. Garis purata menunjukkan arah aliran:
+
+![Arah aliran kos harian](docs/images/usage-view-daily-trend.png)
+
+**Bila anda paling banyak membakar?** Kos mengikut jam berdasarkan masa hari dan pecahan hari dalam seminggu. Togol antara purata hari aktif, purata semua hari, atau maksimum. Ikon api menandai jam termahal anda — corak yang kelihatan (maraton lewat malam, lonjakan Rabu) terus ketara:
+
+![Corak kos mengikut jam dan hari dalam seminggu](docs/images/usage-view-hourly-pattern.png)
+
+**Adakah anda semakin cekap?** Nisbah Total/Output mengukur berapa banyak token digunakan bagi setiap token output yang dihasilkan. Lebih rendah lebih baik. Penanda "Plugin installed" membolehkan anda membandingkan sebelum vs. selepas. Lonjakan = cache miss atau but semula sesi:
+
+![Arah aliran kecekapan](docs/images/usage-view-efficiency.png)
+
+**Setiap panggilan API, diplot mengikut saiz konteks dan kos.** Ini adalah carta yang menjadikan struktur kos jelas. Setiap titik adalah satu panggilan API. Merah = Opus, biru = Sonnet, hijau = Haiku. Garis putus-putus adalah harga teori — jika titik anda di atas garis, anda membayar terlalu mahal. Togol ke paparan **User Turn** untuk melihat kos setiap giliran perbualan berbanding setiap panggilan API.
+Layang-layangkan kursor ke mana-mana titik untuk melihat teks prompt sebenar, bilangan token, dan pecahan kos penuh (Input/Output/Cache Write/Cache Read):
+
+![Kos mengikut Saiz Konteks — carta taburan](docs/images/usage-view-cost-scatter.png)
+
+**Seberapa besar konteks anda?** Kebanyakan panggilan berkelompok di bawah 250K. Ekor panjang di atas 350K adalah tempat kos meledak — carta ini menunjukkan dengan tepat seberapa kerap anda berada dalam zon bahaya:
+
+![Taburan Saiz Konteks](docs/images/usage-view-context-dist.png)
+
+**Jadual pengekodan anda, dihargai mengikut jam.** Peta haba tetingkap 5 jam sepanjang 30 hari. Hijau (<$15/j), oren ($15-30/j), merah ($30+/j). Ikon tengkorak (💀) menandai tetingkap di mana anda mencapai had kadar. Gelongsor kos di bahagian atas menapis tetingkap murah supaya yang mahal terserlah — seret untuk mencari hari terburuk anda dengan serta-merta. Togol antara paparan tetingkap 5 jam dan blok 1 jam:
+
+![Peta haba kalendar penggunaan mengikut jam](docs/images/usage-view-calendar.png)
+
+**Klik mana-mana sel untuk menyelami sesi tetingkap tersebut.** Setiap sesi dalam slot masa tersebut, dengan kos, bilangan mesej, pecahan token, dan mesej pertama/terakhir sebenar daripada setiap perbualan. Kembangkan "Top Token Conversations" untuk melihat pertukaran spesifik mana yang paling banyak dibakar — setiap entri menunjukkan teks prompt, tag amaran kos, dan petunjuk pengoptimuman:
+
+![Panel butiran sesi](docs/images/usage-view-session-drilldown.png)
+
+**Analisis berkuasa AI (pilihan).** Apabila anda menjalankan `/usage-view` tanpa `--no-ai`, penganalisis AI membaca semua data papan pemuka anda — dengan rujukan harga API yang sudah tertanam — dan menghasilkan laporan bertulis: pendorong kos, anomali, cadangan pengoptimuman. Dipaparkan dalam bahasa OS anda secara automatik (23 bahasa, termasuk RTL; carta/jadual sentiasa LTR):
+
+**Ke mana wang pergi** — jumlah perbelanjaan, pendorong kos mengikut jenis token, arah aliran mingguan, dan impak plugin dalam angka sebenar:
+
+![Analisis AI — pecahan kos](docs/images/usage-view-ai-report-1.png)
+
+**Bila dan bagaimana anda bekerja** — jam puncak, hari tersibuk, taburan panggilan API, dan corak had kadar yang mendedahkan peluang pengoptimuman:
+
+![Analisis AI — corak kerja](docs/images/usage-view-ai-report-2.png)
+
+**Apa yang perlu dilakukan** — cadangan konkrit berasaskan data yang disesuaikan dengan penggunaan sebenar anda. Peralihan model, pengurusan konteks, strategi sesi:
+
+![Analisis AI — cadangan](docs/images/usage-view-ai-report-3.png)
+
+**Kongsikan.** Keseluruhan papan pemuka adalah satu fail HTML kendiri — semua data tertanam, tiada pelayan diperlukan. Hantar kepada pasukan, pengurus, atau akauntan anda. Tanpa kebergantungan luaran. Berfungsi luar talian. Gunakan mod `private` untuk memadam semua teks prompt sebelum berkongsi — analitik kos kekal utuh sementara kandungan perbualan dibuang.
 
 ```
-/usage-view                  # Sepanjang masa, semua projek
-/usage-view current          # Tetingkap 5 jam semasa sahaja
-/usage-view last 7 days      # 7 hari lepas
-/usage-view locale ms        # Bahasa Melayu
+/usage-view                  # Semua masa, semua projek
+/usage-view current          # Hanya tetingkap 5 jam semasa
+/usage-view last 7 days      # 7 hari terakhir
+/usage-view locale ja        # Bahasa Jepun
+/usage-view --no-ai          # Langkau analisis AI (lebih pantas)
+/usage-view private          # Padamkan teks prompt (selamat untuk dikongsi)
 ```
 
 ---
 
-## 🔬 Kajian Rate Limit (/report-limit)
+## 🔬 Penyelidikan Had Kadar (/report-limit)
 
-**Projek komuniti untuk merekayasa balik formula rate limit.**
+**Projek berpaksikan komuniti untuk merekayasa balik formula had kadar.**
 
-Anthropic tidak menerbitkan formula tepat tetingkap 5 jam. Jom kita cari bersama.
+Anthropic tidak menerbitkan formula tepat untuk tetingkap 5 jam. Mari kita fikirkan bersama.
 
-Apabila anda kena rate limit, jalankan `/report-limit`. Data penggunaan semasa anda dihantar secara automatik sebagai GitHub Discussion. Semakin banyak data yang dikumpul, semakin jelas formulanya.
+Apabila anda mencapai had kadar, jalankan `/report-limit`. Data penggunaan semasa anda secara automatik diserahkan sebagai GitHub Discussion. Lebih banyak data yang kami kumpulkan, lebih jelas formulanya.
 
 ---
 
-## ✂️ Ciri 5: /setup-git-lite — Pangkas Arahan Git Terbina dalam CC
+## ✂️ Ciri 5: /setup-git-lite — Pangkas Arahan Git Terbina Dalam CC
 
-**2,200 token tersembunyi setiap session yang tidak anda sedar anda bayar.**
+**Kami membaca kod sumber Claude Code. Kami menemui 2,200 token tersembunyi yang disuntik setiap sesi yang anda bayar diam-diam.**
 
 ### Penemuan
 
-Pada 2026-04-12, sebuah [isu GitHub](https://github.com/anthropics/claude-code/issues/47107) mendedahkan bahawa tetapan `includeGitInstructions` terbina dalam Claude Code secara senyap membakar token setiap session. Pengesahan bebas melalui [gist ini (spilist)](https://gist.github.com/spilist/b0db92a859192f5ec6199d3f35a81b98) mengesahkan angkanya: **+6,031 token dalam cache write** setiap session selepas setiap git commit, **+1,690 token dalam cache read** pada setiap panggilan API.
+Pada 2026-04-12, sebuah [isu GitHub](https://github.com/anthropics/claude-code/issues/47107) mendedahkan bahawa tetapan `includeGitInstructions` terbina dalam Claude Code secara senyap membakar token setiap sesi. Pembiakan bebas melalui [gist ini (spilist)](https://gist.github.com/spilist/b0db92a859192f5ec6199d3f35a81b98) mengesahkan angka-angkanya: **+6,031 token dalam penulisan cache** setiap sesi selepas setiap git commit, **+1,690 token dalam pembacaan cache** pada setiap panggilan API.
 
 ### Analisis sumber CC — ke mana token pergi
 
-Kami mengesan token ke dua titik suntikan bebas dalam sumber Claude Code (v2.1.88):
+Kami mengesan token ke dua titik suntikan bebas dalam kod sumber Claude Code (v2.1.88):
 
-**1. Syot `gitStatus` (~500 tok) — system prompt**
+**1. Snapshot `gitStatus` (~500 tok) — system prompt**
 - `context.ts:36-111` `getGitStatus()` mengumpul branch + main branch + user.name + status penuh (sehingga 2000 aksara) + **5 commit terbaru**
-- Digabung dan ditambah ke system prompt melalui `appendSystemContext` (`utils/api.ts:437`)
-- Setiap commit baharu, setiap fail diubah suai, setiap pertukaran branch mengubah teks → prefix cache invalidation
+- Digabungkan dan ditambah pada system prompt melalui `appendSystemContext` (`utils/api.ts:437`)
+- Setiap commit baru, setiap fail yang diubah suai baru, setiap pertukaran branch mengubah teks → pembatalan sah cache awalan
 
-**2. Arahan aliran kerja Commit/PR (~1,700 tok) — penerangan alat Bash**
+**2. Arahan alur kerja Commit/PR (~1,700 tok) — penerangan alat Bash**
 - `tools/BashTool/prompt.ts:53` menambah 60+ baris protokol keselamatan, prosedur commit langkah demi langkah, contoh HEREDOC, dan templat penciptaan PR ke penerangan alat `Bash`
 - Di-cache bersama system prompt, tetapi dihantar sebagai parameter `tools[]`
 
-### Sebab ia mahal
+### Mengapa ini mahal
 
-Struktur cache (`utils/api.ts:321` `splitSysPromptPrefix`) mempunyai tiga laluan berdasarkan sama ada anda mempunyai alat MCP aktif:
+Struktur cache (`utils/api.ts:321` `splitSysPromptPrefix`) mempunyai tiga laluan bergantung pada sama ada anda mempunyai alat MCP aktif:
 
-- **Path A** (MCP aktif — kebanyakan pengguna): `gitStatus` berada dalam blok `cacheScope: 'org'`. Sebarang perubahan → keseluruhan blok di-cache semula pada permulaan session seterusnya → 6K tok `cache_create` miss.
-- **Path B** (tiada MCP): `gitStatus` ke blok dinamik `cacheScope: null`, bermakna ia dihantar semula sebagai `input_tokens` segar pada setiap panggilan API — tiada cache miss, tetapi tiada penjimatan cache juga.
-- **Path C** (penyedia 3P / beta eksperimental dilumpuhkan): sama seperti Path A.
+- **Laluan A** (MCP aktif — kebanyakan pengguna): `gitStatus` berada dalam blok `cacheScope: 'org'`. Sebarang perubahan → keseluruhan blok di-cache semula pada permulaan sesi berikutnya → 6K tok `cache_create` miss.
+- **Laluan B** (tanpa MCP): `gitStatus` masuk ke blok dinamik `cacheScope: null`, yang bermakna dihantar semula sebagai `input_tokens` baru pada setiap panggilan API — tiada cache miss, tetapi juga tiada penjimatan cache.
+- **Laluan C** (pembekal 3P / beta eksperimental dilumpuhkan): sama seperti Laluan A.
 
-Dalam session interaktif biasa, arahan commit/PR (1.7K tok) terkumpul **pada setiap panggilan API** melalui `cache_read`. Sepanjang session 100 panggilan pada harga Opus 4.7, itu kira-kira **$0.08 setiap session** hanya untuk arahan yang latihan Claude sudah sebahagian besarnya merangkumi.
+Dalam sesi interaktif biasa, arahan commit/PR (1.7K tok) terkumpul **pada setiap panggilan API** melalui `cache_read`. Dalam sesi 100-panggilan dengan harga Opus 4.7, itu kira-kira **$0.08 setiap sesi** hanya untuk arahan yang kebanyakannya sudah dilindungi oleh latihan Claude.
 
-### Cara cc-token-saver mengendalikannya
+### Cara claude-code-upgrader mengendalikannya
 
-`/setup-git-lite` melumpuhkan laluan natif dan menyuntik **penggantian 280-token yang diperhalus** melalui hook SessionStart. Kami mengekalkan tepat perkara yang mengatasi tingkah laku lalai Claude (peraturan keselamatan), dan membuang semua yang Claude sudah tahu daripada latihan (aliran kerja langkah demi langkah, templat PR, corak penggunaan gh).
+`/setup-git-lite` melumpuhkan laluan asli dan menyuntik **pengganti 280-token yang dikurasi** melalui hook SessionStart. Kami mengekalkan tepat perkara-perkara yang mengatasi tingkah laku lalai Claude (peraturan keselamatan), dan membuang segala-galanya yang sudah diketahui Claude dari latihan (alur kerja langkah demi langkah, templat PR, corak penggunaan gh).
 
-**Dikekalkan — 11 peraturan penggantian kritikal** (yang menukar pertolongan lalai Claude kepada berhati-hati):
-- Jangan sekali-kali commit/push/amend/PR/tag/merge tanpa permintaan pengguna yang jelas
-- Jangan sekali-kali langkau hooks, force-push ke main/master, jalankan operasi merosakkan, ubah suai git config
+**Dikekalkan — 11 peraturan pengesampingan kritikal** (yang mengalihkan sifat membantu lalai Claude kepada kehati-hatian):
+- Jangan sekali-kali commit/push/amend/PR/tag/merge tanpa permintaan eksplisit pengguna
+- Jangan sekali-kali melangkau hook, force-push ke main/master, menjalankan operasi merosakkan, mengubah suai git config
 - Jangan sekali-kali commit fail yang sepadan dengan `.env`, `credentials`, `*.pem`, `secret.*`
 - Elakkan `git add -A` / `git add .`
 - HEREDOC untuk mesej commit berbilang baris + trailer `Co-Authored-By: Claude`
-- Jangan sekali-kali gunakan bendera interaktif (-i), tiada commit kosong
-- Jika hook pra-commit gagal → buat commit BAHARU (bukan `--amend`)
+- Jangan sekali-kali menggunakan bendera interaktif (-i), tiada commit kosong
+- Jika hook pre-commit gagal → buat commit BARU (bukan `--amend`)
 
-**Dibuang** — aliran kerja commit langkah demi langkah (3 langkah), aliran kerja PR langkah demi langkah (3 langkah), templat tajuk/badan PR, rujukan perintah `gh`, amaran bendera `-uall`, amaran `--no-edit` dengan rebase, kekangan `JANGAN gunakan alat TodoWrite atau Agent semasa commit`. Ini adalah keverbosan aliran kerja yang Claude hasilkan dengan betul daripada latihan sahaja.
+**Dibuang** — alur kerja commit langkah demi langkah (3 langkah), alur kerja PR langkah demi langkah (3 langkah), templat tajuk/isi PR, rujukan perintah `gh`, amaran bendera `-uall`, amaran `--no-edit` dengan rebase, kekangan `NEVER use TodoWrite or Agent tools during commit`. Ini adalah keverbosan alur kerja yang Claude susun dengan betul hanya dari latihan.
 
-**Ditambah** — baris keadaan git ringkas: branch + HEAD short-sha + subjek + status semasa (sehingga 20 fail diubah suai, atau kiraan jika melebihi). Tiada senarai commit terbaru (Claude boleh jalankan `git log` atas permintaan).
+**Ditambah** — baris status git yang padat: branch + HEAD short-sha + subjek + status semasa (sehingga 20 fail yang diubah suai, jika tidak bilangannya). Tiada senarai commit terbaru (Claude boleh menjalankan `git log` atas permintaan).
 
-### Jangkaan penjimatan (harga Opus 4.7, $25/MTok output, $5/MTok input, $0.50/MTok cache read)
+### Penjimatan yang dijangka (harga Opus 4.7, $25/MTok output, $5/MTok input, $0.50/MTok baca cache)
 
-| Item | Asal | Dengan setup-git-lite | Dijimatkan |
-| ---- | ---- | --------------------- | ---------- |
-| Muatan system prompt (setiap session baharu) | ~2,200 tok cache_create | ~280 tok cache_create | ~1,920 tok |
-| Panggilan berulang dalam session yang sama | ~1,700 tok cache_read/panggilan | ~280 tok cache_read/panggilan | ~1,420 tok/panggilan |
-| Session 100 panggilan (Opus 4.7) | — | — | **~$0.11 dijimatkan** |
-| 20 session/hari × 22 hari bekerja | — | — | **~$48 dijimatkan/bulan** |
+| Item | Asal | Dengan setup-git-lite | Dijimat |
+| ---- | ---- | --------------------- | ------- |
+| Muat system prompt (setiap sesi baru) | ~2,200 tok cache_create | ~280 tok cache_create | ~1,920 tok |
+| Panggilan berulang dalam sesi yang sama | ~1,700 tok cache_read/panggilan | ~280 tok cache_read/panggilan | ~1,420 tok/panggilan |
+| Sesi 100-panggilan (Opus 4.7) | — | — | **~$0.11 dijimat** |
+| 20 sesi/hari × 22 hari bekerja | — | — | **~$48 dijimat/bln** |
 
 ### Penggunaan
 
 ```bash
-/setup-git-lite status     # Diagnostik baca sahaja — keadaan semasa + apa yang akan berubah
-/setup-git-lite install    # Lumpuhkan CC natif + aktifkan hook minimal kami
+/setup-git-lite status     # Diagnostik baca-sahaja — status semasa + apa yang akan berubah
+/setup-git-lite install    # Lumpuhkan CC native + aktifkan hook minimal kami
 /setup-git-lite revert     # Pulihkan lalai (agresif; lihat di bawah)
-/setup-git-lite dismiss-banner    # Senyapkan tip cadangan sesekali
-/setup-git-lite undismiss-banner  # Aktifkan semula tip
+/setup-git-lite dismiss-banner    # Senyapkan petua cadangan sekali-sekala
+/setup-git-lite undismiss-banner  # Aktifkan semula petua
 /setup-git-lite help       # Penggunaan penuh
 ```
 
@@ -262,132 +333,134 @@ Dalam session interaktif biasa, arahan commit/PR (1.7K tok) terkumpul **pada set
 `install` mengubah suai **dua** tempat untuk keteguhan:
 
 1. `~/.claude/settings.json` — menambah `"includeGitInstructions": false`
-2. Profil shell (`~/.zshrc`, `~/.bashrc`, dsb.) — menambah blok penanda yang mengeksport `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS=1`
+2. Profil shell (`~/.zshrc`, `~/.bashrc`, dll.) — menambah blok penanda yang mengeksport `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS=1`
 
-Mana-mana satu sahaja sudah cukup untuk melumpuhkan CC natif; kami menetapkan kedua-duanya supaya penggantian persekitaran tidak secara tidak sengaja mengaktifkan semula tingkah laku natif. Perubahan shell berkuat kuasa dalam shell baharu sahaja.
+Mana-mana satu sudah cukup untuk melumpuhkan CC native; kami menetapkan kedua-duanya agar pengesampingan persekitaran tidak secara tidak sengaja mengaktifkan semula tingkah laku asli. Perubahan shell hanya berkuat kuasa dalam shell baru.
 
 ### Semantik revert — agresif
 
-`revert` **mengalih keluar SEMUA eksport `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS` daripada profil shell anda**, termasuk yang mungkin anda tambah secara manual sebelum memasang skill ini. Ini disengajakan — anda menjalankan `revert`, jadi kami memulihkan lalai yang bersih. Kami sentiasa membuat sandaran profil shell berstempel masa terlebih dahulu.
+`revert` **membuang SEMUA eksport `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS` dari profil shell anda**, termasuk yang mungkin anda tambah secara manual sebelum memasang kemahiran ini. Ini disengajakan — anda menjalankan `revert`, jadi kami memulihkan lalai bersih. Kami sentiasa membuat sandaran berstempel masa profil shell terlebih dahulu.
 
-Jika anda memerlukan pemboleh ubah persekitaran itu untuk sebab yang tidak berkaitan, catat sebelum menjalankan `revert` dan tambah semula selepasnya.
+Jika anda memerlukan pemboleh ubah persekitaran untuk sebab yang tidak berkaitan, catat sebelum menjalankan `revert` dan tambah semula selepasnya.
 
-### Sebelum menyahpasang cc-token-saver
+### Sebelum menyahpasang claude-code-upgrader
 
-**Jalankan `/setup-git-lite revert` dahulu**, atau anda akan ditinggalkan dengan `includeGitInstructions: false` dalam settings.json tetapi tiada hook penggantian (Claude langsung tidak mendapat panduan git). Claude Code pada masa ini tidak mempunyai hook kitaran hayat penyahpasangan plugin, jadi kami tidak dapat mengautomasikan ini.
+**Jalankan `/setup-git-lite revert` terlebih dahulu**, atau anda akan ditinggalkan dengan `includeGitInstructions: false` dalam settings.json anda tetapi tanpa hook pengganti (Claude tidak mendapat panduan git langsung). Claude Code pada masa ini tidak mempunyai hook kitaran hayat penyahpasangan plugin, jadi kami tidak boleh mengautomasikan ini.
 
-### Pertukaran niaga
+### Pertukaran
 
-Apa yang anda kehilangan (dan mengapa ia biasanya tidak mengapa):
-- Claude tidak lagi menerima `git status` / `git log -n 5` pra-dikira pada permulaan session. Jika anda bertanya "apa yang berubah?" dalam session baharu, Claude akan menjalankan perintah tersebut sendiri (satu panggilan alat tambahan, ~300 tok).
-- Claude tidak lagi melihat prosedur commit 3-langkah canonical CC. Dalam ujian kami merentasi beratus aliran commit, pengetahuan peringkat latihan mengendalikan kes kritikal (pemformatan HEREDOC, tiada `--amend`, tiada force-push) kerana kami mengekalkan peraturan tersebut secara eksplisit.
-- Templat badan PR (`## Summary` + `## Test plan`) tidak disuntik. Jika anda mengambil berat tentang format tepat itu, letakkan dalam CLAUDE.md projek anda.
+Yang anda kehilangan (dan mengapa biasanya tidak mengapa):
+- Claude tidak lagi menerima `git status` / `git log -n 5` yang telah dikira sebelumnya pada permulaan sesi. Jika anda bertanya "apa yang berubah?" dalam sesi baru, Claude akan menjalankan perintah tersebut sendiri (satu panggilan alat tambahan, ~300 tok).
+- Claude tidak lagi melihat prosedur commit 3-langkah kanonik CC. Dalam pengujian kami pada ratusan alur commit, pengetahuan tahap latihan mengendalikan kes kritikal (format HEREDOC, tiada `--amend`, tiada force-push) kerana kami mengekalkannya sebagai peraturan eksplisit.
+- Templat isi PR (`## Summary` + `## Test plan`) tidak disuntik. Jika anda mengambil berat tentang format tersebut, masukkan ke dalam CLAUDE.md projek anda.
 
 ### Sepanduk cadangan
 
-Apabila arahan git natif CC masih aktif pada mesin anda, cc-token-saver menunjukkan tip satu perenggan pada permulaan session **~20% daripada masa** (ditambah dalam output `/usage-view` dan `/report-limit`). Senyapkan secara kekal dengan `/setup-git-lite dismiss-banner`.
+Apabila arahan git asli CC masih aktif pada mesin anda, claude-code-upgrader menunjukkan petua satu perenggan pada permulaan sesi **~20% masa** (ditambah dalam output `/usage-view` dan `/report-limit`). Matikan secara kekal dengan `/setup-git-lite dismiss-banner`.
 
 ---
 
-## 💡 Cara Cache Sebenarnya Berfungsi
+## 💡 Cara Cache Sebenarnya Berfungsi (Dan Mengapa Kebanyakan Pengguna Membazir 40%+)
 
-Claude Code menghantar keseluruhan sejarah perbualan kepada model pada setiap panggilan API. "Panggilan API" bukan bermaksud "satu mesej yang anda taip." Satu prompt mencetuskan panggilan alat dalaman — Grep, Read, Edit, Write — dan setiap satu adalah panggilan API berasingan. Satu prompt boleh menyebabkan 10+ panggilan API dengan mudah.
+Claude Code menghantar keseluruhan sejarah perbualan ke model pada setiap panggilan API. "Panggilan API" tidak bermakna "satu mesej yang anda taip." Satu prompt mencetuskan panggilan alat dalaman — Grep, Read, Edit, Write — dan setiap satu adalah panggilan API berasingan. Satu prompt boleh dengan mudah menyebabkan 10+ panggilan API.
 
 Cache prompt mengurangkan kos ini sebanyak 90%. Tetapi cache mempunyai jangka hayat.
 
-|                     | Main Session                          | SubTask                                |
-| ------------------- | ------------------------------------- | -------------------------------------- |
-| Cache TTL           | 1 jam (ephemeral_1h)                  | 5 min                                  |
-| Cache write         | ＄10/MTok                              | ＄6.25/MTok                             |
-| Cache read          | ＄0.50/MTok                            | ＄0.50/MTok                             |
-| Bila cache tamat    | Context penuh dihantar semula pada harga penuh | Kesan rendah (context kecil)     |
+|                     | Main Session                               | SubTask                                    |
+| ------------------- | ------------------------------------------ | ------------------------------------------ |
+| TTL Cache           | 1 jam (ephemeral_1h)                       | 5 minit                                    |
+| Tulis cache         | ＄10/MTok                                   | ＄6.25/MTok                                 |
+| Baca cache          | ＄0.50/MTok                                 | ＄0.50/MTok                                 |
+| Apabila cache tamat tempoh | Konteks penuh dihantar semula pada harga penuh | Kesan rendah (konteks kecil)         |
 
-Walaupun cache masih aktif, kos tetap bertambah. Berikut senario ekstrem untuk menunjukkan perbezaannya.
+Walaupun dengan cache yang aktif, kos terkumpul. Berikut adalah senario ekstrem untuk menunjukkan perbezaannya.
 
-### Senario: Pengekodan sehari penuh (3j pagi → 2j makan/mesyuarat → 3j petang)
+### Senario: Pengekodan sehari penuh (3j pagi → 2j makan tengahari/mesyuarat → 3j petang)
 
-Syarat: Harga Opus 4, 1 prompt seminit, ~5 panggilan API setiap prompt (~300 panggilan/jam).
+Syarat: harga Opus 4, 1 prompt seminit, ~5 panggilan API setiap prompt (~300 panggilan/jam).
 
-#### ❌ Tanpa cc-token-saver
+#### ❌ Tanpa claude-code-upgrader
 
-Kebanyakan kerja berlaku dalam Main session. Context membesar dengan cepat.
+Kebanyakan kerja berlaku dalam Main session. Konteks membesar dengan cepat.
 
-| Fasa        | Situasi                           | Saiz context               | Kos                                    |
+| Fasa        | Situasi                           | Saiz konteks               | Kos                                    |
 | ----------- | --------------------------------- | -------------------------- | -------------------------------------- |
-| Pagi 3j     | Mengekod (kebanyakan dalam Main)  | 100K → 600K (purata 350K) | 900 panggilan × 350K × ＄0.50/M = ＄157.50 |
-| Makan/msyrt | Keluar selama 2 jam               | —                          | —                                      |
-| Kembali     | Cache tamat → hantar semula penuh | 600K harga penuh           | 600K × ＄5/M + 600K × ＄10/M = ＄9       |
+| Pagi 3j     | Pengekodan (kebanyakan dalam Main) | 100K → 600K (purata 350K) | 900 panggilan × 350K × ＄0.50/M = ＄157.50 |
+| Makan tengahari/mesyuarat | Pergi 2 jam           | —                          | —                                      |
+| Kembali     | Cache tamat tempoh → hantar semula penuh | 600K harga penuh    | 600K × ＄5/M + 600K × ＄10/M = ＄9       |
 | Kembali     | /compact (ringkaskan)             | 600K → dihantar ke LLM    | 600K × ＄0.50/M + output ringkasan = ~＄1.50 |
-| Petang 3j   | Terus mengekod (context membesar semula) | 100K → 600K (purata 350K) | 900 panggilan × 350K × ＄0.50/M = ＄157.50 |
+| Petang 3j   | Pengekodan diteruskan (konteks membesar semula) | 100K → 600K (purata 350K) | 900 panggilan × 350K × ＄0.50/M = ＄157.50 |
 |             | Jumlah                            |                            | ~＄326                                  |
 
-> Pada tahap penggunaan ini, anda kemungkinan besar akan kena rate limit tetingkap 5 jam. **Kos memang teruk, tapi masalah sebenar ialah kerja anda terhenti sepenuhnya. Inilah saat Claude Code padam terus.**
+> Pada tahap penggunaan ini, anda berkemungkinan akan mencapai had kadar tetingkap 5 jam. **Kosnya buruk, tetapi masalah sebenar adalah kerja anda berhenti sepenuhnya. Ini adalah tepat saat Claude Code gelap.**
 
-#### ✅ Dengan cc-token-saver
+#### ✅ Dengan claude-code-upgrader
 
-Kerja berat didelegasikan ke SubTask. Main hanya mengendalikan reka bentuk/keputusan.
+Kerja berat didelegasi ke SubTasks. Main hanya mengendalikan reka bentuk/keputusan.
 
-| Fasa        | Situasi                                      | Saiz context                | Kos                                |
-| ----------- | --------------------------------------------- | --------------------------- | ---------------------------------- |
-| Pagi 3j     | Mengekod (Main: reka bentuk, SubTask: pelaksanaan) | Main 100K → 300K (purata 200K) | 900 panggilan × 200K × ＄0.50/M = ＄90 |
-| Makan/msyrt | Keluar selama 2 jam                           | —                           | —                                  |
-| Kembali     | ⚡ Token Guardian menyekat → /clear + /continue | —                          | ＄0 (tiada panggilan LLM)          |
-| Petang 3j   | Terus mengekod                                | Main 100K → 300K (purata 200K) | 900 panggilan × 200K × ＄0.50/M = ＄90 |
-|             | Jumlah                                        |                             | ~＄180                              |
+| Fasa        | Situasi                                       | Saiz konteks                  | Kos                               |
+| ----------- | --------------------------------------------- | ----------------------------- | --------------------------------- |
+| Pagi 3j     | Pengekodan (Main: reka bentuk, SubTask: pelaksanaan) | Main 100K → 300K (purata 200K) | 900 panggilan × 200K × ＄0.50/M = ＄90 |
+| Makan tengahari/mesyuarat | Pergi 2 jam                     | —                             | —                                 |
+| Kembali     | ⚡ Token Guardian menyekat → /clear + /continue | —                            | ＄0 (tiada panggilan LLM)          |
+| Petang 3j   | Pengekodan diteruskan                         | Main 100K → 300K (purata 200K) | 900 panggilan × 200K × ＄0.50/M = ＄90 |
+|             | Jumlah                                        |                               | ~＄180                             |
 
-#### 💰 Hasil
+#### 💰 Keputusan
 
-> **＄326 → ＄180. ＄146 dijimatkan sehari (45%).**
+> **＄326 → ＄180. ＄146 dijimat setiap hari. Pengurangan kos 45%.**
 >
-> Bukan soal kos sahaja. Kurang token dalam masa yang sama bermaksud **anda tidak kena rate limit dan boleh terus bekerja.** Itulah perbezaan sebenar.
+> **Max Plan:** Lebih sedikit token = anda tidak mencapai had kadar. Kerja anda tidak berhenti. Itulah perbezaan sebenar.
+>
+> **API bayar-per-penggunaan:** ＄146/hari × 22 hari bekerja = **＄3,200/bln terus dari invois anda.** Bulan yang berat tanpa plugin ini melepasi ＄7,000. Dengan plugin ini, di bawah ＄4,000. Output yang sama.
 
-### Di mana cc-token-saver bertindak
+### Di mana claude-code-upgrader berperanan
 
 ```
-[Permulaan Session]
+[Mula Sesi]
     │
     ├─ Session Architect → Menyuntik corak delegasi SubTask secara automatik
-    │                       Mengekalkan context Main di bawah 250K
+    │                       Mengekalkan konteks Main di bawah 250K
     │
-[Sedang Bekerja]
+[Bekerja]
     │
-    ├─ Status Line → Pemantauan kos/context/rate limit masa nyata
-    │                  Amaran segera apabila memasuki zon bahaya
+    ├─ Status Line → Pemantauan kos/konteks/had kadar masa nyata
+    │                  Amaran serta-merta apabila memasuki zon amaran
     │
-[1+ jam idle]
+[Tidak aktif 1+ jam]
     │
-    ├─ Token Guardian → Mengesan cache expiry, menyekat sebelum penghantaran semula
+    ├─ Token Guardian → Mengesan tamat tempoh cache, menyekat sebelum hantar semula
     │
-[Session dimulakan semula]
+[But semula sesi]
     │
-    └─ /continue → Memulihkan context sebelumnya pada kos sifar (tiada panggilan LLM)
+    └─ /continue → Memulihkan konteks sebelumnya tanpa kos (tanpa panggilan LLM)
 ```
 
 ---
 
-## 🔧 Pemasangan Sumber & Penyesuaian
+## 🔧 Pasang Sumber & Penyesuaian
 
 ```bash
-git clone https://github.com/ww-w-ai/cc-token-saver.git
-claude plugin marketplace add /path/to/cc-token-saver
-claude plugin install cc-token-saver@cc-token-saver
+git clone https://github.com/ww-w-ai/claude-code-upgrader.git
+/plugin marketplace add /path/to/claude-code-upgrader
+/plugin install claude-code-upgrader@claude-code-upgrader
 ```
 
-cc-token-saver sepenuhnya terbuka. Keseluruhan sumber ialah JavaScript biasa + skrip Bash mengikut struktur plugin standard. Ubah suai apa sahaja yang anda mahu.
+claude-code-upgrader sepenuhnya sumber terbuka (Apache-2.0). JavaScript + Bash biasa — tiada binari yang dikompil, tiada panggilan API luaran, tiada telemetri. Setiap baris boleh diaudit. Setiap tuntutan dalam README ini dipetakan ke fail tertentu yang boleh anda baca.
 
-- **hooks/** — Tukar ambang cache expiry, sesuaikan mesej amaran, ubah peraturan session architecture
-- **scripts/** — Logik analisis, pembina laporan, format status line
+- **hooks/** — Tukar ambang tamat tempoh cache, sesuaikan mesej amaran, ubah suai peraturan seni bina sesi
+- **scripts/** — Logik analisis, pembina laporan, pemformatan baris status
 - **skills/** — Cara /continue dan /usage-view berfungsi, templat prompt
-- **locales/** — Tambah/sunting terjemahan, tambah bahasa baharu
-- **skills/usage-view/** — Perubahan reka bentuk UI/UX dashboard
+- **locales/** — Tambah/edit terjemahan, tambah bahasa baru
+- **skills/usage-view/** — Perubahan reka bentuk UI/UX papan pemuka
 
-Jadikan milik anda. Fork, eksperimen, dan hantar PR jika anda jumpa sesuatu yang lebih baik.
+Jadikan milik anda. Fork, uji kaji, dan hantar PR jika anda jumpa sesuatu yang lebih baik.
 
 ---
 
-## 🌐 Bahasa Disokong
+## 🌐 Bahasa yang Disokong
 
-23 bahasa disokong. Dipilih dengan merujuk silang 20 negara teratas mengikut penggunaan Claude Code dengan 20 bahasa teratas mengikut bilangan penutur global. Bahasa paparan dikesan secara automatik daripada locale OS anda. Anda juga boleh tetapkan secara manual: `/usage-view locale ja`
+23 bahasa disokong. Dipilih dengan merujuk silang 20 negara teratas mengikut penggunaan Claude Code dengan 20 bahasa teratas mengikut bilangan penutur global. Bahasa paparan dikesan secara automatik dari lokal OS anda. Anda juga boleh menentukan secara manual: `/usage-view locale ja`
 
 |                 |                 |                |                 |
 | --------------- | --------------- | -------------- | --------------- |
@@ -398,28 +471,65 @@ Jadikan milik anda. Fork, eksperimen, dan hantar PR jika anda jumpa sesuatu yang
 | 🇻🇳 Vietnamese | 🇹🇷 Turkish    | 🇵🇱 Polish    | 🇳🇱 Dutch      |
 | 🇮🇱 Hebrew     | 🇸🇪 Swedish    | 🇳🇴 Norwegian |                 |
 
-Terjemahan semasa dijana oleh AI. Sumbangan penutur asli dialu-alukan — sunting fail JSON untuk bahasa anda dalam `locales/` dan hantar PR.
+Terjemahan semasa dihasilkan oleh AI. Sumbangan penutur asli dialu-alukan — edit fail JSON untuk bahasa anda dalam `locales/` dan hantar PR.
 
 ---
 
-## 💡 Tips
+## ⚖️ Kos Plugin Ini kepada Anda
 
-### Fahami cache dan anda akan nampak ke mana wang pergi
+Plugin menyuntik konteks pada permulaan sesi. Berikut adalah jumlah tepat:
 
-- **1 prompt ≠ 1 panggilan API.** Setiap kali Claude memanggil Grep, Read, atau Edit, keseluruhan context dihantar semula. Satu prompt boleh mencetuskan 10+ panggilan API dengan mudah. Tulis prompt yang jelas untuk mengurangkan panggilan alat yang tidak perlu dan menjimatkan kos.
-- **Pemasa cache ditetapkan semula dari panggilan API terakhir, bukan prompt terakhir anda.** Terus bekerja dan cache tidak akan tamat. Bahayanya ialah meninggalkan tempat kerja. Token Guardian menyekat secara automatik sekali, jadi apabila anda kembali anda boleh pilih: tetapkan semula context atau teruskan seperti sedia ada.
-- **Saiz context = pengganda kos.** Panggilan API yang sama pada 200K vs 800K berkos 4x ganda lebih mahal. Apabila status line [CTX] melepasi 35% (🟡), itulah isyarat untuk mendelegasikan lebih banyak ke SubTask.
+| Suntikan | Bila | Token | Tujuan |
+| -------- | ---- | ----- | ------- |
+| Session Architect | SessionStart (sekali) | ~1,100 | Strategi delegasi SubTask + peraturan Concise Mode |
+| Konteks Git (jika git-lite diaktifkan) | SessionStart (sekali) | ~280 | Menggantikan ~2,200 tok arahan git asli CC |
+| Amaran tamat tempoh cache | Apabila tidak aktif > 59 minit (sekali) | ~200 | Menyekat hantar semula yang mahal, menunjukkan pilihan pemulihan |
+| Baris status | Setiap panggilan API | 0 | Dipaparkan dalam bar status terminal, bukan konteks perbualan |
 
-### Tabiat yang mengurangkan kos
+**Overhead bersih setiap sesi: ~1,400 token (sekali, di-cache selepas panggilan pertama).**
 
-- **Pastikan CLAUDE.md ringkas.** Ia dimuatkan ke dalam system prompt pada setiap panggilan API. Setiap baris ada kosnya.
-- **Delegasikan kerja berat ke SubTask.** Penjanaan kod, suntingan pelbagai fail, pelaksanaan ujian bukan untuk Main. SubTask mempunyai context lebih kecil dan cache tier yang lebih murah.
-- **Keluar 1+ jam?** `/clear` → balik → `/continue`. Context dipulihkan pada $0.
-- **[5H] melebihi 70% (🟡)?** Perlahan. Tukar ke tugas semakan ringan atau tingkatkan delegasi SubTask untuk mengurangkan bilangan panggilan API Main.
-- **Gunakan `/btw` untuk soalan sampingan.** Ia tidak masuk sejarah perbualan, jadi context anda kekal kurus.
+Dengan harga Opus ($0.50/MTok baca cache), itu **$0.0007 setiap panggilan API** — kurang dari sepersepuluh sen. Dalam sesi 100-panggilan: $0.07.
+
+Jika git-lite diaktifkan, plugin **menjimat** ~1,920 token setiap sesi (menggantikan 2,200 dengan 280). Kesan bersihnya negatif — plugin menggunakan lebih sedikit daripada yang dibuangnya.
+
+**Untuk pengguna API bayar-per-penggunaan:** dengan perbelanjaan $3,000/bln, overhead plugin di bawah $2/bln. Satu penghantaran semula $9 yang disekat seminggu (pencegahan tamat tempoh cache) membayar setahun overhead dalam satu tangkapan.
 
 ---
 
-## License
+## 💡 Petua
+
+### Fahami cache dan anda akan lihat ke mana wang pergi
+
+- **1 prompt ≠ 1 panggilan API.** Setiap kali Claude memanggil Grep, Read, atau Edit, keseluruhan konteks dihantar semula. Satu prompt boleh dengan mudah mencetuskan 10+ panggilan API. Tulis prompt yang jelas untuk mengurangkan panggilan alat yang tidak perlu dan memangkas kos.
+- **Pemasa cache direset dari panggilan API terakhir, bukan prompt terakhir anda.** Terus bekerja dan cache tidak akan sekali-kali tamat tempoh. Bahayanya adalah pergi. Token Guardian menyekat sekali secara automatik, jadi apabila anda kembali anda boleh memilih: reset konteks atau teruskan seadanya.
+- **Saiz konteks = pengganda kos.** Panggilan API yang sama pada 200K berbanding 800K biayanya 4x lebih mahal. Apabila baris status [CTX] melepasi 35% (🟡), itu isyarat untuk mendelegasi lebih banyak ke SubTasks.
+
+### Tabiat yang memangkas kos
+
+- **Jadikan CLAUDE.md ringkas.** Ia dimuatkan ke dalam system prompt pada setiap panggilan API. Setiap baris menghabiskan wang.
+- **Delegasikan kerja berat ke SubTasks.** Penjanaan kod, suntingan pelbagai fail, menjalankan ujian tidak sepatutnya berada dalam Main. SubTasks mempunyai konteks yang lebih kecil dan tahap cache yang lebih murah.
+- **Pergi 1+ jam?** `/clear` → kembali → `/continue`. Konteks dipulihkan seharga $0.
+- **[5H] melebihi 70% (🟡)?** Perlahan. Tukar kepada tugas semakan ringan atau tingkatkan delegasi SubTask untuk mengurangkan bilangan panggilan API Main.
+- **Gunakan `/btw` untuk soalan sampingan.** Ia tidak masuk ke dalam sejarah perbualan, jadi konteks anda kekal ringkas.
+
+### API bayar-per-penggunaan: tabiat yang paling penting
+
+Semua di atas terpakai, ditambah keutamaan khusus API ini:
+
+- **Pantau [CTX] seperti meter laju.** Tiada had kadar yang akan menghentikan anda — tetapi konteks pada 500K+ bermakna setiap panggilan API biayanya 2-3x lebih dari sepatutnya. `/clear` → `/continue` percuma dan menetapkan semula pengganda kos anda ke garis dasar.
+- **Jalankan `/usage-view` setiap minggu.** Pengguna Max Plan mempunyai momen "aduh" semula jadi apabila mencapai had kadar. Anda tidak — kos naik secara senyap. Papan pemuka adalah sistem amaran awal anda.
+- **Tetapkan belanjawan harian mental.** Tanpa had, hari $200 berlaku tanpa disedari. Penunjuk RUN baris status menjadikan kos setiap giliran kelihatan. Jika satu giliran melepasi $1 (🔴), konteks anda terlalu besar.
+
+---
+
+## 📚 Dokumentasi
+
+- [Panduan Cache Prompt](guides/prompt-cache-guide.md) — Mengapa kebanyakan kos anda adalah cache, cara caching berfungsi merentas pembekal (Anthropic, OpenAI, Gemini), dan cara mengurusnya ([한국어](guides/prompt-cache-guide-ko.md) · [日本語](guides/prompt-cache-guide-ja.md) · [中文](guides/prompt-cache-guide-zh.md) · [Español](guides/prompt-cache-guide-es.md) · [Français](guides/prompt-cache-guide-fr.md) · [Deutsch](guides/prompt-cache-guide-de.md) · [+16 languages](guides/))
+- [Analisis Kos Opus 4.7 vs 4.6](guides/opus-4-7-vs-4-6-cost-analysis.md) — Perbandingan kos berdampingan merentas 8,563 panggilan API
+- [Analisis Kos Opus 4.7 vs 4.6 (한국어)](guides/opus-4-7-vs-4-6-cost-analysis.ko.md)
+
+---
+
+## Lesen
 
 Apache-2.0

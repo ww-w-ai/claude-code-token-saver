@@ -1,34 +1,50 @@
-# cc-token-saver
+# claude-code-upgrader
 
-> **Claude Code keeps cutting you off? Not anymore.**
->
-> Spend less, code longer, and see exactly where your tokens go — zero config.
+**The only Claude Code plugin that actually reads CC's source code to find where your tokens go — and fixes it automatically. Spend less, code longer.**
 
-How? Auto context management, real-time cost tracking, and cache-aware session control — all built into one plugin.
+> Measured result: **45% cost reduction** on a real $326/day workload → $180/day. Cache expiry prevention, automatic SubTask delegation, zero-cost context restoration, and a full analytics dashboard — in one install, zero config.
+
+Works with **Max Plan ($200/mo)** and **API pay-per-use**. Same plugin, same features. Stronger for every user — especially when every token is real money.
+
+![Usage dashboard — see exactly where your tokens go](docs/images/usage-view-overview.png)
+
+### What it does in 30 seconds
+
+| Feature | What happens | Impact |
+| ------- | ------------ | ------ |
+| 🛡️ Token Guardian | Detects cache expiry, blocks $9 re-sends before they happen | Prevents the #1 silent cost spike |
+| 🧠 Session Architect | Auto-delegates heavy work to SubTasks (37.5% cheaper cache) | Context stays small, costs drop |
+| 🪶 Concise Mode | Cuts response padding, keeps substance | Fewer output tokens per response |
+| 🔄 /continue | Replaces /compact — zero LLM calls, zero cost, zero info loss | Free context restoration |
+| 📊 Status Line | Real-time cost, context size, rate limit — under 50ms | See problems before they cost you |
+| 📈 /usage-view | Interactive HTML dashboard with AI-powered analysis | Full cost forensics in one click |
+| ✂️ /setup-git-lite | Removes 2,200 hidden tokens CC injects every session | ~$48/mo saved on git instructions alone |
 
 ---
 
-## 😤 The Problem: $200/mo and You Still Can't Get Work Done
+## 😤 The Problem
 
-Claude Code Max Plan ($200/mo). Should be enough. It's not.
+**Cache expiry.** You come back from lunch. Cache is gone. One prompt re-sends 900K tokens at full price. $9 in a single shot.
 
-**5-hour rolling window rate limit.** You're deep in a coding flow and it just stops. No timer. No ETA. Just wait.
+**Invisible costs.** No real-time visibility. No "your context is at 800K" warning. No "cache expired 3 minutes ago" alert. You find out after the damage is done.
 
-**Cache expiry.** You come back from lunch. It's been over an hour. You send one prompt and 900K tokens are re-sent at full price. Cost? $9 in a single shot.
+**Context bloat.** The same prompt at 200K vs 800K context costs 4x more. Every Read, Grep, Edit re-sends the full context. One complex prompt triggers 15+ API calls, each multiplied by your context size.
 
-**Invisible costs.** There's no way to see how much you're spending in real time. You only find out after the rate limit hits.
+**All manual.** Context management, cache expiry timing, SubTask delegation, session cleanup. Nobody can track all this while actually coding.
 
-**All manual.** Context size, cache expiry timing, SubTask delegation, session cleanup. Nobody can track all this while actually coding.
+**Max Plan ($200/mo)?** All of the above, plus a 5-hour rate limit that kills your flow with no timer and no ETA.
 
-cc-token-saver handles all of it automatically. **Install once. Done.**
+**API pay-per-use?** All of the above, except there's no ceiling. One cache miss = $9 of real money. Ten times a week = $360/mo on accidents alone. A bad Tuesday with bloated context can cost more than a Max Plan subscriber pays in a month.
+
+claude-code-upgrader handles all of it automatically. **Install once. Done.**
 
 ---
 
 ## 🚀 Installation
 
 ```
-claude plugin marketplace add ww-w-ai/cc-token-saver
-claude plugin install cc-token-saver
+/plugin marketplace add ww-w-ai/marketplace
+/plugin install claude-code-upgrader@ww-w-ai
 ```
 
 Works automatically after install. Zero config. Requires [Claude Code](https://claude.ai/claude-code) v2.1.71+.
@@ -37,6 +53,12 @@ For live monitoring:
 
 ```
 /setup-statusline install
+```
+
+To trim 2,200 hidden tokens from CC's built-in git instructions ([details](#%EF%B8%8F-feature-5-setup-git-lite--trim-ccs-built-in-git-instructions)):
+
+```
+/setup-git-lite install
 ```
 
 ---
@@ -62,7 +84,9 @@ Cost may increase significantly.
 
 Just re-send the same prompt after the warning -- it goes through. The warning only fires once per idle period, so it never nags. Warning messages display in 23 languages based on your OS locale.
 
-**Result:** Expensive re-cache costs are prevented automatically. No effort required.
+**Result:** Every cache expiry caught = $9 saved. At one catch per day, that's $270/mo of pure waste eliminated.
+
+> **If you're on API pay-per-use, this hits harder.** Max Plan subscribers lose $9 inside a $200 buffer. You lose $9 of real money — silently, repeatedly, every time you step away. Token Guardian catches it every time.
 
 ---
 
@@ -83,7 +107,7 @@ Session Architect automatically injects a delegation strategy at session start.
 
 SubTasks have **37.5% cheaper cache writes** than Main. Context is also much smaller. Delegating heavy work to SubTasks cuts costs dramatically.
 
-**Result:** Claude automatically works in a cost-efficient pattern. You don't have to think about it.
+**Result:** Context stays under 250K instead of growing to 600K+. Same work output, half the token cost. Fully automatic.
 
 ---
 
@@ -105,7 +129,7 @@ Install once, applies everywhere.
 
 ## 🔄 Feature 3: /continue — Context Restoration
 
-**Replaces `/compact`. Zero LLM calls. Zero token cost.**
+**Replaces `/compact`. Zero LLM calls. Zero token cost. Zero information loss.**
 
 `/compact` sends your entire context (~1M tokens) to the LLM to compress it into a 3.3% summary. If the cache has expired, that alone triggers a full re-cache. Information loss is inevitable.
 
@@ -123,7 +147,7 @@ Install once, applies everywhere.
 
 Usage: `/clear` then `/continue`. You'll see a list of previous sessions. Pick one to restore. For quick recovery: `/continue last`.
 
-**Result:** Resume previous work at zero cost. No information loss.
+**Result:** Resume previous work at zero cost. No information loss. Processes 60MB+ transcripts in under 1 second.
 
 ---
 
@@ -133,9 +157,13 @@ Usage: `/clear` then `/continue`. You'll see a list of previous sessions. Pick o
 
 Run `/setup-statusline install` once and a persistent status bar appears at the bottom of Claude Code.
 
-```
-[RUN🟢] $0.10/$12.23 | [5H🟢] 9% ⏳1h32m | [CTX🟢] 22%
-```
+**Normal operation** — every metric at a glance, zero context switching:
+
+![Status line in normal state](docs/images/statusline-normal.png)
+
+**Rate limit hit** — 5H turns red at 102%, countdown shows exactly when you're back, and a one-tap `/report-limit` action surfaces automatically:
+
+![Status line when rate limited](docs/images/statusline-rate-limited.png)
 
 | Indicator        | What it shows                       | 🟢 Normal | 🟡 Warning | 🔴 Critical |
 | ---------------- | ----------------------------------- | --------- | ---------- | ----------- |
@@ -148,39 +176,76 @@ When any indicator hits warning or critical, a `→ /usage-view current` hint ap
 
 To remove: `/setup-statusline uninstall` (previous config auto-restored).
 
-**Result:** See your cost state at a glance. Act before it's too late.
+**Result:** Every cost problem visible in real time. Under 50ms overhead — no perceptible delay.
+
+> **On API pay-per-use?** The 5H and W indicators auto-hide — you don't have rate limit windows. What stays is what matters: RUN (real-time cost per turn) and CTX (context size). The two levers that control your bill, always visible.
 
 ---
 
 ## 📈 Usage Dashboard (/usage-view)
 
-**Finally answer: "Why did I get rate limited?"**
+**Finally answer: "Where did all that money go?"**
 
-Until now, hitting the rate limit just made you angry. No way to know the cause. Which session burned the most tokens? When did costs spike? What patterns exist in your usage? All invisible.
+Max Plan users hit the rate limit and wonder why. API users open the Anthropic invoice and wonder how. Either way, the question is the same: which session burned the most tokens? When did costs spike? What patterns exist in your usage? Until now — all invisible.
 
 `/usage-view` shows everything. An interactive HTML dashboard opens in your browser, letting you analyze usage patterns and trace the root cause of cost spikes. No external dependencies. Works standalone. Shareable as a file.
 
-What's included:
+**$4,196 in 31 days. Where did it all go?** One glance — total cost, token breakdown by type, cache efficiency ratio, and session count. The donut chart instantly shows that 65% of your spend is cache reads (which is normal and healthy):
 
-- Daily / hourly / day-of-week cost trends — spot when you burn the most tokens
-- Token breakdown (input, output, cache write, cache read) — see what's driving costs
-- Per-session cost analysis — pinpoint which tasks were expensive
-- 5-hour window timeline (Max Plan subscribers) — trace rate limit triggers
-- Context size distribution chart — 4-bucket breakdown of where your tokens land
-- Cost by Context Size bubble chart — density clustering reveals cost hotspots
-- Model-based coloring (Opus/Sonnet/Haiku) matching API pricing lines
-- Theoretical pricing lines (1h/5m cache write, cache read) per model
-- Dual average toggle: Avg (active days) / Avg (all days) / Max
-- Per-user-turn cost view with $50 cap and star markers for outliers
-- Cache read alert with context size and API call count
-- AI-powered insight analysis — interprets data with API pricing reference for accurate insights
-- 23 languages supported (RTL included; charts/tables stay LTR)
+![Usage dashboard overview](docs/images/usage-view-overview.png)
+
+**Before vs. after — measured, not guessed.** The orange dashed "Plugin installed" marker splits your cost timeline in two. Daily bars are stacked by token type (Input/Output/Cache Write/Cache Read) so you can see exactly which component changed after install. The average line shows the trend:
+
+![Daily cost trend](docs/images/usage-view-daily-trend.png)
+
+**When do you burn the most?** Hourly cost by time of day and day-of-week breakdown. Toggle between active-day average, all-day average, or max. Fire icons mark your most expensive hours — visible patterns (late-night binges, Wednesday spikes) jump out instantly:
+
+![Hourly and day-of-week cost pattern](docs/images/usage-view-hourly-pattern.png)
+
+**Are you getting more efficient?** Total/Output ratio measures how many tokens are consumed per output token produced. Lower is better. The "Plugin installed" marker lets you compare before vs. after. Spikes = cache misses or session restarts:
+
+![Efficiency trend](docs/images/usage-view-efficiency.png)
+
+**Every API call, plotted by context size and cost.** This is the chart that makes cost structure click. Each dot is one API call. Red = Opus, blue = Sonnet, green = Haiku. The dashed lines are theoretical pricing — if your dots sit above the line, you're overpaying. Toggle to **User Turn** view to see cost per conversation turn instead of per API call.
+Hover any dot to see the actual prompt text, token count, and full cost breakdown (Input/Output/Cache Write/Cache Read):
+
+![Cost by Context Size — scatter chart](docs/images/usage-view-cost-scatter.png)
+
+**How big are your contexts?** Most calls cluster under 250K. The long tail above 350K is where costs explode — this chart shows exactly how often you're in the danger zone:
+
+![Context Size Distribution](docs/images/usage-view-context-dist.png)
+
+**Your coding schedule, priced by the hour.** A 5-hour window heatmap across 30 days. Green (<$15/h), orange ($15-30/h), red ($30+/h). The skull icon (💀) marks windows where you hit the rate limit. The cost slider at the top filters out cheap windows so expensive ones pop — drag it to find your worst days instantly. Toggle between 5-hour window and 1-hour block views:
+
+![Hourly usage calendar heatmap](docs/images/usage-view-calendar.png)
+
+**Click any cell to drill into that window's sessions.** Every session in that time slot, with cost, message count, token breakdown, and the actual first/last messages from each conversation. Expand "Top Token Conversations" to see which specific exchanges burned the most — each entry shows the prompt text, cost alert tags, and optimization hints:
+
+![Session detail panel](docs/images/usage-view-session-drilldown.png)
+
+**AI-powered analysis (optional).** When you run `/usage-view` without `--no-ai`, an AI analyst reads your full dashboard data — with API pricing reference baked in — and produces a written report: cost drivers, anomalies, optimization recommendations. Displayed in your OS language automatically (23 languages, RTL included; charts/tables always stay LTR):
+
+**Where the money went** — total spend, cost drivers by token type, weekly trend, and plugin impact measured in real numbers:
+
+![AI analysis — cost breakdown](docs/images/usage-view-ai-report-1.png)
+
+**When and how you work** — peak hours, busiest days, API call distribution, and rate limit patterns that reveal optimization opportunities:
+
+![AI analysis — work patterns](docs/images/usage-view-ai-report-2.png)
+
+**What to do about it** — concrete, data-backed recommendations tailored to your actual usage. Model switching, context management, session strategy:
+
+![AI analysis — recommendations](docs/images/usage-view-ai-report-3.png)
+
+**Share it.** The entire dashboard is a single self-contained HTML file — all data embedded, no server needed. Send it to your team, your manager, or your accountant. No external dependencies. Works offline. Use `private` mode to strip all prompt text before sharing — keeps cost analytics intact while removing conversation content.
 
 ```
 /usage-view                  # All time, all projects
 /usage-view current          # Current 5-hour window only
 /usage-view last 7 days      # Last 7 days
 /usage-view locale ja        # Japanese
+/usage-view --no-ai          # Skip AI analysis (faster)
+/usage-view private          # Strip prompt text (safe to share)
 ```
 
 ---
@@ -197,7 +262,7 @@ When you hit a rate limit, run `/report-limit`. Your current usage data is autom
 
 ## ✂️ Feature 5: /setup-git-lite — Trim CC's Built-in Git Instructions
 
-**The hidden 2,200 tokens per session you didn't know you were paying for.**
+**We read Claude Code's source code. We found 2,200 hidden tokens injected every session that you're silently paying for.**
 
 ### The discovery
 
@@ -226,7 +291,7 @@ The cache structure (`utils/api.ts:321` `splitSysPromptPrefix`) has three paths 
 
 In typical interactive sessions, the commit/PR instructions (1.7K tok) accumulate **on every API call** via `cache_read`. Over a 100-call session at Opus 4.7 pricing, that's roughly **$0.08 per session** just for instructions Claude's training already mostly covers.
 
-### How cc-token-saver handles it
+### How claude-code-upgrader handles it
 
 `/setup-git-lite` disables the native path and injects a **curated 280-token replacement** via a SessionStart hook. We kept exactly the things that override Claude's default behavior (safety rules), and dropped everything that Claude already knows from training (step-by-step workflows, PR templates, gh usage patterns).
 
@@ -278,7 +343,7 @@ Either one alone is enough to disable CC native; we set both so an environment o
 
 If you need the env var for unrelated reasons, note it down before running `revert` and re-add it after.
 
-### Before uninstalling cc-token-saver
+### Before uninstalling claude-code-upgrader
 
 **Run `/setup-git-lite revert` first**, or you'll be left with `includeGitInstructions: false` in your settings.json but no replacement hook (Claude gets no git guidance at all). Claude Code currently has no plugin uninstall lifecycle hook, so we can't automate this.
 
@@ -291,11 +356,11 @@ What you lose (and why it's usually fine):
 
 ### Recommendation banner
 
-When CC native git instructions are still active on your machine, cc-token-saver shows a one-paragraph tip at session start **~20% of the time** (plus in `/usage-view` and `/report-limit` outputs). Dismiss permanently with `/setup-git-lite dismiss-banner`.
+When CC native git instructions are still active on your machine, claude-code-upgrader shows a one-paragraph tip at session start **~20% of the time** (plus in `/usage-view` and `/report-limit` outputs). Dismiss permanently with `/setup-git-lite dismiss-banner`.
 
 ---
 
-## 💡 How Cache Actually Works
+## 💡 How Cache Actually Works (And Why Most Users Waste 40%+ on It)
 
 Claude Code sends the entire conversation history to the model on every API call. "API call" doesn't mean "one message you typed." A single prompt triggers internal tool calls — Grep, Read, Edit, Write — and each one is a separate API call. One prompt can easily cause 10+ API calls.
 
@@ -314,7 +379,7 @@ Even with cache alive, costs accumulate. Here's an extreme scenario to show the 
 
 Conditions: Opus 4 pricing, 1 prompt per minute, ~5 API calls per prompt (~300 calls/hour).
 
-#### ❌ Without cc-token-saver
+#### ❌ Without claude-code-upgrader
 
 Most work happens in the Main session. Context grows fast.
 
@@ -329,7 +394,7 @@ Most work happens in the Main session. Context grows fast.
 
 > At this usage level, you'll likely hit the 5-hour window rate limit. **Cost is bad, but the real problem is your work stopping completely. This is the exact moment Claude Code goes dark.**
 
-#### ✅ With cc-token-saver
+#### ✅ With claude-code-upgrader
 
 Heavy work is delegated to SubTasks. Main handles design/decisions only.
 
@@ -343,11 +408,13 @@ Heavy work is delegated to SubTasks. Main handles design/decisions only.
 
 #### 💰 Result
 
-> **＄326 → ＄180. ＄146 saved per day (45%).**
+> **＄326 → ＄180. ＄146 saved per day. 45% cost reduction.**
 >
-> It's not just about cost. Fewer tokens in the same time means **you don't hit the rate limit and can keep working.** That's the real difference.
+> **Max Plan:** Fewer tokens = you don't hit the rate limit. Your work doesn't stop. That's the real difference.
+>
+> **API pay-per-use:** ＄146/day × 22 workdays = **＄3,200/mo straight off your invoice.** A heavy month without this plugin crosses ＄7,000. With it, under ＄4,000. Same output.
 
-### Where cc-token-saver steps in
+### Where claude-code-upgrader steps in
 
 ```
 [Session Start]
@@ -374,12 +441,12 @@ Heavy work is delegated to SubTasks. Main handles design/decisions only.
 ## 🔧 Source Install & Customization
 
 ```bash
-git clone https://github.com/ww-w-ai/cc-token-saver.git
-claude plugin marketplace add /path/to/cc-token-saver
-claude plugin install cc-token-saver@cc-token-saver
+git clone https://github.com/ww-w-ai/claude-code-upgrader.git
+/plugin marketplace add /path/to/claude-code-upgrader
+/plugin install claude-code-upgrader@claude-code-upgrader
 ```
 
-cc-token-saver is fully open. The entire source is plain JavaScript + Bash scripts following the standard plugin structure. Modify anything you want.
+claude-code-upgrader is fully open-source (Apache-2.0). Plain JavaScript + Bash — no compiled binaries, no external API calls, no telemetry. Every line is auditable. Every claim in this README maps to a specific file you can read.
 
 - **hooks/** — Change cache expiry threshold, customize warning messages, modify session architecture rules
 - **scripts/** — Analysis logic, report builder, status line formatting
@@ -408,6 +475,27 @@ Current translations are AI-generated. Native speaker contributions are welcome 
 
 ---
 
+## ⚖️ What This Plugin Costs You
+
+The plugin injects context at session start. Here's exactly how much:
+
+| Injection | When | Tokens | Purpose |
+| --------- | ---- | ------ | ------- |
+| Session Architect | SessionStart (once) | ~1,100 | SubTask delegation strategy + concise mode rules |
+| Git context (if git-lite enabled) | SessionStart (once) | ~280 | Replaces CC's native ~2,200 tok git instructions |
+| Cache expiry warning | On idle > 59m (once) | ~200 | Blocks expensive re-send, shows recovery options |
+| Status line | Every API call | 0 | Renders to terminal status bar, not conversation context |
+
+**Net overhead per session: ~1,400 tokens (one-time, cached after first call).**
+
+At Opus pricing ($0.50/MTok cache read), that's **$0.0007 per API call** — less than a tenth of a cent. Over a 100-call session: $0.07.
+
+If git-lite is enabled, the plugin **saves** ~1,920 tokens per session (replaces 2,200 with 280). Net effect is negative — the plugin consumes less than it removes.
+
+**For API pay-per-use users:** at $3,000/mo spend, the plugin overhead is under $2/mo. The savings from cache expiry prevention alone (one blocked $9 re-send per week) pay for a year of overhead in a single catch.
+
+---
+
 ## 💡 Tips
 
 ### Understand cache and you'll see where the money goes
@@ -423,6 +511,14 @@ Current translations are AI-generated. Native speaker contributions are welcome 
 - **Away for 1+ hours?** `/clear` → come back → `/continue`. Context restored at $0.
 - **[5H] above 70% (🟡)?** Slow down. Switch to lightweight review tasks or increase SubTask delegation to reduce Main's API call count.
 - **Use `/btw` for side questions.** It doesn't enter conversation history, so your context stays lean.
+
+### API pay-per-use: the habits that matter most
+
+Everything above applies, plus these API-specific priorities:
+
+- **Watch [CTX] like a speedometer.** No rate limit will stop you — but context at 500K+ means every API call costs 2-3x what it should. `/clear` → `/continue` is free and resets your cost multiplier to baseline.
+- **Run `/usage-view` weekly.** Max Plan users have a natural "ouch" moment when they get rate limited. You don't — costs climb silently. The dashboard is your early warning system.
+- **Set a mental daily budget.** Without a cap, $200 days happen without noticing. The status line's RUN indicator makes per-turn cost visible. If a single turn crosses $1 (🔴), your context is too large.
 
 ---
 

@@ -1,7 +1,7 @@
 node_modules/
 .bkit/
 .claude/
-docs/
+bkit-docs/
 *.log
 .DS_Store
 *.swp
