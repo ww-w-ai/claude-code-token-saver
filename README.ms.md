@@ -1,4 +1,4 @@
-# claude-code-upgrader
+# claude-code-token-saver
 
 **Satu-satunya plugin Claude Code yang benar-benar membaca kod sumber CC untuk mengetahui ke mana token anda pergi — dan membetulkannya secara automatik. Belanjakan lebih sedikit, kerja lebih lama.**
 
@@ -36,7 +36,7 @@ Berfungsi dengan **Max Plan ($200/bln)** dan **API bayar-per-penggunaan**. Plugi
 
 **API bayar-per-penggunaan?** Semua di atas, kecuali tiada had atas. Satu cache miss = $9 wang sebenar. Sepuluh kali seminggu = $360/bln hanya kerana kesilapan. Selasa yang buruk dengan konteks yang bengkak boleh menelan belanja lebih daripada yang dibayar pelanggan Max Plan dalam sebulan.
 
-claude-code-upgrader mengendalikan semuanya secara automatik. **Pasang sekali. Selesai.**
+claude-code-token-saver mengendalikan semuanya secara automatik. **Pasang sekali. Selesai.**
 
 ---
 
@@ -44,7 +44,7 @@ claude-code-upgrader mengendalikan semuanya secara automatik. **Pasang sekali. S
 
 ```
 /plugin marketplace add ww-w-ai/marketplace
-/plugin install claude-code-upgrader@ww-w-ai
+/plugin install claude-code-token-saver@ww-w-ai
 ```
 
 Berfungsi secara automatik selepas dipasang. Tanpa konfigurasi. Memerlukan [Claude Code](https://claude.ai/claude-code) v2.1.71+.
@@ -291,7 +291,7 @@ Struktur cache (`utils/api.ts:321` `splitSysPromptPrefix`) mempunyai tiga laluan
 
 Dalam sesi interaktif biasa, arahan commit/PR (1.7K tok) terkumpul **pada setiap panggilan API** melalui `cache_read`. Dalam sesi 100-panggilan dengan harga Opus 4.7, itu kira-kira **$0.08 setiap sesi** hanya untuk arahan yang kebanyakannya sudah dilindungi oleh latihan Claude.
 
-### Cara claude-code-upgrader mengendalikannya
+### Cara claude-code-token-saver mengendalikannya
 
 `/setup-git-lite` melumpuhkan laluan asli dan menyuntik **pengganti 280-token yang dikurasi** melalui hook SessionStart. Kami mengekalkan tepat perkara-perkara yang mengatasi tingkah laku lalai Claude (peraturan keselamatan), dan membuang segala-galanya yang sudah diketahui Claude dari latihan (alur kerja langkah demi langkah, templat PR, corak penggunaan gh).
 
@@ -343,7 +343,7 @@ Mana-mana satu sudah cukup untuk melumpuhkan CC native; kami menetapkan kedua-du
 
 Jika anda memerlukan pemboleh ubah persekitaran untuk sebab yang tidak berkaitan, catat sebelum menjalankan `revert` dan tambah semula selepasnya.
 
-### Sebelum menyahpasang claude-code-upgrader
+### Sebelum menyahpasang claude-code-token-saver
 
 **Jalankan `/setup-git-lite revert` terlebih dahulu**, atau anda akan ditinggalkan dengan `includeGitInstructions: false` dalam settings.json anda tetapi tanpa hook pengganti (Claude tidak mendapat panduan git langsung). Claude Code pada masa ini tidak mempunyai hook kitaran hayat penyahpasangan plugin, jadi kami tidak boleh mengautomasikan ini.
 
@@ -356,7 +356,7 @@ Yang anda kehilangan (dan mengapa biasanya tidak mengapa):
 
 ### Sepanduk cadangan
 
-Apabila arahan git asli CC masih aktif pada mesin anda, claude-code-upgrader menunjukkan petua satu perenggan pada permulaan sesi **~20% masa** (ditambah dalam output `/usage-view` dan `/report-limit`). Matikan secara kekal dengan `/setup-git-lite dismiss-banner`.
+Apabila arahan git asli CC masih aktif pada mesin anda, claude-code-token-saver menunjukkan petua satu perenggan pada permulaan sesi **~20% masa** (ditambah dalam output `/usage-view` dan `/report-limit`). Matikan secara kekal dengan `/setup-git-lite dismiss-banner`.
 
 ---
 
@@ -379,7 +379,7 @@ Walaupun dengan cache yang aktif, kos terkumpul. Berikut adalah senario ekstrem 
 
 Syarat: harga Opus 4, 1 prompt seminit, ~5 panggilan API setiap prompt (~300 panggilan/jam).
 
-#### ❌ Tanpa claude-code-upgrader
+#### ❌ Tanpa claude-code-token-saver
 
 Kebanyakan kerja berlaku dalam Main session. Konteks membesar dengan cepat.
 
@@ -394,7 +394,7 @@ Kebanyakan kerja berlaku dalam Main session. Konteks membesar dengan cepat.
 
 > Pada tahap penggunaan ini, anda berkemungkinan akan mencapai had kadar tetingkap 5 jam. **Kosnya buruk, tetapi masalah sebenar adalah kerja anda berhenti sepenuhnya. Ini adalah tepat saat Claude Code gelap.**
 
-#### ✅ Dengan claude-code-upgrader
+#### ✅ Dengan claude-code-token-saver
 
 Kerja berat didelegasi ke SubTasks. Main hanya mengendalikan reka bentuk/keputusan.
 
@@ -414,7 +414,7 @@ Kerja berat didelegasi ke SubTasks. Main hanya mengendalikan reka bentuk/keputus
 >
 > **API bayar-per-penggunaan:** ＄146/hari × 22 hari bekerja = **＄3,200/bln terus dari invois anda.** Bulan yang berat tanpa plugin ini melepasi ＄7,000. Dengan plugin ini, di bawah ＄4,000. Output yang sama.
 
-### Di mana claude-code-upgrader berperanan
+### Di mana claude-code-token-saver berperanan
 
 ```
 [Mula Sesi]
@@ -441,12 +441,12 @@ Kerja berat didelegasi ke SubTasks. Main hanya mengendalikan reka bentuk/keputus
 ## 🔧 Pasang Sumber & Penyesuaian
 
 ```bash
-git clone https://github.com/ww-w-ai/claude-code-upgrader.git
-/plugin marketplace add /path/to/claude-code-upgrader
-/plugin install claude-code-upgrader@claude-code-upgrader
+git clone https://github.com/ww-w-ai/claude-code-token-saver.git
+/plugin marketplace add /path/to/claude-code-token-saver
+/plugin install claude-code-token-saver@claude-code-token-saver
 ```
 
-claude-code-upgrader sepenuhnya sumber terbuka (Apache-2.0). JavaScript + Bash biasa — tiada binari yang dikompil, tiada panggilan API luaran, tiada telemetri. Setiap baris boleh diaudit. Setiap tuntutan dalam README ini dipetakan ke fail tertentu yang boleh anda baca.
+claude-code-token-saver sepenuhnya sumber terbuka (Apache-2.0). JavaScript + Bash biasa — tiada binari yang dikompil, tiada panggilan API luaran, tiada telemetri. Setiap baris boleh diaudit. Setiap tuntutan dalam README ini dipetakan ke fail tertentu yang boleh anda baca.
 
 - **hooks/** — Tukar ambang tamat tempoh cache, sesuaikan mesej amaran, ubah suai peraturan seni bina sesi
 - **scripts/** — Logik analisis, pembina laporan, pemformatan baris status

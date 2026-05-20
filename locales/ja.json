@@ -159,7 +159,7 @@
   },
   "ai": {
     "analysis": "✨ AI分析",
-    "tips": "💡 ヒント — cc-token-saver 使い方ガイド"
+    "tips": "💡 ヒント — claude-code-token-saver 使い方ガイド"
   },
   "gitLite": {
     "tip": "ヒント: CCの組み込みgit指示は、セッションあたり約2,200 tok + 呼び出しあたり約1,700 tokを消費します。`/setup-git-lite install`で厳選された280-tokの最小版に置き換えられます。`/setup-git-lite dismiss-banner`でこのヒントを非表示にできます。"

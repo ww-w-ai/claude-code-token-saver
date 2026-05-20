@@ -41,6 +41,6 @@ Each turn header includes `[Session:{sid} {ISO} L{n}]` — the session ID, times
 
 ## Caching
 
-- Location: `~/.claude/cc-token-saver-data/{projectName}/{sessionId}/compact.txt` and `~/.claude/cc-token-saver-data/{projectName}/{sessionId}/compact.aggressive.txt`
+- Location: `~/.claude/claude-code-token-saver-data/{projectName}/{sessionId}/compact.txt` and `~/.claude/claude-code-token-saver-data/{projectName}/{sessionId}/compact.aggressive.txt`
 - Valid when: BOTH files must exist and both must have mtime >= transcript mtime
 - Plain text format, instant preprocessing (< 1s even for 60MB+ transcripts)

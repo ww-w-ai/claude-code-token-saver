@@ -69,14 +69,14 @@ Dua sebab:
 
 Dengan kata lain, cache write tidak hanya berlaku untuk "token baru yang ditaip pengguna." Pada permulaan sesi, keseluruhan system prompt di-cache; selepas tamat tempoh, keseluruhan perbualan terkumpul menjadi sasaran cache write. Jika cache perbualan 100K token tamat tempoh, satu mesej mencetuskan cache write 100K token sekaligus.
 
-**Inilah sebabnya plugin cc-token-saver memaparkan amaran tamat tempoh cache selepas 1 jam tidak aktif.** Apabila amaran muncul, semak saiz konteks semasa anda:
+**Inilah sebabnya plugin claude-code-token-saver memaparkan amaran tamat tempoh cache selepas 1 jam tidak aktif.** Apabila amaran muncul, semak saiz konteks semasa anda:
 
 - **Konteks kecil**: Kos penciptaan semula cache masih terurus. Teruskan sahaja — kosnya rendah.
 - **Konteks besar**: Kos cache akan menjadi ketara. Kami mengesyorkan `/clear` diikuti `/continue last` untuk menyambung dalam sesi baru. Skill continue secara automatik memulihkan konteks perbualan sebelumnya, jadi aliran kerja anda tidak terganggu.
 
 ## Strategi Mengurangkan Kos Cache
 
-Plugin cc-token-saver direka untuk mengautomatikkan atau memudahkan semua strategi ini.
+Plugin claude-code-token-saver direka untuk mengautomatikkan atau memudahkan semua strategi ini.
 
 ### 1. Kekalkan Konteks Kecil — `/clear` + `/continue` ⭐
 
@@ -90,13 +90,13 @@ Apabila topik berubah atau perbualan menjadi panjang, jalankan `/clear` untuk me
 
 Cache sesi utama Anthropic menggunakan **tier 1 jam**. Selepas tamat tempoh, permintaan pertama perlu mencipta semula keseluruhan perbualan sebagai cache write, yang mahal.
 
-cc-token-saver mengesan keadaan idle 1 jam dan **secara automatik memaparkan amaran**. Apabila amaran muncul, menggunakan kaedah 1 di atas (`/clear` + `/continue`) untuk menyambung dalam sesi baru adalah pendekatan paling jimat.
+claude-code-token-saver mengesan keadaan idle 1 jam dan **secara automatik memaparkan amaran**. Apabila amaran muncul, menggunakan kaedah 1 di atas (`/clear` + `/continue`) untuk menyambung dalam sesi baru adalah pendekatan paling jimat.
 
 ### 3. Wakilkan Kerja Berat kepada SubTask
 
 Tugas berat seperti penjanaan kod atau penyuntingan berbilang fail boleh diwakilkan kepada SubTask daripada dijalankan terus dalam sesi utama. SubTask menggunakan tier cache 5 minit, menjadikan **cache write 37.5% lebih murah**, dan berjalan dalam konteks terpencil yang lebih kecil, mengurangkan jumlah cache read per panggilan.
 
-cc-token-saver secara automatik membimbing pola pemisahan kerja ini pada permulaan sesi.
+claude-code-token-saver secara automatik membimbing pola pemisahan kerja ini pada permulaan sesi.
 
 ### 4. Pemantauan Kos Masa Nyata — `/setup-statusline`
 
@@ -110,7 +110,7 @@ Gunakan `/usage-view` untuk menyemak keseluruhan sejarah penggunaan anda sebagai
 
 Semakin banyak plugin, pelayan MCP, dan skill dimuatkan ke system prompt, semakin tinggi kos cache write awal. Buang apa yang anda tidak gunakan.
 
-`/setup-git-lite` dari cc-token-saver mengurangkan arahan Git terbina dalam Claude Code (~2,200 token) kepada 280 token teras — pengurangan kira-kira 88% pada system prompt berkaitan Git bagi setiap sesi.
+`/setup-git-lite` dari claude-code-token-saver mengurangkan arahan Git terbina dalam Claude Code (~2,200 token) kepada 280 token teras — pengurangan kira-kira 88% pada system prompt berkaitan Git bagi setiap sesi.
 
 ### 7. Pemilihan Tool — Kesan Konteks Berbeza Mengikut Tool
 
@@ -137,7 +137,7 @@ Prinsip yang sama terpakai untuk penyuntingan dan perbandingan:
 | **git diff / diff** | Bandingkan fail/folder | **Minimum** — hanya perbezaan yang dikembalikan |
 | Baca kedua-dua fail berasingan | Bandingkan fail/folder | **Besar** — kedua-dua fail penuh ditambah ke konteks |
 
-cc-token-saver secara automatik menyuntik panduan pemilihan tool ini kepada AI pada permulaan sesi, menggalakkan penggunaan tool ringan terlebih dahulu.
+claude-code-token-saver secara automatik menyuntik panduan pemilihan tool ini kepada AI pada permulaan sesi, menggalakkan penggunaan tool ringan terlebih dahulu.
 
 ## Lampiran: Perbandingan Cache Merentas Penyedia AI
 

@@ -1,4 +1,4 @@
-# claude-code-upgrader
+# claude-code-token-saver
 
 **Claude Code-এর একমাত্র প্লাগইন যা CC-এর সোর্স কোড সত্যিকার অর্থে পড়ে জানতে পারে আপনার টোকেন কোথায় যাচ্ছে — এবং এটি স্বয়ংক্রিয়ভাবে ঠিক করে দেয়। কম খরচ করুন, বেশিক্ষণ কাজ করুন।**
 
@@ -36,7 +36,7 @@
 
 **API pay-per-use?** উপরের সব, তবে কোনো সিলিং নেই। একটি cache miss = $9 প্রকৃত অর্থ। সপ্তাহে দশবার = শুধু দুর্ঘটনায় $360/মাস। ফুলে ওঠা কনটেক্সটের একটি খারাপ মঙ্গলবার Max Plan সাবস্ক্রাইবার মাসে যা দেয় তার চেয়ে বেশি খরচ করতে পারে।
 
-claude-code-upgrader এই সব স্বয়ংক্রিয়ভাবে হ্যান্ডেল করে। **একবার ইনস্টল করুন। শেষ।**
+claude-code-token-saver এই সব স্বয়ংক্রিয়ভাবে হ্যান্ডেল করে। **একবার ইনস্টল করুন। শেষ।**
 
 ---
 
@@ -44,7 +44,7 @@ claude-code-upgrader এই সব স্বয়ংক্রিয়ভাব
 
 ```
 /plugin marketplace add ww-w-ai/marketplace
-/plugin install claude-code-upgrader@ww-w-ai
+/plugin install claude-code-token-saver@ww-w-ai
 ```
 
 ইনস্টলের পরে স্বয়ংক্রিয়ভাবে কাজ করে। Zero config। [Claude Code](https://claude.ai/claude-code) v2.1.71+ প্রয়োজন।
@@ -291,7 +291,7 @@ Cache structure (`utils/api.ts:321` `splitSysPromptPrefix`)-এর active MCP to
 
 সাধারণ interactive সেশনে, commit/PR instructions (১.৭K tok) `cache_read` এর মাধ্যমে **প্রতিটি API কলে** জমা হয়। Opus 4.7 মূল্যে ১০০-কল সেশনে, এটি মোটামুটি **প্রতি সেশনে $০.০৮** শুধুমাত্র সেই instructions-এর জন্য যা Claude-এর training ইতিমধ্যে বেশিরভাগ cover করে।
 
-### claude-code-upgrader কীভাবে এটি handle করে
+### claude-code-token-saver কীভাবে এটি handle করে
 
 `/setup-git-lite` native path disable করে এবং SessionStart hook-এর মাধ্যমে **curated ২৮০-টোকেন প্রতিস্থাপন** ইনজেক্ট করে। আমরা ঠিক সেটুকু রেখেছি যা Claude-এর default behavior override করে (safety rules), এবং যা Claude training থেকে ইতিমধ্যে জানে তা বাদ দিয়েছি (step-by-step workflows, PR templates, gh usage patterns)।
 
@@ -343,7 +343,7 @@ Cache structure (`utils/api.ts:321` `splitSysPromptPrefix`)-এর active MCP to
 
 যদি আপনার অসম্পর্কিত কারণে env var দরকার হয়, `revert` চালানোর আগে নোট করে রাখুন এবং পরে পুনরায় যোগ করুন।
 
-### claude-code-upgrader আনইনস্টল করার আগে
+### claude-code-token-saver আনইনস্টল করার আগে
 
 **প্রথমে `/setup-git-lite revert` চালান**, অন্যথায় আপনার settings.json-এ `includeGitInstructions: false` থাকবে কিন্তু কোনো replacement hook থাকবে না (Claude কোনো git guidance পাবে না)। Claude Code-এ বর্তমানে কোনো plugin uninstall lifecycle hook নেই, তাই আমরা এটি automate করতে পারি না।
 
@@ -356,7 +356,7 @@ Cache structure (`utils/api.ts:321` `splitSysPromptPrefix`)-এর active MCP to
 
 ### Recommendation banner
 
-যখন CC native git instructions এখনও আপনার machine-এ সক্রিয়, claude-code-upgrader session শুরুতে **~২০% সময়** একটি one-paragraph tip দেখায় (plus `/usage-view` এবং `/report-limit` outputs-এ)। `/setup-git-lite dismiss-banner` দিয়ে স্থায়ীভাবে dismiss করুন।
+যখন CC native git instructions এখনও আপনার machine-এ সক্রিয়, claude-code-token-saver session শুরুতে **~২০% সময়** একটি one-paragraph tip দেখায় (plus `/usage-view` এবং `/report-limit` outputs-এ)। `/setup-git-lite dismiss-banner` দিয়ে স্থায়ীভাবে dismiss করুন।
 
 ---
 
@@ -379,7 +379,7 @@ Cache জীবিত থাকলেও, খরচ জমে। পার্থ
 
 Conditions: Opus 4 মূল্য, প্রতি মিনিটে ১টি prompt, প্রতি prompt-এ ~৫ API calls (~৩০০ calls/hour)।
 
-#### ❌ claude-code-upgrader ছাড়া
+#### ❌ claude-code-token-saver ছাড়া
 
 বেশিরভাগ কাজ Main session-এ হয়। কনটেক্সট দ্রুত বাড়ে।
 
@@ -394,7 +394,7 @@ Conditions: Opus 4 মূল্য, প্রতি মিনিটে ১টি
 
 > এই ব্যবহারের মাত্রায়, আপনি সম্ভবত ৫-ঘণ্টা উইন্ডো রেট লিমিট হিট করবেন। **খরচ খারাপ, কিন্তু আসল সমস্যা হল আপনার কাজ সম্পূর্ণ থেমে যায়। এটি ঠিক সেই মুহূর্ত যখন Claude Code অন্ধকার হয়।**
 
-#### ✅ claude-code-upgrader সহ
+#### ✅ claude-code-token-saver সহ
 
 ভারী কাজ SubTask-এ delegate। Main শুধু design/decisions handle করে।
 
@@ -414,7 +414,7 @@ Conditions: Opus 4 মূল্য, প্রতি মিনিটে ১টি
 >
 > **API pay-per-use:** ＄146/day × ২২ workdays = **আপনার invoice থেকে সরাসরি ＄3,200/মাস।** এই প্লাগইন ছাড়া ভারী মাস ＄7,000 অতিক্রম করে। এটি সহ, ＄4,000-এর নিচে। একই আউটপুট।
 
-### claude-code-upgrader কোথায় step in করে
+### claude-code-token-saver কোথায় step in করে
 
 ```
 [Session Start]
@@ -441,12 +441,12 @@ Conditions: Opus 4 মূল্য, প্রতি মিনিটে ১টি
 ## 🔧 Source Install & Customization
 
 ```bash
-git clone https://github.com/ww-w-ai/claude-code-upgrader.git
-/plugin marketplace add /path/to/claude-code-upgrader
-/plugin install claude-code-upgrader@claude-code-upgrader
+git clone https://github.com/ww-w-ai/claude-code-token-saver.git
+/plugin marketplace add /path/to/claude-code-token-saver
+/plugin install claude-code-token-saver@claude-code-token-saver
 ```
 
-claude-code-upgrader সম্পূর্ণ open-source (Apache-2.0)। Plain JavaScript + Bash — কোনো compiled binaries নেই, কোনো external API calls নেই, কোনো telemetry নেই। প্রতিটি লাইন auditable। এই README-এ প্রতিটি claim একটি নির্দিষ্ট ফাইলে map করে যা আপনি পড়তে পারেন।
+claude-code-token-saver সম্পূর্ণ open-source (Apache-2.0)। Plain JavaScript + Bash — কোনো compiled binaries নেই, কোনো external API calls নেই, কোনো telemetry নেই। প্রতিটি লাইন auditable। এই README-এ প্রতিটি claim একটি নির্দিষ্ট ফাইলে map করে যা আপনি পড়তে পারেন।
 
 - **hooks/** — Cache expiry threshold পরিবর্তন করুন, warning messages customize করুন, session architecture rules modify করুন
 - **scripts/** — Analysis logic, report builder, status line formatting

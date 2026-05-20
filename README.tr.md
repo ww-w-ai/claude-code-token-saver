@@ -1,4 +1,4 @@
-# claude-code-upgrader
+# claude-code-token-saver
 
 **Token'larınızın nereye gittiğini bulmak için CC'nin kaynak kodunu gerçekten okuyan ve bunu otomatik olarak düzelten tek Claude Code eklentisi. Daha az harcayın, daha uzun süre kodlayın.**
 
@@ -36,7 +36,7 @@
 
 **API kullandıkça öde?** Tüm bunlar, ancak bir tavan yok. Bir cache ıskalama = $9 gerçek para. Haftada on kez = $360/ay yalnızca kazalar. Şişirilmiş context'li kötü bir Salı, Max Plan abonelerinin bir ayda ödediğinden daha fazlasına mal olabilir.
 
-claude-code-upgrader tümünü otomatik olarak halleder. **Bir kez kurun. Bitti.**
+claude-code-token-saver tümünü otomatik olarak halleder. **Bir kez kurun. Bitti.**
 
 ---
 
@@ -44,7 +44,7 @@ claude-code-upgrader tümünü otomatik olarak halleder. **Bir kez kurun. Bitti.
 
 ```
 /plugin marketplace add ww-w-ai/marketplace
-/plugin install claude-code-upgrader@ww-w-ai
+/plugin install claude-code-token-saver@ww-w-ai
 ```
 
 Kurulumdan sonra otomatik olarak çalışır. Sıfır yapılandırma. [Claude Code](https://claude.ai/claude-code) v2.1.71+ gerektirir.
@@ -291,7 +291,7 @@ Cache yapısı (`utils/api.ts:321` `splitSysPromptPrefix`), aktif MCP araçları
 
 Tipik etkileşimli oturumlarda, commit/PR talimatları (1,7K tok) `cache_read` aracılığıyla **her API çağrısında** birikir. Opus 4.7 fiyatlandırmasında 100 çağrılık bir oturumda, bu yalnızca Claude'un eğitiminin büyük ölçüde zaten kapsadığı talimatlar için oturum başına yaklaşık **$0,08**'dir.
 
-### claude-code-upgrader nasıl halleder
+### claude-code-token-saver nasıl halleder
 
 `/setup-git-lite`, yerel yolu devre dışı bırakır ve SessionStart hook'u aracılığıyla **özenle seçilmiş 280 token'lık bir yedek** ekler. Claude'un varsayılan davranışını geçersiz kılan şeyleri tam olarak koruduk (güvenlik kuralları) ve Claude'un eğitimden zaten bildiği her şeyi bıraktık (adım adım iş akışları, PR şablonları, gh kullanım kalıpları).
 
@@ -343,7 +343,7 @@ Tipik etkileşimli oturumlarda, commit/PR talimatları (1,7K tok) `cache_read` a
 
 Env değişkenine ilgisiz nedenlerle ihtiyacınız varsa, `revert`'i çalıştırmadan önce not alın ve sonra tekrar ekleyin.
 
-### claude-code-upgrader'ı kaldırmadan önce
+### claude-code-token-saver'ı kaldırmadan önce
 
 **Önce `/setup-git-lite revert`'i çalıştırın**, aksi takdirde settings.json'da `includeGitInstructions: false` ile bırakılırsınız ama yedek hook olmadan (Claude hiç git kılavuzu almaz). Claude Code'un şu anda eklenti kaldırma yaşam döngüsü hook'u yok, bu yüzden bunu otomatikleştiremeyiz.
 
@@ -356,7 +356,7 @@ Kaybettikleriniz (ve neden genellikle sorun olmadığı):
 
 ### Öneri başlığı
 
-Makinenizde CC yerel git talimatları hâlâ etkinken, claude-code-upgrader oturum başlangıcında **~%20 oranında** bir paragraf ipucu gösterir (ayrıca `/usage-view` ve `/report-limit` çıktılarında). `/setup-git-lite dismiss-banner` ile kalıcı olarak kapatın.
+Makinenizde CC yerel git talimatları hâlâ etkinken, claude-code-token-saver oturum başlangıcında **~%20 oranında** bir paragraf ipucu gösterir (ayrıca `/usage-view` ve `/report-limit` çıktılarında). `/setup-git-lite dismiss-banner` ile kalıcı olarak kapatın.
 
 ---
 
@@ -379,7 +379,7 @@ Cache canlı olsa bile maliyetler birikir. Farkı göstermek için aşırı bir 
 
 Koşullar: Opus 4 fiyatlandırması, dakikada 1 prompt, prompt başına ~5 API çağrısı (~300 çağrı/saat).
 
-#### ❌ claude-code-upgrader olmadan
+#### ❌ claude-code-token-saver olmadan
 
 Çoğu çalışma Main oturumda gerçekleşir. Context hızla büyür.
 
@@ -394,7 +394,7 @@ Koşullar: Opus 4 fiyatlandırması, dakikada 1 prompt, prompt başına ~5 API �
 
 > Bu kullanım düzeyinde, büyük olasılıkla 5 saatlik pencere hız sınırına ulaşacaksınız. **Maliyet kötü, ama asıl sorun çalışmanızın tamamen durmasıdır. Claude Code'un tam olarak karardığı an budur.**
 
-#### ✅ claude-code-upgrader ile
+#### ✅ claude-code-token-saver ile
 
 Ağır çalışma SubTask'lara devredilir. Main yalnızca tasarım/kararları yönetir.
 
@@ -414,7 +414,7 @@ Ağır çalışma SubTask'lara devredilir. Main yalnızca tasarım/kararları y�
 >
 > **API kullandıkça öde:** ＄146/gün × 22 iş günü = **faturanızdan doğrudan ＄3.200/ay.** Bu eklenti olmadan yoğun bir ay ＄7.000'i aşar. Onunla ＄4.000'in altında. Aynı çıktı.
 
-### claude-code-upgrader nerede devreye girer
+### claude-code-token-saver nerede devreye girer
 
 ```
 [Session Start]
@@ -441,12 +441,12 @@ Ağır çalışma SubTask'lara devredilir. Main yalnızca tasarım/kararları y�
 ## 🔧 Kaynaktan Kurulum ve Özelleştirme
 
 ```bash
-git clone https://github.com/ww-w-ai/claude-code-upgrader.git
-/plugin marketplace add /path/to/claude-code-upgrader
-/plugin install claude-code-upgrader@claude-code-upgrader
+git clone https://github.com/ww-w-ai/claude-code-token-saver.git
+/plugin marketplace add /path/to/claude-code-token-saver
+/plugin install claude-code-token-saver@claude-code-token-saver
 ```
 
-claude-code-upgrader tamamen açık kaynaklıdır (Apache-2.0). Düz JavaScript + Bash — derlenmiş ikili yok, harici API çağrısı yok, telemetri yok. Her satır denetlenebilir. Bu README'deki her iddia, okuyabileceğiniz belirli bir dosyayla eşleşir.
+claude-code-token-saver tamamen açık kaynaklıdır (Apache-2.0). Düz JavaScript + Bash — derlenmiş ikili yok, harici API çağrısı yok, telemetri yok. Her satır denetlenebilir. Bu README'deki her iddia, okuyabileceğiniz belirli bir dosyayla eşleşir.
 
 - **hooks/** — Cache süre sonu eşiğini değiştirin, uyarı mesajlarını özelleştirin, oturum mimarisi kurallarını değiştirin
 - **scripts/** — Analiz mantığı, rapor oluşturucu, durum çubuğu biçimlendirme

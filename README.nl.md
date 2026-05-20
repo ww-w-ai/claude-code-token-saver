@@ -1,4 +1,4 @@
-# claude-code-upgrader
+# claude-code-token-saver
 
 **De enige Claude Code-plugin die daadwerkelijk de broncode van CC leest om te vinden waar je tokens naartoe gaan — en het automatisch oplost. Minder uitgeven, langer coderen.**
 
@@ -36,7 +36,7 @@ Werkt met **Max Plan ($200/maand)** en **API betaal-per-gebruik**. Dezelfde plug
 
 **API betaal-per-gebruik?** Al het bovenstaande, behalve dat er geen plafond is. Eén cache-mislukking = $9 echt geld. Tien keer per week = $360/maand alleen aan ongelukken. Een slechte dinsdag met opgeblazen context kan meer kosten dan een Max Plan-abonnee in een maand betaalt.
 
-claude-code-upgrader handelt dit alles automatisch af. **Eén keer installeren. Klaar.**
+claude-code-token-saver handelt dit alles automatisch af. **Eén keer installeren. Klaar.**
 
 ---
 
@@ -44,7 +44,7 @@ claude-code-upgrader handelt dit alles automatisch af. **Eén keer installeren. 
 
 ```
 /plugin marketplace add ww-w-ai/marketplace
-/plugin install claude-code-upgrader@ww-w-ai
+/plugin install claude-code-token-saver@ww-w-ai
 ```
 
 Werkt automatisch na installatie. Nul configuratie. Vereist [Claude Code](https://claude.ai/claude-code) v2.1.71+.
@@ -291,7 +291,7 @@ De cachestructuur (`utils/api.ts:321` `splitSysPromptPrefix`) heeft drie paden g
 
 In typische interactieve sessies stapelen de commit/PR-instructies (1,7K tok) zich **bij elke API-aanroep** op via `cache_read`. Bij een sessie van 100 aanroepen bij Opus 4.7-prijzen is dat ruwweg **$0,08 per sessie** alleen voor instructies die Claude's training al grotendeels dekt.
 
-### Hoe claude-code-upgrader het aanpakt
+### Hoe claude-code-token-saver het aanpakt
 
 `/setup-git-lite` schakelt het native pad uit en injecteert een **zorgvuldig samengestelde vervanging van 280 tokens** via een SessionStart-hook. We behielden precies de dingen die Claude's standaardgedrag overschrijven (veiligheidsregels) en lieten alles vallen wat Claude al uit training weet (stapsgewijze workflows, PR-mallonen, gh-gebruikspatronen).
 
@@ -343,7 +343,7 @@ Elk van beide is voldoende om CC native uit te schakelen; we stellen beide in zo
 
 Als je de omgevingsvariabele om niet-gerelateerde redenen nodig hebt, noteer hem dan vóór het uitvoeren van `revert` en voeg hem daarna opnieuw toe.
 
-### Vóór het verwijderen van claude-code-upgrader
+### Vóór het verwijderen van claude-code-token-saver
 
 **Voer eerst `/setup-git-lite revert` uit**, anders blijf je achter met `includeGitInstructions: false` in je settings.json maar zonder vervangingshook (Claude krijgt helemaal geen git-richtlijnen). Claude Code heeft momenteel geen plugin-uninstall-lifecycle-hook, dus we kunnen dit niet automatiseren.
 
@@ -356,7 +356,7 @@ Wat je verliest (en waarom het meestal prima is):
 
 ### Aanbevelingsbanner
 
-Wanneer de native git-instructies van CC nog steeds actief zijn op je machine, toont claude-code-upgrader bij sessiestart **~20% van de tijd** een alinea-tip (plus in de uitvoer van `/usage-view` en `/report-limit`). Permanent dempen met `/setup-git-lite dismiss-banner`.
+Wanneer de native git-instructies van CC nog steeds actief zijn op je machine, toont claude-code-token-saver bij sessiestart **~20% van de tijd** een alinea-tip (plus in de uitvoer van `/usage-view` en `/report-limit`). Permanent dempen met `/setup-git-lite dismiss-banner`.
 
 ---
 
@@ -379,7 +379,7 @@ Zelfs met cache actief lopen de kosten op. Hier is een extreem scenario om het v
 
 Omstandigheden: Opus 4-prijzen, 1 prompt per minuut, ~5 API-aanroepen per prompt (~300 aanroepen/uur).
 
-#### ❌ Zonder claude-code-upgrader
+#### ❌ Zonder claude-code-token-saver
 
 Het meeste werk vindt plaats in de Main-sessie. Context groeit snel.
 
@@ -394,7 +394,7 @@ Het meeste werk vindt plaats in de Main-sessie. Context groeit snel.
 
 > Bij dit gebruiksniveau zul je waarschijnlijk de snelheidslimiet van het 5-uursvenster bereiken. **De kosten zijn slecht, maar het echte probleem is dat je werk volledig stopt. Dit is het exacte moment waarop Claude Code uitvalt.**
 
-#### ✅ Met claude-code-upgrader
+#### ✅ Met claude-code-token-saver
 
 Zwaar werk wordt gedelegeerd aan SubTasks. Main handelt alleen ontwerp/beslissingen af.
 
@@ -414,7 +414,7 @@ Zwaar werk wordt gedelegeerd aan SubTasks. Main handelt alleen ontwerp/beslissin
 >
 > **API betaal-per-gebruik:** ＄146/dag × 22 werkdagen = **＄3.200/maand recht van je factuur.** Een zware maand zonder deze plugin overschrijdt ＄7.000. Met de plugin onder ＄4.000. Zelfde output.
 
-### Waar claude-code-upgrader ingrijpt
+### Waar claude-code-token-saver ingrijpt
 
 ```
 [Session Start]
@@ -441,12 +441,12 @@ Zwaar werk wordt gedelegeerd aan SubTasks. Main handelt alleen ontwerp/beslissin
 ## 🔧 Broninstallatie en aanpassing
 
 ```bash
-git clone https://github.com/ww-w-ai/claude-code-upgrader.git
-/plugin marketplace add /path/to/claude-code-upgrader
-/plugin install claude-code-upgrader@claude-code-upgrader
+git clone https://github.com/ww-w-ai/claude-code-token-saver.git
+/plugin marketplace add /path/to/claude-code-token-saver
+/plugin install claude-code-token-saver@claude-code-token-saver
 ```
 
-claude-code-upgrader is volledig open-source (Apache-2.0). Gewone JavaScript + Bash — geen gecompileerde binaries, geen externe API-aanroepen, geen telemetrie. Elke regel is controleerbaar. Elke bewering in deze README verwijst naar een specifiek bestand dat je kunt lezen.
+claude-code-token-saver is volledig open-source (Apache-2.0). Gewone JavaScript + Bash — geen gecompileerde binaries, geen externe API-aanroepen, geen telemetrie. Elke regel is controleerbaar. Elke bewering in deze README verwijst naar een specifiek bestand dat je kunt lezen.
 
 - **hooks/** — Verander de vervaldatumdrempel van cache, pas waarschuwingsberichten aan, wijzig sessie-architectuurregels
 - **scripts/** — Analyselogica, rapportbouwer, statusregelopmaak

@@ -80,7 +80,7 @@ Displays cost warnings and context size alerts that fired during sessions, sorte
 ## Output
 
 - **File**: `/tmp/cc-usage-report-{timestamp}.html` (self-contained, shareable)
-- **Cache**: `~/.claude/cc-token-saver-data/{projectName}/{sessionId}/summary.json` and `timeline.csv`
+- **Cache**: `~/.claude/claude-code-token-saver-data/{projectName}/{sessionId}/summary.json` and `timeline.csv`
 - **Pricing**: `scripts/model-pricing.json` — per-model token costs from Anthropic's published pricing
 
 Use `--force` flag via the runner script to bypass cache and re-analyze all sessions.

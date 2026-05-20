@@ -862,7 +862,7 @@
   </section>
 
   <!-- Section 8: AI Tips -->
-  <div id="aiSection4" class="ai-analysis-box" style="border-color:rgba(63,185,80,0.3);background:linear-gradient(135deg, rgba(63,185,80,0.08), rgba(210,153,34,0.06))"><div class="ai-label">💡 Tips — cc-token-saver Usage Guide</div><span id="aiText4"></span></div>
+  <div id="aiSection4" class="ai-analysis-box" style="border-color:rgba(63,185,80,0.3);background:linear-gradient(135deg, rgba(63,185,80,0.08), rgba(210,153,34,0.06))"><div class="ai-label">💡 Tips — claude-code-upgrader Usage Guide</div><span id="aiText4"></span></div>
 
 </div>
 
@@ -880,7 +880,7 @@ if (!I18N.meta) {
   I18N.calendar = { title: 'Hourly Usage Calendar', fiveHourWindow: '5-Hour Window', oneHourBlock: '1-Hour Block', legendLow: '~$15/h', legendMid: '$15-30/h', legendHigh: '$30+/h', legendBlocked: 'blocked', legendPlugin: 'Plugin installed', note: 'Click any cell to see session details. Default view is 5-hour window — toggle to 1-hour blocks with the button above.', noData: 'No Data', costFilterLabel: '💰 Cost ≥', costFilterCount: '{n} shown' };
   I18N.session = { detailExpand: '▶ Session Details', detailCollapse: '▼ Collapse', alertExpand: '▶ Top Token Conversations ({count})', alertCollapse: '▼ Top Token Conversations ({count})', windowDetailTitle: '📋 {date} {start}~{end} Session Details (${cost})', programmaticExec: '📦 Programmatic Execution ({count})', batchExec: '🔄 Batch Execution ({count})', continueRestore: '💚 /continue restored {n} sessions (0 LLM calls)', continueContext: '   Restored context: {tokens} tokens', continueCompactCost: '   /compact estimated cost: ${min} ~ ${max}', continueSaved: '   → ${min} ~ ${max} saved!', tableHeaders: ['ID', 'Type', 'Msgs', 'Input', 'Output', 'Cache', 'Read', 'Cost'] };
   I18N.alert = { ctxWarn: '⚠️ Context window exceeded 35% — cache write/read cost increases with each call.', ctxDanger: '🔴 Context window exceeded 70% — cache write/read cost is very high.', compactManual: '📦 Manual /compact — cache regenerated, cost incurred', compactAuto: '📦 /compact fired automatically (context pressure).', continue1: '💚 /continue skill restored 1 session', continueN: '💚 /continue skill restored 2+ sessions', continueSkillTip: ' 💡 We recommend /continue skill after a new session.\n', cacheWritePrefix: '{icon} In this call, cache write {tokens} tokens were newly cached — ', compactManualReason: '/compact manually invoked, cache regenerated — large cost! Consider /continue skill for lighter context restoration.', compactAutoReason: '/compact fired automatically due to context pressure. Cache was regenerated.', clearReason: '{reason} caused cache creation (${cost})', clearReasonClear: '/clear restart', clearReasonStartup: 'new session start', pluginOverload: ' — too many plugins, MCP, or skills may be loaded. Keep only what you need.', reloadReason: '/reload-plugins caused system prompt change, cache regenerated (${cost})', modelReason: '/model change invalidated previous cache, regenerated (${cost})', resumeHeuristicReason: 'Resuming a session with claude --continue or /resume uses a lot of tokens. Unless necessary, we recommend /continue skill after a new session.', cacheExpiredReason: 'When context is large and over 1 hour has passed, new cache is generated — large cost!', costTopLabel: '{icon} {label} (${cost})', costOutputReason: '{icon} Output {tokens} dominated cost (${cost}) — consider using Edit (diff) instead of full file rewrites, and trim verbose explanations in your prompt.', costInputReason: '{icon} Input {tokens} dominated cost (${cost}) — consider using text instead of images, reading only needed sections with offset/limit, or providing summarized context.', rateLimitHit: '💀 Rate limit hit — usage was blocked at this point.', rateLimitReset: '💀 Rate limit hit — blocked until {reset}.', rateLimitType5h: ' (5-hour window limit)', rateLimitTypeWeekly: ' (weekly limit)', rateLimitTypeOpus: ' (Opus model limit)', rateLimitTypeSonnet: ' (Sonnet model limit)', rateLimitTypeExtra: ' (extra limit)', rateLimitTypeUnknown: '' };
-  I18N.ai = { analysis: '✨ AI Analysis', tips: '💡 Tips — cc-token-saver Usage Guide' };
+  I18N.ai = { analysis: '✨ AI Analysis', tips: '💡 Tips — claude-code-upgrader Usage Guide' };
 }
 
 /*<!-- REPORT_DATA_START -->*/
@@ -1275,7 +1275,7 @@ function i18nT(template, vars) {
     var guideLang = I18N.meta && I18N.meta.locale || 'en';
     var guideSuffix = guideLang === 'en' ? '' : '-' + guideLang;
     guideLink.textContent = T.costGuideLink;
-    guideLink.href = 'https://github.com/ww-w-ai/cc-token-saver/blob/main/guides/prompt-cache-guide' + guideSuffix + '.md';
+    guideLink.href = 'https://github.com/ww-w-ai/claude-code-upgrader/blob/main/guides/prompt-cache-guide' + guideSuffix + '.md';
   }
   // Efficiency dropdown options
   setText('effOptTotal', C.effTotalPerOutput); setText('effOptCache', C.effCachePerOutput);

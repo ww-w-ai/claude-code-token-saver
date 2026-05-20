@@ -1,4 +1,4 @@
-# claude-code-upgrader
+# claude-code-token-saver
 
 **CCのソースコードを実際に読み込み、トークンの消費先を特定して自動修正する唯一のClaude Codeプラグイン。コストを減らし、より長くコーディングできる。**
 
@@ -36,7 +36,7 @@
 
 **API従量課金の場合？** 上記すべてに加え、上限がない。1回のキャッシュミス = $9 の実際のお金。週に10回 = 事故だけで $360/月。コンテキストが肥大化した最悪の火曜日は、Max Planユーザーが1ヶ月に払う金額より高くなる可能性がある。
 
-claude-code-upgrader はこれらすべてを自動的に処理する。**1回インストールするだけ。**
+claude-code-token-saver はこれらすべてを自動的に処理する。**1回インストールするだけ。**
 
 ---
 
@@ -44,7 +44,7 @@ claude-code-upgrader はこれらすべてを自動的に処理する。**1回�
 
 ```
 /plugin marketplace add ww-w-ai/marketplace
-/plugin install claude-code-upgrader@ww-w-ai
+/plugin install claude-code-token-saver@ww-w-ai
 ```
 
 インストール後、自動的に動作する。ゼロ設定。[Claude Code](https://claude.ai/claude-code) v2.1.71+ が必要。
@@ -291,7 +291,7 @@ Claude Codeソース（v2.1.88）の2つの独立した注入ポイントにト�
 
 通常のインタラクティブセッションでは、コミット/PR指示（1.7Kトークン）が `cache_read` 経由で **すべてのAPI呼び出し** に蓄積される。Opus 4.7の価格設定で100回呼び出しのセッションでは、Claudeのトレーニングがほとんどカバーしている指示に対してだけで約 **$0.08/セッション** となる。
 
-### claude-code-upgraderによる対処法
+### claude-code-token-saverによる対処法
 
 `/setup-git-lite` はネイティブパスを無効化し、SessionStartフック経由で **280トークンの厳選した代替** を注入する。Claudeのデフォルト動作を上書きするもの（安全ルール）だけを残し、Claudeがトレーニングですでに知っていること（ステップごとのワークフロー、PRテンプレート、ghの使用パターン）はすべて削除した。
 
@@ -343,7 +343,7 @@ Claude Codeソース（v2.1.88）の2つの独立した注入ポイントにト�
 
 別の理由で環境変数が必要な場合は、`revert` を実行する前にメモしておき、後で再追加する。
 
-### claude-code-upgraderをアンインストールする前に
+### claude-code-token-saverをアンインストールする前に
 
 **先に `/setup-git-lite revert` を実行**すること。そうしないと、settings.jsonには `includeGitInstructions: false` が残るが代替フックがない状態になる（Claudeはgitのガイダンスを全く受け取らない）。Claude Codeには現在プラグインのアンインストールライフサイクルフックがないため、自動化できない。
 
@@ -356,7 +356,7 @@ Claude Codeソース（v2.1.88）の2つの独立した注入ポイントにト�
 
 ### 推奨バナー
 
-CCのネイティブgit指示がまだアクティブな場合、claude-code-upgraderはセッション開始時に **約20%の確率**で1段落のヒントを表示する（`/usage-view` と `/report-limit` の出力にも表示）。`/setup-git-lite dismiss-banner` で恒久的に非表示にできる。
+CCのネイティブgit指示がまだアクティブな場合、claude-code-token-saverはセッション開始時に **約20%の確率**で1段落のヒントを表示する（`/usage-view` と `/report-limit` の出力にも表示）。`/setup-git-lite dismiss-banner` で恒久的に非表示にできる。
 
 ---
 
@@ -379,7 +379,7 @@ Claude CodeはすべてのAPI呼び出しで会話履歴全体をモデルに送
 
 条件：Opus 4価格設定、1分1プロンプト、プロンプトあたり約5回のAPI呼び出し（約300回/時間）。
 
-#### ❌ claude-code-upgraderなし
+#### ❌ claude-code-token-saverなし
 
 ほとんどの作業がメインセッションで行われる。コンテキストが急速に成長する。
 
@@ -394,7 +394,7 @@ Claude CodeはすべてのAPI呼び出しで会話履歴全体をモデルに送
 
 > この使用レベルでは5時間ウィンドウのレート制限に達する可能性が高い。**コストも問題だが、本当の問題は作業が完全に止まること。これがClaude Codeが暗くなる瞬間だ。**
 
-#### ✅ claude-code-upgraderあり
+#### ✅ claude-code-token-saverあり
 
 重い作業をSubTaskに委譲。メインは設計/意思決定のみ。
 
@@ -414,7 +414,7 @@ Claude CodeはすべてのAPI呼び出しで会話履歴全体をモデルに送
 >
 > **API従量課金：** ＄146/日 × 22就業日 = **月＄3,200が請求書から削減。** このプラグインなしの重い月は＄7,000を超える。使えば＄4,000以下。同じ出力量。
 
-### claude-code-upgraderの介入ポイント
+### claude-code-token-saverの介入ポイント
 
 ```
 [Session Start]
@@ -441,12 +441,12 @@ Claude CodeはすべてのAPI呼び出しで会話履歴全体をモデルに送
 ## 🔧 ソースからのインストールとカスタマイズ
 
 ```bash
-git clone https://github.com/ww-w-ai/claude-code-upgrader.git
-/plugin marketplace add /path/to/claude-code-upgrader
-/plugin install claude-code-upgrader@claude-code-upgrader
+git clone https://github.com/ww-w-ai/claude-code-token-saver.git
+/plugin marketplace add /path/to/claude-code-token-saver
+/plugin install claude-code-token-saver@claude-code-token-saver
 ```
 
-claude-code-upgraderは完全オープンソース（Apache-2.0）。プレーンなJavaScript + Bash — コンパイル済みバイナリなし、外部API呼び出しなし、テレメトリなし。すべての行が監査可能。このREADMEのすべての主張は、読める具体的なファイルに対応している。
+claude-code-token-saverは完全オープンソース（Apache-2.0）。プレーンなJavaScript + Bash — コンパイル済みバイナリなし、外部API呼び出しなし、テレメトリなし。すべての行が監査可能。このREADMEのすべての主張は、読める具体的なファイルに対応している。
 
 - **hooks/** — キャッシュ期限切れのしきい値変更、警告メッセージのカスタマイズ、セッションアーキテクチャルールの変更
 - **scripts/** — 分析ロジック、レポートビルダー、ステータスラインのフォーマット

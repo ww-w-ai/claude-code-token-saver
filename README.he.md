@@ -1,4 +1,4 @@
-# claude-code-upgrader
+# claude-code-token-saver
 
 **התוסף היחיד ל-Claude Code שקורא בפועל את קוד המקור של CC כדי למצוא לאן הטוקנים שלך הולכים — ומתקן את זה אוטומטית. תוציא פחות, תכתוב קוד יותר.**
 
@@ -36,7 +36,7 @@
 
 **API לפי שימוש?** כל האמור לעיל, אלא שאין תקרה. miss cache אחד = $9 כסף אמיתי. עשר פעמים בשבוע = $360/חודש על תאונות בלבד. יום שלישי גרוע עם context מנופח יכול לעלות יותר ממה שמנוי Max Plan משלם בחודש.
 
-claude-code-upgrader מטפל בכל זה אוטומטית. **מתקין פעם אחת. גמרנו.**
+claude-code-token-saver מטפל בכל זה אוטומטית. **מתקין פעם אחת. גמרנו.**
 
 ---
 
@@ -44,7 +44,7 @@ claude-code-upgrader מטפל בכל זה אוטומטית. **מתקין פעם 
 
 ```
 /plugin marketplace add ww-w-ai/marketplace
-/plugin install claude-code-upgrader@ww-w-ai
+/plugin install claude-code-token-saver@ww-w-ai
 ```
 
 עובד אוטומטית לאחר ההתקנה. ללא הגדרה. דורש [Claude Code](https://claude.ai/claude-code) v2.1.71+.
@@ -291,7 +291,7 @@ Anthropic לא מפרסמת את הנוסחה המדויקת לחלון 5 השע
 
 בסשנים אינטראקטיביים טיפוסיים, הוראות commit/PR (1.7K tok) מצטברות **בכל קריאת API** דרך `cache_read`. על פני סשן של 100 קריאות במחירי Opus 4.7, זה בערך **$0.08 לסשן** רק עבור הוראות שהאימון של Claude כבר מכסה את רובן.
 
-### איך claude-code-upgrader מטפל בזה
+### איך claude-code-token-saver מטפל בזה
 
 `/setup-git-lite` מכבה את הנתיב המקורי ומזריק **תחליף מנוסח בקפידה של 280 טוקנים** דרך hook של SessionStart. שמרנו בדיוק את הדברים שעוקפים את התנהגות ברירת המחדל של Claude (כללי בטיחות), והשלכנו את כל מה שClaude כבר יודע מהאימון (workflows שלב אחר שלב, תבניות PR, דפוסי שימוש ב-gh).
 
@@ -343,7 +343,7 @@ Anthropic לא מפרסמת את הנוסחה המדויקת לחלון 5 השע
 
 אם אתה צריך את משתנה הסביבה מסיבות לא קשורות, רשום אותו לפני הרצת `revert` והוסף אותו מחדש לאחר מכן.
 
-### לפני הסרת התקנה של claude-code-upgrader
+### לפני הסרת התקנה של claude-code-token-saver
 
 **הרץ `/setup-git-lite revert` תחילה**, או שתישאר עם `includeGitInstructions: false` ב-settings.json שלך אך ללא hook חלופי (Claude לא מקבל הנחיות git בכלל). ל-Claude Code כיום אין hook מחזור חיים להסרת התקנת plugin, אז אנחנו לא יכולים להפוך את זה לאוטומטי.
 
@@ -356,7 +356,7 @@ Anthropic לא מפרסמת את הנוסחה המדויקת לחלון 5 השע
 
 ### באנר המלצה
 
-כשהוראות git המקוריות של CC עדיין פעילות במכונה שלך, claude-code-upgrader מציג רמז של פסקה אחת בתחילת הסשן **~20% מהזמן** (בנוסף לפלט `/usage-view` ו-`/report-limit`). השתק לצמיתות עם `/setup-git-lite dismiss-banner`.
+כשהוראות git המקוריות של CC עדיין פעילות במכונה שלך, claude-code-token-saver מציג רמז של פסקה אחת בתחילת הסשן **~20% מהזמן** (בנוסף לפלט `/usage-view` ו-`/report-limit`). השתק לצמיתות עם `/setup-git-lite dismiss-banner`.
 
 ---
 
@@ -379,7 +379,7 @@ Prompt cache מפחית עלות זו ב-90%. אבל ל-cache יש אורך חי
 
 תנאים: תמחור Opus 4, prompt אחד לדקה, ~5 קריאות API לprompt (~300 קריאות/שעה).
 
-#### ❌ ללא claude-code-upgrader
+#### ❌ ללא claude-code-token-saver
 
 רוב העבודה מתרחשת בסשן Main. Context גדל מהר.
 
@@ -394,7 +394,7 @@ Prompt cache מפחית עלות זו ב-90%. אבל ל-cache יש אורך חי
 
 > ברמת שימוש זו, כנראה תגיע למגבלת קצב חלון 5 השעות. **העלות גרועה, אבל הבעיה האמיתית היא שהעבודה שלך עוצרת לחלוטין. זה הרגע המדויק שבו Claude Code הולך לאפלה.**
 
-#### ✅ עם claude-code-upgrader
+#### ✅ עם claude-code-token-saver
 
 עבודה כבדה מואצלת ל-SubTasks. Main מטפל רק בעיצוב/החלטות.
 
@@ -414,7 +414,7 @@ Prompt cache מפחית עלות זו ב-90%. אבל ל-cache יש אורך חי
 >
 > **API לפי שימוש:** ＄146/יום × 22 ימי עבודה = **＄3,200/חודש ישר מהחשבונית שלך.** חודש כבד בלי התוסף הזה חוצה ＄7,000. איתו, מתחת ל-＄4,000. אותו פלט.
 
-### איפה claude-code-upgrader נכנס לפעולה
+### איפה claude-code-token-saver נכנס לפעולה
 
 ```
 [Session Start]
@@ -441,12 +441,12 @@ Prompt cache מפחית עלות זו ב-90%. אבל ל-cache יש אורך חי
 ## 🔧 התקנת קוד מקור והתאמה אישית
 
 ```bash
-git clone https://github.com/ww-w-ai/claude-code-upgrader.git
-/plugin marketplace add /path/to/claude-code-upgrader
-/plugin install claude-code-upgrader@claude-code-upgrader
+git clone https://github.com/ww-w-ai/claude-code-token-saver.git
+/plugin marketplace add /path/to/claude-code-token-saver
+/plugin install claude-code-token-saver@claude-code-token-saver
 ```
 
-claude-code-upgrader הוא קוד פתוח לחלוטין (Apache-2.0). JavaScript ו-Bash פשוטים — אין בינאריים מקומפלים, אין קריאות API חיצוניות, אין טלמטריה. כל שורה ניתנת לביקורת. כל טענה ב-README זה ממופה לקובץ ספציפי שאפשר לקרוא.
+claude-code-token-saver הוא קוד פתוח לחלוטין (Apache-2.0). JavaScript ו-Bash פשוטים — אין בינאריים מקומפלים, אין קריאות API חיצוניות, אין טלמטריה. כל שורה ניתנת לביקורת. כל טענה ב-README זה ממופה לקובץ ספציפי שאפשר לקרוא.
 
 - **hooks/** — שנה סף פקיעת cache, התאם הודעות אזהרה, שנה כללי ארכיטקטורת סשן
 - **scripts/** — לוגיקת ניתוח, בונה דוחות, עיצוב שורת סטטוס

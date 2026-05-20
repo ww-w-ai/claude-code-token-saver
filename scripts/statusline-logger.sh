@@ -34,7 +34,7 @@
 #   Hints: 5H🔴 → /report-limit, other warnings → /usage-view current
 #
 # Cache (side-effects):
-#   ~/.claude/cc-token-saver-data/{projectName}/{SESSION_ID}/ratelimit.csv
+#   ~/.claude/claude-code-token-saver-data/{projectName}/{SESSION_ID}/ratelimit.csv
 #     Header: ts,5h,5h_reset,7d,7d_reset,alert
 #     - ts: unix timestamp
 #     - 5h/7d: usage percentage (0-100, two decimals)
@@ -43,10 +43,10 @@
 #     - Rows appended only when 5h or 7d percentage changes (delta dedup)
 #     - projectName derived from CWD: sed 's/[^a-zA-Z0-9]/-/g'
 #
-#   $TMPDIR/cc-token-saver-state-{SESSION_ID}.csv
+#   $TMPDIR/claude-code-token-saver-state-{SESSION_ID}.csv
 #     Per-session cost delta state (cost,lastDelta). Used to calculate per-call cost.
 
-LOG_DIR="$HOME/.claude/cc-token-saver-data"
+LOG_DIR="$HOME/.claude/claude-code-token-saver-data"
 
 # Pipe stdin to node (avoids ARG_MAX limit)
 cat | node -e "
@@ -67,8 +67,8 @@ const session = d.session_id || null;
 // New turn detected when idle gap since last call > TURN_IDLE_SEC (default 60s).
 // RUN indicator shows cost accumulated within the current user turn, not per call.
 const dir = '$LOG_DIR';
-const stateFile = session ? require('os').tmpdir() + '/cc-token-saver-state-' + session + '.csv' : null;
-const TURN_IDLE_SEC = Number(process.env.CC_TOKEN_SAVER_TURN_IDLE_SEC) || 60;
+const stateFile = session ? require('path').join(require('os').tmpdir(), 'claude-code-token-saver-state-' + session + '.csv') : null;
+const TURN_IDLE_SEC = Number(process.env.CC_UPGRADER_TURN_IDLE_SEC || process.env.CC_TOKEN_SAVER_TURN_IDLE_SEC) || 60;
 let lastCost = null;
 let lastValidDelta = null;
 let turnStartCost = null;
@@ -107,8 +107,8 @@ if (stateFile) {
 // Append to rate limit CSV (per-session, project/session folder)
 if ((fiveH !== null || sevenD !== null) && deltaCost !== 0 && session) {
   const projectName = process.cwd().replace(/[^a-zA-Z0-9]/g, '-');
-  const csvDir = dir + '/' + projectName + '/' + session;
-  const csvFile = csvDir + '/ratelimit.csv';
+  const csvDir = require('path').join(dir, projectName, session);
+  const csvFile = require('path').join(csvDir, 'ratelimit.csv');
   fs.mkdirSync(csvDir, { recursive: true });
   let lastFiveH = null, lastFiveHReset = null, lastSevenD = null, lastSevenDReset = null;
   if (!fs.existsSync(csvFile)) {

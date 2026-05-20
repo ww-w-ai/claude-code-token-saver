@@ -17,7 +17,7 @@ If the user provides "help" as argument, show usage summary and stop:
 
 Got rate limited? This skill automatically finds your blocked
 5-hour windows from cached timeline data and opens a pre-filled
-GitHub Discussion to ww-w-ai/cc-token-saver.
+GitHub Discussion to ww-w-ai/claude-code-token-saver.
 
 No manual input needed. Just run it and confirm in your browser.
 
@@ -78,8 +78,8 @@ If the user doesn't know or skips plan, run without `--plan` (reports as "unknow
    ```
    ⚠️ 미등록 모델 {모델명}의 전체 가격 정보(특히 5m/1h 캐시 티어)를 공식 페이지에서 확인할 수 없습니다.
    플러그인을 최신 버전으로 업데이트해 주세요:
-     /plugin update cc-token-saver
-   업데이트 후에도 문제가 지속되면 https://github.com/ww-w-ai/cc-token-saver/issues 에 제보 부탁드립니다.
+     /plugin update claude-code-token-saver
+   업데이트 후에도 문제가 지속되면 https://github.com/ww-w-ai/claude-code-token-saver/issues 에 제보 부탁드립니다.
    ```
 5. (3번 성공 시) 동일한 Bash 명령을 그대로 재실행합니다. fail-fast 덕분에 stale cache가 없으므로 `--force`는 불필요합니다.
 6. 재실행이 성공하면 그대로 아래 요약 출력 단계로 진행합니다.
@@ -108,5 +108,5 @@ Discussion opened in browser. Review and submit.
 
 ## Prerequisites
 
-- GitHub Discussion category "Rate Limits" must exist on ww-w-ai/cc-token-saver
+- GitHub Discussion category "Rate Limits" must exist on ww-w-ai/claude-code-token-saver
 - `gh` CLI authenticated for gist upload (optional — falls back to local files)

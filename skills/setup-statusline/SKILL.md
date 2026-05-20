@@ -4,7 +4,7 @@ description: 'Live token counter in your CLI. Shows real-time input/output/cache
 when_to_use: Use when user wants to install, uninstall, or configure the token-saver statusline. Triggers on "setup statusline", "install statusline", "statusline install".
 ---
 
-Manage the cc-token-saver statusline in Claude Code's `~/.claude/settings.json`.
+Manage the claude-code-token-saver statusline in Claude Code's `~/.claude/settings.json`.
 
 ## Help
 
@@ -47,7 +47,7 @@ Do not modify any settings. Just display the help text and stop.
    **Case B: Already our script** — check if path matches current `${CLAUDE_PLUGIN_ROOT}`.
    If version differs, update path silently, then print "Updated to current version." and stop.
    If same version, print "Already installed." and stop.
-   Check by matching the command path containing `cc-token-saver/scripts/statusline-logger.sh`.
+   Check by matching the command path containing `claude-code-token-saver/scripts/statusline-logger.sh`.
 
    **Case C: Different statusLine exists** — warn and ask the user:
    ```
@@ -91,7 +91,7 @@ Do not modify any settings. Just display the help text and stop.
                         The turn cost accumulates across follow-up tool calls so a $1.43 warning
                         stays visible until you start a new prompt. A new turn is detected when
                         no API call happens for 60 seconds (tunable via
-                        `CC_TOKEN_SAVER_TURN_IDLE_SEC`). Resets when you exit and restart claude.
+                        `CC_UPGRADER_TURN_IDLE_SEC`). Resets when you exit and restart claude.
    - [5H]  9% ⏳1h32m — Anthropic 5-hour rate limit usage (subscribers only).
                         ⏳ shows time until the window resets.
    - [W]   65% ⏳1d3h — 7-day weekly rate limit. Only shown when ≥60%.
@@ -117,7 +117,7 @@ Do not modify any settings. Just display the help text and stop.
 1. Read `~/.claude/settings.json`
 2. Check current `statusLine`:
 
-   **Not our script** — print "cc-token-saver statusline is not installed." and stop.
+   **Not our script** — print "claude-code-token-saver statusline is not installed." and stop.
 
    **Our script** — remove `statusLine` field. If `_statusLineBackup` exists, restore it to `statusLine` and delete `_statusLineBackup`.
 

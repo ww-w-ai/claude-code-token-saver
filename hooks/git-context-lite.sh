@@ -1,7 +1,7 @@
 #!/bin/bash
 # git-context-lite.sh — SessionStart hook.
 #
-# Two independent behaviors, both gated by cc-token-saver preferences:
+# Two independent behaviors, both gated by claude-code-token-saver preferences:
 #
 # 1) If CC's built-in git instructions are disabled (via settings.json OR
 #    env var), inject a ~280 tok minimal replacement (static commit rules
@@ -60,7 +60,7 @@ DISMISSED=$(printf '%s' "$STATE_JSON" | node -e 'let d="";process.stdin.on("data
 # ── Branch A: Installed → inject minimal replacement ────────────
 if [ "$INSTALLED" = "true" ]; then
   cat <<'STATIC_EOF'
-## Git essentials (cc-token-saver minimum ruleset — replaces CC built-in)
+## Git essentials (claude-code-token-saver minimum ruleset — replaces CC built-in)
 
 ### Never without explicit user request
 - Commit, push, amend, create a PR, tag, or merge

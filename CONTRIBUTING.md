@@ -1,4 +1,4 @@
-# Contributing to cc-token-saver
+# Contributing to claude-code-token-saver
 
 Thanks for your interest in contributing! This project helps Claude Code users track and reduce token usage.
 

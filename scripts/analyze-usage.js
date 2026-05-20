@@ -10,7 +10,7 @@
  *                       Default: all projects.
  *   --force             Force re-analyze, ignore cached results
  *
- * Cache structure: ~/.claude/cc-token-saver-data/{projectName}/{sessionId}/
+ * Cache structure: ~/.claude/claude-code-token-saver-data/{projectName}/{sessionId}/
  *   summary.json   — session metadata (tokens, cost, timestamps)
  *   timeline.csv   — per-API-call timeline
  *   subagents/{agentId}/summary.json, timeline.csv — agent sessions
@@ -71,6 +71,7 @@ function writeFileAtomic(filePath, content) {
   fs.renameSync(tmp, filePath);
 }
 const CACHE_VERSION = 14; // v14: preprocess.js v6 self-managing cache format
+const _subagentSep = /[/\\]subagents[/\\]/;
 const PROJECTS_DIR = path.join(os.homedir(), ".claude", "projects");
 
 // v1.4.0: Per-row evt tags and structured rl column own all assistant-side
@@ -141,8 +142,8 @@ function listJsonlFiles(dirs, cutoffDate) {
           scanDir(fullPath);
         } else if (f.endsWith(".jsonl") && stat.mtime >= cutoffDate) {
           // Skip orphaned subagent transcripts (main session deleted)
-          if (fullPath.includes("/subagents/")) {
-            const parts = fullPath.split("/subagents/");
+          if (fullPath.match(_subagentSep)) {
+            const parts = fullPath.split(_subagentSep);
             const mainJsonl = parts[0] + ".jsonl";
             if (!fs.existsSync(mainJsonl)) continue;
           }
@@ -173,8 +174,8 @@ function resolveSessionPaths(filePath) {
   const basename = path.basename(filePath, ".jsonl");
 
   // Agent transcript: .../{mainSessionId}/subagents/agent-{agentId}.jsonl
-  if (filePath.includes("/subagents/")) {
-    const parts = filePath.split("/subagents/");
+  if (filePath.match(_subagentSep)) {
+    const parts = filePath.split(_subagentSep);
     const mainSessionId = path.basename(parts[0]); // directory name = mainSessionId
     // basename is "agent-{agentId}" — strip "agent-" prefix
     const agentId = basename.startsWith("agent-") ? basename.slice(6) : basename;
@@ -366,7 +367,7 @@ async function analyzeSession(filePath) {
       let text = "";
       if (typeof content === "string") text = content;
       else if (Array.isArray(content)) text = content.filter(b => b.type === "text" && b.text).map(b => b.text).join(" ");
-      if (text.includes("cc-token-saver:continue")) {
+      if (text.includes("claude-code-token-saver:continue")) {
         inContinueSequence = true;
         continueStartTs = ts;
         continueReads = [];
@@ -876,7 +877,7 @@ async function main() {
     // Build parent reqId sets keyed by main sessionId
     const parentReqIds = new Map(); // mainSessionId -> Set<reqId>
     for (const sess of sessions) {
-      if (!sess.filePath || sess.filePath.includes("/subagents/")) continue;
+      if (!sess.filePath || sess.filePath.match(_subagentSep)) continue;
       if (!Array.isArray(sess.reqEntries)) continue;
       const set = new Set();
       for (const e of sess.reqEntries) set.add(e.r);
@@ -885,10 +886,10 @@ async function main() {
 
     let dedupCount = 0;
     for (const sess of sessions) {
-      if (!sess.filePath || !sess.filePath.includes("/subagents/")) continue;
+      if (!sess.filePath || !sess.filePath.match(_subagentSep)) continue;
       if (!Array.isArray(sess.reqEntries) || sess.reqEntries.length === 0) continue;
       // Derive parent session id from file path
-      const parts = sess.filePath.split("/subagents/");
+      const parts = sess.filePath.split(_subagentSep);
       if (parts.length < 2) continue;
       const parentId = path.basename(parts[0]);
       const parentSet = parentReqIds.get(parentId);

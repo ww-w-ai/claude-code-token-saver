@@ -1,10 +1,10 @@
-# claude-code-upgrader
+# claude-code-token-saver
 
 > The only Claude Code plugin built from CC source code analysis. 45% cost reduction measured on real workloads.
 
 ## What it does
 
-claude-code-upgrader automatically reduces Claude Code API costs by preventing cache expiry waste, delegating work to cheaper SubTask sessions, and providing real-time cost visibility. Works with both Max Plan ($200/mo subscribers) and API pay-per-use billing.
+claude-code-token-saver automatically reduces Claude Code API costs by preventing cache expiry waste, delegating work to cheaper SubTask sessions, and providing real-time cost visibility. Works with both Max Plan ($200/mo subscribers) and API pay-per-use billing.
 
 ## Key features
 
@@ -35,11 +35,11 @@ Built by analyzing Claude Code source code (v2.1.88):
 
 ```
 /plugin marketplace add ww-w-ai/marketplace
-/plugin install claude-code-upgrader@ww-w-ai
+/plugin install claude-code-token-saver@ww-w-ai
 ```
 
 ## Links
 
-- Source: https://github.com/ww-w-ai/claude-code-upgrader
+- Source: https://github.com/ww-w-ai/claude-code-token-saver
 - License: Apache-2.0
 - Languages: 23 (auto-detected from OS locale)

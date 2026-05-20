@@ -1,4 +1,4 @@
-# claude-code-upgrader
+# claude-code-token-saver
 
 **Det enda Claude Code-tillägget som faktiskt läser CC:s källkod för att hitta var dina tokens tar vägen — och fixar det automatiskt. Spendera mindre, koda längre.**
 
@@ -36,7 +36,7 @@ Fungerar med **Max Plan ($200/mån)** och **API betala per användning**. Samma 
 
 **API betala per användning?** Allt ovanstående, förutom att det inte finns något tak. En cache-miss = $9 riktiga pengar. Tio gånger i veckan = $360/mån bara på misstag. En dålig tisdag med uppblåst kontext kan kosta mer än vad en Max Plan-prenumerant betalar under en månad.
 
-claude-code-upgrader hanterar allt detta automatiskt. **Installera en gång. Klart.**
+claude-code-token-saver hanterar allt detta automatiskt. **Installera en gång. Klart.**
 
 ---
 
@@ -44,7 +44,7 @@ claude-code-upgrader hanterar allt detta automatiskt. **Installera en gång. Kla
 
 ```
 /plugin marketplace add ww-w-ai/marketplace
-/plugin install claude-code-upgrader@ww-w-ai
+/plugin install claude-code-token-saver@ww-w-ai
 ```
 
 Fungerar automatiskt efter installation. Noll konfiguration. Kräver [Claude Code](https://claude.ai/claude-code) v2.1.71+.
@@ -291,7 +291,7 @@ Cachestrukturen (`utils/api.ts:321` `splitSysPromptPrefix`) har tre sökvägar b
 
 I typiska interaktiva sessioner ackumuleras commit/PR-instruktionerna (1,7K tok) **vid varje API-anrop** via `cache_read`. Under en 100-anropssession vid Opus 4.7-prissättning är det ungefär **$0,08 per session** bara för instruktioner som Claudes träning redan till stor del täcker.
 
-### Hur claude-code-upgrader hanterar det
+### Hur claude-code-token-saver hanterar det
 
 `/setup-git-lite` inaktiverar den ursprungliga sökvägen och injicerar ett **noggrant sammansatt 280-tokens-substitut** via en SessionStart-hook. Vi behöll exakt de saker som åsidosätter Claudes standardbeteende (säkerhetsregler) och kasserade allt som Claude redan vet från träning (steg-för-steg-arbetsflöden, PR-mallar, gh-användningsmönster).
 
@@ -343,7 +343,7 @@ Endera är tillräckligt för att inaktivera CC native; vi ställer in båda så
 
 Om du behöver miljövariabeln av orelaterade skäl, notera den innan du kör `revert` och lägg till den igen efteråt.
 
-### Innan du avinstallerar claude-code-upgrader
+### Innan du avinstallerar claude-code-token-saver
 
 **Kör `/setup-git-lite revert` först**, annars lämnas du med `includeGitInstructions: false` i din settings.json men ingen ersättningshook (Claude får inga git-vägledningar alls). Claude Code har för närvarande ingen plugin-avinstallationslivscykelhook, så vi kan inte automatisera detta.
 
@@ -356,7 +356,7 @@ Vad du förlorar (och varför det vanligtvis är okej):
 
 ### Rekommendationsbanner
 
-När CC:s inbyggda git-instruktioner fortfarande är aktiva på din maskin visar claude-code-upgrader ett styckestips vid sessionstart **~20% av tiden** (plus i `/usage-view`- och `/report-limit`-utdata). Tysta permanent med `/setup-git-lite dismiss-banner`.
+När CC:s inbyggda git-instruktioner fortfarande är aktiva på din maskin visar claude-code-token-saver ett styckestips vid sessionstart **~20% av tiden** (plus i `/usage-view`- och `/report-limit`-utdata). Tysta permanent med `/setup-git-lite dismiss-banner`.
 
 ---
 
@@ -379,7 +379,7 @@ Promptcache minskar den här kostnaden med 90%. Men cache har en livslängd.
 
 Villkor: Opus 4-prissättning, 1 prompt per minut, ~5 API-anrop per prompt (~300 anrop/timme).
 
-#### ❌ Utan claude-code-upgrader
+#### ❌ Utan claude-code-token-saver
 
 Det mesta arbetet sker i Main-sessionen. Kontexten växer snabbt.
 
@@ -394,7 +394,7 @@ Det mesta arbetet sker i Main-sessionen. Kontexten växer snabbt.
 
 > Vid den här användningsnivån kommer du troligen att nå hastighetsgränsen för 5-timmarsfönstret. **Kostnaden är dålig, men det verkliga problemet är att ditt arbete stannar helt. Det här är det exakta ögonblicket Claude Code slocknar.**
 
-#### ✅ Med claude-code-upgrader
+#### ✅ Med claude-code-token-saver
 
 Tungt arbete delegeras till SubTasks. Main hanterar bara design/beslut.
 
@@ -414,7 +414,7 @@ Tungt arbete delegeras till SubTasks. Main hanterar bara design/beslut.
 >
 > **API betala per användning:** ＄146/dag × 22 arbetsdagar = **＄3 200/mån direkt från din faktura.** En tung månad utan det här tillägget överstiger ＄7 000. Med det, under ＄4 000. Samma utdata.
 
-### Var claude-code-upgrader ingriper
+### Var claude-code-token-saver ingriper
 
 ```
 [Session Start]
@@ -441,12 +441,12 @@ Tungt arbete delegeras till SubTasks. Main hanterar bara design/beslut.
 ## 🔧 Källinstallation och anpassning
 
 ```bash
-git clone https://github.com/ww-w-ai/claude-code-upgrader.git
-/plugin marketplace add /path/to/claude-code-upgrader
-/plugin install claude-code-upgrader@claude-code-upgrader
+git clone https://github.com/ww-w-ai/claude-code-token-saver.git
+/plugin marketplace add /path/to/claude-code-token-saver
+/plugin install claude-code-token-saver@claude-code-token-saver
 ```
 
-claude-code-upgrader är helt öppen källkod (Apache-2.0). Ren JavaScript + Bash — inga kompilerade binärer, inga externa API-anrop, ingen telemetri. Varje rad är granskningsbar. Varje påstående i den här README:n mappas till en specifik fil du kan läsa.
+claude-code-token-saver är helt öppen källkod (Apache-2.0). Ren JavaScript + Bash — inga kompilerade binärer, inga externa API-anrop, ingen telemetri. Varje rad är granskningsbar. Varje påstående i den här README:n mappas till en specifik fil du kan läsa.
 
 - **hooks/** — Ändra tröskeln för cache-utgång, anpassa varningsmeddelanden, ändra sessionsarkitekturregler
 - **scripts/** — Analyslogik, rapportbyggare, statusradsformatering

@@ -1,4 +1,4 @@
-# claude-code-upgrader
+# claude-code-token-saver
 
 **O único plugin do Claude Code que realmente lê o código-fonte do CC para descobrir para onde vão seus tokens — e corrige isso automaticamente. Gaste menos, programe por mais tempo.**
 
@@ -36,7 +36,7 @@ Funciona com **Max Plan ($200/mês)** e **API de pagamento por uso**. O mesmo pl
 
 **API de pagamento por uso?** Tudo acima, exceto que não há teto. Um miss de cache = $9 de dinheiro real. Dez vezes por semana = $360/mês só em acidentes. Uma terça-feira ruim com contexto inflado pode custar mais do que um assinante do Max Plan paga em um mês.
 
-claude-code-upgrader cuida de tudo isso automaticamente. **Instale uma vez. Pronto.**
+claude-code-token-saver cuida de tudo isso automaticamente. **Instale uma vez. Pronto.**
 
 ---
 
@@ -44,7 +44,7 @@ claude-code-upgrader cuida de tudo isso automaticamente. **Instale uma vez. Pron
 
 ```
 /plugin marketplace add ww-w-ai/marketplace
-/plugin install claude-code-upgrader@ww-w-ai
+/plugin install claude-code-token-saver@ww-w-ai
 ```
 
 Funciona automaticamente após a instalação. Zero configuração. Requer [Claude Code](https://claude.ai/claude-code) v2.1.71+.
@@ -291,7 +291,7 @@ A estrutura de cache (`utils/api.ts:321` `splitSysPromptPrefix`) tem três camin
 
 Em sessões interativas típicas, as instruções commit/PR (1,7K tok) se acumulam **em cada chamada à API** via `cache_read`. Nos preços do Opus 4.7, em uma sessão de 100 chamadas, isso é aproximadamente **~$0,08 por sessão** apenas para instruções que o treinamento do Claude já cobre em sua maior parte.
 
-### Como o claude-code-upgrader lida com isso
+### Como o claude-code-token-saver lida com isso
 
 `/setup-git-lite` desabilita o caminho nativo e injeta um **substituto curado de 280 tokens** via um hook SessionStart. Mantivemos exatamente o que substitui o comportamento padrão do Claude (regras de segurança), e descartamos tudo que o Claude já sabe pelo treinamento (fluxos de trabalho passo a passo, modelos de PR, padrões de uso do gh).
 
@@ -343,7 +343,7 @@ Qualquer um sozinho é suficiente para desabilitar o CC nativo; definimos ambos 
 
 Se você precisar da variável de ambiente por razões não relacionadas, anote-a antes de executar `revert` e adicione-a novamente depois.
 
-### Antes de desinstalar o claude-code-upgrader
+### Antes de desinstalar o claude-code-token-saver
 
 **Execute primeiro `/setup-git-lite revert`**, ou você ficará com `includeGitInstructions: false` no seu settings.json mas sem hook de substituição (Claude não recebe nenhuma orientação de git). O Claude Code atualmente não tem um hook de ciclo de vida de desinstalação de plugin, então não podemos automatizar isso.
 
@@ -356,7 +356,7 @@ O que você perde (e por que normalmente está tudo bem):
 
 ### Banner de recomendação
 
-Quando as instruções git nativas do CC ainda estão ativas na sua máquina, o claude-code-upgrader mostra uma dica de um parágrafo no início da sessão **~20% do tempo** (além nas saídas de `/usage-view` e `/report-limit`). Descarte permanentemente com `/setup-git-lite dismiss-banner`.
+Quando as instruções git nativas do CC ainda estão ativas na sua máquina, o claude-code-token-saver mostra uma dica de um parágrafo no início da sessão **~20% do tempo** (além nas saídas de `/usage-view` e `/report-limit`). Descarte permanentemente com `/setup-git-lite dismiss-banner`.
 
 ---
 
@@ -379,7 +379,7 @@ Mesmo com o cache ativo, os custos se acumulam. Aqui está um cenário extremo p
 
 Condições: preços do Opus 4, 1 prompt por minuto, ~5 chamadas à API por prompt (~300 chamadas/hora).
 
-#### ❌ Sem claude-code-upgrader
+#### ❌ Sem claude-code-token-saver
 
 A maior parte do trabalho acontece na Main Session. O contexto cresce rapidamente.
 
@@ -394,7 +394,7 @@ A maior parte do trabalho acontece na Main Session. O contexto cresce rapidament
 
 > Neste nível de uso, você provavelmente atingirá o limite de taxa da janela de 5 horas. **O custo é ruim, mas o verdadeiro problema é seu trabalho parar completamente. Este é o exato momento em que o Claude Code fica escuro.**
 
-#### ✅ Com claude-code-upgrader
+#### ✅ Com claude-code-token-saver
 
 O trabalho pesado é delegado para SubTasks. Main cuida apenas de design/decisões.
 
@@ -414,7 +414,7 @@ O trabalho pesado é delegado para SubTasks. Main cuida apenas de design/decisõ
 >
 > **API de pagamento por uso:** ＄146/dia × 22 dias úteis = **＄3.200/mês direto da sua fatura.** Um mês pesado sem este plugin ultrapassa ＄7.000. Com ele, abaixo de ＄4.000. O mesmo output.
 
-### Onde o claude-code-upgrader intervém
+### Onde o claude-code-token-saver intervém
 
 ```
 [Session Start]
@@ -441,12 +441,12 @@ O trabalho pesado é delegado para SubTasks. Main cuida apenas de design/decisõ
 ## 🔧 Instalação de Fonte & Personalização
 
 ```bash
-git clone https://github.com/ww-w-ai/claude-code-upgrader.git
-/plugin marketplace add /path/to/claude-code-upgrader
-/plugin install claude-code-upgrader@claude-code-upgrader
+git clone https://github.com/ww-w-ai/claude-code-token-saver.git
+/plugin marketplace add /path/to/claude-code-token-saver
+/plugin install claude-code-token-saver@claude-code-token-saver
 ```
 
-claude-code-upgrader é totalmente open-source (Apache-2.0). JavaScript puro + Bash — sem binários compilados, sem chamadas a APIs externas, sem telemetria. Cada linha é auditável. Cada afirmação neste README mapeia para um arquivo específico que você pode ler.
+claude-code-token-saver é totalmente open-source (Apache-2.0). JavaScript puro + Bash — sem binários compilados, sem chamadas a APIs externas, sem telemetria. Cada linha é auditável. Cada afirmação neste README mapeia para um arquivo específico que você pode ler.
 
 - **hooks/** — Mudar o limite de expiração do cache, personalizar mensagens de aviso, modificar regras de arquitetura de sessão
 - **scripts/** — Lógica de análise, construtor de relatórios, formatação da barra de status

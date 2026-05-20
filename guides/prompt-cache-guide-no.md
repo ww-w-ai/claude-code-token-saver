@@ -69,14 +69,14 @@ To arsaker:
 
 Med andre ord oppstar cache write ikke bare for «nye tokens fra brukeren». Ved sesjonsstart caches hele systemprompten; etter utlop blir hele den akkumulerte samtalen et cache write-mal. Hvis cachen for en 100K-tokens-samtale utloper, utloser en enkelt melding en cache write pa 100K tokens pa en gang.
 
-**Det er nettopp derfor cc-token-saver-pluginen viser en cache-utlopsadvarsel etter 1 times inaktivitet.** Nar advarselen vises, sjekk din navarende kontekststorrelse:
+**Det er nettopp derfor claude-code-token-saver-pluginen viser en cache-utlopsadvarsel etter 1 times inaktivitet.** Nar advarselen vises, sjekk din navarende kontekststorrelse:
 
 - **Liten kontekst**: cache-gjenskapingskostnaden er handterbar. Bare fortsett a jobbe — kostnaden er lav.
 - **Stor kontekst**: cachekostnaden blir betydelig. Vi anbefaler `/clear` etterfulgt av `/continue last` for a fortsette i en ny sesjon. Continue-ferdigheten gjenoppretter automatisk konteksten fra forrige samtale, sa arbeidsflyten din avbrytes ikke.
 
 ## Strategier for a redusere cachekostnader
 
-cc-token-saver-pluginen er designet for a automatisere eller forenkle alle disse strategiene.
+claude-code-token-saver-pluginen er designet for a automatisere eller forenkle alle disse strategiene.
 
 ### 1. Hold konteksten liten — `/clear` + `/continue` ⭐
 
@@ -90,13 +90,13 @@ Nar temaet endres eller samtalen blir lang, kjor `/clear` for a tilbakestille, d
 
 Anthropics hovedsesjon bruker **1-times-tier** for cache. Etter utlop ma forste foresporsel gjenskape hele samtalen som cache write, noe som er dyrt.
 
-cc-token-saver oppdager 1 times inaktivitet og **viser automatisk en advarsel**. Nar advarselen vises, er det mest okonomiske a bruke metode 1 ovenfor (`/clear` + `/continue`) for a fortsette i en ny sesjon.
+claude-code-token-saver oppdager 1 times inaktivitet og **viser automatisk en advarsel**. Nar advarselen vises, er det mest okonomiske a bruke metode 1 ovenfor (`/clear` + `/continue`) for a fortsette i en ny sesjon.
 
 ### 3. Deleger tungt arbeid til SubTasks
 
 Tunge oppgaver som kodegenerering eller redigering av flere filer kan delegeres til SubTasks i stedet for a kjore dem direkte i hovedsesjonen. SubTasks bruker 5-minutters cache-tier, noe som gjor **cache writes 37,5 % billigere**, og kjorer i en isolert mindre kontekst som reduserer cache read-volumet per kall.
 
-cc-token-saver veileder automatisk mot dette arbeidsfordelingsmonsteret ved sesjonsstart.
+claude-code-token-saver veileder automatisk mot dette arbeidsfordelingsmonsteret ved sesjonsstart.
 
 ### 4. Sanntids kostnadsovervaking — `/setup-statusline`
 
@@ -110,7 +110,7 @@ Bruk `/usage-view` for a se hele brukshistorikken din som et dashboard. Visualis
 
 Jo flere plugins, MCP-servere og ferdigheter som lastes i systemprompten, desto høyere blir den initielle cache write-kostnaden. Fjern alt du ikke bruker.
 
-`/setup-git-lite` fra cc-token-saver reduserer Claude Codes standard Git-instruksjoner (~2 200 tokens) til en kjerne pa 280 tokens — en reduksjon pa omtrent 88 % i Git-relatert systemprompt per sesjon.
+`/setup-git-lite` fra claude-code-token-saver reduserer Claude Codes standard Git-instruksjoner (~2 200 tokens) til en kjerne pa 280 tokens — en reduksjon pa omtrent 88 % i Git-relatert systemprompt per sesjon.
 
 ### 7. Verktoyvalg — kontekstpavirkning varierer per verktoy
 
@@ -137,7 +137,7 @@ Samme prinsipp gjelder for redigering og sammenligning:
 | **git diff / diff** | Sammenligne filer/mapper | **Minimal** — bare forskjeller returneres |
 | Lese begge filer separat | Sammenligne filer/mapper | **Stor** — begge fullstendige filer legges til i konteksten |
 
-cc-token-saver injiserer automatisk denne verktoyguiden til AI-en ved sesjonsstart og oppfordrer til a bruke lette verktoy forst.
+claude-code-token-saver injiserer automatisk denne verktoyguiden til AI-en ved sesjonsstart og oppfordrer til a bruke lette verktoy forst.
 
 ## Vedlegg: cachejammenforing mellom AI-leverandorer
 

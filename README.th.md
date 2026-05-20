@@ -1,4 +1,4 @@
-# claude-code-upgrader
+# claude-code-token-saver
 
 **ปลั๊กอิน Claude Code เดียวที่อ่านซอร์สโค้ดของ CC จริงๆ เพื่อค้นหาว่าโทเค็นของคุณไปอยู่ที่ไหน — และแก้ไขมันโดยอัตโนมัติ ใช้จ่ายน้อยลง ทำงานได้นานขึ้น**
 
@@ -36,7 +36,7 @@
 
 **API แบบจ่ายตามการใช้งาน?** ทั้งหมดข้างต้น แต่ไม่มีเพดาน แคช miss หนึ่งครั้ง = $9 เงินจริง สิบครั้งต่อสัปดาห์ = $360/เดือนจากความผิดพลาดเพียงอย่างเดียว วันอังคารที่แย่กับคอนเทกซ์บวมอาจมีค่าใช้จ่ายมากกว่าที่สมาชิก Max Plan จ่ายในหนึ่งเดือน
 
-claude-code-upgrader จัดการทั้งหมดนี้โดยอัตโนมัติ **ติดตั้งครั้งเดียว เสร็จเรียบร้อย**
+claude-code-token-saver จัดการทั้งหมดนี้โดยอัตโนมัติ **ติดตั้งครั้งเดียว เสร็จเรียบร้อย**
 
 ---
 
@@ -44,7 +44,7 @@ claude-code-upgrader จัดการทั้งหมดนี้โดย�
 
 ```
 /plugin marketplace add ww-w-ai/marketplace
-/plugin install claude-code-upgrader@ww-w-ai
+/plugin install claude-code-token-saver@ww-w-ai
 ```
 
 ทำงานอัตโนมัติหลังการติดตั้ง ไม่ต้องตั้งค่า ต้องการ [Claude Code](https://claude.ai/claude-code) v2.1.71+
@@ -291,7 +291,7 @@ Anthropic ไม่เปิดเผยสูตรที่แน่นอน�
 
 ใน session เชิงโต้ตอบทั่วไป คำสั่ง commit/PR (1.7K tok) สะสม **ทุก API call** ผ่าน `cache_read` ใน session 100-call ที่ราคา Opus 4.7 นั่นคือประมาณ **$0.08 ต่อ session** เพียงแค่สำหรับคำสั่งที่การฝึกของ Claude ครอบคลุมอยู่แล้วส่วนใหญ่
 
-### claude-code-upgrader จัดการอย่างไร
+### claude-code-token-saver จัดการอย่างไร
 
 `/setup-git-lite` ปิดใช้งานเส้นทางเดิมและฉีด **การแทนที่ 280-token ที่คัดสรรมาแล้ว** ผ่าน SessionStart hook เราเก็บไว้เฉพาะสิ่งที่แทนที่พฤติกรรมเริ่มต้นของ Claude (กฎความปลอดภัย) และทิ้งทุกอย่างที่ Claude รู้แล้วจากการฝึก (เวิร์กโฟลว์ทีละขั้น เทมเพลต PR รูปแบบการใช้งาน gh)
 
@@ -343,7 +343,7 @@ Anthropic ไม่เปิดเผยสูตรที่แน่นอน�
 
 หากคุณต้องการตัวแปรสภาพแวดล้อมด้วยเหตุผลที่ไม่เกี่ยวข้อง จดบันทึกไว้ก่อนรัน `revert` แล้วเพิ่มกลับหลังจากนั้น
 
-### ก่อนถอนการติดตั้ง claude-code-upgrader
+### ก่อนถอนการติดตั้ง claude-code-token-saver
 
 **รัน `/setup-git-lite revert` ก่อน** หรือคุณจะเหลือ `includeGitInstructions: false` ใน settings.json แต่ไม่มี hook แทนที่ (Claude จะไม่ได้รับคำแนะนำ git เลย) Claude Code ปัจจุบันไม่มี lifecycle hook สำหรับการถอนการติดตั้งปลั๊กอิน ดังนั้นเราไม่สามารถทำให้เป็นอัตโนมัติได้
 
@@ -356,7 +356,7 @@ Anthropic ไม่เปิดเผยสูตรที่แน่นอน�
 
 ### แบนเนอร์คำแนะนำ
 
-เมื่อคำสั่ง git native ของ CC ยังคงใช้งานอยู่บนเครื่องของคุณ claude-code-upgrader แสดงคำแนะนำหนึ่งย่อหน้าเมื่อเริ่ม session **~20% ของเวลา** (บวกกับใน output ของ `/usage-view` และ `/report-limit`) ปิดถาวรด้วย `/setup-git-lite dismiss-banner`
+เมื่อคำสั่ง git native ของ CC ยังคงใช้งานอยู่บนเครื่องของคุณ claude-code-token-saver แสดงคำแนะนำหนึ่งย่อหน้าเมื่อเริ่ม session **~20% ของเวลา** (บวกกับใน output ของ `/usage-view` และ `/report-limit`) ปิดถาวรด้วย `/setup-git-lite dismiss-banner`
 
 ---
 
@@ -379,7 +379,7 @@ Prompt cache ลดต้นทุนนี้ลง 90% แต่แคชม�
 
 เงื่อนไข: ราคา Opus 4, 1 prompt ต่อนาที, ~5 API calls ต่อ prompt (~300 calls/ชั่วโมง)
 
-#### ❌ ไม่มี claude-code-upgrader
+#### ❌ ไม่มี claude-code-token-saver
 
 งานส่วนใหญ่เกิดขึ้นใน Main session คอนเทกซ์โตเร็ว
 
@@ -394,7 +394,7 @@ Prompt cache ลดต้นทุนนี้ลง 90% แต่แคชม�
 
 > ที่ระดับการใช้งานนี้ คุณน่าจะโดน rate limit ของหน้าต่าง 5 ชั่วโมง **ต้นทุนแย่ แต่ปัญหาจริงคืองานของคุณหยุดโดยสิ้นเชิง นั่นคือช่วงเวลาที่ Claude Code ดับสนิท**
 
-#### ✅ มี claude-code-upgrader
+#### ✅ มี claude-code-token-saver
 
 งานหนักถูกมอบหมายให้ SubTask Main จัดการแค่การออกแบบ/การตัดสินใจ
 
@@ -414,7 +414,7 @@ Prompt cache ลดต้นทุนนี้ลง 90% แต่แคชม�
 >
 > **API แบบจ่ายตามการใช้งาน:** ＄146/วัน × 22 วันทำงาน = **＄3,200/เดือนตรงๆ จากใบแจ้งหนี้ของคุณ** เดือนที่หนักโดยไม่มีปลั๊กอินนี้เกิน ＄7,000 มีปลั๊กอินนี้ ต่ำกว่า ＄4,000 output เท่ากัน
 
-### claude-code-upgrader เข้ามามีบทบาทที่ไหน
+### claude-code-token-saver เข้ามามีบทบาทที่ไหน
 
 ```
 [เริ่ม Session]
@@ -441,12 +441,12 @@ Prompt cache ลดต้นทุนนี้ลง 90% แต่แคชม�
 ## 🔧 ติดตั้งจากซอร์สและการปรับแต่ง
 
 ```bash
-git clone https://github.com/ww-w-ai/claude-code-upgrader.git
-/plugin marketplace add /path/to/claude-code-upgrader
-/plugin install claude-code-upgrader@claude-code-upgrader
+git clone https://github.com/ww-w-ai/claude-code-token-saver.git
+/plugin marketplace add /path/to/claude-code-token-saver
+/plugin install claude-code-token-saver@claude-code-token-saver
 ```
 
-claude-code-upgrader เป็น open-source ทั้งหมด (Apache-2.0) JavaScript + Bash ธรรมดา — ไม่มี binary ที่คอมไพล์แล้ว ไม่มีการเรียก API ภายนอก ไม่มี telemetry ทุกบรรทัดตรวจสอบได้ ทุกคำกล่าวอ้างใน README นี้แมปไปยังไฟล์เฉพาะที่คุณสามารถอ่านได้
+claude-code-token-saver เป็น open-source ทั้งหมด (Apache-2.0) JavaScript + Bash ธรรมดา — ไม่มี binary ที่คอมไพล์แล้ว ไม่มีการเรียก API ภายนอก ไม่มี telemetry ทุกบรรทัดตรวจสอบได้ ทุกคำกล่าวอ้างใน README นี้แมปไปยังไฟล์เฉพาะที่คุณสามารถอ่านได้
 
 - **hooks/** — เปลี่ยนเกณฑ์การหมดอายุของแคช ปรับแต่งข้อความเตือน แก้ไขกฎสถาปัตยกรรม session
 - **scripts/** — Logic การวิเคราะห์ ตัวสร้างรายงาน การจัดรูปแบบ status line

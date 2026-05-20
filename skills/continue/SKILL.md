@@ -123,7 +123,7 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/preprocess.js "${TRANSCRIPT_PATH}"
 The cache file is at:
 ```bash
 PROJECT_HASH=$(echo "${PWD}" | sed 's/[^a-zA-Z0-9]/-/g')
-CACHE_FILE="${HOME}/.claude/cc-token-saver-data/${PROJECT_HASH}/${SESSION_ID}/compact.txt"
+CACHE_FILE="${HOME}/.claude/claude-code-token-saver-data/${PROJECT_HASH}/${SESSION_ID}/compact.txt"
 ```
 
 **Current session with context-loss**: The compact.txt contains the FULL session. When reading it, use `lastContextLossLine` from list-sessions.js to filter: only read entries where `L{n} < lastContextLossLine`. Content after the last context-loss event is already in live LLM memory.
@@ -342,7 +342,7 @@ You MUST review the last 5 messages from the restored context and provide a "Las
 [Context restored by /continue]
 - {N} session(s) loaded ({date range})
 - [Session:{sid} {ISO} L{n}] headers link to original transcripts at ~/.claude/projects/{PROJECT_HASH}/{SESSION_ID}.jsonl — use L{n} to read the exact line.
-- Preprocessed caches: ~/.claude/cc-token-saver-data/{PROJECT_HASH}/{SESSION_ID}/compact.txt
+- Preprocessed caches: ~/.claude/claude-code-token-saver-data/{PROJECT_HASH}/{SESSION_ID}/compact.txt
 - 💡 Next session: run `/clear` first, then `/continue` to restore context cheaply
 
 **Last 5 messages:**

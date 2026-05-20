@@ -1,4 +1,4 @@
-# claude-code-upgrader
+# claude-code-token-saver
 
 **Claude Code 소스를 직접 뜯어서, 당신 돈이 어디서 새는지 찾아냈습니다. 자동으로 막아주고, 더 싸게, 더 오래 쓰게 해줍니다.**
 
@@ -36,7 +36,7 @@
 
 **API 종량제?** 위의 모든 것에, 상한선도 없습니다. 캐시 미스 한 번 = 실제 돈 $9. 일주일에 열 번 = 사고만으로 월 $360. 컨텍스트가 부풀어 오른 나쁜 화요일 하루가 Max Plan 구독자의 한 달치 요금보다 더 나올 수 있습니다.
 
-claude-code-upgrader가 이 모든 것을 자동으로 처리합니다. **한 번 설치. 끝.**
+claude-code-token-saver가 이 모든 것을 자동으로 처리합니다. **한 번 설치. 끝.**
 
 ---
 
@@ -44,7 +44,7 @@ claude-code-upgrader가 이 모든 것을 자동으로 처리합니다. **한 �
 
 ```
 /plugin marketplace add ww-w-ai/marketplace
-/plugin install claude-code-upgrader@ww-w-ai
+/plugin install claude-code-token-saver@ww-w-ai
 ```
 
 설치 후 자동으로 작동합니다. 설정 불필요. [Claude Code](https://claude.ai/claude-code) v2.1.71+ 필요.
@@ -291,7 +291,7 @@ Anthropic은 5시간 윈도우의 정확한 공식을 공개하지 않습니다.
 
 일반적인 인터랙티브 세션에서 커밋/PR 지침(1.7K tok)은 `cache_read`를 통해 **모든 API 호출에 누적**됩니다. Opus 4.7 가격 기준 100회 호출 세션이라면, Claude의 학습 데이터가 이미 대부분 커버하는 지침에 **세션당 ~$0.08**이 소모됩니다.
 
-### claude-code-upgrader의 처리 방식
+### claude-code-token-saver의 처리 방식
 
 `/setup-git-lite`는 네이티브 경로를 비활성화하고 SessionStart 훅을 통해 **280 토큰 맞춤형 대체 지침**을 주입합니다. Claude의 기본 행동을 재정의하는 것(안전 규칙)만 남기고, Claude가 학습으로 이미 아는 것(단계별 워크플로우, PR 템플릿, gh 사용 패턴)은 제거했습니다.
 
@@ -343,7 +343,7 @@ Anthropic은 5시간 윈도우의 정확한 공식을 공개하지 않습니다.
 
 다른 이유로 해당 환경 변수가 필요하다면, `revert` 실행 전에 기록해 두고 이후에 다시 추가하세요.
 
-### claude-code-upgrader 제거 전
+### claude-code-token-saver 제거 전
 
 **먼저 `/setup-git-lite revert`를 실행하세요.** 그렇지 않으면 settings.json에 `includeGitInstructions: false`만 남고 대체 훅은 없는 상태가 됩니다(Claude가 git 지침을 전혀 받지 못합니다). Claude Code는 현재 플러그인 제거 라이프사이클 훅을 지원하지 않아 자동화할 수 없습니다.
 
@@ -356,7 +356,7 @@ Anthropic은 5시간 윈도우의 정확한 공식을 공개하지 않습니다.
 
 ### 추천 배너
 
-CC 네이티브 git 지침이 아직 활성화된 상태라면, claude-code-upgrader가 세션 시작 시 **~20% 확률**로 한 단락짜리 팁을 표시합니다(`/usage-view`와 `/report-limit` 출력에도 포함). `/setup-git-lite dismiss-banner`로 영구적으로 숨길 수 있습니다.
+CC 네이티브 git 지침이 아직 활성화된 상태라면, claude-code-token-saver가 세션 시작 시 **~20% 확률**로 한 단락짜리 팁을 표시합니다(`/usage-view`와 `/report-limit` 출력에도 포함). `/setup-git-lite dismiss-banner`로 영구적으로 숨길 수 있습니다.
 
 ---
 
@@ -379,7 +379,7 @@ Claude Code는 모든 API 호출에서 전체 대화 기록을 모델에 전송�
 
 조건: Opus 4 가격, 분당 프롬프트 1개, 프롬프트당 API 호출 ~5회(시간당 ~300회).
 
-#### ❌ claude-code-upgrader 없이
+#### ❌ claude-code-token-saver 없이
 
 대부분의 작업이 Main 세션에서 이루어집니다. 컨텍스트가 빠르게 늘어납니다.
 
@@ -394,7 +394,7 @@ Claude Code는 모든 API 호출에서 전체 대화 기록을 모델에 전송�
 
 > 이 사용량 수준에서는 5시간 윈도우 요금 한도에 걸릴 가능성이 높습니다. **비용도 문제지만, 진짜 문제는 작업이 완전히 멈추는 것입니다. 바로 이 순간 Claude Code가 암흑 속으로 들어갑니다.**
 
-#### ✅ claude-code-upgrader로
+#### ✅ claude-code-token-saver로
 
 무거운 작업은 SubTask에 위임됩니다. Main은 설계/의사결정만 처리합니다.
 
@@ -414,7 +414,7 @@ Claude Code는 모든 API 호출에서 전체 대화 기록을 모델에 전송�
 >
 > **API 종량제:** ＄146/일 × 22 근무일 = **청구서에서 월 ＄3,200 절감.** 이 플러그인 없이 무거운 달은 ＄7,000을 넘습니다. 있으면 ＄4,000 미만. 같은 출력.
 
-### claude-code-upgrader가 개입하는 지점
+### claude-code-token-saver가 개입하는 지점
 
 ```
 [세션 시작]
@@ -441,12 +441,12 @@ Claude Code는 모든 API 호출에서 전체 대화 기록을 모델에 전송�
 ## 🔧 소스 설치 및 커스터마이징
 
 ```bash
-git clone https://github.com/ww-w-ai/claude-code-upgrader.git
-/plugin marketplace add /path/to/claude-code-upgrader
-/plugin install claude-code-upgrader@claude-code-upgrader
+git clone https://github.com/ww-w-ai/claude-code-token-saver.git
+/plugin marketplace add /path/to/claude-code-token-saver
+/plugin install claude-code-token-saver@claude-code-token-saver
 ```
 
-claude-code-upgrader는 완전한 오픈소스(Apache-2.0)입니다. 순수 JavaScript + Bash — 컴파일된 바이너리, 외부 API 호출, 텔레메트리 없음. 모든 라인이 감사 가능합니다. 이 README의 모든 주장은 직접 읽을 수 있는 특정 파일에 매핑됩니다.
+claude-code-token-saver는 완전한 오픈소스(Apache-2.0)입니다. 순수 JavaScript + Bash — 컴파일된 바이너리, 외부 API 호출, 텔레메트리 없음. 모든 라인이 감사 가능합니다. 이 README의 모든 주장은 직접 읽을 수 있는 특정 파일에 매핑됩니다.
 
 - **hooks/** — 캐시 만료 임계값 변경, 경고 메시지 커스터마이징, 세션 아키텍처 규칙 수정
 - **scripts/** — 분석 로직, 리포트 빌더, 상태 표시줄 형식

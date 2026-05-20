@@ -1,4 +1,4 @@
-# claude-code-upgrader
+# claude-code-token-saver
 
 **Plugin Claude Code duy nhất thực sự đọc mã nguồn của CC để tìm ra nơi token của bạn đang đi — và tự động khắc phục. Chi ít hơn, code lâu hơn.**
 
@@ -36,7 +36,7 @@ Hoạt động với **Max Plan ($200/tháng)** và **API trả theo lượng d�
 
 **API trả theo lượng dùng?** Tất cả những điều trên, ngoại trừ không có trần giới hạn. Một lần bỏ lỡ cache = $9 tiền thật. Mười lần một tuần = $360/tháng chỉ vì tai nạn. Một ngày thứ Ba tệ với ngữ cảnh phình to có thể tốn nhiều hơn những gì người dùng Max Plan trả trong một tháng.
 
-claude-code-upgrader xử lý tất cả tự động. **Cài một lần. Xong.**
+claude-code-token-saver xử lý tất cả tự động. **Cài một lần. Xong.**
 
 ---
 
@@ -44,7 +44,7 @@ claude-code-upgrader xử lý tất cả tự động. **Cài một lần. Xong.
 
 ```
 /plugin marketplace add ww-w-ai/marketplace
-/plugin install claude-code-upgrader@ww-w-ai
+/plugin install claude-code-token-saver@ww-w-ai
 ```
 
 Hoạt động tự động sau khi cài đặt. Không cần cấu hình. Yêu cầu [Claude Code](https://claude.ai/claude-code) v2.1.71+.
@@ -291,7 +291,7 @@ Cấu trúc cache (`utils/api.ts:321` `splitSysPromptPrefix`) có ba đường d
 
 Trong các phiên tương tác thông thường, hướng dẫn commit/PR (1,7K tok) tích lũy **trên mỗi API call** qua `cache_read`. Trong một phiên 100 call ở giá Opus 4.7, đó là khoảng **$0,08 mỗi phiên** chỉ cho hướng dẫn mà quá trình đào tạo của Claude đã phần lớn bao gồm.
 
-### claude-code-upgrader xử lý thế nào
+### claude-code-token-saver xử lý thế nào
 
 `/setup-git-lite` vô hiệu hóa đường gốc và đưa vào **thay thế 280 token được tối ưu** qua hook SessionStart. Chúng tôi giữ lại chính xác những gì ghi đè hành vi mặc định của Claude (quy tắc an toàn), và loại bỏ mọi thứ Claude đã biết từ quá trình đào tạo (quy trình từng bước, template PR, mẫu dùng gh).
 
@@ -343,7 +343,7 @@ Một trong hai là đủ để vô hiệu hóa CC gốc; chúng tôi đặt c�
 
 Nếu bạn cần biến env vì lý do không liên quan, hãy ghi chú lại trước khi chạy `revert` và thêm lại sau.
 
-### Trước khi gỡ cài đặt claude-code-upgrader
+### Trước khi gỡ cài đặt claude-code-token-saver
 
 **Chạy `/setup-git-lite revert` trước**, hoặc bạn sẽ bị để lại với `includeGitInstructions: false` trong settings.json nhưng không có hook thay thế (Claude không nhận được hướng dẫn git nào cả). Claude Code hiện không có hook vòng đời gỡ cài đặt plugin, vì vậy chúng tôi không thể tự động hóa điều này.
 
@@ -356,7 +356,7 @@ Những gì bạn mất (và tại sao thường không sao):
 
 ### Banner khuyến nghị
 
-Khi hướng dẫn git gốc CC vẫn còn hoạt động trên máy của bạn, claude-code-upgrader hiển thị gợi ý một đoạn khi bắt đầu phiên **~20% thời gian** (cộng thêm trong đầu ra `/usage-view` và `/report-limit`). Tắt vĩnh viễn với `/setup-git-lite dismiss-banner`.
+Khi hướng dẫn git gốc CC vẫn còn hoạt động trên máy của bạn, claude-code-token-saver hiển thị gợi ý một đoạn khi bắt đầu phiên **~20% thời gian** (cộng thêm trong đầu ra `/usage-view` và `/report-limit`). Tắt vĩnh viễn với `/setup-git-lite dismiss-banner`.
 
 ---
 
@@ -379,7 +379,7 @@ Ngay cả khi cache còn hoạt động, chi phí vẫn tích lũy. Đây là t�
 
 Điều kiện: Giá Opus 4, 1 prompt mỗi phút, ~5 API call mỗi prompt (~300 call/giờ).
 
-#### ❌ Không có claude-code-upgrader
+#### ❌ Không có claude-code-token-saver
 
 Hầu hết công việc xảy ra trong Main session. Ngữ cảnh tăng nhanh.
 
@@ -394,7 +394,7 @@ Hầu hết công việc xảy ra trong Main session. Ngữ cảnh tăng nhanh.
 
 > Ở mức sử dụng này, bạn có thể sẽ đạt giới hạn tốc độ cửa sổ 5 giờ. **Chi phí tệ, nhưng vấn đề thực sự là công việc của bạn dừng hoàn toàn. Đây chính xác là lúc Claude Code tắt điện.**
 
-#### ✅ Với claude-code-upgrader
+#### ✅ Với claude-code-token-saver
 
 Công việc nặng được ủy thác cho SubTask. Main chỉ xử lý thiết kế/quyết định.
 
@@ -414,7 +414,7 @@ Công việc nặng được ủy thác cho SubTask. Main chỉ xử lý thiết
 >
 > **API trả theo lượng:** ＄146/ngày × 22 ngày làm việc = **＄3.200/tháng thẳng khỏi hóa đơn của bạn.** Một tháng nặng không có plugin này vượt ＄7.000. Với nó, dưới ＄4.000. Cùng đầu ra.
 
-### Nơi claude-code-upgrader can thiệp
+### Nơi claude-code-token-saver can thiệp
 
 ```
 [Session Start]
@@ -441,12 +441,12 @@ Công việc nặng được ủy thác cho SubTask. Main chỉ xử lý thiết
 ## 🔧 Cài đặt từ nguồn & Tùy chỉnh
 
 ```bash
-git clone https://github.com/ww-w-ai/claude-code-upgrader.git
-/plugin marketplace add /path/to/claude-code-upgrader
-/plugin install claude-code-upgrader@claude-code-upgrader
+git clone https://github.com/ww-w-ai/claude-code-token-saver.git
+/plugin marketplace add /path/to/claude-code-token-saver
+/plugin install claude-code-token-saver@claude-code-token-saver
 ```
 
-claude-code-upgrader hoàn toàn mã nguồn mở (Apache-2.0). JavaScript thuần + Bash — không có binary đã biên dịch, không có API call bên ngoài, không có telemetry. Mỗi dòng có thể kiểm tra. Mỗi tuyên bố trong README này ánh xạ đến một file cụ thể bạn có thể đọc.
+claude-code-token-saver hoàn toàn mã nguồn mở (Apache-2.0). JavaScript thuần + Bash — không có binary đã biên dịch, không có API call bên ngoài, không có telemetry. Mỗi dòng có thể kiểm tra. Mỗi tuyên bố trong README này ánh xạ đến một file cụ thể bạn có thể đọc.
 
 - **hooks/** — Thay đổi ngưỡng hết hạn cache, tùy chỉnh thông báo cảnh báo, sửa đổi quy tắc kiến trúc phiên
 - **scripts/** — Logic phân tích, trình tạo báo cáo, định dạng thanh trạng thái

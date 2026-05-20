@@ -27,7 +27,7 @@
  *   --all             Analyze all projects (ignore CWD-based default)
  *   (default)         Derive project from current working directory via projectNameFromCwd()
  *
- * Cache structure: ~/.claude/cc-token-saver-data/{projectName}/{sessionId}/
+ * Cache structure: ~/.claude/claude-code-token-saver-data/{projectName}/{sessionId}/
  *
  * Pipeline:
  *   /usage-view skill

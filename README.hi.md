@@ -1,4 +1,4 @@
-# claude-code-upgrader
+# claude-code-token-saver
 
 **Claude Code का एकमात्र प्लगइन जो CC के सोर्स कोड को वास्तव में पढ़कर यह पता लगाता है कि आपके टोकन कहाँ जाते हैं — और इसे स्वचालित रूप से ठीक करता है। कम खर्च करें, लंबे समय तक काम करें।**
 
@@ -36,7 +36,7 @@
 
 **API pay-per-use?** ऊपर सब कुछ, लेकिन कोई ceiling नहीं। एक cache miss = $9 असली पैसे। हफ्ते में दस बार = केवल accidents पर $360/माह। bloated कॉन्टेक्स्ट वाला एक बुरा मंगलवार Max Plan subscriber के महीने से ज़्यादा खर्च कर सकता है।
 
-claude-code-upgrader यह सब automatically handle करता है। **एक बार install करें। हो गया।**
+claude-code-token-saver यह सब automatically handle करता है। **एक बार install करें। हो गया।**
 
 ---
 
@@ -44,7 +44,7 @@ claude-code-upgrader यह सब automatically handle करता है। *
 
 ```
 /plugin marketplace add ww-w-ai/marketplace
-/plugin install claude-code-upgrader@ww-w-ai
+/plugin install claude-code-token-saver@ww-w-ai
 ```
 
 install के बाद automatically काम करता है। Zero config। [Claude Code](https://claude.ai/claude-code) v2.1.71+ की ज़रूरत है।
@@ -291,7 +291,7 @@ Cache structure (`utils/api.ts:321` `splitSysPromptPrefix`) में active MCP
 
 Typical interactive sessions में, commit/PR instructions (1.7K tok) **हर API call** पर `cache_read` के माध्यम से accumulate होते हैं। Opus 4.7 pricing पर 100-call session में, यह roughly **$0.08 per session** केवल उन instructions के लिए जो Claude की training already mostly cover करती है।
 
-### claude-code-upgrader इसे कैसे handle करता है
+### claude-code-token-saver इसे कैसे handle करता है
 
 `/setup-git-lite` native path disable करता है और SessionStart hook के माध्यम से **curated 280-token replacement** inject करता है। हमने exactly वो रखा जो Claude के default behavior को override करता है (safety rules), और वो सब drop किया जो Claude training से already जानता है (step-by-step workflows, PR templates, gh usage patterns)।
 
@@ -343,7 +343,7 @@ Typical interactive sessions में, commit/PR instructions (1.7K tok) **ह�
 
 अगर आपको unrelated reasons के लिए env var चाहिए, `revert` run करने से पहले note कर लें और बाद में re-add करें।
 
-### claude-code-upgrader uninstall करने से पहले
+### claude-code-token-saver uninstall करने से पहले
 
 **पहले `/setup-git-lite revert` run करें**, वरना आपके पास settings.json में `includeGitInstructions: false` रहेगा लेकिन कोई replacement hook नहीं (Claude को कोई git guidance नहीं मिलेगी)। Claude Code में currently कोई plugin uninstall lifecycle hook नहीं है, इसलिए हम इसे automate नहीं कर सकते।
 
@@ -356,7 +356,7 @@ Typical interactive sessions में, commit/PR instructions (1.7K tok) **ह�
 
 ### Recommendation banner
 
-जब CC native git instructions आपकी machine पर अभी भी active हैं, claude-code-upgrader session start पर **~20% of the time** एक one-paragraph tip दिखाता है (plus `/usage-view` और `/report-limit` outputs में)। `/setup-git-lite dismiss-banner` से permanently dismiss करें।
+जब CC native git instructions आपकी machine पर अभी भी active हैं, claude-code-token-saver session start पर **~20% of the time** एक one-paragraph tip दिखाता है (plus `/usage-view` और `/report-limit` outputs में)। `/setup-git-lite dismiss-banner` से permanently dismiss करें।
 
 ---
 
@@ -379,7 +379,7 @@ Cache alive होने पर भी, costs accumulate होती हैं�
 
 Conditions: Opus 4 pricing, 1 prompt per minute, ~5 API calls per prompt (~300 calls/hour)।
 
-#### ❌ claude-code-upgrader के बिना
+#### ❌ claude-code-token-saver के बिना
 
 अधिकांश काम Main session में होता है। Context तेज़ी से बढ़ता है।
 
@@ -394,7 +394,7 @@ Conditions: Opus 4 pricing, 1 prompt per minute, ~5 API calls per prompt (~300 c
 
 > इस usage level पर, आप likely 5-hour window rate limit hit करेंगे। **Cost बुरी है, लेकिन असली समस्या यह है कि आपका काम completely रुक जाता है। यह exactly वो moment है जब Claude Code dark हो जाता है।**
 
-#### ✅ claude-code-upgrader के साथ
+#### ✅ claude-code-token-saver के साथ
 
 भारी काम SubTasks को delegate। Main केवल design/decisions handle करता है।
 
@@ -414,7 +414,7 @@ Conditions: Opus 4 pricing, 1 prompt per minute, ~5 API calls per prompt (~300 c
 >
 > **API pay-per-use:** ＄146/day × 22 workdays = **＄3,200/माह सीधे आपके invoice से।** इस plugin के बिना भारी महीना ＄7,000 cross करता है। इसके साथ, ＄4,000 से कम। Same output।
 
-### claude-code-upgrader कहाँ step in करता है
+### claude-code-token-saver कहाँ step in करता है
 
 ```
 [Session Start]
@@ -441,12 +441,12 @@ Conditions: Opus 4 pricing, 1 prompt per minute, ~5 API calls per prompt (~300 c
 ## 🔧 Source Install & Customization
 
 ```bash
-git clone https://github.com/ww-w-ai/claude-code-upgrader.git
-/plugin marketplace add /path/to/claude-code-upgrader
-/plugin install claude-code-upgrader@claude-code-upgrader
+git clone https://github.com/ww-w-ai/claude-code-token-saver.git
+/plugin marketplace add /path/to/claude-code-token-saver
+/plugin install claude-code-token-saver@claude-code-token-saver
 ```
 
-claude-code-upgrader fully open-source है (Apache-2.0)। Plain JavaScript + Bash — कोई compiled binaries नहीं, कोई external API calls नहीं, कोई telemetry नहीं। हर line auditable है। इस README में हर claim एक specific file से map करती है जो आप पढ़ सकते हैं।
+claude-code-token-saver fully open-source है (Apache-2.0)। Plain JavaScript + Bash — कोई compiled binaries नहीं, कोई external API calls नहीं, कोई telemetry नहीं। हर line auditable है। इस README में हर claim एक specific file से map करती है जो आप पढ़ सकते हैं।
 
 - **hooks/** — Cache expiry threshold change करें, warning messages customize करें, session architecture rules modify करें
 - **scripts/** — Analysis logic, report builder, status line formatting

@@ -1,4 +1,4 @@
-# claude-code-upgrader
+# claude-code-token-saver
 
 **唯一真正读取 CC 源代码、找出 token 流向并自动修复的 Claude Code 插件。花更少的钱，写更久的代码。**
 
@@ -36,7 +36,7 @@
 
 **API 按量付费？** 以上全部，而且没有上限。一次缓存未命中 = $9 真实资金。每周十次 = 仅事故就 $360/月。一个上下文膨胀的糟糕星期二，花费可能超过 Max Plan 用户一整个月的订阅费。
 
-claude-code-upgrader 自动处理这一切。**安装一次，搞定。**
+claude-code-token-saver 自动处理这一切。**安装一次，搞定。**
 
 ---
 
@@ -44,7 +44,7 @@ claude-code-upgrader 自动处理这一切。**安装一次，搞定。**
 
 ```
 /plugin marketplace add ww-w-ai/marketplace
-/plugin install claude-code-upgrader@ww-w-ai
+/plugin install claude-code-token-saver@ww-w-ai
 ```
 
 安装后自动运行。零配置。需要 [Claude Code](https://claude.ai/claude-code) v2.1.71+。
@@ -291,7 +291,7 @@ Anthropic 没有公布 5 小时窗口的精确计算公式。让我们一起搞�
 
 在典型的交互式会话中，commit/PR 指令（1.7K token）通过 `cache_read` 在**每次 API 调用**中累积。以 Opus 4.7 定价计算，100 次调用的会话中，仅这些 Claude 训练已基本涵盖的指令就要花费约 **$0.08/会话**。
 
-### claude-code-upgrader 如何处理
+### claude-code-token-saver 如何处理
 
 `/setup-git-lite` 禁用原生路径，通过 SessionStart 钩子注入一个**精心筛选的 280 token 替代品**。我们只保留了覆盖 Claude 默认行为的内容（安全规则），删除了 Claude 从训练中已经知道的一切（逐步工作流、PR 模板、gh 使用模式）。
 
@@ -343,7 +343,7 @@ Anthropic 没有公布 5 小时窗口的精确计算公式。让我们一起搞�
 
 如果你因其他原因需要该环境变量，请在运行 `revert` 前记下来，之后再重新添加。
 
-### 卸载 claude-code-upgrader 之前
+### 卸载 claude-code-token-saver 之前
 
 **先运行 `/setup-git-lite revert`**，否则你的 settings.json 中会留有 `includeGitInstructions: false` 但没有替代钩子（Claude 完全得不到 git 指导）。Claude Code 目前没有插件卸载生命周期钩子，我们无法自动化这一步。
 
@@ -356,7 +356,7 @@ Anthropic 没有公布 5 小时窗口的精确计算公式。让我们一起搞�
 
 ### 推荐横幅
 
-当 CC 原生 git 指令在你机器上仍处于活跃状态时，claude-code-upgrader 会在会话开始时**约 20% 的概率**显示一段建议提示（在 `/usage-view` 和 `/report-limit` 输出中也会显示）。使用 `/setup-git-lite dismiss-banner` 永久关闭。
+当 CC 原生 git 指令在你机器上仍处于活跃状态时，claude-code-token-saver 会在会话开始时**约 20% 的概率**显示一段建议提示（在 `/usage-view` 和 `/report-limit` 输出中也会显示）。使用 `/setup-git-lite dismiss-banner` 永久关闭。
 
 ---
 
@@ -379,7 +379,7 @@ Claude Code 在每次 API 调用时将整个对话历史发送给模型。"API �
 
 条件：Opus 4 定价，每分钟一个提示，每个提示约 5 次 API 调用（约 300 次/小时）。
 
-#### ❌ 没有 claude-code-upgrader
+#### ❌ 没有 claude-code-token-saver
 
 大多数工作在 Main session 中完成。上下文快速增长。
 
@@ -394,7 +394,7 @@ Claude Code 在每次 API 调用时将整个对话历史发送给模型。"API �
 
 > 在这个使用量级别下，你很可能会触发 5 小时窗口速率限制。**成本固然糟糕，但真正的问题是你的工作完全停止。这就是 Claude Code 变成黑屏的那一刻。**
 
-#### ✅ 有 claude-code-upgrader
+#### ✅ 有 claude-code-token-saver
 
 繁重工作委托给 SubTask，Main 只处理设计/决策。
 
@@ -414,7 +414,7 @@ Claude Code 在每次 API 调用时将整个对话历史发送给模型。"API �
 >
 > **API 按量付费：** ＄146/天 × 22 个工作日 = **每月账单直接减少 ＄3,200。** 没有这个插件的繁重月份超过 ＄7,000。有了它，不到 ＄4,000。同样的产出。
 
-### claude-code-upgrader 的介入点
+### claude-code-token-saver 的介入点
 
 ```
 [Session Start]
@@ -441,12 +441,12 @@ Claude Code 在每次 API 调用时将整个对话历史发送给模型。"API �
 ## 🔧 源码安装与定制
 
 ```bash
-git clone https://github.com/ww-w-ai/claude-code-upgrader.git
-/plugin marketplace add /path/to/claude-code-upgrader
-/plugin install claude-code-upgrader@claude-code-upgrader
+git clone https://github.com/ww-w-ai/claude-code-token-saver.git
+/plugin marketplace add /path/to/claude-code-token-saver
+/plugin install claude-code-token-saver@claude-code-token-saver
 ```
 
-claude-code-upgrader 完全开源（Apache-2.0）。纯 JavaScript + Bash——无编译二进制文件，无外部 API 调用，无遥测。每一行都可审计。README 中的每项声明都对应一个你可以直接查看的具体文件。
+claude-code-token-saver 完全开源（Apache-2.0）。纯 JavaScript + Bash——无编译二进制文件，无外部 API 调用，无遥测。每一行都可审计。README 中的每项声明都对应一个你可以直接查看的具体文件。
 
 - **hooks/** — 修改缓存过期阈值，自定义警告消息，修改会话架构规则
 - **scripts/** — 分析逻辑、报告构建器、状态栏格式化

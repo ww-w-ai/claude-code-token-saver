@@ -1,4 +1,4 @@
-# claude-code-upgrader
+# claude-code-token-saver
 
 **الإضافة الوحيدة لـ Claude Code التي تقرأ فعلاً الكود المصدري لـ CC لتكشف أين تذهب رموزك — وتُصلح ذلك تلقائياً. أنفق أقل، اعمل أطول.**
 
@@ -36,7 +36,7 @@
 
 **API بالدفع حسب الاستخدام?** كل ما سبق، لكن بدون سقف. خطأ كاش واحد = $9 من أموال حقيقية. عشر مرات في الأسبوع = $360/شهر على الأخطاء وحدها. يوم ثلاثاء سيئ مع سياق منتفخ قد يكلّف أكثر مما يدفعه مشترك Max Plan في شهر.
 
-claude-code-upgrader يتعامل مع كل هذا تلقائياً. **ثبّته مرة واحدة. انتهى الأمر.**
+claude-code-token-saver يتعامل مع كل هذا تلقائياً. **ثبّته مرة واحدة. انتهى الأمر.**
 
 ---
 
@@ -44,7 +44,7 @@ claude-code-upgrader يتعامل مع كل هذا تلقائياً. **ثبّت�
 
 ```
 /plugin marketplace add ww-w-ai/marketplace
-/plugin install claude-code-upgrader@ww-w-ai
+/plugin install claude-code-token-saver@ww-w-ai
 ```
 
 يعمل تلقائياً بعد التثبيت. بدون إعداد. يتطلب [Claude Code](https://claude.ai/claude-code) v2.1.71+.
@@ -291,7 +291,7 @@ Anthropic لا تنشر الصيغة الدقيقة لنافذة 5 ساعات. �
 
 في الجلسات التفاعلية النموذجية، تعليمات commit/PR (1.7K رمز) تتراكم **في كل استدعاء API** عبر `cache_read`. في جلسة بـ100 استدعاء بأسعار Opus 4.7، ذلك يعني تقريباً **$0.08 لكل جلسة** فقط لتعليمات يغطيها تدريب Claude في معظمه.
 
-### كيف يعالج claude-code-upgrader ذلك
+### كيف يعالج claude-code-token-saver ذلك
 
 `/setup-git-lite` يعطّل المسار الأصلي ويحقن **بديلاً مُختاراً بعناية من 280 رمزاً** عبر خطاف SessionStart. أبقينا بالضبط ما يتجاوز السلوك الافتراضي لـClaude (قواعد الأمان)، وحذفنا كل ما يعرفه Claude من التدريب (سير العمل خطوة بخطوة، قوالب PR، أنماط استخدام gh).
 
@@ -343,7 +343,7 @@ Anthropic لا تنشر الصيغة الدقيقة لنافذة 5 ساعات. �
 
 إذا كنت تحتاج متغير البيئة لأسباب غير متعلقة، دوِّنه قبل تشغيل `revert` وأضفه مجدداً بعده.
 
-### قبل إلغاء تثبيت claude-code-upgrader
+### قبل إلغاء تثبيت claude-code-token-saver
 
 **شغّل `/setup-git-lite revert` أولاً**، وإلا ستبقى مع `includeGitInstructions: false` في settings.json لكن بدون خطاف بديل (Claude لن يحصل على أي توجيه git). لا يوجد حالياً في Claude Code خطاف دورة حياة لإلغاء تثبيت الإضافات، لذا لا يمكننا أتمتة ذلك.
 
@@ -356,7 +356,7 @@ Anthropic لا تنشر الصيغة الدقيقة لنافذة 5 ساعات. �
 
 ### لافتة التوصية
 
-حين تعليمات git الأصلية لـCC ما زالت نشطة على جهازك، يُظهر claude-code-upgrader تلميحاً من فقرة واحدة عند بدء الجلسة **~20% من الوقت** (إضافةً إلى في مخرجات `/usage-view` و`/report-limit`). أسكته نهائياً بـ`/setup-git-lite dismiss-banner`.
+حين تعليمات git الأصلية لـCC ما زالت نشطة على جهازك، يُظهر claude-code-token-saver تلميحاً من فقرة واحدة عند بدء الجلسة **~20% من الوقت** (إضافةً إلى في مخرجات `/usage-view` و`/report-limit`). أسكته نهائياً بـ`/setup-git-lite dismiss-banner`.
 
 ---
 
@@ -379,7 +379,7 @@ Claude Code يُرسل سجل المحادثة كاملاً إلى النموذ�
 
 الشروط: أسعار Opus 4، طلب واحد بالدقيقة، ~5 استدعاءات API لكل طلب (~300 استدعاء/ساعة).
 
-#### ❌ بدون claude-code-upgrader
+#### ❌ بدون claude-code-token-saver
 
 معظم العمل يحدث في Main session. السياق ينمو بسرعة.
 
@@ -394,7 +394,7 @@ Claude Code يُرسل سجل المحادثة كاملاً إلى النموذ�
 
 > عند هذا المستوى من الاستخدام، ستصل على الأرجح لحد نافذة 5 ساعات. **التكلفة سيئة، لكن المشكلة الحقيقية هي توقف عملك كلياً. هذه بالضبط اللحظة التي يُظلم فيها Claude Code.**
 
-#### ✅ مع claude-code-upgrader
+#### ✅ مع claude-code-token-saver
 
 العمل الثقيل مفوَّض لـSubTasks. Main يتعامل مع التصميم/القرارات فقط.
 
@@ -414,7 +414,7 @@ Claude Code يُرسل سجل المحادثة كاملاً إلى النموذ�
 >
 > **API بالدفع حسب الاستخدام:** ＄146/يوم × 22 يوم عمل = **＄3,200/شهر مباشرةً من فاتورتك.** شهر ثقيل بدون هذه الإضافة يتجاوز ＄7,000. معها، أقل من ＄4,000. نفس المخرجات.
 
-### أين يتدخل claude-code-upgrader
+### أين يتدخل claude-code-token-saver
 
 ```
 [بدء الجلسة]
@@ -441,12 +441,12 @@ Claude Code يُرسل سجل المحادثة كاملاً إلى النموذ�
 ## 🔧 التثبيت من المصدر والتخصيص
 
 ```bash
-git clone https://github.com/ww-w-ai/claude-code-upgrader.git
-/plugin marketplace add /path/to/claude-code-upgrader
-/plugin install claude-code-upgrader@claude-code-upgrader
+git clone https://github.com/ww-w-ai/claude-code-token-saver.git
+/plugin marketplace add /path/to/claude-code-token-saver
+/plugin install claude-code-token-saver@claude-code-token-saver
 ```
 
-claude-code-upgrader مفتوح المصدر بالكامل (Apache-2.0). JavaScript وBash عاديان — لا ملفات ثنائية مُجمَّعة، لا استدعاءات API خارجية، لا تتبع. كل سطر قابل للتدقيق. كل ادعاء في هذا README يرتبط بملف محدد يمكنك قراءته.
+claude-code-token-saver مفتوح المصدر بالكامل (Apache-2.0). JavaScript وBash عاديان — لا ملفات ثنائية مُجمَّعة، لا استدعاءات API خارجية، لا تتبع. كل سطر قابل للتدقيق. كل ادعاء في هذا README يرتبط بملف محدد يمكنك قراءته.
 
 - **hooks/** — تغيير حد انتهاء الكاش، تخصيص رسائل التحذير، تعديل قواعد هندسة الجلسة
 - **scripts/** — منطق التحليل، منشئ التقارير، تنسيق شريط الحالة

@@ -15,7 +15,7 @@ Parse the first argument from `$ARGUMENTS`:
 
 | Subcommand | Risk | AI-allowed | Behavior |
 | ---------- | ---- | ---------- | -------- |
-| `install`   | 🔴 destructive | ❌ user-only | Modifies ~/.claude/settings.json + shell profile. Requires explicit `<command-name>cc-token-saver:setup-git-lite</command-name>` tag with `<command-args>install</command-args>` |
+| `install`   | 🔴 destructive | ❌ user-only | Modifies ~/.claude/settings.json + shell profile. Requires explicit `<command-name>claude-code-token-saver:setup-git-lite</command-name>` tag with `<command-args>install</command-args>` |
 | `revert`    | 🔴 destructive | ❌ user-only | Aggressive cleanup. Same gating as install |
 | `status`    | 🟢 safe | ✅ allowed | Read-only diagnostic |
 | `dismiss-banner`   | 🟢 safe | ✅ allowed | Suppresses the recommendation banner (preferences.json flag) |
@@ -27,7 +27,7 @@ Parse the first argument from `$ARGUMENTS`:
 
 If the subcommand is `install` or `revert`:
 
-1. **Verify explicit invocation**: the triggering user message MUST contain `<command-name>cc-token-saver:setup-git-lite</command-name>` along with `<command-args>install</command-args>` (or `revert`). If these tags are absent (i.e., you inferred the intent from natural-language context), STOP and respond:
+1. **Verify explicit invocation**: the triggering user message MUST contain `<command-name>claude-code-token-saver:setup-git-lite</command-name>` along with `<command-args>install</command-args>` (or `revert`). If these tags are absent (i.e., you inferred the intent from natural-language context), STOP and respond:
 
    > "This action modifies your global Claude Code settings and shell profile. Please invoke explicitly by typing `/setup-git-lite install` (or `revert`)."
 
@@ -71,7 +71,7 @@ Detect the user's language from the conversation. Translate ALL user-facing outp
 
 ## Design reference
 
-The hook content and behavior are documented in the cc-token-saver README (Git instructions section). Key points for the user if they ask:
+The hook content and behavior are documented in the claude-code-token-saver README (Git instructions section). Key points for the user if they ask:
 
 - Original CC built-in injects ~2,200 tokens per session (git status snapshot + full commit/PR workflow).
 - Our replacement is ~280 tokens (11 override rules + compact git state line with file list).

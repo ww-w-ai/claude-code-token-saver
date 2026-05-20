@@ -159,7 +159,7 @@
   },
   "ai": {
     "analysis": "✨ Анализ ИИ",
-    "tips": "💡 Советы — Руководство по использованию cc-token-saver"
+    "tips": "💡 Советы — Руководство по использованию claude-code-token-saver"
   },
   "gitLite": {
     "tip": "Совет: Встроенные git-инструкции CC потребляют ~2 200 tok/сессия + ~1 700 tok/вызов. `/setup-git-lite install` заменяет их на тщательно отобранный минимум в 280 tok. `/setup-git-lite dismiss-banner` скрывает этот совет."

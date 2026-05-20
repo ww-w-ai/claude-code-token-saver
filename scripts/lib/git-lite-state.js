@@ -10,7 +10,7 @@ const os = require('os');
 
 const HOME = os.homedir();
 const GLOBAL_SETTINGS_PATH = path.join(HOME, '.claude', 'settings.json');
-const PREFS_DIR = path.join(HOME, '.claude', 'cc-token-saver-data');
+const PREFS_DIR = path.join(HOME, '.claude', 'claude-code-token-saver-data');
 const PREFS_PATH = path.join(PREFS_DIR, 'preferences.json');
 
 // ── Preferences ────────────────────────────────────────────────

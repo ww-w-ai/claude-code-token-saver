@@ -36,8 +36,8 @@
  *
  * Input:
  *   - analyze-usage.js JSON output (--data)
- *   - ~/.claude/cc-token-saver-data/{projectName}/{sessionId}/timeline.csv   (per-API-call data)
- *   - ~/.claude/cc-token-saver-data/{projectName}/{sessionId}/ratelimit.csv  (statusline rate limit logs)
+ *   - ~/.claude/claude-code-token-saver-data/{projectName}/{sessionId}/timeline.csv   (per-API-call data)
+ *   - ~/.claude/claude-code-token-saver-data/{projectName}/{sessionId}/ratelimit.csv  (statusline rate limit logs)
  *   - skills/usage-view/template.html                              (dashboard template)
  *   - locales/{code}.json                                          (i18n strings)
  *
@@ -64,6 +64,7 @@ const { PLAN_INFO: PLAN_INFO_ALL } = require('./lib/plan-info');
 const { round2 } = require('./lib/format');
 const { SUPPORTED_LOCALES, resolveLocale } = require('./lib/locale');
 const { MODEL_PRICING, DEFAULT_PRICING, getRates } = require('./lib/pricing');
+const _subagentSep = /[/\\]subagents[/\\]/;
 const TEMPLATE_PATH = path.join(__dirname, '..', 'skills', 'usage-view', 'template.html');
 const LOCALES_DIR = path.join(__dirname, '..', 'locales');
 
@@ -114,7 +115,7 @@ if (resolvedLocale !== 'en') {
 const isRTL = localeData.meta && localeData.meta.direction === 'rtl';
 function addBidiMarks(text) {
   if (!isRTL || typeof text !== 'string') return text;
-  // Match: /commands, English words (incl. hyphenated/dotted like cc-token-saver, c0d.run)
+  // Match: /commands, English words (incl. hyphenated/dotted like claude-code-token-saver, c0d.run)
   return text.replace(/(\/[\w-]+|[A-Za-z][\w.-]*(?:\s+[A-Za-z][\w.-]*)*)/g, '\u200E$1\u200F');
 }
 function addBidiToAI(aiAnalysis) {
@@ -154,12 +155,12 @@ function fsdKey(d) { return d.getFullYear() + '/' + String(d.getMonth() + 1).pad
 function ft(d) { return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
 function ym(ts) { const d = new Date(ts); return String(d.getFullYear()).slice(2) + String(d.getMonth() + 1).padStart(2, '0'); }
 function getParentId(filePath) {
-  if (!filePath || !filePath.includes('/subagents/')) return null;
-  return path.basename(filePath.split('/subagents/')[0] + '.jsonl', '.jsonl');
+  if (!filePath || !_subagentSep.test(filePath)) return null;
+  return path.basename(filePath.split(_subagentSep)[0] + '.jsonl', '.jsonl');
 }
 
 function isProgrammatic(session) {
-  if (session.filePath && session.filePath.includes('/subagents/')) return false;
+  if (session.filePath && session.filePath.match(_subagentSep)) return false;
   if (session.userMsgs !== 1) return false;
   if (!session.firstUserMsg) return true;
   const patterns = [/^You are generating/, /^Read the /, /^Run the /, /^CRITICAL:/, /^Write the word/, /^Compare the /, /^This session is being continued/];
@@ -560,7 +561,7 @@ function ensureCompactCaches(sessionIds) {
   for (const sid of sessionIds) {
     const sess = sessionMap.get(sid);
     if (!sess) continue;
-    if (sess.filePath && sess.filePath.includes('/subagents/')) continue;
+    if (sess.filePath && sess.filePath.match(_subagentSep)) continue;
     if (!sess.filePath || !fs.existsSync(sess.filePath)) continue;
     tasks.push(sess.filePath);
   }
@@ -907,7 +908,7 @@ function buildContextCostScatters(allTimelines, sessionMap) {
     // For per-assistant tooltips we want the enclosing user prompt's text
     // so the user can see "what prompt triggered this expensive call".
     // Subagents have no compact.txt → we'll fall back to the row's own data.
-    const isSubagent = sess.filePath && sess.filePath.includes('/subagents/');
+    const isSubagent = sess.filePath && sess.filePath.match(_subagentSep);
     let sortedUsers = [];
     let userAlerts = [];
     if (!isSubagent) {
@@ -1147,7 +1148,7 @@ const fromDate = new Date(fromD.getFullYear(), fromD.getMonth(), fromD.getDate()
 const toDate = new Date(toD.getFullYear(), toD.getMonth(), toD.getDate());
 const days = Math.round((toDate - fromDate) / 86400000) + 1;
 // Exclude acompact subagents from subCount — they're attributed to parent's compact marker.
-const subCount = raw.sessions.filter(s => s.filePath && s.filePath.includes('/subagents/') && !isAcompactSessionId(s.sessionId)).length;
+const subCount = raw.sessions.filter(s => s.filePath && s.filePath.match(_subagentSep) && !isAcompactSessionId(s.sessionId)).length;
 const summary = {
   totalCost: 0,
   sessionCount: sm.sessionCount,
@@ -1360,7 +1361,7 @@ for (const winStart of winStarts) {
     if (isProgrammatic(meta)) {
       detail.type = 'claude-p';
       programmaticDetails.push(detail);
-    } else if (meta.filePath && meta.filePath.includes('/subagents/')) {
+    } else if (meta.filePath && meta.filePath.match(_subagentSep)) {
       detail.type = 'sub';
       const parentId = getParentId(meta.filePath);
       if (parentId) {
@@ -1784,7 +1785,7 @@ if (currentMode && windows.length > 0) {
     for (const sid of windowSessionIds) {
       if (isAcompactSessionId(sid)) continue;
       const sess = sessionMap.get(sid);
-      if (sess && sess.filePath && sess.filePath.includes('/subagents/')) subCount2++;
+      if (sess && sess.filePath && sess.filePath.match(_subagentSep)) subCount2++;
       else mainCount++;
     }
     summary.sessionCount = mainCount;
@@ -1980,7 +1981,7 @@ try {
   const installedJsonPath = path.join(os.homedir(), '.claude', 'plugins', 'installed_plugins.json');
   if (fs.existsSync(installedJsonPath)) {
     const installed = JSON.parse(fs.readFileSync(installedJsonPath, 'utf8'));
-    const entries = installed && installed.plugins && installed.plugins['cc-token-saver@ww-w-ai'];
+    const entries = installed && installed.plugins && installed.plugins['claude-code-token-saver@ww-w-ai'];
     if (Array.isArray(entries) && entries.length > 0) {
       // Pick the earliest installedAt across scopes (user/project)
       for (const e of entries) {
@@ -2207,7 +2208,7 @@ if (exportPromptPath) {
     + '| Enterprise | $20/seat + API | usage-based pooled | usage |\n'
     + '| Bedrock/Foundry/Vertex | API pricing | no rate limit ceiling | usage |';
 
-  // Continue events: from marker counts (preprocess detects <command-message>cc-token-saver:continue)
+  // Continue events: from marker counts (preprocess detects <command-message>claude-code-token-saver:continue)
   // markerCounts.continue is populated from alertMessages which come from compact caches
 
   // Alert marker summary (from all windows)
@@ -2285,7 +2286,7 @@ ${weeks.join('\n')}
 - 5H window alerts: ${rlCount}
 
 ## /continue Skill Usage
-(cc-token-saver plugin feature — restores previous sessions with ZERO API cost)
+(claude-code-token-saver plugin feature — restores previous sessions with ZERO API cost)
 - Times used: ${markerCounts.continue}
 
 ## Session Activity Summary
@@ -2350,8 +2351,8 @@ ${(() => {
 ## Top Cost Sessions
 ${top10}
 
-## Plugin: cc-token-saver
-cc-token-saver is a Claude Code plugin that:
+## Plugin: claude-code-token-saver
+claude-code-token-saver is a Claude Code plugin that:
 - Shows real-time token usage in the CLI statusline (input/output/cache tokens per message)
 - Tracks 5-hour rate-limit window consumption with visual alerts at 80%/95%
 - Provides /continue skill to restore previous sessions WITHOUT any LLM API calls (zero cost)
@@ -2366,7 +2367,7 @@ Unlike Claude Code's built-in /compact which:
 - Next session: input + output + cache_write tokens again
 - Loses original conversation nuance in summarization
 
-cc-token-saver's /continue skill:
+claude-code-token-saver's /continue skill:
 - Uses only the Read tool to restore previous session transcripts — ZERO LLM API calls
 - Preserves the ORIGINAL user+assistant conversation text verbatim (not a summary)
 - For long conversations, uses (...) to abbreviate middle sections but includes line numbers pointing to the original transcript, so full context is always recoverable

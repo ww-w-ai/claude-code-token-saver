@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2026-05-21
+
+### Renamed to claude-code-token-saver
+
+- Plugin renamed from `claude-code-upgrader` to `claude-code-token-saver` — clearer purpose ("token saver" vs generic "upgrader")
+- Cache directory auto-migrates from `claude-code-upgrader-data/` → `claude-code-token-saver-data/`
+- Legacy migration chain: `cc-token-saver` → `cc-token-saver-data` → `claude-code-upgrader-data` → `claude-code-token-saver-data`
+
+## [2.0.0] - 2026-05-20
+
+### Breaking: Renamed to claude-code-token-saver
+
+- Plugin renamed from `claude-code-upgrader` to `claude-code-token-saver` (history: `cc-token-saver` → `claude-code-upgrader` → `claude-code-token-saver`)
+- Cache directory auto-migrates from previous names (`claude-code-upgrader-data/`, `cc-token-saver-data/`) to `~/.claude/claude-code-token-saver-data/`
+- Environment variable renamed: `CC_UPGRADER_TURN_IDLE_SEC` (old `CC_TOKEN_SAVER_TURN_IDLE_SEC` still works)
+- Cross-platform path fix: Windows/Linux backslash paths now handled correctly in subagent detection and project name extraction
+
 ## [1.7.0] - 2026-05-06
 
 ### Fixed: 5h window minute-precision (post-2026-04-23)
@@ -46,7 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### New: Prompt Cache Guide (23 languages)
 
-- New `guides/prompt-cache-guide.md` (+ 22 translations) explaining why cache dominates Claude Code costs, how Claude Code / Codex / Gemini CLI differ in caching behavior, and concrete strategies to cut cache spend with cc-token-saver features
+- New `guides/prompt-cache-guide.md` (+ 22 translations) explaining why cache dominates Claude Code costs, how Claude Code / Codex / Gemini CLI differ in caching behavior, and concrete strategies to cut cache spend with claude-code-token-saver features
 - Linked from README documentation section
 
 ### `/usage-view` private mode
@@ -271,7 +288,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Marker system: rate limit path now flushes pending session markers
 - Marker system: prevent `+++` edge case when `+` and `++` co-occur
 - analyze-usage: `/continue` detection updated for new compact file path structure
-- analyze-usage: `/continue` detection string aligned with preprocess.js (`cc-token-saver:continue`)
+- analyze-usage: `/continue` detection string aligned with preprocess.js (`claude-code-token-saver:continue`)
 - analyze-usage: context threshold events now fire on first crossing only (matches preprocess.js)
 - build-report: `matchAlertWithTimeline` no longer skips usage rows with cost/ctx event annotations
 - build-report: session-marker-only alerts kept in REPORT_DATA (with `isInfoOnly` flag), filtered in UI only
@@ -312,7 +329,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Data storage folder renamed: `~/.claude/cc-token-saver/` → `~/.claude/cc-token-saver-data/` (avoids confusion with plugin name)
+- Data storage folder renamed: `~/.claude/claude-code-token-saver/` → `~/.claude/claude-code-token-saver-data/` (avoids confusion with plugin name)
 - Auto-migration: existing data folder is renamed automatically on first run
 
 ## [1.0.4] - 2026-04-09
@@ -415,5 +432,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Input, output, cache write (5m/1h), cache read prices
   - Auto-fallback for unknown models
 
-[1.0.1]: https://github.com/ww-w-ai/cc-token-saver/releases/tag/v1.0.1
-[1.0.0]: https://github.com/ww-w-ai/cc-token-saver/releases/tag/v1.0.0
+[1.0.1]: https://github.com/ww-w-ai/claude-code-token-saver/releases/tag/v1.0.1
+[1.0.0]: https://github.com/ww-w-ai/claude-code-token-saver/releases/tag/v1.0.0

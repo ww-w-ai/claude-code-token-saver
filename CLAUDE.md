@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-Claude Code plugin (cc-token-saver) that automates token/cache management, cost tracking, and session control. Zero dependencies, zero config. Pure Node.js + Bash.
+Claude Code plugin (claude-code-token-saver) that automates token/cache management, cost tracking, session control, and research-backed thinking patterns. Zero dependencies, zero config. Pure Node.js + Bash.
 
 ## Architecture
 
@@ -18,7 +18,7 @@ locales/        → 23 language JSON files for dashboard UI strings
 
 **Data flow**: CC transcripts (JSONL) → `preprocess.js` / `analyze-usage.js` → cached artifacts → skills consume them.
 
-**Cache location**: `~/.claude/cc-token-saver-data/{projectHash}/{sessionId}/` — stores `compact.txt`, `timeline.csv`, `summary.json`.
+**Cache location**: `~/.claude/claude-code-token-saver-data/{projectHash}/{sessionId}/` — stores `compact.txt`, `timeline.csv`, `summary.json`.
 
 ## No Build System
 
@@ -45,8 +45,8 @@ All model rates (input, cacheCreate5m, cacheCreate1h, cacheRead, output, context
 
 ### Plugin installation paths
 - Source repo: this directory (editable).
-- Plugin cache: `~/.claude/plugin-cache/cc-token-saver/` (read-only, overwritten on `plugin install`). **Always edit source repo, never plugin cache.**
-- Dev mode symlink may exist — check with `ls -la ~/.claude/plugin-cache/cc-token-saver`.
+- Plugin cache: `~/.claude/plugin-cache/claude-code-token-saver/` (read-only, overwritten on `plugin install`). **Always edit source repo, never plugin cache.**
+- Dev mode symlink may exist — check with `ls -la ~/.claude/plugin-cache/claude-code-token-saver`.
 
 ### Skills execute via LLM instruction
 Skills have no runtime code — `SKILL.md` files contain the full execution plan that Claude follows. The LLM is the runtime.

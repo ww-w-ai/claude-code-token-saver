@@ -23,7 +23,7 @@ function cmdStatus() {
   const eff = state.computeEffectiveState();
   const dismissed = state.isRecommendationDismissed();
 
-  log('cc-token-saver setup-git-lite — status');
+  log('claude-code-token-saver setup-git-lite — status');
   log('');
   log('Effective state:       ' + (eff.effective
     ? 'CC native git instructions ENABLED (~2,200 tok/session in use)'
@@ -59,7 +59,7 @@ function cmdInstall() {
   log('Done. Run `/setup-git-lite status` to verify.');
   log('See README for how the minimal replacement works.');
   log('');
-  log('⚠️  Before uninstalling cc-token-saver, run `/setup-git-lite revert` first.');
+  log('⚠️  Before uninstalling claude-code-token-saver, run `/setup-git-lite revert` first.');
   log('    Otherwise the settings remain but our replacement hook is gone.');
 }
 
@@ -98,7 +98,7 @@ function cmdHelp() {
   log('');
   log('Subcommands:');
   log('  install     Disable CC\'s native git instructions (~2,200 tok/session saved)');
-  log('              and enable cc-token-saver\'s minimal replacement hook.');
+  log('              and enable claude-code-token-saver\'s minimal replacement hook.');
   log('              Modifies: ~/.claude/settings.json.');
   log('');
   log('  revert      Restore CC default behavior.');
@@ -111,7 +111,7 @@ function cmdHelp() {
   log('');
   log('  help        Print this help.');
   log('');
-  log('Trade-offs and details: see cc-token-saver README (Git instructions section).');
+  log('Trade-offs and details: see claude-code-token-saver README (Git instructions section).');
 }
 
 // ── Dispatch ────────────────────────────────────────────────────

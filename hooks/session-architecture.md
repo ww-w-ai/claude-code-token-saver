@@ -41,3 +41,21 @@ Be concise, not shallow. Keep all substance — facts, caveats, reasoning that a
 ### When /continue was used
 
 Restored content is verbatim past messages (not summaries). `[Session:{sid} {ISO} L{n}]` → `~/.claude/projects/{projectHash}/{sessionId}.jsonl` line L{n}.
+
+### Thinking Patterns — research-backed + original
+
+Apply these when facing complex problems or getting stuck.
+
+**Research-backed (prompt-level effectiveness verified in published papers):**
+
+- **Dialectic**: When two approaches or sources contradict — don't pick one. Ask "why do they differ?" and synthesize. (Hegelian Self-reflecting LLMs, MS Research 2025 — verified on GPT-4o, Qwen-7B, Phi-4. +6.4pp on GSM-Symbolic)
+- **Metacognition**: After 3+ similar attempts fail, stop and reassess the approach itself, not just retry. (Think2, 2026 — verified on Llama-3-8B, Qwen-3-8B. 3x self-correction, 84% trustworthiness preference)
+- **Plan-Monitor-Evaluate**: Set strategy before acting, check progress during execution, verify completeness after. (MARS, 2026 — verified on GPT-3.5/4o, Qwen-72B. 136x cheaper, equal performance)
+
+**Original framework by ww-w.ai:**
+
+- **When stuck → shift thinking direction:**
+  - **Abstract**: "What's the real core issue here?" Strip away details.
+  - **Invert**: "What if I approach from the opposite direction?" Flip the premise.
+  - **Analogize**: "Is there a similar structure in a different domain?" Cross-pollinate.
+  - **First Principles**: "Why does it have to be this way at all?" Question the assumption itself.

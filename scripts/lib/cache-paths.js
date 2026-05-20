@@ -2,13 +2,13 @@
  * cache-paths.js — Single source of truth for all cache path resolution.
  *
  * Structure:
- *   ~/.claude/cc-token-saver-data/{projectName}/{sessionId}/timeline.csv
- *   ~/.claude/cc-token-saver-data/{projectName}/{sessionId}/summary.json
- *   ~/.claude/cc-token-saver-data/{projectName}/{sessionId}/ratelimit.csv
- *   ~/.claude/cc-token-saver-data/{projectName}/{sessionId}/compact.txt
- *   ~/.claude/cc-token-saver-data/{projectName}/{sessionId}/compact.aggressive.txt
- *   ~/.claude/cc-token-saver-data/{projectName}/{sessionId}/subagents/{agentId}/timeline.csv
- *   ~/.claude/cc-token-saver-data/{projectName}/{sessionId}/subagents/{agentId}/summary.json
+ *   ~/.claude/claude-code-token-saver-data/{projectName}/{sessionId}/timeline.csv
+ *   ~/.claude/claude-code-token-saver-data/{projectName}/{sessionId}/summary.json
+ *   ~/.claude/claude-code-token-saver-data/{projectName}/{sessionId}/ratelimit.csv
+ *   ~/.claude/claude-code-token-saver-data/{projectName}/{sessionId}/compact.txt
+ *   ~/.claude/claude-code-token-saver-data/{projectName}/{sessionId}/compact.aggressive.txt
+ *   ~/.claude/claude-code-token-saver-data/{projectName}/{sessionId}/subagents/{agentId}/timeline.csv
+ *   ~/.claude/claude-code-token-saver-data/{projectName}/{sessionId}/subagents/{agentId}/summary.json
  */
 
 const path = require('path');
@@ -16,15 +16,20 @@ const os = require('os');
 const fs = require('fs');
 const crypto = require('crypto');
 
-const CACHE_BASE = path.join(os.homedir(), '.claude', 'cc-token-saver-data');
+const CACHE_BASE = path.join(os.homedir(), '.claude', 'claude-code-token-saver-data');
 
-// Auto-migrate: cc-token-saver → cc-token-saver-data (v1.1.1)
-const OLD_CACHE_BASE = path.join(os.homedir(), '.claude', 'cc-token-saver');
-if (CACHE_BASE !== OLD_CACHE_BASE && fs.existsSync(OLD_CACHE_BASE) && !fs.existsSync(CACHE_BASE)) {
-  try {
-    fs.renameSync(OLD_CACHE_BASE, CACHE_BASE);
-  } catch (_) {
-    // If rename fails (cross-device), copy will happen naturally as new data is written
+// Auto-migrate from previous names (rename only, no cross-device copy)
+const _legacyDirs = [
+  path.join(os.homedir(), '.claude', 'claude-code-upgrader-data'), // v1.5.x
+  path.join(os.homedir(), '.claude', 'cc-token-saver-data'), // v1.1.1–v1.4.x
+  path.join(os.homedir(), '.claude', 'cc-token-saver'),      // pre-v1.1.1
+];
+if (!fs.existsSync(CACHE_BASE)) {
+  for (const old of _legacyDirs) {
+    if (fs.existsSync(old)) {
+      try { fs.renameSync(old, CACHE_BASE); } catch (_) {}
+      break;
+    }
   }
 }
 
@@ -45,7 +50,8 @@ function projectNameFromCwd(cwd) {
  * e.g. ~/.claude/projects/-Users-foo-myproject/abc123.jsonl → -Users-foo-myproject
  */
 function extractProjectName(filePath) {
-  const parts = filePath.split('/projects/');
+  const normalized = filePath.replace(/\\/g, '/');
+  const parts = normalized.split('/projects/');
   if (parts.length < 2) return null;
   return parts[1].split('/')[0];
 }

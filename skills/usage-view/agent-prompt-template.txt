@@ -16,8 +16,8 @@ On exit 2 (`ERROR:UNKNOWN_MODEL` in stderr): handle inline — do NOT stop the s
      ```
      ⚠️ 미등록 모델 {모델명}의 전체 가격 정보(특히 5m/1h 캐시 티어)를 공식 페이지에서 확인할 수 없습니다.
      플러그인을 최신 버전으로 업데이트해 주세요:
-       /plugin update cc-token-saver
-     업데이트 후에도 문제가 지속되면 https://github.com/ww-w-ai/cc-token-saver/issues 에 제보 부탁드립니다.
+       /plugin update claude-code-token-saver
+     업데이트 후에도 문제가 지속되면 https://github.com/ww-w-ai/claude-code-token-saver/issues 에 제보 부탁드립니다.
      ```
 
 On other non-zero exits: report the stderr content and stop.
@@ -82,10 +82,10 @@ First understand ALL the data, then write focusing on 5-6 of these topics (rando
 Use the Cache Pricing Guide above to interpret cache data correctly.
 SCOPE: Section1 uses ONLY the top-level summary numbers (total cost, token breakdown, session counts). Do NOT analyze scatter chart data, context size distribution, or per-API-call cost patterns here — those belong in section2.
 1. Total cost over entire period, daily average cost. Monthly extrapolation rules: (a) In current mode (5-hour window), extrapolate monthly cost assuming 6 working hours per day × 22 working days. Never simply multiply the window cost × 30 days. (b) If the data already covers 20+ days, do NOT extrapolate to monthly — the data itself IS the monthly figure. Just state the total and daily average.
-2. Savings vs Max plan — these savings are thanks to Max subscription ($200/month), NOT cc-token-saver! Express as "Max plan subscription value is Nx". cc-token-saver's contribution is efficiency improvement (covered in section2)
+2. Savings vs Max plan — these savings are thanks to Max subscription ($200/month), NOT claude-code-token-saver! Express as "Max plan subscription value is Nx". claude-code-token-saver's contribution is efficiency improvement (covered in section2)
 3. High cache ratio = large context complex work = "hard worker"
 4. LLM conversation accumulation → caching discount structure
-5. cc-token-saver's value: cost visibility + auto cache expiry detection + context management guide. Savings themselves are Max plan's credit
+5. claude-code-token-saver's value: cost visibility + auto cache expiry detection + context management guide. Savings themselves are Max plan's credit
 6. Cache read COST ratio analysis (NOT token count ratio — that's always high and meaningless). If moderate (50-60%) with many SubTasks, praise efficient delegation
 7. Per-session average cost as work unit measure
 8. Main vs subtask cost distribution characteristics
@@ -97,9 +97,9 @@ SCOPE: Section1 uses ONLY the top-level summary numbers (total cost, token break
   - Empathetic counselor tone
 - Day-of-week: empathize with specific busy days
 - Weekly: use Weekly Costs data. Empathize with cost-heavy weeks
-- cc-token-saver plugin comparison:
-  - If BOTH before AND after data exist with 20%+ improvement: compare pre/post daily avg cost and efficiency. Say "before/after cc-token-saver installation".
-  - If the ENTIRE report period is AFTER plugin installation (no before data): do NOT compare before/after. Instead, praise the user for actively using the plugin — mention /continue usage count, statusline monitoring, and cost visibility as signs of good practice. Frame positively: "You've been using cc-token-saver throughout this period, which means you've had full visibility into your costs from day one."
+- claude-code-token-saver plugin comparison:
+  - If BOTH before AND after data exist with 20%+ improvement: compare pre/post daily avg cost and efficiency. Say "before/after claude-code-token-saver installation".
+  - If the ENTIRE report period is AFTER plugin installation (no before data): do NOT compare before/after. Instead, praise the user for actively using the plugin — mention /continue usage count, statusline monitoring, and cost visibility as signs of good practice. Frame positively: "You've been using claude-code-token-saver throughout this period, which means you've had full visibility into your costs from day one."
   - If insufficient data for comparison: simply skip, don't mention it.
 - Autonomous Runs list (≥20 min long-running prompts): analyze what kinds of prompts triggered these long runs — refactors, multi-step debugging, Ralph-loop style automation, research? Are they cost-effective compared to interactive back-and-forth, or do they show runaway cost patterns? Comment on whether autonomous runs dominate the top costs or are a small tail.
 - Empathize warmly with users who lean on autonomous runs — this is a legitimate workflow (especially for solo devs leveraging AI for long tasks), not a misuse. Never judgemental. Frame as "you trust the AI to run long" with practical tips only.

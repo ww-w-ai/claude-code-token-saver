@@ -69,14 +69,14 @@ AI编程工具必然会产生长对话和大上下文，单次请求最多可达
 
 也就是说，Cache Write不仅仅发生在"用户输入的新token"上。会话开始时整个系统提示词会被缓存；过期后，累积的整个对话都会成为Cache Write的对象。如果一个10万token的对话缓存过期了，一条消息就会触发10万token的Cache Write。
 
-**这正是cc-token-saver插件在闲置1小时后显示缓存过期警告的原因。** 看到警告时，请检查当前上下文大小：
+**这正是claude-code-token-saver插件在闲置1小时后显示缓存过期警告的原因。** 看到警告时，请检查当前上下文大小：
 
 - **上下文较小**：缓存重建成本在可接受范围内。继续工作即可，费用不高。
 - **上下文较大**：缓存成本会很可观。建议执行 `/clear` 然后 `/continue last` 在新会话中恢复。continue技能会自动恢复之前的对话上下文，工作流程不会中断。
 
 ## 降低缓存成本的策略
 
-cc-token-saver插件的设计目标就是自动化或简化以下所有策略。
+claude-code-token-saver插件的设计目标就是自动化或简化以下所有策略。
 
 ### 1. 保持上下文精简 — `/clear` + `/continue` ⭐
 
@@ -90,13 +90,13 @@ cc-token-saver插件的设计目标就是自动化或简化以下所有策略。
 
 Anthropic的主会话缓存使用**1小时tier**。过期后，首次请求需要将整个对话重新创建为Cache Write，成本很高。
 
-cc-token-saver检测到1小时闲置状态后会**自动显示警告**。看到警告时，使用上面的方法1（`/clear` + `/continue`）在新会话中继续是最经济的做法。
+claude-code-token-saver检测到1小时闲置状态后会**自动显示警告**。看到警告时，使用上面的方法1（`/clear` + `/continue`）在新会话中继续是最经济的做法。
 
 ### 3. 将繁重工作委托给SubTasks
 
 代码生成或多文件编辑等繁重任务可以委托给SubTasks，而不是在主会话中直接执行。SubTasks使用5分钟cache tier，**Cache Write便宜37.5%**，并且在独立的小上下文中运行，减少了每次调用的Cache Read量。
 
-cc-token-saver在会话开始时自动引导这种工作分离模式。
+claude-code-token-saver在会话开始时自动引导这种工作分离模式。
 
 ### 4. 实时成本监控 — `/setup-statusline`
 
@@ -110,7 +110,7 @@ cc-token-saver在会话开始时自动引导这种工作分离模式。
 
 加载到系统提示词中的插件、MCP服务器和技能越多，初始Cache Write成本就越高。请移除不使用的部分。
 
-cc-token-saver的 `/setup-git-lite` 将Claude Code默认的Git指令（约2,200 token）精简为核心的280 token——每个会话的Git相关系统提示词减少约88%。
+claude-code-token-saver的 `/setup-git-lite` 将Claude Code默认的Git指令（约2,200 token）精简为核心的280 token——每个会话的Git相关系统提示词减少约88%。
 
 ### 7. 工具选择 — 不同工具对上下文的影响差异很大
 
@@ -137,7 +137,7 @@ cc-token-saver的 `/setup-git-lite` 将Claude Code默认的Git指令（约2,200 
 | **git diff / diff** | 比较文件/文件夹 | **极小** — 仅返回差异 |
 | 分别Read两个文件 | 比较文件/文件夹 | **大** — 两个完整文件都添加到上下文 |
 
-cc-token-saver在会话开始时自动向AI注入此工具选择指南，鼓励优先使用轻量级工具。
+claude-code-token-saver在会话开始时自动向AI注入此工具选择指南，鼓励优先使用轻量级工具。
 
 ## 附录：AI服务商缓存对比
 

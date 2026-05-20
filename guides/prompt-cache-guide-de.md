@@ -69,14 +69,14 @@ Zwei Gruende:
 
 Mit anderen Worten: Cache-Schreiben findet nicht nur fuer "neue Tokens, die der Benutzer getippt hat" statt. Beim Sessionstart wird der gesamte System-Prompt gecacht; nach Ablauf wird die gesamte akkumulierte Konversation zum Cache-Schreibziel. Wenn der Cache einer 100K-Token-Konversation ablaeuft, loest eine einzige Nachricht ein Cache-Schreiben von 100K Tokens auf einmal aus.
 
-**Genau deshalb zeigt das cc-token-saver-Plugin nach 1 Stunde Inaktivitaet eine Cache-Ablaufwarnung an.** Wenn die Warnung erscheint, pruefen Sie Ihre aktuelle Kontextgroesse:
+**Genau deshalb zeigt das claude-code-token-saver-Plugin nach 1 Stunde Inaktivitaet eine Cache-Ablaufwarnung an.** Wenn die Warnung erscheint, pruefen Sie Ihre aktuelle Kontextgroesse:
 
 - **Kleiner Kontext**: Die Cache-Neuerstellungskosten sind handhabbar. Arbeiten Sie einfach weiter — die Kosten sind gering.
 - **Grosser Kontext**: Die Cache-Kosten werden erheblich sein. Wir empfehlen `/clear` gefolgt von `/continue last`, um in einer neuen Sitzung fortzufahren. Die continue-Faehigkeit stellt automatisch den Kontext Ihrer vorherigen Konversation wieder her, sodass Ihr Arbeitsablauf nicht unterbrochen wird.
 
 ## Strategien zur Reduzierung der Cache-Kosten
 
-Das cc-token-saver-Plugin ist darauf ausgelegt, alle diese Strategien zu automatisieren oder zu vereinfachen.
+Das claude-code-token-saver-Plugin ist darauf ausgelegt, alle diese Strategien zu automatisieren oder zu vereinfachen.
 
 ### 1. Kontext klein halten — `/clear` + `/continue` ⭐
 
@@ -90,13 +90,13 @@ Wenn sich das Thema aendert oder die Konversation lang wird, fuehren Sie `/clear
 
 Der Haupt-Session-Cache von Anthropic verwendet eine **1-Stunden-Stufe**. Nach Ablauf muss die erste Anfrage die gesamte Konversation als Cache-Schreibvorgang neu erstellen, was teuer ist.
 
-cc-token-saver erkennt 1-stuendige Inaktivitaet und **zeigt automatisch eine Warnung an**. Wenn die Warnung erscheint, ist die Verwendung von Methode 1 oben (`/clear` + `/continue`), um in einer neuen Sitzung fortzufahren, der wirtschaftlichste Ansatz.
+claude-code-token-saver erkennt 1-stuendige Inaktivitaet und **zeigt automatisch eine Warnung an**. Wenn die Warnung erscheint, ist die Verwendung von Methode 1 oben (`/clear` + `/continue`), um in einer neuen Sitzung fortzufahren, der wirtschaftlichste Ansatz.
 
 ### 3. Schwere Arbeit an SubTasks delegieren
 
 Schwere Aufgaben wie Code-Generierung oder Multi-Datei-Bearbeitungen koennen an SubTasks delegiert werden, anstatt sie direkt in der Hauptsitzung auszufuehren. SubTasks verwenden die 5-Minuten-Cache-Stufe, wodurch **Cache-Schreibvorgaenge 37,5% guenstiger** sind, und laufen in einem isolierten kleineren Kontext, was das Cache-Lesevolumen pro Aufruf reduziert.
 
-cc-token-saver leitet dieses Arbeitstrennungsmuster automatisch beim Sitzungsstart an.
+claude-code-token-saver leitet dieses Arbeitstrennungsmuster automatisch beim Sitzungsstart an.
 
 ### 4. Echtzeit-Kostenueberwachung — `/setup-statusline`
 
@@ -110,7 +110,7 @@ Verwenden Sie `/usage-view`, um Ihren vollstaendigen Nutzungsverlauf als Dashboa
 
 Je mehr Plugins, MCP-Server und Faehigkeiten in den System-Prompt geladen werden, desto hoeher die anfaenglichen Cache-Schreibkosten. Entfernen Sie alles, was Sie nicht verwenden.
 
-`/setup-git-lite` von cc-token-saver reduziert die Standard-Git-Anweisungen von Claude Code (~2.200 Tokens) auf einen Kern von 280 Tokens — eine Reduzierung des Git-bezogenen System-Prompts pro Sitzung um etwa 88%.
+`/setup-git-lite` von claude-code-token-saver reduziert die Standard-Git-Anweisungen von Claude Code (~2.200 Tokens) auf einen Kern von 280 Tokens — eine Reduzierung des Git-bezogenen System-Prompts pro Sitzung um etwa 88%.
 
 ### 7. Tool-Auswahl — Der Kontext-Einfluss variiert je nach Tool
 
@@ -137,7 +137,7 @@ Das gleiche Prinzip gilt fuer Bearbeiten und Vergleichen:
 | **git diff / diff** | Dateien/Ordner vergleichen | **Minimal** — nur Unterschiede werden zurueckgegeben |
 | Beide Dateien separat lesen | Dateien/Ordner vergleichen | **Gross** — beide vollstaendigen Dateien dem Kontext hinzugefuegt |
 
-cc-token-saver injiziert diese Tool-Auswahlhilfe automatisch beim Sitzungsstart in die KI und foerdert die vorrangige Nutzung leichtgewichtiger Tools.
+claude-code-token-saver injiziert diese Tool-Auswahlhilfe automatisch beim Sitzungsstart in die KI und foerdert die vorrangige Nutzung leichtgewichtiger Tools.
 
 ## Anhang: Cache-Vergleich zwischen KI-Anbietern
 

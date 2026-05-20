@@ -69,14 +69,14 @@ Duas razoes:
 
 Em outras palavras, a escrita de cache nao ocorre apenas para "novos tokens que o usuario digitou". No inicio da sessao, todo o prompt do sistema e colocado em cache; apos a expiracao, toda a conversa acumulada se torna alvo de escrita de cache. Se o cache de uma conversa de 100K tokens expirar, uma unica mensagem gera uma escrita de cache de 100K tokens de uma so vez.
 
-**E exatamente por isso que o plugin cc-token-saver exibe um aviso de expiracao de cache apos 1 hora de inatividade.** Quando o aviso aparecer, verifique o tamanho do seu contexto atual:
+**E exatamente por isso que o plugin claude-code-token-saver exibe um aviso de expiracao de cache apos 1 hora de inatividade.** Quando o aviso aparecer, verifique o tamanho do seu contexto atual:
 
 - **Contexto pequeno**: O custo de recriacao do cache e gerenciavel. Simplesmente continue trabalhando — o custo e baixo.
 - **Contexto grande**: O custo de cache sera significativo. Recomendamos `/clear` seguido de `/continue last` para retomar em uma nova sessao. A habilidade continue restaura automaticamente o contexto da sua conversa anterior, entao seu fluxo de trabalho nao e interrompido.
 
 ## Estrategias para reduzir os custos de cache
 
-O plugin cc-token-saver foi projetado para automatizar ou simplificar todas essas estrategias.
+O plugin claude-code-token-saver foi projetado para automatizar ou simplificar todas essas estrategias.
 
 ### 1. Manter o contexto pequeno — `/clear` + `/continue` ⭐
 
@@ -90,13 +90,13 @@ Quando o assunto muda ou a conversa fica longa, execute `/clear` para reiniciar,
 
 O cache da sessao principal da Anthropic usa um **nivel de 1 hora**. Apos a expiracao, a primeira solicitacao precisa recriar toda a conversa como escrita de cache, o que e caro.
 
-cc-token-saver detecta estados de inatividade de 1 hora e **exibe automaticamente um aviso**. Quando o aviso aparecer, usar o metodo 1 acima (`/clear` + `/continue`) para continuar em uma nova sessao e a abordagem mais economica.
+claude-code-token-saver detecta estados de inatividade de 1 hora e **exibe automaticamente um aviso**. Quando o aviso aparecer, usar o metodo 1 acima (`/clear` + `/continue`) para continuar em uma nova sessao e a abordagem mais economica.
 
 ### 3. Delegar trabalho pesado para SubTasks
 
 Tarefas pesadas como geracao de codigo ou edicoes de multiplos arquivos podem ser delegadas para SubTasks em vez de serem executadas diretamente na sessao principal. Os SubTasks usam o nivel de cache de 5 minutos, tornando as **escritas de cache 37,5% mais baratas**, e rodam em um contexto isolado menor, reduzindo o volume de leitura de cache por chamada.
 
-cc-token-saver guia automaticamente esse padrao de separacao de trabalho no inicio da sessao.
+claude-code-token-saver guia automaticamente esse padrao de separacao de trabalho no inicio da sessao.
 
 ### 4. Monitoramento de custos em tempo real — `/setup-statusline`
 
@@ -110,7 +110,7 @@ Use `/usage-view` para revisar seu historico completo de uso como um painel inte
 
 Quanto mais plugins, servidores MCP e habilidades carregados no prompt do sistema, maior o custo inicial de escrita de cache. Remova tudo que voce nao estiver usando.
 
-`/setup-git-lite` do cc-token-saver reduz as instrucoes Git padrao do Claude Code (~2.200 tokens) para um nucleo de 280 tokens — uma reducao de aproximadamente 88% no prompt do sistema relacionado a Git por sessao.
+`/setup-git-lite` do claude-code-token-saver reduz as instrucoes Git padrao do Claude Code (~2.200 tokens) para um nucleo de 280 tokens — uma reducao de aproximadamente 88% no prompt do sistema relacionado a Git por sessao.
 
 ### 7. Selecao de ferramentas — O impacto no contexto varia por ferramenta
 
@@ -137,7 +137,7 @@ O mesmo principio se aplica para editar e comparar:
 | **git diff / diff** | Comparar arquivos/pastas | **Minimo** — apenas diferencas retornadas |
 | Ler ambos os arquivos separadamente | Comparar arquivos/pastas | **Grande** — ambos os arquivos completos adicionados ao contexto |
 
-cc-token-saver injeta automaticamente este guia de selecao de ferramentas na IA no inicio da sessao, incentivando o uso de ferramentas leves primeiro.
+claude-code-token-saver injeta automaticamente este guia de selecao de ferramentas na IA no inicio da sessao, incentivando o uso de ferramentas leves primeiro.
 
 ## Apendice: Comparacao de cache entre provedores de IA
 
