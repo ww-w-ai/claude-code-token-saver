@@ -44,7 +44,7 @@ claude-code-token-saver 自动处理这一切。**安装一次，搞定。**
 
 ```
 /plugin marketplace add ww-w-ai/marketplace
-/plugin install claude-code-token-saver@ww-w-ai
+/plugin install cc-token-saver@ww-w-ai
 ```
 
 安装后自动运行。零配置。需要 [Claude Code](https://claude.ai/claude-code) v2.1.71+。
@@ -442,8 +442,8 @@ Claude Code 在每次 API 调用时将整个对话历史发送给模型。"API �
 
 ```bash
 git clone https://github.com/ww-w-ai/claude-code-token-saver.git
-/plugin marketplace add /path/to/claude-code-token-saver
-/plugin install claude-code-token-saver@claude-code-token-saver
+/plugin marketplace add /path/to/cc-token-saver
+/plugin install cc-token-saver@ww-w-ai
 ```
 
 claude-code-token-saver 完全开源（Apache-2.0）。纯 JavaScript + Bash——无编译二进制文件，无外部 API 调用，无遥测。每一行都可审计。README 中的每项声明都对应一个你可以直接查看的具体文件。

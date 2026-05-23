@@ -44,7 +44,7 @@ claude-code-token-saver가 이 모든 것을 자동으로 처리합니다. **한
 
 ```
 /plugin marketplace add ww-w-ai/marketplace
-/plugin install claude-code-token-saver@ww-w-ai
+/plugin install cc-token-saver@ww-w-ai
 ```
 
 설치 후 자동으로 작동합니다. 설정 불필요. [Claude Code](https://claude.ai/claude-code) v2.1.71+ 필요.
@@ -442,8 +442,8 @@ Claude Code는 모든 API 호출에서 전체 대화 기록을 모델에 전송�
 
 ```bash
 git clone https://github.com/ww-w-ai/claude-code-token-saver.git
-/plugin marketplace add /path/to/claude-code-token-saver
-/plugin install claude-code-token-saver@claude-code-token-saver
+/plugin marketplace add /path/to/cc-token-saver
+/plugin install cc-token-saver@ww-w-ai
 ```
 
 claude-code-token-saver는 완전한 오픈소스(Apache-2.0)입니다. 순수 JavaScript + Bash — 컴파일된 바이너리, 외부 API 호출, 텔레메트리 없음. 모든 라인이 감사 가능합니다. 이 README의 모든 주장은 직접 읽을 수 있는 특정 파일에 매핑됩니다.

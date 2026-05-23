@@ -44,7 +44,7 @@ claude-code-token-saver จัดการทั้งหมดนี้โด�
 
 ```
 /plugin marketplace add ww-w-ai/marketplace
-/plugin install claude-code-token-saver@ww-w-ai
+/plugin install cc-token-saver@ww-w-ai
 ```
 
 ทำงานอัตโนมัติหลังการติดตั้ง ไม่ต้องตั้งค่า ต้องการ [Claude Code](https://claude.ai/claude-code) v2.1.71+
@@ -442,8 +442,8 @@ Prompt cache ลดต้นทุนนี้ลง 90% แต่แคชม�
 
 ```bash
 git clone https://github.com/ww-w-ai/claude-code-token-saver.git
-/plugin marketplace add /path/to/claude-code-token-saver
-/plugin install claude-code-token-saver@claude-code-token-saver
+/plugin marketplace add /path/to/cc-token-saver
+/plugin install cc-token-saver@ww-w-ai
 ```
 
 claude-code-token-saver เป็น open-source ทั้งหมด (Apache-2.0) JavaScript + Bash ธรรมดา — ไม่มี binary ที่คอมไพล์แล้ว ไม่มีการเรียก API ภายนอก ไม่มี telemetry ทุกบรรทัดตรวจสอบได้ ทุกคำกล่าวอ้างใน README นี้แมปไปยังไฟล์เฉพาะที่คุณสามารถอ่านได้

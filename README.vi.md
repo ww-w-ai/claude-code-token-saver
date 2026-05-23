@@ -44,7 +44,7 @@ claude-code-token-saver xử lý tất cả tự động. **Cài một lần. Xo
 
 ```
 /plugin marketplace add ww-w-ai/marketplace
-/plugin install claude-code-token-saver@ww-w-ai
+/plugin install cc-token-saver@ww-w-ai
 ```
 
 Hoạt động tự động sau khi cài đặt. Không cần cấu hình. Yêu cầu [Claude Code](https://claude.ai/claude-code) v2.1.71+.
@@ -442,8 +442,8 @@ Công việc nặng được ủy thác cho SubTask. Main chỉ xử lý thiết
 
 ```bash
 git clone https://github.com/ww-w-ai/claude-code-token-saver.git
-/plugin marketplace add /path/to/claude-code-token-saver
-/plugin install claude-code-token-saver@claude-code-token-saver
+/plugin marketplace add /path/to/cc-token-saver
+/plugin install cc-token-saver@ww-w-ai
 ```
 
 claude-code-token-saver hoàn toàn mã nguồn mở (Apache-2.0). JavaScript thuần + Bash — không có binary đã biên dịch, không có API call bên ngoài, không có telemetry. Mỗi dòng có thể kiểm tra. Mỗi tuyên bố trong README này ánh xạ đến một file cụ thể bạn có thể đọc.
