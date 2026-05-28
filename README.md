@@ -13,8 +13,8 @@ Works with **Max Plan ($200/mo)** and **API pay-per-use**. Same plugin, same fea
 | Feature | What happens | Impact |
 | ------- | ------------ | ------ |
 | 🛡️ Token Guardian | Detects cache expiry, blocks $9 re-sends before they happen | Prevents the #1 silent cost spike |
-| 🧠 Session Architect | Auto-delegates heavy work to SubTasks (37.5% cheaper cache) | Context stays small, costs drop |
-| 🪶 Concise Mode | Cuts response padding, keeps substance | Fewer output tokens per response |
+| 🧠 Session Architect | Auto-delegates to SubTasks (37.5% cheaper) + parallelizes tool calls to cut round-trips | Context stays small, round-trips drop, costs compound down |
+| 🪶 Concise Mode | Decision-focused responses: essential context + choices, nothing else | Fewer output tokens, faster user decisions |
 | 🔄 /continue | Replaces /compact — zero LLM calls, zero cost, zero info loss | Free context restoration |
 | 📊 Status Line | Real-time cost, context size, rate limit — under 50ms | See problems before they cost you |
 | 📈 /usage-view | Interactive HTML dashboard with AI-powered analysis | Full cost forensics in one click |
@@ -96,7 +96,9 @@ Just re-send the same prompt after the warning -- it goes through. The warning o
 
 Most users do everything in the Main session. File reads, code generation, test runs. Every output piles into context and is re-sent with every message. The session bloats. Costs snowball.
 
-Session Architect automatically injects a delegation strategy at session start.
+Session Architect automatically injects two cost strategies at session start:
+
+**1. SubTask delegation** — heavy work runs in SubTasks with smaller context and cheaper cache.
 
 |                  | Main Session                      | SubTask                               |
 | ---------------- | --------------------------------- | ------------------------------------- |
@@ -105,23 +107,23 @@ Session Architect automatically injects a delegation strategy at session start.
 | Cache write cost | ＄10/MTok                          | ＄6.25/MTok                            |
 | Context size     | ~94K avg                          | ~33K avg                              |
 
-SubTasks have **37.5% cheaper cache writes** than Main. Context is also much smaller. Delegating heavy work to SubTasks cuts costs dramatically.
+**2. Round-trip minimization** — total cost = context size × round-trips. Each round-trip re-reads the entire conversation. 5 sequential tool calls on 50K context = 250K cache-read tokens. Parallelize into 2 round-trips = 100K — **60% saved, same output.** The injected rules enforce parallel tool bundling, batch planning, early-exit, and SubTask absorption.
 
-**Result:** Context stays under 250K instead of growing to 600K+. Same work output, half the token cost. Fully automatic.
+**Result:** Context stays under 250K instead of growing to 600K+. Round-trips cut by parallelization. Same work output, compounding cost reduction. Fully automatic.
 
 ---
 
 ## 🪶 Concise Mode
 
-**Same content. Less padding. On by default.**
+**Decision-focused responses. On by default.**
 
-The SessionStart hook also injects a response-style rule that runs in **every session and every model** — no flags, no setup. Three things change:
+Verbose responses hurt user decisions — long text buries the signal, forces re-reading, and slows the loop. The SessionStart hook injects response rules in **every session and every model** — no flags, no setup.
 
-- **Preamble out** — no "Let me check…", "I'll now…", restating your question, or recapping what the diff already shows
-- **Right format for the content** — bullets for lists, prose for reasoning (tradeoffs, causation, rationale). Neither is forced
-- **Tighter expression** — same point, fewer words. Clearer prose is shorter prose
-
-Hard limit: never drop content, skip verification, or collapse nuance into a single sentence. Substance stays full; only the wrapper shrinks.
+- **1-3 sentences default** — exceeds only when the user explicitly asks for detail
+- **Essential context + actionable choices only** — everything the user can infer gets cut
+- **Bullets by default** — prose only for causal reasoning
+- **Hard bans** — restatements, meta-narration ("Let me…"), trailing summaries, hedging filler, agreement→auto-expansion, unrequested table dimensions, code before direction is confirmed
+- **Depth on demand** — summarize first, offer to go deeper ("Want me to detail X?")
 
 Install once, applies everywhere.
 
@@ -481,7 +483,7 @@ The plugin injects context at session start. Here's exactly how much:
 
 | Injection | When | Tokens | Purpose |
 | --------- | ---- | ------ | ------- |
-| Session Architect | SessionStart (once) | ~1,100 | SubTask delegation strategy + concise mode rules |
+| Session Architect | SessionStart (once) | ~1,100 | SubTask delegation + round-trip minimization + concise mode rules |
 | Git context (if git-lite enabled) | SessionStart (once) | ~280 | Replaces CC's native ~2,200 tok git instructions |
 | Cache expiry warning | On idle > 59m (once) | ~200 | Blocks expensive re-send, shows recovery options |
 | Status line | Every API call | 0 | Renders to terminal status bar, not conversation context |

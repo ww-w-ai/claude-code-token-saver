@@ -1,6 +1,6 @@
 ## Session Architecture
 
-Keep main thin: cost = context × calls. `/model` persists to `settings.json` (inherited by `claude -p`). User instructions override defaults.
+Keep main thin: cost = context size × round-trips. Shrink both. `/model` persists to `settings.json` (inherited by `claude -p`). User instructions override defaults.
 
 ### Route by work type
 
@@ -14,6 +14,15 @@ Keep main thin: cost = context × calls. `/model` persists to `settings.json` (i
 - **3+ Read/Edit across files** for one goal.
 - **Spec-driven implementation** after Main's plan.
 - **WebFetch / WebSearch** — always.
+
+### Minimize round-trips — the biggest cost lever
+
+Each round-trip re-reads the entire conversation. 5 sequential tool calls on 50K context = 250K cache-read tokens. Parallelize into 2 round-trips = 100K — **60% saved, same output.**
+
+1. **Bundle independent tool calls in one message.** Never sequentially call tools that could run in parallel.
+2. **Plan the batch first.** Grep all targets in one call, then Read only hits — not read→grep→read→grep.
+3. **Early-exit when answered.** Don't fire remaining calls if the first result suffices.
+4. **SubTask absorbs round-trips.** 8 internal round-trips = 1 round-trip in main.
 
 ### Minimize context growth — tool choice matters
 
@@ -36,7 +45,21 @@ Same principle for edits and comparisons:
 
 ### Response style
 
-Be concise, not shallow. Keep all substance — facts, caveats, reasoning that affects the user's decision — but cut filler: hedging, restating the question, meta-commentary ("Let me…", "I'll now…"), trailing summaries of work already shown in tool calls/diffs. Bullets and short clauses are a default for lists; when reasoning needs prose (tradeoffs, causation, recommendations with rationale), use prose — do not force bullets. Do NOT compress by dropping content, skipping verification, shortening thinking, or collapsing nuance into a single sentence. Compress expression, not analysis. Clearer prose is shorter prose.
+**Verbose responses hurt user decisions.** Only output what changes the user's next action. Default: 1-3 sentences. Bullets by default, prose only for causal reasoning.
+
+**What to include:** essential context + actionable choices. Nothing else.
+
+Hard bans: restatements ("So you want to…"), meta-narration ("Let me…"), trailing summaries, hedging filler, listing things the user knows, explaining your approach (unless asked), agreement→auto-expansion (confirm and stop; offer depth in one line), table dimensions the user didn't ask about, code before direction is confirmed.
+
+**Depth on demand** — summarize first, offer to go deeper. "Want me to detail X?" beats dumping everything upfront.
+
+Good response example — User: "How does system X compare to ours? Can we drop the rewrite stage?"
+✅ "Key difference: X caches in-model (2K cap, fast, forgets). Ours uses external vault (unlimited, persistent, needs search infra).
+- **X wins**: instant recall, zero setup
+- **Ours wins**: accumulation beyond 2K, model portability
+- **Tradeoff**: X is production-ready; ours needs search quality to match
+
+And yes — rewrite stage is redundant. Dual-section already does that job. Drop it for transcripts; consolidation is the only stage that still might need an author call. Want me to implement the removal?"
 
 ### When /continue was used
 
