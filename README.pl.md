@@ -44,7 +44,7 @@ claude-code-token-saver obsługuje to wszystko automatycznie. **Zainstaluj raz. 
 
 ```
 /plugin marketplace add ww-w-ai/marketplace
-/plugin install cc-token-saver@ww-w-ai
+/plugin install claude-code-token-saver@ww-w-ai
 ```
 
 Działa automatycznie po instalacji. Zero konfiguracji. Wymaga [Claude Code](https://claude.ai/claude-code) v2.1.71+.
@@ -442,8 +442,8 @@ Ciężka praca jest delegowana do SubTask. Main obsługuje tylko projektowanie/d
 
 ```bash
 git clone https://github.com/ww-w-ai/claude-code-token-saver.git
-/plugin marketplace add /path/to/cc-token-saver
-/plugin install cc-token-saver@ww-w-ai
+/plugin marketplace add /path/to/claude-code-token-saver
+/plugin install claude-code-token-saver@ww-w-ai
 ```
 
 claude-code-token-saver jest w pełni open-source (Apache-2.0). Czysty JavaScript + Bash — brak skompilowanych plików binarnych, brak zewnętrznych wywołań API, brak telemetrii. Każda linia jest audytowalna. Każde twierdzenie w tym README odpowiada konkretnemu plikowi, który możesz przeczytać.

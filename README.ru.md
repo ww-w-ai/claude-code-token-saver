@@ -44,7 +44,7 @@ claude-code-token-saver обрабатывает всё это автомати�
 
 ```
 /plugin marketplace add ww-w-ai/marketplace
-/plugin install cc-token-saver@ww-w-ai
+/plugin install claude-code-token-saver@ww-w-ai
 ```
 
 Работает автоматически после установки. Без настройки. Требует [Claude Code](https://claude.ai/claude-code) v2.1.71+.
@@ -442,8 +442,8 @@ Claude Code отправляет всю историю разговора в м�
 
 ```bash
 git clone https://github.com/ww-w-ai/claude-code-token-saver.git
-/plugin marketplace add /path/to/cc-token-saver
-/plugin install cc-token-saver@ww-w-ai
+/plugin marketplace add /path/to/claude-code-token-saver
+/plugin install claude-code-token-saver@ww-w-ai
 ```
 
 claude-code-token-saver полностью с открытым исходным кодом (Apache-2.0). Чистый JavaScript + Bash — без скомпилированных бинарных файлов, без внешних вызовов API, без телеметрии. Каждая строка доступна для аудита. Каждое утверждение в этом README соответствует конкретному файлу, который вы можете прочитать.

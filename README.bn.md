@@ -44,7 +44,7 @@ claude-code-token-saver এই সব স্বয়ংক্রিয়ভা
 
 ```
 /plugin marketplace add ww-w-ai/marketplace
-/plugin install cc-token-saver@ww-w-ai
+/plugin install claude-code-token-saver@ww-w-ai
 ```
 
 ইনস্টলের পরে স্বয়ংক্রিয়ভাবে কাজ করে। Zero config। [Claude Code](https://claude.ai/claude-code) v2.1.71+ প্রয়োজন।
@@ -442,8 +442,8 @@ Conditions: Opus 4 মূল্য, প্রতি মিনিটে ১টি
 
 ```bash
 git clone https://github.com/ww-w-ai/claude-code-token-saver.git
-/plugin marketplace add /path/to/cc-token-saver
-/plugin install cc-token-saver@ww-w-ai
+/plugin marketplace add /path/to/claude-code-token-saver
+/plugin install claude-code-token-saver@ww-w-ai
 ```
 
 claude-code-token-saver সম্পূর্ণ open-source (Apache-2.0)। Plain JavaScript + Bash — কোনো compiled binaries নেই, কোনো external API calls নেই, কোনো telemetry নেই। প্রতিটি লাইন auditable। এই README-এ প্রতিটি claim একটি নির্দিষ্ট ফাইলে map করে যা আপনি পড়তে পারেন।

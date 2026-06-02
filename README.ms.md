@@ -44,7 +44,7 @@ claude-code-token-saver mengendalikan semuanya secara automatik. **Pasang sekali
 
 ```
 /plugin marketplace add ww-w-ai/marketplace
-/plugin install cc-token-saver@ww-w-ai
+/plugin install claude-code-token-saver@ww-w-ai
 ```
 
 Berfungsi secara automatik selepas dipasang. Tanpa konfigurasi. Memerlukan [Claude Code](https://claude.ai/claude-code) v2.1.71+.
@@ -442,8 +442,8 @@ Kerja berat didelegasi ke SubTasks. Main hanya mengendalikan reka bentuk/keputus
 
 ```bash
 git clone https://github.com/ww-w-ai/claude-code-token-saver.git
-/plugin marketplace add /path/to/cc-token-saver
-/plugin install cc-token-saver@ww-w-ai
+/plugin marketplace add /path/to/claude-code-token-saver
+/plugin install claude-code-token-saver@ww-w-ai
 ```
 
 claude-code-token-saver sepenuhnya sumber terbuka (Apache-2.0). JavaScript + Bash biasa — tiada binari yang dikompil, tiada panggilan API luaran, tiada telemetri. Setiap baris boleh diaudit. Setiap tuntutan dalam README ini dipetakan ke fail tertentu yang boleh anda baca.

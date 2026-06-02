@@ -44,7 +44,7 @@ claude-code-token-saver מטפל בכל זה אוטומטית. **מתקין פע
 
 ```
 /plugin marketplace add ww-w-ai/marketplace
-/plugin install cc-token-saver@ww-w-ai
+/plugin install claude-code-token-saver@ww-w-ai
 ```
 
 עובד אוטומטית לאחר ההתקנה. ללא הגדרה. דורש [Claude Code](https://claude.ai/claude-code) v2.1.71+.
@@ -442,8 +442,8 @@ Prompt cache מפחית עלות זו ב-90%. אבל ל-cache יש אורך חי
 
 ```bash
 git clone https://github.com/ww-w-ai/claude-code-token-saver.git
-/plugin marketplace add /path/to/cc-token-saver
-/plugin install cc-token-saver@ww-w-ai
+/plugin marketplace add /path/to/claude-code-token-saver
+/plugin install claude-code-token-saver@ww-w-ai
 ```
 
 claude-code-token-saver הוא קוד פתוח לחלוטין (Apache-2.0). JavaScript ו-Bash פשוטים — אין בינאריים מקומפלים, אין קריאות API חיצוניות, אין טלמטריה. כל שורה ניתנת לביקורת. כל טענה ב-README זה ממופה לקובץ ספציפי שאפשר לקרוא.
