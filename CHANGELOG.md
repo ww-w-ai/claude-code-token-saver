@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - 2026-06-15
+
+### Fixed: `/continue` session list polluted by automated review sessions
+
+- The built-in `/security-review` and `/code-review` commands spawn separate headless sessions with their own JSONL transcripts. Their first "user" message is a programmatic review prompt (`Review this change for security vulnerabilities…`), which `list-sessions.js` mistook for a genuine user turn — so these noise sessions appeared in the `/continue` picker, burying the user's real conversations.
+- Added the review-prompt markers to `SUBTASK_PREFIXES`, so review-spawned sessions now register zero genuine user messages and are excluded from the main session list.
+
+## [2.1.0] - 2026-05-28
+
+### Round-trip minimization + decision-focused concise mode
+
+- Session Architecture hook now injects round-trip minimization rules (parallel tool bundling, batch planning, early-exit, SubTask absorption) alongside the existing context-growth controls.
+- Concise Mode overhauled: 1-3 sentence default with hard bans on 9 verbose patterns (agreement-expansion, table compulsion, preemptive code, etc.) and a depth-on-demand principle.
+
 ## [2.0.1] - 2026-05-21
 
 ### Renamed to claude-code-token-saver

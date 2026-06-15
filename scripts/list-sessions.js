@@ -33,6 +33,12 @@ const SUBTASK_PREFIXES = [
   "Read the file /tmp/continue-",
   "CRITICAL: Respond with TEXT ONLY",
   "Write the word",
+  // Spawned by the built-in /security-review and /code-review commands, which
+  // run as separate headless sessions with their own JSONL. The user never
+  // typed these — they're programmatic review prompts, not genuine turns.
+  "Review this change for security vulnerabilities",
+  "Review the following code changes",
+  "You are reviewing a pull request",
 ];
 
 function extractText(content) {
