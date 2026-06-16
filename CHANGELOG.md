@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.2] - 2026-06-16
+
+### Fixed: `/continue` last/first message masked by ESC-interrupt markers
+
+- When a turn is interrupted with ESC, Claude Code injects a synthetic user message `[Request interrupted by user]` (or `[Request interrupted by user for tool use]`). These were counted as genuine user turns, so they leaked into the `/continue` picker's first/last message column and into the preprocessed transcript's "Last N messages" — masking the user's real last typed message (observed as the last message appearing one or two turns stale).
+- `list-sessions.js`: `isGenuineUserMessage()` now filters any text starting with `[Request interrupted by user`. Matches the marker prefix only — genuine messages that happen to start with `[` (`[Image #1] …`, `[중요] …`, pasted blocks) are preserved.
+- `preprocess.js`: added the same marker to `SKIP_USER_PATTERNS` and bumped `COMPACT_FORMAT_VERSION` 6 → 7 so existing caches regenerate cleanly.
+
 ## [2.1.1] - 2026-06-15
 
 ### Fixed: `/continue` session list polluted by automated review sessions

@@ -90,6 +90,8 @@
  *   v5: radical simplification — pair-based turns, fixed truncation rules
  *   v6: slash commands and compact_boundary emitted as visible turns; readable
  *       path alongside marker fast-path (dual-encoding, unchanged marker semantics)
+ *   v7: skip "[Request interrupted by user...]" ESC markers (not typed turns) so
+ *       they no longer leak into the compact transcript or "Last N messages"
  */
 
 const fs = require("fs");
@@ -97,7 +99,7 @@ const path = require("path");
 const readline = require("readline");
 const os = require("os");
 
-const COMPACT_FORMAT_VERSION = 6;
+const COMPACT_FORMAT_VERSION = 7;
 
 // Truncation constants
 const USER_MAX = 500;
@@ -131,7 +133,14 @@ const STRIP_PATTERNS = [
   /<task-notification>[\s\S]*?<\/task-notification>/g,
 ];
 
-const SKIP_USER_PATTERNS = [/^\s*$/, /^<local-command/, /^Base directory for this skill:/];
+const SKIP_USER_PATTERNS = [
+  /^\s*$/,
+  /^<local-command/,
+  /^Base directory for this skill:/,
+  // ESC-interrupt markers CC injects as user messages (not typed by the user).
+  // Skipping keeps them out of the compact transcript and the "Last N messages".
+  /^\[Request interrupted by user/,
+];
 
 function cleanText(text) {
   let cleaned = text || "";

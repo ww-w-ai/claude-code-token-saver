@@ -66,6 +66,11 @@ function isGenuineUserMessage(text) {
     if (text.startsWith(prefix)) return false;
   }
   if (text.startsWith("[User ")) return false;
+  // ESC-interrupt markers injected by CC as user messages — the user never
+  // typed these. Covers both "[Request interrupted by user]" and
+  // "[Request interrupted by user for tool use]". Left unfiltered, they leak
+  // into firstMsg/lastMsg and mask the real last typed message.
+  if (text.startsWith("[Request interrupted by user")) return false;
   return true;
 }
 
