@@ -38,6 +38,16 @@ Same principle for edits and comparisons:
 - **Edit** sends only the diff to context. **Write** dumps the entire file — use Edit for existing files.
 - **Comparing files/changes** → `git diff`, `diff` etc. to see differences only, instead of reading both files fully.
 
+### Attaching image FILES — shrink first (default)
+
+Whenever you attach an image file, a full-res original costs many tokens and can blow the tool-call payload (32MB cap → "Request too large"). So for MOST images, downscale to a sensible size first, then attach the small copy. Exception: when the image is already tiny, or you need fine-grained recognition of small text/detail, attach the ORIGINAL instead.
+
+```
+node __PLUGIN_ROOT__/scripts/shrink-img.js <src> [--scale 0.5] [--maxdim 1000] [--width <px>] [--height <px>] [--maxmp <mp>] [--quality 1-100]
+```
+
+Writes `<name>-sm.<ext>`. Sizing flags are optional upper bounds (combine freely, tightest wins, never upscales, aspect preserved); with none given it defaults to longest side 1000px. PNG + JPEG work on every platform with no external tool (macOS `sips`; else vendored pure-JS pngjs/jpeg-js), any input size. Applies ONLY to file-path attachments — not raw pasted image data.
+
 ### NEVER in main session
 
 - **NEVER Write an existing file** — Write = new files only. Existing → Edit (`replace_all` for large rewrites).

@@ -21,7 +21,7 @@
           },
           {
             "type": "command",
-            "command": "cat ${CLAUDE_PLUGIN_ROOT}/hooks/session-architecture.md",
+            "command": "sed \"s|__PLUGIN_ROOT__|${CLAUDE_PLUGIN_ROOT}|g\" ${CLAUDE_PLUGIN_ROOT}/hooks/session-architecture.md",
             "timeout": 5
           },
           {

@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-07-02
+
+### Added: `shrink-img` — zero-dependency image downscaler for cheaper file attachments
+
+- New `scripts/shrink-img.js`: when an image FILE is attached (to read layout / text / dividers, or just to save tokens), a full-res original costs many tokens and can blow the tool-call payload (32MB cap → "Request too large"). This shrinks it to a sensible preview first. Payload example: a 1672×941 PNG drops from ~6.0MB to ~2.1MB decoded (64% less) at longest side 1000px, staying fully legible.
+- Zero runtime dependencies, cross-platform: macOS uses the built-in `sips`; other platforms use pure-JS codecs that need no external tool — **pngjs** (MIT) for PNG and **jpeg-js** (BSD-3-Clause) for JPEG, both vendored under `scripts/lib/vendor/` and using only Node built-ins (`zlib`). No `npm install`, no ffmpeg/ImageMagick required for PNG/JPEG (those are a last resort only for other formats).
+- No artificial size limits: jpeg-js's built-in 100MP / 512MB caps are lifted, so arbitrarily large images work (a 110MP JPEG downscales fine); tiny images are kept as-is (never upscaled).
+- Flexible sizing — combine freely, tightest bound wins, aspect preserved, never upscales: `--scale <f>` (relative), `--maxdim <px>` (longest side), `--width` / `--height` (per-axis), `--maxmp <mp>` (total-pixel budget). `--quality <1-100>` tunes JPEG output. Default with no flag: longest side 1000px.
+- The SessionStart architecture guide now recommends shrinking most image-file attachments before sending (exception: already-tiny images or when fine text detail must be read at full resolution).
+- Third-party attributions recorded in the new `THIRD-PARTY-NOTICES.md`.
+
 ## [2.1.2] - 2026-06-16
 
 ### Fixed: `/continue` last/first message masked by ESC-interrupt markers

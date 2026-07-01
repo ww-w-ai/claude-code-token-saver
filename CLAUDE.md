@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-Claude Code plugin (claude-code-token-saver) that automates token/cache management, cost tracking, session control, and research-backed thinking patterns. Zero dependencies, zero config. Pure Node.js + Bash.
+Claude Code plugin (claude-code-token-saver) that automates token/cache management, cost tracking, session control, and research-backed thinking patterns. No npm dependencies, zero config. Pure Node.js + Bash (two pure-JS image codecs are vendored under `scripts/lib/vendor/`, still no install step).
 
 ## Architecture
 
@@ -12,7 +12,9 @@ Claude Code plugin (claude-code-token-saver) that automates token/cache manageme
 hooks/          → Lifecycle hooks (Bash). Run on UserPromptSubmit & SessionStart.
 skills/         → 4 SKILL.md-based skills invoked via /continue, /usage-view, /setup-statusline, /report-limit
 scripts/        → Node.js processing pipeline (no npm, no build step)
+                  + shrink-img.js — image downscaler for cheaper file attachments
 scripts/lib/    → Shared utilities (pricing, cache paths, locale, window calculations)
+scripts/lib/vendor/ → Vendored pure-JS third-party (pngjs MIT, jpeg-js BSD) for shrink-img; see THIRD-PARTY-NOTICES.md
 locales/        → 23 language JSON files for dashboard UI strings
 ```
 
@@ -22,7 +24,7 @@ locales/        → 23 language JSON files for dashboard UI strings
 
 ## No Build System
 
-Zero-dependency project. No package.json, no npm, no build step. Scripts run directly with Node.js. Test by invoking skills in Claude Code.
+No npm dependencies. No package.json, no npm install, no build step. Scripts run directly with Node.js. The only third-party code is two pure-JS image codecs (pngjs, jpeg-js) vendored verbatim under `scripts/lib/vendor/` — they use Node built-ins only (`zlib`), so the "no install step" property holds; attribution is in `THIRD-PARTY-NOTICES.md`. Test by invoking skills in Claude Code.
 
 ## Critical Rules
 
