@@ -80,7 +80,7 @@ Claude에게 "sonnet으로 서브태스크 띄워서 X 해줘"라고 말하면 �
 - 설계는 `claude -p`(main, thinking 활성)로, 실행은 SubTask + Sonnet으로 자동 분산
 - 프롬프트 캐시 만료 시 경고해서 불필요한 재캐시 비용을 방지
 - `/usage-view`로 실시간 비용 대시보드 확인
-- `/continue`로 세션 간 context를 LLM 호출 없이(= 비용 0) 복원
+- `/cc-continue`로 세션 간 context를 LLM 호출 없이(= 비용 0) 복원
 
 이 리포트의 분석 데이터도 claude-code-token-saver로 수집한 것입니다.
 
@@ -353,7 +353,7 @@ Cache read는 context 크기에 비례해서 모델과 무관합니다. 세션�
 
 #### 공통 습관
 
-- **세션 관리**: `/continue`로 초기 context 경량화, 긴 세션은 정기적으로 압축
+- **세션 관리**: `/cc-continue`로 초기 context 경량화, 긴 세션은 정기적으로 압축
 
 ---
 

@@ -72,17 +72,17 @@ In other words, cache write doesn't only occur for "new tokens the user typed." 
 **This is exactly why the claude-code-token-saver plugin displays a cache expiry warning after 1 hour of inactivity.** When the warning appears, check your current context size:
 
 - **Small context**: Cache re-creation cost is manageable. Just continue working — the cost is low.
-- **Large context**: Cache cost will be significant. We recommend `/clear` followed by `/continue last` to resume in a new session. The continue skill automatically restores your previous conversation context, so your workflow isn't interrupted.
+- **Large context**: Cache cost will be significant. We recommend `/clear` followed by `/cc-continue last` to resume in a new session. The continue skill automatically restores your previous conversation context, so your workflow isn't interrupted.
 
 ## Strategies to Reduce Cache Costs
 
 The claude-code-token-saver plugin is designed to automate or simplify all of these strategies.
 
-### 1. Keep Context Small — `/clear` + `/continue` ⭐
+### 1. Keep Context Small — `/clear` + `/cc-continue` ⭐
 
 **This is the single most important way to reduce costs.** High cache costs mean you're receiving the 90% discount — that's normal. But if context grows unnecessarily large and stays that way, the absolute cost per call increases even with the discount. **Keeping context size under control is the single most effective cost management strategy.**
 
-When the topic changes or the conversation gets long, run `/clear` to reset, then `/continue last` to restore previous context. `/continue` restores previous conversations without any LLM calls, so the cost is zero.
+When the topic changes or the conversation gets long, run `/clear` to reset, then `/cc-continue last` to restore previous context. `/cc-continue` restores previous conversations without any LLM calls, so the cost is zero.
 
 `/compact` reduces context by summarizing the conversation, but the summarization process itself incurs LLM call costs and discards conversation detail. Not recommended.
 
@@ -90,7 +90,7 @@ When the topic changes or the conversation gets long, run `/clear` to reset, the
 
 Anthropic's main session cache uses a **1-hour tier**. After expiry, the first request must re-create the entire conversation as a cache write, which is expensive.
 
-claude-code-token-saver detects 1-hour idle states and **automatically displays a warning**. When the warning appears, using method 1 above (`/clear` + `/continue`) to continue in a new session is the most economical approach.
+claude-code-token-saver detects 1-hour idle states and **automatically displays a warning**. When the warning appears, using method 1 above (`/clear` + `/cc-continue`) to continue in a new session is the most economical approach.
 
 ### 3. Delegate Heavy Work to SubTasks
 

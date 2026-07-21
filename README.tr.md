@@ -15,7 +15,8 @@
 | 🛡️ Token Guardian | Cache süresinin dolmasını algılar, gerçekleşmeden önce $9'lık yeniden gönderimi engeller | Birinci sessiz maliyet artışını önler |
 | 🧠 Session Architect | Ağır işleri SubTask'lara otomatik devreder (%37,5 daha ucuz cache) | Context küçük kalır, maliyetler düşer |
 | 🪶 Concise Mode | Yanıt dolgusunu keser, özü korur | Yanıt başına daha az output token |
-| 🔄 /continue | /compact'ın yerini alır — sıfır LLM çağrısı, sıfır maliyet, sıfır bilgi kaybı | Ücretsiz context geri yükleme |
+| 🔄 /cc-continue | /compact'ın yerini alır — sıfır LLM çağrısı, sıfır maliyet, sıfır bilgi kaybı | Ücretsiz context geri yükleme |
+| 🤝 /cc-compact | /cc-continue'nun otomatik yüklediği bir oturum devir notu yazar — transcript'in kaybettiği sub-agent bulgularını ve araç çıktılarını yakalar | Bir sonraki oturum gizli context ile de devam eder |
 | 📊 Status Line | Gerçek zamanlı maliyet, context boyutu, hız sınırı — 50ms altında | Sorunları size mal olmadan önce görün |
 | 📈 /usage-view | Yapay zeka destekli analizle etkileşimli HTML panosu | Tek tıklamayla eksiksiz maliyet analizi |
 | ✂️ /setup-git-lite | CC'nin her oturuma eklediği 2.200 gizli token'ı kaldırır | Yalnızca git talimatlarından ayda ~$48 tasarruf |
@@ -78,7 +79,7 @@ The prompt cache has expired. Continuing will resend the full context.
 Cost may increase significantly.
 
 👉 /context — Check current context usage before deciding
-👉 /clear → /continue — Reset, then restore previous context (recommended, cheapest)
+👉 /clear → /cc-continue — Reset, then restore previous context (recommended, cheapest)
 👉 Re-send — Continue as-is (full re-cache cost incurred)
 ```
 
@@ -127,15 +128,15 @@ Bir kez kurun, her yerde uygulanır.
 
 ---
 
-## 🔄 Özellik 3: /continue — Context Geri Yükleme
+## 🔄 Özellik 3: /cc-continue — Context Geri Yükleme
 
 **`/compact`'ın yerini alır. Sıfır LLM çağrısı. Sıfır token maliyeti. Sıfır bilgi kaybı.**
 
 `/compact`, tüm context'inizi (~1M token) LLM'ye göndererek %3,3'lük bir özette sıkıştırır. Cache sona ermişse, bu tek başına tam bir yeniden önbelleklemeyi tetikler. Bilgi kaybı kaçınılmazdır.
 
-`/continue` tamamen farklı bir yaklaşım benimsemektedir. Önceki oturum transkriptini ön işler ve doğrudan yükler. LLM çağrısı yok. Maliyet yok. Orijinal konuşma olduğu gibi geri yüklenir.
+`/cc-continue` tamamen farklı bir yaklaşım benimsemektedir. Önceki oturum transkriptini ön işler ve doğrudan yükler. LLM çağrısı yok. Maliyet yok. Orijinal konuşma olduğu gibi geri yüklenir.
 
-|                         | /compact                          | /continue                        |
+|                         | /compact                          | /cc-continue                        |
 | ----------------------- | --------------------------------- | -------------------------------- |
 | Nasıl çalışır           | Özet için tüm context'i LLM'ye gönderir | Transkripti ön işler, doğrudan okur |
 | LLM çağrıları           | Gerekli (genellikle 100K+ token)  | 0                                |
@@ -145,10 +146,24 @@ Bir kez kurun, her yerde uygulanır.
 | Cache sona erdiğinde    | Üstüne tam yeniden önbellekleme maliyeti | Etki yok                    |
 | Çok oturumlu geri yükleme | Mümkün değil                    | Desteklenir                      |
 
-Kullanım: `/clear` ardından `/continue`. Önceki oturumların listesini göreceksiniz. Geri yüklemek için birini seçin. Hızlı kurtarma için: `/continue last`.
+Kullanım: `/clear` ardından `/cc-continue`. Önceki oturumların listesini göreceksiniz. Geri yüklemek için birini seçin. Hızlı kurtarma için: `/cc-continue last`.
 
 **Sonuç:** Önceki çalışmaya sıfır maliyetle devam edin. Bilgi kaybı yok. 60MB+ transkriptleri 1 saniyenin altında işler.
 
+---
+### 🤝 Eşi: `/cc-compact` — gizli katmanı devret
+
+`/cc-continue` transkripti geri yükler — siz ve Claude'un söylediklerini. Ama bir çalışma oturumunun en yararlı bilgisi genellikle o diyaloğun DIŞINDA yaşar: bir sub-agent'ın bulduğu bir şey (transkripti geri yüklemenin asla yüklemediği ayrı bir dosyadır), araç çıktısındaki belirleyici bir sayı (bir test sayısı, bir benchmark), ya da süreçten çıkarılan bir ders ("headless'ta tekrar üretilemedi ← sorun koddan değil build'den kaynaklanıyordu").
+
+Bir oturumun sonunda `/cc-compact` çalıştırın; tam olarak bu gizli katmanı damıtıp `~/.claude/claude-code-token-saver-data/<project>/handoff.md` içine kaydedilen bir devir notuna dönüştürür. Bir sonraki oturumda, `/cc-continue` bunu geri yüklenen transkriptin üzerine otomatik olarak yükler — yapıştırmaya gerek yok.
+
+|                     | Tek başına `/cc-continue`        | `/cc-compact` + `/cc-continue` (ikili)            |
+| Kurtardığı          | Transkript (söylenenler)         | Transkript artı gizli katman                     |
+| Sub-agent bulguları | Kaybolur (ayrı dosyalar)         | Devir notuna damıtılır                            |
+| Araç çıktısı sayılar | Sadece sohbete aktarıldıysa      | Bilinçli olarak çıkarılır                         |
+| Süreç dersleri       | —                                | Çıkmaz sokaklar tekrarlanmasın diye yakalanır     |
+
+İş akışı: Bir oturumu `/cc-compact` ile bitirin → bir sonrakini `/cc-continue` ile başlatın.
 ---
 
 ## 📊 Özellik 4: Canlı Durum Çubuğu
@@ -402,7 +417,7 @@ Ağır çalışma SubTask'lara devredilir. Main yalnızca tasarım/kararları y�
 | ----------- | -------------------------------------------- | --------------------------- | ---------------------------------- |
 | Sabah 3s    | Kodlama (Main: tasarım, SubTask: uygulama)   | Main 100K → 300K (ort 200K) | 900 çağrı × 200K × ＄0.50/M = ＄90 |
 | Öğle/top.   | 2 saat uzakta                                | —                           | —                                  |
-| Dönüş       | ⚡ Token Guardian engeller → /clear + /continue | —                        | ＄0 (LLM çağrısı yok)              |
+| Dönüş       | ⚡ Token Guardian engeller → /clear + /cc-continue | —                        | ＄0 (LLM çağrısı yok)              |
 | Öğleden sonra 3s | Kodlama devam eder                      | Main 100K → 300K (ort 200K) | 900 çağrı × 200K × ＄0.50/M = ＄90 |
 |             | Toplam                                       |                             | ~＄180                              |
 
@@ -433,7 +448,7 @@ Ağır çalışma SubTask'lara devredilir. Main yalnızca tasarım/kararları y�
     │
 [Oturum yeniden başlatma]
     │
-    └─ /continue → Önceki context'i sıfır maliyetle geri yükler (LLM çağrısı yok)
+    └─ /cc-continue → Önceki context'i sıfır maliyetle geri yükler (LLM çağrısı yok)
 ```
 
 ---
@@ -450,7 +465,7 @@ claude-code-token-saver tamamen açık kaynaklıdır (Apache-2.0). Düz JavaScri
 
 - **hooks/** — Cache süre sonu eşiğini değiştirin, uyarı mesajlarını özelleştirin, oturum mimarisi kurallarını değiştirin
 - **scripts/** — Analiz mantığı, rapor oluşturucu, durum çubuğu biçimlendirme
-- **skills/** — /continue ve /usage-view'ın nasıl çalıştığı, prompt şablonları
+- **skills/** — /cc-continue ve /usage-view'ın nasıl çalıştığı, prompt şablonları
 - **locales/** — Çevirileri ekleyin/düzenleyin, yeni diller ekleyin
 - **skills/usage-view/** — Pano UI/UX tasarım değişiklikleri
 
@@ -508,7 +523,7 @@ git-lite etkinse, eklenti oturum başına ~1.920 token **tasarruf eder** (2.200'
 
 - **CLAUDE.md'yi kısa tutun.** Her API çağrısında system prompt'a yüklenir. Her satır para harcar.
 - **Ağır işleri SubTask'lara devredin.** Kod üretimi, çoklu dosya düzenlemeleri, test çalıştırmaları Main'e ait değil. SubTask'ların daha küçük context ve daha ucuz cache katmanı vardır.
-- **1+ saat uzaktaysanız?** `/clear` → dönün → `/continue`. Context $0 ile geri yüklendi.
+- **1+ saat uzaktaysanız?** `/clear` → dönün → `/cc-continue`. Context $0 ile geri yüklendi.
 - **[5H] %70'in üzerinde (🟡)?** Yavaşlayın. Hafif inceleme görevlerine geçin veya Main'in API çağrısı sayısını azaltmak için SubTask devrini artırın.
 - **Yan sorular için `/btw` kullanın.** Konuşma geçmişine girmez, bu yüzden context'iniz kısa kalır.
 
@@ -516,7 +531,7 @@ git-lite etkinse, eklenti oturum başına ~1.920 token **tasarruf eder** (2.200'
 
 Yukarıdakilerin hepsi geçerlidir, artı bu API'ye özgü öncelikler:
 
-- **[CTX]'i hız göstergesi gibi izleyin.** Hiçbir hız sınırı sizi durdurmaz — ancak 500K+'da context, her API çağrısının olması gerekenden 2-3 kat daha fazlaya mal olduğu anlamına gelir. `/clear` → `/continue` ücretsizdir ve maliyet çarpanınızı taban çizgisine sıfırlar.
+- **[CTX]'i hız göstergesi gibi izleyin.** Hiçbir hız sınırı sizi durdurmaz — ancak 500K+'da context, her API çağrısının olması gerekenden 2-3 kat daha fazlaya mal olduğu anlamına gelir. `/clear` → `/cc-continue` ücretsizdir ve maliyet çarpanınızı taban çizgisine sıfırlar.
 - **Haftalık `/usage-view` çalıştırın.** Max Plan kullanıcıları hız sınırına çarptıklarında doğal bir "ah" anına sahiptir. Siz değil — maliyetler sessizce tırmanır. Pano erken uyarı sisteminizdir.
 - **Zihinsel bir günlük bütçe belirleyin.** Bir tavan olmadan, $200'lük günler fark edilmeden gerçekleşir. Durum çubuğunun RUN göstergesi tur başına maliyeti görünür kılar. Tek bir tur $1'ı (🔴) aşarsa, context'iniz çok büyüktür.
 

@@ -72,17 +72,17 @@ Başka bir deyişle, cache write yalnızca "kullanıcının yazdığı yeni toke
 **claude-code-token-saver plugin'inin 1 saat hareketsizlikten sonra cache süre dolumu uyarısı göstermesinin nedeni tam olarak budur.** Uyarı göründüğünde mevcut bağlam boyutunuzu kontrol edin:
 
 - **Küçük bağlam**: Cache yeniden oluşturma maliyeti yönetilebilir. Çalışmaya devam edin — maliyet düşüktür.
-- **Büyük bağlam**: Cache maliyeti önemli olacaktır. Yeni bir oturumda devam etmek için `/clear` ardından `/continue last` kullanmanızı öneririz. continue skill'i önceki konuşma bağlamınızı otomatik olarak geri yükler, böylece iş akışınız kesintiye uğramaz.
+- **Büyük bağlam**: Cache maliyeti önemli olacaktır. Yeni bir oturumda devam etmek için `/clear` ardından `/cc-continue last` kullanmanızı öneririz. continue skill'i önceki konuşma bağlamınızı otomatik olarak geri yükler, böylece iş akışınız kesintiye uğramaz.
 
 ## Cache Maliyetlerini Düşürme Stratejileri
 
 claude-code-token-saver plugin'i bu stratejilerin tümünü otomatikleştirmek veya basitleştirmek için tasarlanmıştır.
 
-### 1. Bağlamı Küçük Tutun — `/clear` + `/continue` ⭐
+### 1. Bağlamı Küçük Tutun — `/clear` + `/cc-continue` ⭐
 
 **Maliyetleri düşürmenin en önemli yolu budur.** Yüksek cache maliyetleri %90 indirim aldığınız anlamına gelir — bu normaldir. Ancak bağlam gereksiz yere büyür ve öyle kalırsa, indirime rağmen çağrı başına mutlak maliyet artar. **Bağlam boyutunu kontrol altında tutmak, en etkili maliyet yönetimi stratejisidir.**
 
-Konu değiştiğinde veya konuşma uzadığında, sıfırlamak için `/clear` çalıştırın, ardından önceki bağlamı geri yüklemek için `/continue last` kullanın. `/continue` önceki konuşmaları herhangi bir LLM çağrısı olmadan geri yükler, dolayısıyla maliyeti sıfırdır.
+Konu değiştiğinde veya konuşma uzadığında, sıfırlamak için `/clear` çalıştırın, ardından önceki bağlamı geri yüklemek için `/cc-continue last` kullanın. `/cc-continue` önceki konuşmaları herhangi bir LLM çağrısı olmadan geri yükler, dolayısıyla maliyeti sıfırdır.
 
 `/compact` konuşmayı özetleyerek bağlamı küçültür, ancak özetleme sürecinin kendisi LLM çağrı maliyeti oluşturur ve konuşma detayını kaybettirir. Önerilmez.
 
@@ -90,7 +90,7 @@ Konu değiştiğinde veya konuşma uzadığında, sıfırlamak için `/clear` ç
 
 Anthropic'in ana oturum cache'i **1 saatlik tier** kullanır. Süre dolduktan sonra ilk istek, tüm konuşmayı cache write olarak yeniden oluşturmak zorundadır — bu pahalıdır.
 
-claude-code-token-saver, 1 saatlik boşta kalma durumlarını algılar ve **otomatik olarak uyarı gösterir**. Uyarı göründüğünde, yukarıdaki 1. yöntemi (`/clear` + `/continue`) kullanarak yeni bir oturumda devam etmek en ekonomik yaklaşımdır.
+claude-code-token-saver, 1 saatlik boşta kalma durumlarını algılar ve **otomatik olarak uyarı gösterir**. Uyarı göründüğünde, yukarıdaki 1. yöntemi (`/clear` + `/cc-continue`) kullanarak yeni bir oturumda devam etmek en ekonomik yaklaşımdır.
 
 ### 3. Ağır İşleri SubTask'lara Devredin
 

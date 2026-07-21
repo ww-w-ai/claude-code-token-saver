@@ -8,7 +8,7 @@ labels: enhancement
 ## Related skill
 
 - [ ] /usage-view
-- [ ] /continue
+- [ ] /cc-continue
 - [ ] /setup-statusline
 - [ ] /report-limit
 - [ ] Translation improvement (specify language)

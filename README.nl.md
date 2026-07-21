@@ -15,7 +15,8 @@ Werkt met **Max Plan ($200/maand)** en **API betaal-per-gebruik**. Dezelfde plug
 | 🛡️ Token Guardian | Detecteert vervaldatum cache, blokkeert $9-herverzendingen voordat ze plaatsvinden | Voorkomt de grootste stille kostenspike |
 | 🧠 Session Architect | Delegeert zwaar werk automatisch naar SubTasks (37,5% goedkopere cache) | Context blijft klein, kosten dalen |
 | 🪶 Concise Mode | Snijdt responsopvulling weg, behoudt de kern | Minder uitvoertokens per respons |
-| 🔄 /continue | Vervangt /compact — nul LLM-aanroepen, nul kosten, nul informatieverlies | Gratis contextherstel |
+| 🔄 /cc-continue | Vervangt /compact — nul LLM-aanroepen, nul kosten, nul informatieverlies | Gratis contextherstel |
+| 🤝 /cc-compact | Schrijft een sessieoverdracht die /cc-continue automatisch laadt — legt subagent-bevindingen & tool-resultaten vast die het transcript verliest | De volgende sessie hervat ook met de verborgen context |
 | 📊 Status Line | Realtime kosten, contextgrootte, snelheidslimiet — onder 50ms | Zie problemen voordat ze je geld kosten |
 | 📈 /usage-view | Interactief HTML-dashboard met AI-analyse | Volledige kostenforensica met één klik |
 | ✂️ /setup-git-lite | Verwijdert 2.200 verborgen tokens die CC elke sessie injecteert | ~$48/maand bespaard alleen al op git-instructies |
@@ -78,7 +79,7 @@ The prompt cache has expired. Continuing will resend the full context.
 Cost may increase significantly.
 
 👉 /context — Check current context usage before deciding
-👉 /clear → /continue — Reset, then restore previous context (recommended, cheapest)
+👉 /clear → /cc-continue — Reset, then restore previous context (recommended, cheapest)
 👉 Re-send — Continue as-is (full re-cache cost incurred)
 ```
 
@@ -127,15 +128,15 @@ Eén keer installeren, overal van toepassing.
 
 ---
 
-## 🔄 Functie 3: /continue — Contextherstel
+## 🔄 Functie 3: /cc-continue — Contextherstel
 
 **Vervangt `/compact`. Nul LLM-aanroepen. Nul tokenkosten. Nul informatieverlies.**
 
 `/compact` stuurt je volledige context (~1M tokens) naar de LLM om het te comprimeren tot een samenvatting van 3,3%. Als de cache is verlopen, activeert dat alleen al een volledige herrecaching. Informatieverlies is onvermijdelijk.
 
-`/continue` neemt een compleet andere aanpak. Het verwerkt het vorige sessietranscript vooraf en laadt het direct. Geen LLM-aanroep. Geen kosten. Het originele gesprek wordt hersteld zoals het was.
+`/cc-continue` neemt een compleet andere aanpak. Het verwerkt het vorige sessietranscript vooraf en laadt het direct. Geen LLM-aanroep. Geen kosten. Het originele gesprek wordt hersteld zoals het was.
 
-|                         | /compact                          | /continue                        |
+|                         | /compact                          | /cc-continue                        |
 | ----------------------- | --------------------------------- | -------------------------------- |
 | Hoe het werkt           | Stuurt volledige context naar LLM voor samenvatting | Verwerkt transcript vooraf, leest direct |
 | LLM-aanroepen           | Vereist (doorgaans 100K+ tokens)  | 0                                |
@@ -145,9 +146,30 @@ Eén keer installeren, overal van toepassing.
 | Wanneer cache verlopen is | Extra volledige herrecachingkosten | Geen impact                    |
 | Herstel meerdere sessies | Niet mogelijk                    | Ondersteund                      |
 
-Gebruik: `/clear` dan `/continue`. Je ziet een lijst met vorige sessies. Kies er een om te herstellen. Voor snel herstel: `/continue last`.
+Gebruik: `/clear` dan `/cc-continue`. Je ziet een lijst met vorige sessies. Kies er een om te herstellen. Voor snel herstel: `/cc-continue last`.
 
 **Resultaat:** Hervat eerder werk zonder kosten. Geen informatieverlies. Verwerkt 60MB+ transcripts in minder dan 1 seconde.
+
+### 🤝 De tegenhanger: `/cc-compact` — draag de verborgen laag over
+
+`/cc-continue` herstelt het **transcript** — wat jij en Claude hebben gezegd. Maar de nuttigste kennis
+van een werksessie leeft vaak BUITEN die dialoog: wat een **subagent** heeft gevonden (het transcript
+daarvan is een apart bestand dat het herstel nooit laadt), een beslissend **getal in tool-uitvoer**
+(een testaantal, een benchmark), een **les die tijdens het proces is geleerd** ("kon niet reproduceren
+in headless-modus → het lag aan de build, niet aan de code").
+
+Voer `/cc-compact` uit aan het **einde** van een sessie en het distilleert precies die verborgen laag
+tot een overdracht, opgeslagen in `~/.claude/claude-code-token-saver-data/<project>/handoff.md`. In de
+volgende sessie laadt `/cc-continue` deze **automatisch** bovenop het herstelde transcript — niets plakken nodig.
+
+|                     | Alleen `/cc-continue`           | `/cc-compact` + `/cc-continue` (het duo)          |
+| ------------------- | -------------------------------- | ------------------------------------------------ |
+| Herstelt            | Het transcript (wat gezegd is)   | Het transcript **plus** de verborgen laag         |
+| Subagent-bevindingen | Verloren (aparte bestanden)     | Gedistilleerd in de overdracht                     |
+| Getallen uit tool-uitvoer | Alleen indien in de chat geciteerd | Doelbewust geëxtraheerd                     |
+| Procesinzichten     | —                                 | Vastgelegd zodat doodlopende paden niet herhaald worden |
+
+**De workflow:** sluit een sessie af met `/cc-compact` → start de volgende met `/cc-continue`.
 
 ---
 
@@ -402,7 +424,7 @@ Zwaar werk wordt gedelegeerd aan SubTasks. Main handelt alleen ontwerp/beslissin
 | ----------- | -------------------------------------------- | --------------------------- | ---------------------------------- |
 | Ochtend 3u  | Coderen (Main: ontwerp, SubTask: implementatie) | Main 100K → 300K (gem. 200K) | 900 aanroepen × 200K × ＄0.50/M = ＄90 |
 | Lunch/verg. | 2 uur weg                                    | —                           | —                                  |
-| Terugkeer   | ⚡ Token Guardian blokkeert → /clear + /continue | —                        | ＄0 (geen LLM-aanroepen)            |
+| Terugkeer   | ⚡ Token Guardian blokkeert → /clear + /cc-continue | —                        | ＄0 (geen LLM-aanroepen)            |
 | Middag 3u   | Coderen gaat door                            | Main 100K → 300K (gem. 200K) | 900 aanroepen × 200K × ＄0.50/M = ＄90 |
 |             | Totaal                                       |                             | ~＄180                              |
 
@@ -433,7 +455,7 @@ Zwaar werk wordt gedelegeerd aan SubTasks. Main handelt alleen ontwerp/beslissin
     │
 [Sessie herstarten]
     │
-    └─ /continue → Herstelt vorige context zonder kosten (geen LLM-aanroepen)
+    └─ /cc-continue → Herstelt vorige context zonder kosten (geen LLM-aanroepen)
 ```
 
 ---
@@ -450,7 +472,7 @@ claude-code-token-saver is volledig open-source (Apache-2.0). Gewone JavaScript 
 
 - **hooks/** — Verander de vervaldatumdrempel van cache, pas waarschuwingsberichten aan, wijzig sessie-architectuurregels
 - **scripts/** — Analyselogica, rapportbouwer, statusregelopmaak
-- **skills/** — Hoe /continue en /usage-view werken, promptmallonen
+- **skills/** — Hoe /cc-continue en /usage-view werken, promptmallonen
 - **locales/** — Vertalingen toevoegen/bewerken, nieuwe talen toevoegen
 - **skills/usage-view/** — Dashboard UI/UX-ontwerpwijzigingen
 
@@ -508,7 +530,7 @@ Als git-lite is ingeschakeld, **bespaart** de plugin ~1.920 tokens per sessie (v
 
 - **Houd CLAUDE.md beknopt.** Het wordt bij elke API-aanroep in de systeemprompt geladen. Elke regel kost geld.
 - **Delegeer zwaar werk aan SubTasks.** Codegeneratie, meervoudige bestandsbewerkingen, testruns horen niet in Main. SubTasks hebben een kleinere context en een goedkopere cache-laag.
-- **1+ uur weg?** `/clear` → kom terug → `/continue`. Context hersteld voor $0.
+- **1+ uur weg?** `/clear` → kom terug → `/cc-continue`. Context hersteld voor $0.
 - **[5H] boven 70% (🟡)?** Vertraag. Schakel over op lichte beoordelingstaken of vergroot SubTask-delegatie om het API-aanroepenaantal van Main te verminderen.
 - **Gebruik `/btw` voor zijdelingse vragen.** Het gaat niet in de gespreksgeschiedenis, zodat je context beknopt blijft.
 
@@ -516,7 +538,7 @@ Als git-lite is ingeschakeld, **bespaart** de plugin ~1.920 tokens per sessie (v
 
 Al het bovenstaande geldt, plus deze API-specifieke prioriteiten:
 
-- **Bekijk [CTX] als een snelheidsmeter.** Geen snelheidslimiet zal je stoppen — maar context bij 500K+ betekent dat elke API-aanroep 2-3x zoveel kost als zou moeten. `/clear` → `/continue` is gratis en reset je kostenvermenigvuldiger naar de basislijn.
+- **Bekijk [CTX] als een snelheidsmeter.** Geen snelheidslimiet zal je stoppen — maar context bij 500K+ betekent dat elke API-aanroep 2-3x zoveel kost als zou moeten. `/clear` → `/cc-continue` is gratis en reset je kostenvermenigvuldiger naar de basislijn.
 - **Voer wekelijks `/usage-view` uit.** Max Plan-gebruikers hebben een natuurlijk "au"-moment wanneer ze de snelheidslimiet bereiken. Jij niet — kosten stijgen stilletjes. Het dashboard is je vroegwaarschuwingssysteem.
 - **Stel een mentaal dagbudget in.** Zonder een maximum komen $200-dagen voorbij zonder dat je het merkt. De RUN-indicator van de statusregel maakt kosten per beurt zichtbaar. Als een enkele beurt $1 (🔴) overschrijdt, is je context te groot.
 

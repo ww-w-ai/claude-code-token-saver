@@ -1,11 +1,34 @@
 {
   "name": "claude-code-token-saver",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "45% cost reduction measured. Cache expiry prevention, SubTask auto-delegation, zero-cost context restoration, real-time cost dashboard. The only Claude Code plugin built from CC source analysis.",
   "author": {
     "name": "taekim34"
   },
   "repository": "https://github.com/ww-w-ai/claude-code-token-saver",
   "license": "Apache-2.0",
-  "keywords": ["claude-code", "cost-reduction", "token-optimization", "cache-management", "rate-limit", "usage-dashboard", "context-management", "api-cost", "billing", "analytics", "subtask", "session-management", "prompt-cache", "anthropic-api", "cost-tracking", "upgrader", "continue", "context-restore", "max-plan", "pay-per-use"]
+  "keywords": [
+    "claude-code",
+    "cost-reduction",
+    "token-optimization",
+    "cache-management",
+    "rate-limit",
+    "usage-dashboard",
+    "context-management",
+    "api-cost",
+    "billing",
+    "analytics",
+    "subtask",
+    "session-management",
+    "prompt-cache",
+    "anthropic-api",
+    "cost-tracking",
+    "upgrader",
+    "context-restore",
+    "max-plan",
+    "pay-per-use",
+    "cc-continue",
+    "cc-compact",
+    "session-handoff"
+  ]
 }

@@ -99,14 +99,14 @@ SCOPE: Section1 uses ONLY the top-level summary numbers (total cost, token break
 - Weekly: use Weekly Costs data. Empathize with cost-heavy weeks
 - claude-code-token-saver plugin comparison:
   - If BOTH before AND after data exist with 20%+ improvement: compare pre/post daily avg cost and efficiency. Say "before/after claude-code-token-saver installation".
-  - If the ENTIRE report period is AFTER plugin installation (no before data): do NOT compare before/after. Instead, praise the user for actively using the plugin — mention /continue usage count, statusline monitoring, and cost visibility as signs of good practice. Frame positively: "You've been using claude-code-token-saver throughout this period, which means you've had full visibility into your costs from day one."
+  - If the ENTIRE report period is AFTER plugin installation (no before data): do NOT compare before/after. Instead, praise the user for actively using the plugin — mention /cc-continue usage count, statusline monitoring, and cost visibility as signs of good practice. Frame positively: "You've been using claude-code-token-saver throughout this period, which means you've had full visibility into your costs from day one."
   - If insufficient data for comparison: simply skip, don't mention it.
 - Autonomous Runs list (≥20 min long-running prompts): analyze what kinds of prompts triggered these long runs — refactors, multi-step debugging, Ralph-loop style automation, research? Are they cost-effective compared to interactive back-and-forth, or do they show runaway cost patterns? Comment on whether autonomous runs dominate the top costs or are a small tail.
 - Empathize warmly with users who lean on autonomous runs — this is a legitimate workflow (especially for solo devs leveraging AI for long tasks), not a misuse. Never judgemental. Frame as "you trust the AI to run long" with practical tips only.
 - Cost by Context Size + Context Size Distribution — ONE clear paragraph with this structure:
   STEP 1: State the simple fact from context distribution data — what % of calls are in the cheapest bucket, and how much more expensive is the 500K+ bucket (cite exact avg cost per call numbers from the data).
   STEP 2: Explain WHY in plain language — AI doesn't "remember" previous messages on its own. Every time you send a message, the system sends the ENTIRE conversation history (= context) back to the AI so it can understand the flow. As context size grows, each message costs more. Use the term "context size" explicitly — don't say "conversation length" or "longer conversations" which is vague.
-  STEP 3: Give ONE actionable tip — when the conversation gets long, use /clear to start fresh and /continue to bring back what you need. This keeps most of your messages in the cheap zone.
+  STEP 3: Give ONE actionable tip — when the conversation gets long, use /clear to start fresh and /cc-continue to bring back what you need. This keeps most of your messages in the cheap zone.
 
   RULES for this paragraph:
   - Do NOT mention CW/Non-CW/cache write/cache read/cache regeneration here. Those are separate concepts already covered.
@@ -121,16 +121,16 @@ SCOPE: Section1 uses ONLY the top-level summary numbers (total cost, token break
 - Focus on data analysis
 - Top token-consuming conversations: analyze project/work characteristics
 - [Request interrupted] should be IGNORED in analysis — user just cancelled a bad prompt, not waste
-- Usage limit hits (skull marks in calendar = "You've hit your limit"): express as N "times" not "hours". Distinguish before/after installation, advise proactive context management (/clear then /continue to restore)
+- Usage limit hits (skull marks in calendar = "You've hit your limit"): express as N "times" not "hours". Distinguish before/after installation, advise proactive context management (/clear then /cc-continue to restore)
 - Session Activity Summary data (don't mention marker symbols — they're internal):
   - Skip session start counts. Only mention clear counts if meaningful
   - Cost markers: per-user-turn aggregated cost. Two levels: * = "cost warning" (≥$0.80), ** = "cost danger" (≥$2.50). These are NOT always caused by large context — they reflect the combined cost of cache read + cache write + output + input for all API calls in that turn. Common causes: (1) large context → high cache read per call, (2) cache regeneration → expensive cache write, (3) many consecutive tool calls → cost multiplied, (4) long AI output. Analyze the actual token breakdown before attributing cause. Guide: "click that time point in the hourly usage calendar for details". Never say "alert" — say "warning" or "danger"
   - Context size markers: two levels: # = "context size warning" (context window ≥35%), ## = "context size danger" (≥70%). If many, advise context cleanup needed. Never say "alert" or "conversation size" — say "context size"
-  - resume/compact vs /continue — CONSOLIDATE into one concise paragraph:
+  - resume/compact vs /cc-continue — CONSOLIDATE into one concise paragraph:
     - resume (claude --continue, /resume): the ENTIRE conversation history is re-sent and re-cached from scratch. This always triggers a large cache write cost, regardless of conversation length.
     - compact (/compact): even more expensive — the AI must (1) read the entire context, (2) generate a summary (output cost), (3) re-cache the summary. Three costly steps in one operation. Usually done when context is already large, making it the single most expensive event.
-    - /continue skill: costs ZERO. Restores previous session text via file read only — no API call, no cache write, no output.
-    Mention resume/compact count, /continue count, and the contrast in ONE paragraph.
+    - /cc-continue skill: costs ZERO. Restores previous session text via file read only — no API call, no cache write, no output.
+    Mention resume/compact count, /cc-continue count, and the contrast in ONE paragraph.
 - Only mention before/after installation differences if data supports it
 
 Write the JSON output to the AI_DATA_FILE path. Keys: section1 only if "--current" mode, otherwise section1 + section2 + section3.

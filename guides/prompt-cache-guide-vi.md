@@ -72,17 +72,17 @@ Nói cách khác, cache write không chỉ xảy ra cho "token mới mà ngườ
 **Đây chính xác là lý do plugin claude-code-token-saver hiển thị cảnh báo hết hạn cache sau 1 giờ không hoạt động.** Khi cảnh báo xuất hiện, hãy kiểm tra kích thước ngữ cảnh hiện tại:
 
 - **Ngữ cảnh nhỏ**: Chi phí tạo lại cache còn chấp nhận được. Cứ tiếp tục làm việc — chi phí thấp.
-- **Ngữ cảnh lớn**: Chi phí cache sẽ đáng kể. Chúng tôi khuyến nghị `/clear` rồi `/continue last` để tiếp tục trong phiên mới. Skill continue tự động khôi phục ngữ cảnh trò chuyện trước đó, nên quy trình làm việc không bị gián đoạn.
+- **Ngữ cảnh lớn**: Chi phí cache sẽ đáng kể. Chúng tôi khuyến nghị `/clear` rồi `/cc-continue last` để tiếp tục trong phiên mới. Skill continue tự động khôi phục ngữ cảnh trò chuyện trước đó, nên quy trình làm việc không bị gián đoạn.
 
 ## Chiến lược Giảm Chi phí Cache
 
 Plugin claude-code-token-saver được thiết kế để tự động hóa hoặc đơn giản hóa tất cả các chiến lược này.
 
-### 1. Giữ Ngữ cảnh Nhỏ — `/clear` + `/continue` ⭐
+### 1. Giữ Ngữ cảnh Nhỏ — `/clear` + `/cc-continue` ⭐
 
 **Đây là cách quan trọng nhất để giảm chi phí.** Chi phí cache cao có nghĩa bạn đang được giảm giá 90% — đó là bình thường. Nhưng nếu ngữ cảnh phình to không cần thiết và cứ giữ nguyên vậy, chi phí tuyệt đối mỗi lần gọi sẽ tăng dù có giảm giá. **Kiểm soát kích thước ngữ cảnh là chiến lược quản lý chi phí hiệu quả nhất.**
 
-Khi chủ đề thay đổi hoặc cuộc trò chuyện trở nên dài, chạy `/clear` để đặt lại, rồi `/continue last` để khôi phục ngữ cảnh trước. `/continue` khôi phục cuộc trò chuyện trước mà không cần bất kỳ lần gọi LLM nào, nên chi phí bằng không.
+Khi chủ đề thay đổi hoặc cuộc trò chuyện trở nên dài, chạy `/clear` để đặt lại, rồi `/cc-continue last` để khôi phục ngữ cảnh trước. `/cc-continue` khôi phục cuộc trò chuyện trước mà không cần bất kỳ lần gọi LLM nào, nên chi phí bằng không.
 
 `/compact` giảm ngữ cảnh bằng cách tóm tắt cuộc trò chuyện, nhưng quá trình tóm tắt chính nó phát sinh chi phí gọi LLM và mất đi chi tiết cuộc trò chuyện. Không khuyến nghị.
 
@@ -90,7 +90,7 @@ Khi chủ đề thay đổi hoặc cuộc trò chuyện trở nên dài, chạy 
 
 Cache phiên chính của Anthropic sử dụng **tier 1 giờ**. Sau khi hết hạn, yêu cầu đầu tiên phải tạo lại toàn bộ cuộc trò chuyện dưới dạng cache write, rất tốn kém.
 
-claude-code-token-saver phát hiện trạng thái idle 1 giờ và **tự động hiển thị cảnh báo**. Khi cảnh báo xuất hiện, sử dụng phương pháp 1 ở trên (`/clear` + `/continue`) để tiếp tục trong phiên mới là cách tiết kiệm nhất.
+claude-code-token-saver phát hiện trạng thái idle 1 giờ và **tự động hiển thị cảnh báo**. Khi cảnh báo xuất hiện, sử dụng phương pháp 1 ở trên (`/clear` + `/cc-continue`) để tiếp tục trong phiên mới là cách tiết kiệm nhất.
 
 ### 3. Ủy thác Công việc Nặng cho SubTask
 

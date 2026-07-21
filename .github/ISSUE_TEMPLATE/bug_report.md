@@ -10,7 +10,7 @@ labels: bug
 Which skill is affected?
 
 - [ ] /usage-view
-- [ ] /continue
+- [ ] /cc-continue
 - [ ] /setup-statusline
 - [ ] /report-limit
 - [ ] Token Guardian hook (cache expiry warning)

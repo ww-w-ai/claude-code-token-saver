@@ -15,7 +15,8 @@ Funciona con **Max Plan ($200/mes)** y **API de pago por uso**. El mismo plugin,
 | 🛡️ Token Guardian | Detecta expiración de caché, bloquea reenvíos de $9 antes de que ocurran | Previene el pico de costos silencioso número 1 |
 | 🧠 Session Architect | Delega automáticamente el trabajo pesado a SubTasks (caché 37,5 % más barata) | El contexto se mantiene pequeño, los costos bajan |
 | 🪶 Concise Mode | Elimina el relleno en respuestas, mantiene la sustancia | Menos tokens de salida por respuesta |
-| 🔄 /continue | Reemplaza /compact — cero llamadas LLM, cero costo, cero pérdida de información | Restauración de contexto gratuita |
+| 🔄 /cc-continue | Reemplaza /compact — cero llamadas LLM, cero costo, cero pérdida de información | Restauración de contexto gratuita |
+| 🤝 /cc-compact | Escribe un traspaso de sesión que /cc-continue carga automáticamente — captura hallazgos de subagentes y resultados de herramientas que la transcripción pierde | La siguiente sesión también recupera el contexto oculto |
 | 📊 Status Line | Costo en tiempo real, tamaño de contexto, límite de velocidad — bajo 50 ms | Ver problemas antes de que te cuesten dinero |
 | 📈 /usage-view | Panel HTML interactivo con análisis impulsado por IA | Análisis forense de costos completo en un clic |
 | ✂️ /setup-git-lite | Elimina 2.200 tokens ocultos que CC inyecta cada sesión | ~$48/mes ahorrados solo en instrucciones de git |
@@ -78,7 +79,7 @@ The prompt cache has expired. Continuing will resend the full context.
 Cost may increase significantly.
 
 👉 /context — Check current context usage before deciding
-👉 /clear → /continue — Reset, then restore previous context (recommended, cheapest)
+👉 /clear → /cc-continue — Reset, then restore previous context (recommended, cheapest)
 👉 Re-send — Continue as-is (full re-cache cost incurred)
 ```
 
@@ -127,15 +128,15 @@ Instala una vez, se aplica en todas partes.
 
 ---
 
-## 🔄 Función 3: /continue — Restauración de Contexto
+## 🔄 Función 3: /cc-continue — Restauración de Contexto
 
 **Reemplaza `/compact`. Cero llamadas LLM. Cero costo de tokens. Cero pérdida de información.**
 
 `/compact` envía tu contexto completo (~1M tokens) al LLM para comprimirlo en un resumen del 3,3 %. Si la caché ha expirado, eso solo ya desencadena un re-caché completo. La pérdida de información es inevitable.
 
-`/continue` adopta un enfoque completamente diferente. Preprocesa la transcripción de la sesión anterior y la carga directamente. Sin llamada LLM. Sin costo. La conversación original se restaura tal cual.
+`/cc-continue` adopta un enfoque completamente diferente. Preprocesa la transcripción de la sesión anterior y la carga directamente. Sin llamada LLM. Sin costo. La conversación original se restaura tal cual.
 
-|                         | /compact                          | /continue                        |
+|                         | /compact                          | /cc-continue                        |
 | ----------------------- | --------------------------------- | -------------------------------- |
 | Cómo funciona            | Envía el contexto completo al LLM para un resumen | Preprocesa la transcripción, la lee directamente |
 | Llamadas LLM               | Necesarias (típicamente 100K+ tokens) | 0                                |
@@ -145,9 +146,24 @@ Instala una vez, se aplica en todas partes.
 | Cuando la caché expiró   | Costo adicional de re-caché completo         | Sin impacto                        |
 | Restauración de múltiples sesiones   | No posible                      | Compatible                        |
 
-Uso: `/clear` luego `/continue`. Verás una lista de sesiones anteriores. Elige una para restaurar. Para recuperación rápida: `/continue last`.
+Uso: `/clear` luego `/cc-continue`. Verás una lista de sesiones anteriores. Elige una para restaurar. Para recuperación rápida: `/cc-continue last`.
 
 **Resultado:** Reanuda el trabajo anterior a costo cero. Sin pérdida de información. Procesa transcripciones de 60MB+ en menos de 1 segundo.
+
+### 🤝 Su pareja: `/cc-compact` — traspasa la capa oculta
+
+`/cc-continue` restaura la **transcripción** — lo que tú y Claude dijeron. Pero el conocimiento más útil de una sesión de trabajo a menudo vive FUERA de ese diálogo: lo que encontró un **subagente** (su transcripción es un archivo separado que la restauración nunca carga), un **número decisivo en la salida de una herramienta** (un conteo de tests, un benchmark), una **lección aprendida del proceso** ("no se pudo reproducir en headless → era el build, no el código").
+
+Ejecuta `/cc-compact` al **final** de una sesión y destila exactamente esa capa oculta en un traspaso, guardado en `~/.claude/claude-code-token-saver-data/<project>/handoff.md`. En la siguiente sesión, `/cc-continue` lo **carga automáticamente** encima de la transcripción restaurada — sin pegar nada.
+
+|                     | `/cc-continue` solo            | `/cc-compact` + `/cc-continue` (el conjunto)          |
+| ------------------- | ------------------------------- | ------------------------------------------------ |
+| Recupera            | La transcripción (lo que se dijo)  | La transcripción **más** la capa oculta         |
+| Hallazgos de subagentes   | Perdidos (archivos separados)           | Destilados en el traspaso                       |
+| Números de salida de herramientas | Solo si se citan en el chat    | Extraídos deliberadamente                            |
+| Lecciones del proceso     | —                               | Capturadas para no repetir callejones sin salida              |
+
+**El flujo de trabajo:** termina una sesión con `/cc-compact` → empieza la siguiente con `/cc-continue`.
 
 ---
 
@@ -402,7 +418,7 @@ El trabajo pesado se delega a SubTasks. Main solo maneja diseño/decisiones.
 | ----------- | -------------------------------------------- | --------------------------- | ---------------------------------- |
 | Mañana 3h  | Programando (Main: diseño, SubTask: implementación) | Main 100K → 300K (avg 200K) | 900 calls × 200K × ＄0,50/M = ＄90 |
 | Almuerzo/Reunión   | Fuera 2 horas                             | —                           | —                                  |
-| Regreso      | ⚡ Token Guardian bloquea → /clear + /continue | —                           | ＄0 (no LLM calls)                 |
+| Regreso      | ⚡ Token Guardian bloquea → /clear + /cc-continue | —                           | ＄0 (no LLM calls)                 |
 | Tarde 3h | Continúa programando                             | Main 100K → 300K (avg 200K) | 900 calls × 200K × ＄0,50/M = ＄90 |
 |             | Total                                        |                             | ~＄180                              |
 
@@ -433,7 +449,7 @@ El trabajo pesado se delega a SubTasks. Main solo maneja diseño/decisiones.
     │
 [Session restart]
     │
-    └─ /continue → Restores previous context at zero cost (no LLM calls)
+    └─ /cc-continue → Restores previous context at zero cost (no LLM calls)
 ```
 
 ---
@@ -450,7 +466,7 @@ claude-code-token-saver es completamente de código abierto (Apache-2.0). JavaSc
 
 - **hooks/** — Cambiar el umbral de expiración de caché, personalizar mensajes de advertencia, modificar reglas de arquitectura de sesión
 - **scripts/** — Lógica de análisis, constructor de informes, formato de la barra de estado
-- **skills/** — Cómo funcionan /continue y /usage-view, plantillas de prompts
+- **skills/** — Cómo funcionan /cc-continue y /usage-view, plantillas de prompts
 - **locales/** — Agregar/editar traducciones, agregar nuevos idiomas
 - **skills/usage-view/** — Cambios de diseño UI/UX del panel
 
@@ -508,7 +524,7 @@ Si git-lite está habilitado, el plugin **ahorra** ~1.920 tokens por sesión (re
 
 - **Mantén CLAUDE.md ligero.** Se carga en el system prompt en cada llamada a la API. Cada línea cuesta dinero.
 - **Delega el trabajo pesado a SubTasks.** La generación de código, las ediciones de múltiples archivos y las ejecuciones de pruebas no pertenecen a Main. Las SubTasks tienen contexto más pequeño y un nivel de caché más barato.
-- **¿Fuera 1+ hora?** `/clear` → regresa → `/continue`. Contexto restaurado a $0.
+- **¿Fuera 1+ hora?** `/clear` → regresa → `/cc-continue`. Contexto restaurado a $0.
 - **¿[5H] por encima del 70 % (🟡)?** Baja el ritmo. Cambia a tareas de revisión ligeras o aumenta la delegación a SubTask para reducir el recuento de llamadas a la API de Main.
 - **Usa `/btw` para preguntas secundarias.** No entra en el historial de conversaciones, por lo que tu contexto se mantiene ligero.
 
@@ -516,7 +532,7 @@ Si git-lite está habilitado, el plugin **ahorra** ~1.920 tokens por sesión (re
 
 Todo lo anterior aplica, más estas prioridades específicas de la API:
 
-- **Vigila [CTX] como un velocímetro.** Ningún límite de velocidad te detendrá — pero el contexto en 500K+ significa que cada llamada a la API cuesta 2-3 veces lo que debería. `/clear` → `/continue` es gratuito y restablece tu multiplicador de costos a la línea base.
+- **Vigila [CTX] como un velocímetro.** Ningún límite de velocidad te detendrá — pero el contexto en 500K+ significa que cada llamada a la API cuesta 2-3 veces lo que debería. `/clear` → `/cc-continue` es gratuito y restablece tu multiplicador de costos a la línea base.
 - **Ejecuta `/usage-view` semanalmente.** Los usuarios de Max Plan tienen un momento natural de "ay" cuando son limitados por velocidad. Tú no — los costos suben silenciosamente. El panel es tu sistema de alerta temprana.
 - **Establece un presupuesto diario mental.** Sin techo, los días de $200 suceden sin darse cuenta. El indicador RUN de la barra de estado hace visible el costo por turno. Si un solo turno supera $1 (🔴), tu contexto es demasiado grande.
 

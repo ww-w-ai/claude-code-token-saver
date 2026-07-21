@@ -10,7 +10,7 @@ Claude Code plugin (claude-code-token-saver) that automates token/cache manageme
 
 ```
 hooks/          → Lifecycle hooks (Bash). Run on UserPromptSubmit & SessionStart.
-skills/         → 4 SKILL.md-based skills invoked via /continue, /usage-view, /setup-statusline, /report-limit
+skills/         → 5 SKILL.md-based skills invoked via /cc-continue, /cc-compact, /usage-view, /setup-statusline, /report-limit
 scripts/        → Node.js processing pipeline (no npm, no build step)
                   + shrink-img.js — image downscaler for cheaper file attachments
 scripts/lib/    → Shared utilities (pricing, cache paths, locale, window calculations)
@@ -56,8 +56,8 @@ Skills have no runtime code — `SKILL.md` files contain the full execution plan
 ### /usage-view runs as background agent
 `/usage-view` launches a background Agent (SubTask) so the user can keep working. The agent runs `analyze-usage.js` → `build-report.js` → opens browser. Agent prompt is in `skills/usage-view/agent-prompt-template.txt`.
 
-### /continue restores sessions at zero LLM cost
-Reads preprocessed `compact.txt` directly — no summarization, no token expenditure. Topic matching (`/continue : topic`) loads only relevant sessions to save context size.
+### /cc-continue restores sessions at zero LLM cost
+Reads preprocessed `compact.txt` directly — no summarization, no token expenditure. Topic matching (`/cc-continue : topic`) loads only relevant sessions to save context size.
 
 ## Key Constants
 
@@ -74,7 +74,7 @@ skills/usage-view/SKILL.md
     → calls scripts/analyze-usage.js (per-session JSONL → timeline.csv)
     → calls scripts/build-report.js  (timeline CSVs → HTML via template.html)
 
-skills/continue/SKILL.md
+skills/cc-continue/SKILL.md
   → calls scripts/list-sessions.js   (enumerate sessions)
   → calls scripts/preprocess.js      (JSONL → compact.txt)
 

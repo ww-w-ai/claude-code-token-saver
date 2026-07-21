@@ -15,7 +15,8 @@ Hoạt động với **Max Plan ($200/tháng)** và **API trả theo lượng d�
 | 🛡️ Token Guardian | Phát hiện cache hết hạn, chặn re-send $9 trước khi xảy ra | Ngăn đột biến chi phí âm thầm số 1 |
 | 🧠 Session Architect | Tự động ủy thác công việc nặng cho SubTask (cache rẻ hơn 37,5%) | Ngữ cảnh nhỏ gọn, chi phí giảm |
 | 🪶 Concise Mode | Cắt bỏ phần đệm trong phản hồi, giữ lại nội dung cốt lõi | Ít output token hơn cho mỗi phản hồi |
-| 🔄 /continue | Thay thế /compact — không LLM call, không chi phí, không mất thông tin | Khôi phục ngữ cảnh miễn phí |
+| 🔄 /cc-continue | Thay thế /compact — không LLM call, không chi phí, không mất thông tin | Khôi phục ngữ cảnh miễn phí |
+| 🤝 /cc-compact | Ghi lại bàn giao phiên mà /cc-continue tự động tải — nắm bắt phát hiện của subagent & kết quả công cụ mà transcript bị mất | Phiên tiếp theo khôi phục cả ngữ cảnh ẩn |
 | 📊 Status Line | Chi phí thời gian thực, kích thước ngữ cảnh, giới hạn tốc độ — dưới 50ms | Thấy vấn đề trước khi chúng tốn tiền |
 | 📈 /usage-view | Bảng điều khiển HTML tương tác với phân tích AI | Điều tra chi phí toàn diện chỉ một cú nhấp |
 | ✂️ /setup-git-lite | Loại bỏ 2.200 token ẩn CC đưa vào mỗi phiên | ~$48/tháng tiết kiệm chỉ từ hướng dẫn git |
@@ -78,7 +79,7 @@ The prompt cache has expired. Continuing will resend the full context.
 Cost may increase significantly.
 
 👉 /context — Check current context usage before deciding
-👉 /clear → /continue — Reset, then restore previous context (recommended, cheapest)
+👉 /clear → /cc-continue — Reset, then restore previous context (recommended, cheapest)
 👉 Re-send — Continue as-is (full re-cache cost incurred)
 ```
 
@@ -127,15 +128,15 @@ Cài một lần, áp dụng ở khắp nơi.
 
 ---
 
-## 🔄 Tính năng 3: /continue — Khôi phục ngữ cảnh
+## 🔄 Tính năng 3: /cc-continue — Khôi phục ngữ cảnh
 
 **Thay thế `/compact`. Không LLM call. Không tốn token. Không mất thông tin.**
 
 `/compact` gửi toàn bộ ngữ cảnh của bạn (~1M token) đến LLM để nén thành bản tóm tắt 3,3%. Nếu cache đã hết hạn, điều đó một mình kích hoạt full re-cache. Mất thông tin là không thể tránh khỏi.
 
-`/continue` tiếp cận hoàn toàn khác. Nó xử lý trước bản ghi phiên trước đó và tải trực tiếp. Không LLM call. Không chi phí. Cuộc trò chuyện gốc được khôi phục như cũ.
+`/cc-continue` tiếp cận hoàn toàn khác. Nó xử lý trước bản ghi phiên trước đó và tải trực tiếp. Không LLM call. Không chi phí. Cuộc trò chuyện gốc được khôi phục như cũ.
 
-|                         | /compact                          | /continue                        |
+|                         | /compact                          | /cc-continue                        |
 | ----------------------- | --------------------------------- | -------------------------------- |
 | Cách hoạt động          | Gửi ngữ cảnh đầy đủ đến LLM để tóm tắt | Xử lý trước bản ghi, đọc trực tiếp |
 | LLM call                | Bắt buộc (thường 100K+ token)    | 0                                |
@@ -145,9 +146,23 @@ Cài một lần, áp dụng ở khắp nơi.
 | Khi cache hết hạn       | Chi phí full re-cache cộng thêm  | Không ảnh hưởng                  |
 | Khôi phục đa phiên      | Không thể                         | Được hỗ trợ                       |
 
-Sử dụng: `/clear` rồi `/continue`. Bạn sẽ thấy danh sách các phiên trước. Chọn một để khôi phục. Để khôi phục nhanh: `/continue last`.
+Sử dụng: `/clear` rồi `/cc-continue`. Bạn sẽ thấy danh sách các phiên trước. Chọn một để khôi phục. Để khôi phục nhanh: `/cc-continue last`.
 
 **Kết quả:** Tiếp tục công việc trước đó với chi phí bằng không. Không mất thông tin. Xử lý bản ghi 60MB+ trong dưới 1 giây.
+
+### 🤝 Người bạn đồng hành: `/cc-compact` — bàn giao lớp ẩn
+
+`/cc-continue` khôi phục **transcript** — những gì bạn và Claude đã nói. Nhưng kiến thức hữu ích nhất của một phiên làm việc thường nằm **ngoài** cuộc đối thoại đó: những gì một **subagent** tìm thấy (transcript của nó là một file riêng mà việc khôi phục không bao giờ tải), một **con số quyết định trong kết quả công cụ** (số lượng test, chỉ số benchmark), một **bài học rút ra từ quá trình** ("không tái hiện được ở chế độ headless → hóa ra là do build, không phải do code").
+
+Chạy `/cc-compact` vào cuối phiên và nó sẽ chắt lọc chính xác lớp ẩn đó thành một bản bàn giao, lưu vào `~/.claude/claude-code-token-saver-data/<project>/handoff.md`. Ở phiên tiếp theo, `/cc-continue` sẽ **tự động tải** nó lên trên transcript đã khôi phục — không cần dán thủ công.
+
+|                     | Chỉ `/cc-continue`            | `/cc-compact` + `/cc-continue` (cả bộ)          |
+| Khôi phục            | Transcript (những gì đã nói)  | Transcript cộng lớp ẩn             |
+| Phát hiện của subagent   | Mất (file riêng)           | Được chắt lọc vào bản bàn giao                       |
+| Số liệu từ kết quả công cụ | Chỉ khi được trích dẫn vào chat    | Được trích xuất có chủ đích                            |
+| Bài học quá trình     | —                               | Được ghi lại để không lặp lại ngõ cụt              |
+
+**Quy trình:** kết thúc một phiên bằng `/cc-compact` → bắt đầu phiên tiếp theo bằng `/cc-continue`.
 
 ---
 
@@ -402,7 +417,7 @@ Công việc nặng được ủy thác cho SubTask. Main chỉ xử lý thiết
 | ----------- | -------------------------------------------- | --------------------------- | ---------------------------------- |
 | Buổi sáng 3h  | Code (Main: thiết kế, SubTask: thực thi)  | Main 100K → 300K (TB 200K) | 900 call × 200K × ＄0.50/M = ＄90 |
 | Ăn trưa/họp   | Vắng mặt 2 giờ                           | —                           | —                                  |
-| Trở về      | ⚡ Token Guardian chặn → /clear + /continue | —                           | ＄0 (không LLM call)               |
+| Trở về      | ⚡ Token Guardian chặn → /clear + /cc-continue | —                           | ＄0 (không LLM call)               |
 | Buổi chiều 3h | Code tiếp tục                             | Main 100K → 300K (TB 200K) | 900 call × 200K × ＄0.50/M = ＄90 |
 |             | Tổng cộng                                    |                             | ~＄180                              |
 
@@ -433,7 +448,7 @@ Công việc nặng được ủy thác cho SubTask. Main chỉ xử lý thiết
     │
 [Khởi động lại phiên]
     │
-    └─ /continue → Khôi phục ngữ cảnh trước đó với chi phí bằng không (không LLM call)
+    └─ /cc-continue → Khôi phục ngữ cảnh trước đó với chi phí bằng không (không LLM call)
 ```
 
 ---
@@ -450,7 +465,7 @@ claude-code-token-saver hoàn toàn mã nguồn mở (Apache-2.0). JavaScript th
 
 - **hooks/** — Thay đổi ngưỡng hết hạn cache, tùy chỉnh thông báo cảnh báo, sửa đổi quy tắc kiến trúc phiên
 - **scripts/** — Logic phân tích, trình tạo báo cáo, định dạng thanh trạng thái
-- **skills/** — Cách /continue và /usage-view hoạt động, template prompt
+- **skills/** — Cách /cc-continue và /usage-view hoạt động, template prompt
 - **locales/** — Thêm/chỉnh sửa bản dịch, thêm ngôn ngữ mới
 - **skills/usage-view/** — Thay đổi thiết kế UI/UX bảng điều khiển
 
@@ -508,7 +523,7 @@ Nếu git-lite được bật, plugin **tiết kiệm** ~1.920 token mỗi phiê
 
 - **Giữ CLAUDE.md gọn nhẹ.** Nó tải vào system prompt trên mỗi API call. Mỗi dòng tốn tiền.
 - **Ủy thác công việc nặng cho SubTask.** Tạo code, chỉnh sửa đa file, chạy test không thuộc về Main. SubTask có ngữ cảnh nhỏ hơn và cache tier rẻ hơn.
-- **Vắng mặt 1+ giờ?** `/clear` → quay lại → `/continue`. Ngữ cảnh được khôi phục với $0.
+- **Vắng mặt 1+ giờ?** `/clear` → quay lại → `/cc-continue`. Ngữ cảnh được khôi phục với $0.
 - **[5H] trên 70% (🟡)?** Chậm lại. Chuyển sang công việc đánh giá nhẹ hoặc tăng ủy thác SubTask để giảm số API call của Main.
 - **Dùng `/btw` cho câu hỏi phụ.** Nó không đi vào lịch sử cuộc trò chuyện, vì vậy ngữ cảnh của bạn vẫn gọn nhẹ.
 
@@ -516,7 +531,7 @@ Nếu git-lite được bật, plugin **tiết kiệm** ~1.920 token mỗi phiê
 
 Tất cả những điều trên đều áp dụng, cộng thêm những ưu tiên riêng cho API:
 
-- **Theo dõi [CTX] như đồng hồ tốc độ.** Không có giới hạn tốc độ nào sẽ dừng bạn — nhưng ngữ cảnh ở 500K+ có nghĩa là mỗi API call tốn gấp 2-3 lần so với nên là. `/clear` → `/continue` là miễn phí và reset hệ số nhân chi phí về mức cơ sở.
+- **Theo dõi [CTX] như đồng hồ tốc độ.** Không có giới hạn tốc độ nào sẽ dừng bạn — nhưng ngữ cảnh ở 500K+ có nghĩa là mỗi API call tốn gấp 2-3 lần so với nên là. `/clear` → `/cc-continue` là miễn phí và reset hệ số nhân chi phí về mức cơ sở.
 - **Chạy `/usage-view` hàng tuần.** Người dùng Max Plan có thời điểm "ối" tự nhiên khi bị giới hạn tốc độ. Bạn thì không — chi phí tăng âm thầm. Bảng điều khiển là hệ thống cảnh báo sớm của bạn.
 - **Đặt ngân sách hàng ngày trong đầu.** Không có giới hạn, những ngày $200 xảy ra mà không chú ý. Chỉ số RUN trên status line làm chi phí mỗi lượt hiển thị. Nếu một lượt đơn vượt $1 (🔴), ngữ cảnh của bạn quá lớn.
 

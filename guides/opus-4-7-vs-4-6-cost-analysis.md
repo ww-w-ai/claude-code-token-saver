@@ -80,7 +80,7 @@ For those who find manual management tedious. [claude-code-token-saver](https://
 - Design via `claude -p` (main, thinking active), execution via SubTask + Sonnet — automatic distribution
 - Warns on prompt cache expiry to prevent unnecessary re-caching costs
 - `/usage-view` for real-time cost dashboard
-- `/continue` to restore context between sessions at zero LLM cost
+- `/cc-continue` to restore context between sessions at zero LLM cost
 
 The analysis data in this report was collected using claude-code-token-saver.
 
@@ -353,7 +353,7 @@ Design in main, execute in subagents — that's the key division.
 
 #### Common habits
 
-- **Session management**: use `/continue` to keep initial context light; compress long sessions periodically
+- **Session management**: use `/cc-continue` to keep initial context light; compress long sessions periodically
 
 ---
 

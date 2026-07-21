@@ -72,17 +72,17 @@ Dengan kata lain, cache write tidak hanya berlaku untuk "token baru yang ditaip 
 **Inilah sebabnya plugin claude-code-token-saver memaparkan amaran tamat tempoh cache selepas 1 jam tidak aktif.** Apabila amaran muncul, semak saiz konteks semasa anda:
 
 - **Konteks kecil**: Kos penciptaan semula cache masih terurus. Teruskan sahaja — kosnya rendah.
-- **Konteks besar**: Kos cache akan menjadi ketara. Kami mengesyorkan `/clear` diikuti `/continue last` untuk menyambung dalam sesi baru. Skill continue secara automatik memulihkan konteks perbualan sebelumnya, jadi aliran kerja anda tidak terganggu.
+- **Konteks besar**: Kos cache akan menjadi ketara. Kami mengesyorkan `/clear` diikuti `/cc-continue last` untuk menyambung dalam sesi baru. Skill continue secara automatik memulihkan konteks perbualan sebelumnya, jadi aliran kerja anda tidak terganggu.
 
 ## Strategi Mengurangkan Kos Cache
 
 Plugin claude-code-token-saver direka untuk mengautomatikkan atau memudahkan semua strategi ini.
 
-### 1. Kekalkan Konteks Kecil — `/clear` + `/continue` ⭐
+### 1. Kekalkan Konteks Kecil — `/clear` + `/cc-continue` ⭐
 
 **Ini adalah cara paling penting untuk mengurangkan kos.** Kos cache yang tinggi bermaksud anda mendapat diskaun 90% — itu normal. Tetapi jika konteks membesar tanpa perlu dan kekal begitu, kos mutlak per panggilan meningkat walaupun ada diskaun. **Mengekalkan saiz konteks terkawal adalah strategi pengurusan kos yang paling berkesan.**
 
-Apabila topik berubah atau perbualan menjadi panjang, jalankan `/clear` untuk menetapkan semula, kemudian `/continue last` untuk memulihkan konteks sebelumnya. `/continue` memulihkan perbualan sebelumnya tanpa sebarang panggilan LLM, jadi kosnya sifar.
+Apabila topik berubah atau perbualan menjadi panjang, jalankan `/clear` untuk menetapkan semula, kemudian `/cc-continue last` untuk memulihkan konteks sebelumnya. `/cc-continue` memulihkan perbualan sebelumnya tanpa sebarang panggilan LLM, jadi kosnya sifar.
 
 `/compact` mengurangkan konteks dengan merumuskan perbualan, tetapi proses perumusan itu sendiri menimbulkan kos panggilan LLM dan membuang butiran perbualan. Tidak disyorkan.
 
@@ -90,7 +90,7 @@ Apabila topik berubah atau perbualan menjadi panjang, jalankan `/clear` untuk me
 
 Cache sesi utama Anthropic menggunakan **tier 1 jam**. Selepas tamat tempoh, permintaan pertama perlu mencipta semula keseluruhan perbualan sebagai cache write, yang mahal.
 
-claude-code-token-saver mengesan keadaan idle 1 jam dan **secara automatik memaparkan amaran**. Apabila amaran muncul, menggunakan kaedah 1 di atas (`/clear` + `/continue`) untuk menyambung dalam sesi baru adalah pendekatan paling jimat.
+claude-code-token-saver mengesan keadaan idle 1 jam dan **secara automatik memaparkan amaran**. Apabila amaran muncul, menggunakan kaedah 1 di atas (`/clear` + `/cc-continue`) untuk menyambung dalam sesi baru adalah pendekatan paling jimat.
 
 ### 3. Wakilkan Kerja Berat kepada SubTask
 

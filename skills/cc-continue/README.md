@@ -1,12 +1,12 @@
-# /continue
+# /cc-continue
 
 Restore context from previous sessions — smarter, cheaper alternative to `/compact`.
 
 ## Usage
 
 ```
-/continue                    # show session list, pick which to restore
-/continue last               # instantly restore the most recent session
+/cc-continue                    # show session list, pick which to restore
+/cc-continue last               # instantly restore the most recent session
 ```
 
 ## How It Works

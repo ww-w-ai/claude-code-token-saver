@@ -72,17 +72,17 @@ Innymi słowy, cache write nie dotyczy wyłącznie „nowych tokenów użytkowni
 **Właśnie dlatego plugin claude-code-token-saver wyświetla ostrzeżenie o wygaśnięciu cache po 1 godzinie bezczynności.** Gdy pojawi się ostrzeżenie, sprawdź aktualny rozmiar kontekstu:
 
 - **Mały kontekst**: koszt ponownego tworzenia cache jest niewielki. Kontynuuj pracę — koszty będą niskie.
-- **Duży kontekst**: koszt cache będzie znaczący. Zalecamy `/clear`, a następnie `/continue last`, aby kontynuować w nowej sesji. Umiejętność continue automatycznie przywróci kontekst poprzedniej rozmowy, więc przepływ pracy nie zostanie przerwany.
+- **Duży kontekst**: koszt cache będzie znaczący. Zalecamy `/clear`, a następnie `/cc-continue last`, aby kontynuować w nowej sesji. Umiejętność continue automatycznie przywróci kontekst poprzedniej rozmowy, więc przepływ pracy nie zostanie przerwany.
 
 ## Strategie redukcji kosztów cache
 
 Plugin claude-code-token-saver został zaprojektowany do automatyzacji lub uproszczenia wszystkich tych strategii.
 
-### 1. Utrzymuj mały kontekst — `/clear` + `/continue` ⭐
+### 1. Utrzymuj mały kontekst — `/clear` + `/cc-continue` ⭐
 
 **To najważniejszy sposób na redukcję kosztów.** Wysokie koszty cache oznaczają, że otrzymujesz zniżkę 90% — to normalne. Ale jeśli kontekst niepotrzebnie rośnie i taki pozostaje, bezwzględny koszt na wywołanie wzrasta nawet ze zniżką. **Kontrolowanie rozmiaru kontekstu to najskuteczniejsza strategia zarządzania kosztami.**
 
-Gdy temat się zmienia lub rozmowa jest długa, użyj `/clear` do resetu, potem `/continue last` do przywrócenia kontekstu. `/continue` przywraca poprzednie rozmowy bez wywołań LLM, więc koszt wynosi zero.
+Gdy temat się zmienia lub rozmowa jest długa, użyj `/clear` do resetu, potem `/cc-continue last` do przywrócenia kontekstu. `/cc-continue` przywraca poprzednie rozmowy bez wywołań LLM, więc koszt wynosi zero.
 
 `/compact` zmniejsza kontekst przez streszczenie rozmowy, ale sam proces streszczania wymaga wywołań LLM i traci szczegóły rozmowy. Niezalecane.
 
@@ -90,7 +90,7 @@ Gdy temat się zmienia lub rozmowa jest długa, użyj `/clear` do resetu, potem 
 
 Główna sesja Anthropic używa **godzinnego poziomu** cache. Po wygaśnięciu pierwsze zapytanie musi odtworzyć całą rozmowę jako cache write, co jest kosztowne.
 
-claude-code-token-saver wykrywa godzinną bezczynność i **automatycznie wyświetla ostrzeżenie**. Gdy pojawi się ostrzeżenie, najekonomiczniejszym podejściem jest użycie metody 1 powyżej (`/clear` + `/continue`), aby kontynuować w nowej sesji.
+claude-code-token-saver wykrywa godzinną bezczynność i **automatycznie wyświetla ostrzeżenie**. Gdy pojawi się ostrzeżenie, najekonomiczniejszym podejściem jest użycie metody 1 powyżej (`/clear` + `/cc-continue`), aby kontynuować w nowej sesji.
 
 ### 3. Deleguj ciężkie zadania do SubTasks
 

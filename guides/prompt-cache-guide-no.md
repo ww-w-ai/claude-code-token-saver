@@ -72,17 +72,17 @@ Med andre ord oppstar cache write ikke bare for «nye tokens fra brukeren». Ved
 **Det er nettopp derfor claude-code-token-saver-pluginen viser en cache-utlopsadvarsel etter 1 times inaktivitet.** Nar advarselen vises, sjekk din navarende kontekststorrelse:
 
 - **Liten kontekst**: cache-gjenskapingskostnaden er handterbar. Bare fortsett a jobbe — kostnaden er lav.
-- **Stor kontekst**: cachekostnaden blir betydelig. Vi anbefaler `/clear` etterfulgt av `/continue last` for a fortsette i en ny sesjon. Continue-ferdigheten gjenoppretter automatisk konteksten fra forrige samtale, sa arbeidsflyten din avbrytes ikke.
+- **Stor kontekst**: cachekostnaden blir betydelig. Vi anbefaler `/clear` etterfulgt av `/cc-continue last` for a fortsette i en ny sesjon. Continue-ferdigheten gjenoppretter automatisk konteksten fra forrige samtale, sa arbeidsflyten din avbrytes ikke.
 
 ## Strategier for a redusere cachekostnader
 
 claude-code-token-saver-pluginen er designet for a automatisere eller forenkle alle disse strategiene.
 
-### 1. Hold konteksten liten — `/clear` + `/continue` ⭐
+### 1. Hold konteksten liten — `/clear` + `/cc-continue` ⭐
 
 **Dette er den aller viktigste maten a redusere kostnader pa.** Høye cachekostnader betyr at du far 90 %-rabatten — det er normalt. Men hvis konteksten vokser unødvendig og forblir stor, oker den absolutte kostnaden per kall selv med rabatten. **A holde kontekststorrelsen under kontroll er den mest effektive kostnadsstrategien.**
 
-Nar temaet endres eller samtalen blir lang, kjor `/clear` for a tilbakestille, deretter `/continue last` for a gjenopprette konteksten. `/continue` gjenoppretter tidligere samtaler uten noen LLM-kall, sa kostnaden er null.
+Nar temaet endres eller samtalen blir lang, kjor `/clear` for a tilbakestille, deretter `/cc-continue last` for a gjenopprette konteksten. `/cc-continue` gjenoppretter tidligere samtaler uten noen LLM-kall, sa kostnaden er null.
 
 `/compact` reduserer konteksten ved a oppsummere samtalen, men selve oppsummeringsprosessen medører LLM-kall-kostnader og mister samtaledetaljer. Anbefales ikke.
 
@@ -90,7 +90,7 @@ Nar temaet endres eller samtalen blir lang, kjor `/clear` for a tilbakestille, d
 
 Anthropics hovedsesjon bruker **1-times-tier** for cache. Etter utlop ma forste foresporsel gjenskape hele samtalen som cache write, noe som er dyrt.
 
-claude-code-token-saver oppdager 1 times inaktivitet og **viser automatisk en advarsel**. Nar advarselen vises, er det mest okonomiske a bruke metode 1 ovenfor (`/clear` + `/continue`) for a fortsette i en ny sesjon.
+claude-code-token-saver oppdager 1 times inaktivitet og **viser automatisk en advarsel**. Nar advarselen vises, er det mest okonomiske a bruke metode 1 ovenfor (`/clear` + `/cc-continue`) for a fortsette i en ny sesjon.
 
 ### 3. Deleger tungt arbeid til SubTasks
 

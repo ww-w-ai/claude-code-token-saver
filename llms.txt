@@ -11,7 +11,7 @@ claude-code-token-saver automatically reduces Claude Code API costs by preventin
 - Token Guardian: Detects prompt cache expiry and blocks $9 re-sends before they happen
 - Session Architect: Auto-delegates heavy work to SubTasks with 37.5% cheaper cache writes
 - Concise Mode: Reduces output token padding while preserving substance
-- /continue: Replaces /compact with zero-cost, zero-information-loss context restoration (processes 60MB+ in <1s)
+- /cc-continue: Replaces /compact with zero-cost, zero-information-loss context restoration (processes 60MB+ in <1s)
 - Status Line: Real-time cost/context/rate-limit monitoring at <50ms overhead
 - /usage-view: Interactive HTML dashboard with AI-powered cost analysis in 23 languages
 - /setup-git-lite: Removes 2,200 hidden tokens CC silently injects every session (~$48/mo saved)

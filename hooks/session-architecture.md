@@ -80,7 +80,7 @@ Good response example — User: "How does system X compare to ours? Can we drop 
 
 And yes — rewrite stage is redundant. Dual-section already does that job. Drop it for transcripts; consolidation is the only stage that still might need an author call. Want me to implement the removal?"
 
-### When /continue was used
+### When /cc-continue was used
 
 Restored content is verbatim past messages (not summaries). `[Session:{sid} {ISO} L{n}]` → `~/.claude/projects/{projectHash}/{sessionId}.jsonl` line L{n}.
 

@@ -15,7 +15,8 @@
 | 🛡️ Token Guardian | कैश एक्सपायरी का पता लगाता है, होने से पहले $9 री-सेंड को ब्लॉक करता है | नंबर 1 छुपे हुए लागत spike को रोकता है |
 | 🧠 Session Architect | भारी काम को SubTasks को ऑटो-डेलिगेट करता है (37.5% सस्ता कैश) | कॉन्टेक्स्ट छोटा रहता है, लागत कम होती है |
 | 🪶 Concise Mode | रिस्पॉन्स की padding काटता है, सामग्री रखता है | प्रति रिस्पॉन्स कम output टोकन |
-| 🔄 /continue | /compact की जगह लेता है — शून्य LLM calls, शून्य लागत, शून्य जानकारी का नुकसान | मुफ्त कॉन्टेक्स्ट रिस्टोरेशन |
+| 🔄 /cc-continue | /compact की जगह लेता है — शून्य LLM calls, शून्य लागत, शून्य जानकारी का नुकसान | मुफ्त कॉन्टेक्स्ट रिस्टोरेशन |
+| 🤝 /cc-compact | एक session handoff लिखता है जिसे /cc-continue अपने आप लोड करता है — sub-agent findings और tool results को कैप्चर करता है जो transcript खो देता है | अगला session hidden context के साथ भी resume होता है |
 | 📊 Status Line | रियल-टाइम लागत, कॉन्टेक्स्ट साइज़, रेट लिमिट — 50ms से कम | समस्याओं को खर्च होने से पहले देखें |
 | 📈 /usage-view | AI-powered analysis के साथ इंटरएक्टिव HTML डैशबोर्ड | एक क्लिक में पूरी लागत forensics |
 | ✂️ /setup-git-lite | CC हर सेशन में जो 2,200 छुपे टोकन डालता है उन्हें हटाता है | केवल git instructions पर ~$48/माह की बचत |
@@ -78,7 +79,7 @@ The prompt cache has expired. Continuing will resend the full context.
 Cost may increase significantly.
 
 👉 /context — Check current context usage before deciding
-👉 /clear → /continue — Reset, then restore previous context (recommended, cheapest)
+👉 /clear → /cc-continue — Reset, then restore previous context (recommended, cheapest)
 👉 Re-send — Continue as-is (full re-cache cost incurred)
 ```
 
@@ -127,15 +128,15 @@ Hard limit: कभी भी content drop नहीं करना, verificatio
 
 ---
 
-## 🔄 Feature 3: /continue — Context Restoration
+## 🔄 Feature 3: /cc-continue — Context Restoration
 
 **`/compact` को replace करता है। Zero LLM calls। Zero token cost। Zero information loss।**
 
 `/compact` आपका पूरा context (~1M tokens) को LLM को भेजता है इसे 3.3% summary में compress करने के लिए। अगर cache expire हो गया है, तो यह अकेले full re-cache trigger करता है। Information loss inevitable है।
 
-`/continue` बिल्कुल अलग approach लेता है। यह पिछले session transcript को preprocess करता है और directly load करता है। कोई LLM call नहीं। कोई cost नहीं। Original conversation as-is restore होती है।
+`/cc-continue` बिल्कुल अलग approach लेता है। यह पिछले session transcript को preprocess करता है और directly load करता है। कोई LLM call नहीं। कोई cost नहीं। Original conversation as-is restore होती है।
 
-|                         | /compact                                    | /continue                                   |
+|                         | /compact                                    | /cc-continue                                   |
 | ----------------------- | ------------------------------------------- | ------------------------------------------- |
 | कैसे काम करता है        | Summary के लिए full context LLM को भेजता है | Transcript preprocess करता है, directly पढ़ता है |
 | LLM calls               | Required (typically 100K+ tokens)           | 0                                           |
@@ -145,10 +146,24 @@ Hard limit: कभी भी content drop नहीं करना, verificatio
 | जब cache expire हो      | Full re-cache cost ऊपर से                   | No impact                                   |
 | Multi-session restore   | Not possible                                | Supported                                   |
 
-Usage: `/clear` फिर `/continue`। पिछले sessions की list दिखेगी। Restore करने के लिए एक चुनें। Quick recovery के लिए: `/continue last`।
+Usage: `/clear` फिर `/cc-continue`। पिछले sessions की list दिखेगी। Restore करने के लिए एक चुनें। Quick recovery के लिए: `/cc-continue last`।
 
 **परिणाम:** Zero cost पर पिछला काम resume करें। कोई information loss नहीं। 60MB+ transcripts को 1 second से कम में process करता है।
 
+---
+### 🤝 इसका जोड़ीदार: `/cc-compact` — hidden layer की handoff
+
+`/cc-continue` transcript को restore करता है — जो आपने और Claude ने कहा। लेकिन एक working session की सबसे उपयोगी जानकारी अक्सर उस बातचीत के बाहर होती है: एक sub-agent ने क्या पाया (उसका transcript एक अलग file है जिसे restore कभी लोड नहीं करता), tool output में एक निर्णायक संख्या (test count, benchmark), या process से सीखा गया एक सबक ("headless reproduce नहीं हुआ ← वजह build थी, code नहीं")।
+
+session के अंत में `/cc-compact` चलाएं और यह ठीक उसी hidden layer को एक handoff में distill करके `~/.claude/claude-code-token-saver-data/<project>/handoff.md` में save कर देता है। अगले session में, `/cc-continue` restore किए गए transcript के ऊपर इसे अपने आप लोड कर लेता है — कुछ paste करने की जरूरत नहीं।
+
+|                     | सिर्फ `/cc-continue`             | `/cc-compact` + `/cc-continue` (जोड़ी)            |
+| Recover करता है      | Transcript (जो कहा गया)          | Transcript और hidden layer दोनों                 |
+| Sub-agent findings   | खो जाती हैं (अलग files)          | Handoff में distill होती हैं                      |
+| Tool-output संख्याएं | सिर्फ अगर chat में quote की गईं  | जानबूझकर extract की जाती हैं                      |
+| Process के सबक       | —                                | Capture होते हैं ताकि dead ends दोबारा न चलें     |
+
+Workflow: session को `/cc-compact` से खत्म करें → अगला session `/cc-continue` से शुरू करें।
 ---
 
 ## 📊 Feature 4: Live Status Line
@@ -402,7 +417,7 @@ Conditions: Opus 4 pricing, 1 prompt per minute, ~5 API calls per prompt (~300 c
 | ----------- | -------------------------------------------- | --------------------------- | ---------------------------------- |
 | सुबह 3h     | Coding (Main: design, SubTask: implementation) | Main 100K → 300K (avg 200K) | 900 calls × 200K × ＄0.50/M = ＄90 |
 | Lunch/mtg   | 2 घंटे दूर                                   | —                           | —                                  |
-| वापसी       | ⚡ Token Guardian blocks → /clear + /continue | —                           | ＄0 (no LLM calls)                 |
+| वापसी       | ⚡ Token Guardian blocks → /clear + /cc-continue | —                           | ＄0 (no LLM calls)                 |
 | दोपहर 3h    | Coding continues                             | Main 100K → 300K (avg 200K) | 900 calls × 200K × ＄0.50/M = ＄90 |
 |             | Total                                        |                             | ~＄180                              |
 
@@ -433,7 +448,7 @@ Conditions: Opus 4 pricing, 1 prompt per minute, ~5 API calls per prompt (~300 c
     │
 [Session restart]
     │
-    └─ /continue → Zero cost पर previous context restore (no LLM calls)
+    └─ /cc-continue → Zero cost पर previous context restore (no LLM calls)
 ```
 
 ---
@@ -450,7 +465,7 @@ claude-code-token-saver fully open-source है (Apache-2.0)। Plain JavaScrip
 
 - **hooks/** — Cache expiry threshold change करें, warning messages customize करें, session architecture rules modify करें
 - **scripts/** — Analysis logic, report builder, status line formatting
-- **skills/** — /continue और /usage-view कैसे काम करते हैं, prompt templates
+- **skills/** — /cc-continue और /usage-view कैसे काम करते हैं, prompt templates
 - **locales/** — Translations add/edit करें, नई languages add करें
 - **skills/usage-view/** — Dashboard UI/UX design changes
 
@@ -508,7 +523,7 @@ Opus pricing ($0.50/MTok cache read) पर, यह **$0.0007 per API call** ह
 
 - **CLAUDE.md lean रखें।** यह हर API call पर system prompt में load होता है। हर line पैसा खर्च करती है।
 - **भारी काम SubTasks को delegate करें।** Code generation, multi-file edits, test runs Main में नहीं होने चाहिए। SubTasks का smaller context और cheaper cache tier है।
-- **1+ घंटे के लिए दूर?** `/clear` → वापस आएं → `/continue`। Context $0 पर restored।
+- **1+ घंटे के लिए दूर?** `/clear` → वापस आएं → `/cc-continue`। Context $0 पर restored।
 - **[5H] 70% से ऊपर (🟡)?** Slow down। Lightweight review tasks पर switch करें या Main के API call count कम करने के लिए SubTask delegation बढ़ाएं।
 - **Side questions के लिए `/btw` use करें।** यह conversation history में enter नहीं होता, इसलिए आपका context lean रहता है।
 
@@ -516,7 +531,7 @@ Opus pricing ($0.50/MTok cache read) पर, यह **$0.0007 per API call** ह
 
 ऊपर सब apply होता है, plus ये API-specific priorities:
 
-- **[CTX] को speedometer की तरह watch करें।** Rate limit आपको नहीं रोकेगी — लेकिन 500K+ पर context का मतलब है हर API call 2-3x ज़्यादा cost करती है जितनी होनी चाहिए। `/clear` → `/continue` free है और आपका cost multiplier baseline पर reset करता है।
+- **[CTX] को speedometer की तरह watch करें।** Rate limit आपको नहीं रोकेगी — लेकिन 500K+ पर context का मतलब है हर API call 2-3x ज़्यादा cost करती है जितनी होनी चाहिए। `/clear` → `/cc-continue` free है और आपका cost multiplier baseline पर reset करता है।
 - **Weekly `/usage-view` run करें।** Max Plan users का rate limit होने पर naturally "ouch" moment होता है। आपका नहीं — costs silently climb करती हैं। Dashboard आपका early warning system है।
 - **Mental daily budget set करें।** Cap के बिना, $200 days notice किए बिना होते हैं। Status line का RUN indicator per-turn cost visible बनाता है। अगर एक single turn $1 cross करे (🔴), आपका context too large है।
 

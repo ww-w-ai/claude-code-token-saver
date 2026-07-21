@@ -5,7 +5,7 @@ Brief description of the change.
 ## Testing done
 
 - [ ] Tested `/usage-view` skill
-- [ ] Tested `/continue` skill
+- [ ] Tested `/cc-continue` skill
 - [ ] Verified no broken locale files (if translations changed)
 
 ## Checklist

@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - 2026-07-22
+
+### Added: `/cc-compact` — session handoff that captures what `/cc-continue` can't recover
+
+- New skill `skills/cc-compact`: writes a **session handoff** for the next session — the write-side pair of `/cc-continue`. `/cc-continue` restores the transcript (what the user and Claude said); `/cc-compact` distills what lives OUTSIDE that dialogue and is therefore invisible to transcript restore: **subagent findings** (their transcripts are separate files the restore never loads), **decisive numbers in tool output** (test counts, benchmarks, grep results), and **lessons learned from the process** (e.g. "couldn't reproduce headless → the cause was the build, not the code").
+- The handoff is saved to `~/.claude/claude-code-token-saver-data/<project>/handoff.md`. `/cc-continue` now **auto-loads** it (new Step 7) on top of the restored transcript and marks it consumed (`handoff.applied.md`) so a stale handoff is never silently re-applied. No pasting required.
+- The skill enforces coverage, not brevity: a mandatory extraction checklist (every subagent, every decisive tool-output number, every process lesson, every reverted approach, every non-committed artifact, every open gap) plus a red-flags table, because the common failure of a handoff is being too short to carry the hidden layer.
+- Workflow: end a session with `/cc-compact` → start the next with `/cc-continue`.
+
+### Changed: `/continue` renamed to `/cc-continue` (BREAKING)
+
+- The context-restoration skill `continue` is now **`cc-continue`**. Rationale: Claude Code's own `resume`/`--continue` feature made the bare `/continue` name collide and read as a duplicate. The `cc-` prefix disambiguates it and pairs cleanly with the new `/cc-compact`.
+- **Action required**: use `/cc-continue` instead of `/continue`. All docs, hooks, locale strings, and keywords updated. The scripts and behavior are unchanged — only the invocation name.
+
 ## [2.2.0] - 2026-07-02
 
 ### Added: `shrink-img` — zero-dependency image downscaler for cheaper file attachments

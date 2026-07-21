@@ -49,7 +49,7 @@ Each 5-hour window expands to show individual sessions. Sessions are grouped by 
 | **Subtask** | Background agents spawned by a main session (linked to parent) |
 | **Programmatic** | Sessions started via `claude -p` or automated pipelines |
 | **Batch** | Multiple sessions with identical first messages (e.g., repeated skill runs) |
-| **/continue restore** | Sessions that used `/continue` to restore previous context |
+| **/cc-continue restore** | Sessions that used `/cc-continue` to restore previous context |
 
 Each session card shows:
 

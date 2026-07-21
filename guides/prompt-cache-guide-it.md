@@ -72,17 +72,17 @@ In altre parole, la scrittura cache non avviene solo per i "nuovi token digitati
 **E esattamente per questo che il plugin claude-code-token-saver mostra un avviso di scadenza cache dopo 1 ora di inattivita.** Quando appare l'avviso, controlla la dimensione del tuo contesto attuale:
 
 - **Contesto piccolo**: Il costo di ricreazione della cache e gestibile. Continua semplicemente a lavorare — il costo e basso.
-- **Contesto grande**: Il costo della cache sara significativo. Raccomandiamo `/clear` seguito da `/continue last` per riprendere in una nuova sessione. La funzione continue ripristina automaticamente il contesto della tua conversazione precedente, quindi il tuo flusso di lavoro non viene interrotto.
+- **Contesto grande**: Il costo della cache sara significativo. Raccomandiamo `/clear` seguito da `/cc-continue last` per riprendere in una nuova sessione. La funzione continue ripristina automaticamente il contesto della tua conversazione precedente, quindi il tuo flusso di lavoro non viene interrotto.
 
 ## Strategie per ridurre i costi della cache
 
 Il plugin claude-code-token-saver e progettato per automatizzare o semplificare tutte queste strategie.
 
-### 1. Mantenere il contesto piccolo — `/clear` + `/continue` ⭐
+### 1. Mantenere il contesto piccolo — `/clear` + `/cc-continue` ⭐
 
 **Questo e il modo piu importante per ridurre i costi.** Costi di cache elevati significano che stai ricevendo lo sconto del 90% — e normale. Ma se il contesto cresce inutilmente e rimane cosi, il costo assoluto per chiamata aumenta anche con lo sconto. **Mantenere la dimensione del contesto sotto controllo e la strategia di gestione dei costi piu efficace.**
 
-Quando l'argomento cambia o la conversazione si allunga, esegui `/clear` per reimpostare, poi `/continue last` per ripristinare il contesto precedente. `/continue` ripristina le conversazioni precedenti senza alcuna chiamata LLM, quindi il costo e zero.
+Quando l'argomento cambia o la conversazione si allunga, esegui `/clear` per reimpostare, poi `/cc-continue last` per ripristinare il contesto precedente. `/cc-continue` ripristina le conversazioni precedenti senza alcuna chiamata LLM, quindi il costo e zero.
 
 `/compact` riduce il contesto riassumendo la conversazione, ma il processo di riassunto stesso comporta costi di chiamate LLM e scarta i dettagli della conversazione. Non raccomandato.
 
@@ -90,7 +90,7 @@ Quando l'argomento cambia o la conversazione si allunga, esegui `/clear` per rei
 
 La cache della sessione principale di Anthropic usa un **livello di 1 ora**. Dopo la scadenza, la prima richiesta deve ricreare l'intera conversazione come scrittura cache, il che e costoso.
 
-claude-code-token-saver rileva stati di inattivita di 1 ora e **mostra automaticamente un avviso**. Quando appare l'avviso, usare il metodo 1 sopra (`/clear` + `/continue`) per continuare in una nuova sessione e l'approccio piu economico.
+claude-code-token-saver rileva stati di inattivita di 1 ora e **mostra automaticamente un avviso**. Quando appare l'avviso, usare il metodo 1 sopra (`/clear` + `/cc-continue`) per continuare in una nuova sessione e l'approccio piu economico.
 
 ### 3. Delegare il lavoro pesante ai SubTasks
 

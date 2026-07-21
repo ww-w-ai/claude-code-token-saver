@@ -72,17 +72,17 @@ Met andere woorden: cache write treedt niet alleen op voor "nieuwe tokens van de
 **Dit is precies waarom de claude-code-token-saver plugin een cache-verloopwaarschuwing toont na 1 uur inactiviteit.** Controleer bij het verschijnen van de waarschuwing je huidige contextgrootte:
 
 - **Kleine context**: de hercreatie-kosten zijn beheersbaar. Werk gewoon door — de kosten zijn laag.
-- **Grote context**: de cachekosten zijn aanzienlijk. We raden `/clear` aan gevolgd door `/continue last` om verder te gaan in een nieuwe sessie. De continue-skill herstelt automatisch de context van je vorige gesprek, zodat je workflow niet wordt onderbroken.
+- **Grote context**: de cachekosten zijn aanzienlijk. We raden `/clear` aan gevolgd door `/cc-continue last` om verder te gaan in een nieuwe sessie. De continue-skill herstelt automatisch de context van je vorige gesprek, zodat je workflow niet wordt onderbroken.
 
 ## Strategieen om cachekosten te verlagen
 
 De claude-code-token-saver plugin is ontworpen om al deze strategieen te automatiseren of vereenvoudigen.
 
-### 1. Houd de context klein — `/clear` + `/continue` ⭐
+### 1. Houd de context klein — `/clear` + `/cc-continue` ⭐
 
 **Dit is de belangrijkste manier om kosten te verlagen.** Hoge cachekosten betekenen dat je de 90%-korting ontvangt — dat is normaal. Maar als de context onnodig groot groeit en zo blijft, stijgen de absolute kosten per aanroep zelfs met de korting. **De contextgrootte beheersen is de meest effectieve kostenbeheerstrategie.**
 
-Wanneer het onderwerp verandert of het gesprek lang wordt, voer `/clear` uit om te resetten en dan `/continue last` om de vorige context te herstellen. `/continue` herstelt vorige gesprekken zonder LLM-aanroepen, dus de kosten zijn nul.
+Wanneer het onderwerp verandert of het gesprek lang wordt, voer `/clear` uit om te resetten en dan `/cc-continue last` om de vorige context te herstellen. `/cc-continue` herstelt vorige gesprekken zonder LLM-aanroepen, dus de kosten zijn nul.
 
 `/compact` verkleint de context door het gesprek samen te vatten, maar het samenvattingsproces zelf kost LLM-aanroepen en verliest gespreksdetails. Niet aanbevolen.
 
@@ -90,7 +90,7 @@ Wanneer het onderwerp verandert of het gesprek lang wordt, voer `/clear` uit om 
 
 De hoofdsessie van Anthropic gebruikt de **1-uur-tier** voor cache. Na verlopen moet het eerste verzoek het volledige gesprek opnieuw aanmaken als cache write, wat duur is.
 
-claude-code-token-saver detecteert 1 uur inactiviteit en **toont automatisch een waarschuwing**. Bij het verschijnen van de waarschuwing is het gebruik van methode 1 hierboven (`/clear` + `/continue`) om verder te gaan in een nieuwe sessie de meest zuinige aanpak.
+claude-code-token-saver detecteert 1 uur inactiviteit en **toont automatisch een waarschuwing**. Bij het verschijnen van de waarschuwing is het gebruik van methode 1 hierboven (`/clear` + `/cc-continue`) om verder te gaan in een nieuwe sessie de meest zuinige aanpak.
 
 ### 3. Delegeer zwaar werk naar SubTasks
 

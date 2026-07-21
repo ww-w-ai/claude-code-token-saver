@@ -15,7 +15,8 @@ Fungerar med **Max Plan ($200/mån)** och **API betala per användning**. Samma 
 | 🛡️ Token Guardian | Identifierar cache-utgång, blockerar $9-återsändningar innan de inträffar | Förhindrar den vanligaste tysta kostnadsökningen |
 | 🧠 Session Architect | Delegerar tungt arbete automatiskt till SubTasks (37,5% billigare cache) | Kontext förblir liten, kostnader sjunker |
 | 🪶 Concise Mode | Tar bort svada i svar, behåller substansen | Färre utdatatokens per svar |
-| 🔄 /continue | Ersätter /compact — noll LLM-anrop, noll kostnad, noll informationsförlust | Gratis kontextåterställning |
+| 🔄 /cc-continue | Ersätter /compact — noll LLM-anrop, noll kostnad, noll informationsförlust | Gratis kontextåterställning |
+| 🤝 /cc-compact | Skriver en sessionsöverlämning som /cc-continue laddar automatiskt — fångar subagent-fynd & verktygsresultat som transkriptet förlorar | Nästa session återupptar även med den dolda kontexten |
 | 📊 Status Line | Realtidskostnad, kontextstorlek, hastighetsgräns — under 50ms | Se problem innan de kostar dig pengar |
 | 📈 /usage-view | Interaktiv HTML-instrumentpanel med AI-analys | Fullständig kostnadsutredning med ett klick |
 | ✂️ /setup-git-lite | Tar bort 2 200 dolda tokens som CC injicerar varje session | ~$48/mån sparad bara på git-instruktioner |
@@ -78,7 +79,7 @@ The prompt cache has expired. Continuing will resend the full context.
 Cost may increase significantly.
 
 👉 /context — Check current context usage before deciding
-👉 /clear → /continue — Reset, then restore previous context (recommended, cheapest)
+👉 /clear → /cc-continue — Reset, then restore previous context (recommended, cheapest)
 👉 Re-send — Continue as-is (full re-cache cost incurred)
 ```
 
@@ -127,15 +128,15 @@ Installera en gång, tillämpas överallt.
 
 ---
 
-## 🔄 Funktion 3: /continue — Kontextåterställning
+## 🔄 Funktion 3: /cc-continue — Kontextåterställning
 
 **Ersätter `/compact`. Noll LLM-anrop. Noll tokenkostnad. Noll informationsförlust.**
 
 `/compact` skickar hela din kontext (~1M tokens) till LLM för att komprimera den till en 3,3%-sammanfattning. Om cachen har gått ut utlöser det ensamt en full åter-cachning. Informationsförlust är oundviklig.
 
-`/continue` tar ett helt annat angreppssätt. Det förbehandlar det föregående sessiontranskriptet och laddar det direkt. Inget LLM-anrop. Ingen kostnad. Det ursprungliga samtalet återställs i befintligt skick.
+`/cc-continue` tar ett helt annat angreppssätt. Det förbehandlar det föregående sessiontranskriptet och laddar det direkt. Inget LLM-anrop. Ingen kostnad. Det ursprungliga samtalet återställs i befintligt skick.
 
-|                         | /compact                          | /continue                        |
+|                         | /compact                          | /cc-continue                        |
 | ----------------------- | --------------------------------- | -------------------------------- |
 | Hur det fungerar        | Skickar full kontext till LLM för sammanfattning | Förbehandlar transkript, läser direkt |
 | LLM-anrop               | Obligatoriskt (vanligtvis 100K+ tokens) | 0                           |
@@ -145,9 +146,30 @@ Installera en gång, tillämpas överallt.
 | När cachen gått ut      | Full åter-cachningskostnad ovanpå | Ingen inverkan                   |
 | Multi-session-återställning | Inte möjlig                   | Stöds                            |
 
-Användning: `/clear` sedan `/continue`. Du ser en lista med tidigare sessioner. Välj en att återställa. För snabb återhämtning: `/continue last`.
+Användning: `/clear` sedan `/cc-continue`. Du ser en lista med tidigare sessioner. Välj en att återställa. För snabb återhämtning: `/cc-continue last`.
 
 **Resultat:** Återuppta tidigare arbete utan kostnad. Ingen informationsförlust. Bearbetar 60MB+ transkript på under 1 sekund.
+
+### 🤝 Dess motpart: `/cc-compact` — lämna över det dolda lagret
+
+`/cc-continue` återställer **transkriptet** — vad du och Claude sa. Men den mest användbara kunskapen
+från en arbetssession lever ofta UTANFÖR den dialogen: vad en **subagent** kom fram till (dess
+transkript är en separat fil som återställningen aldrig laddar), ett avgörande **tal i
+verktygsresultat** (ett antal tester, ett benchmark), en **lärdom från processen** ("gick inte att
+återskapa headless → det berodde på bygget, inte koden").
+
+Kör `/cc-compact` i **slutet** av en session så destillerar det just det dolda lagret till en
+överlämning, sparad i `~/.claude/claude-code-token-saver-data/<project>/handoff.md`. I nästa session
+laddar `/cc-continue` den **automatiskt** ovanpå det återställda transkriptet — inget klistrande behövs.
+
+|                     | Enbart `/cc-continue`            | `/cc-compact` + `/cc-continue` (paret)            |
+| ------------------- | -------------------------------- | ------------------------------------------------ |
+| Återställer         | Transkriptet (vad som sades)     | Transkriptet **plus** det dolda lagret            |
+| Subagent-fynd       | Förlorade (separata filer)       | Destillerade i överlämningen                       |
+| Tal från verktygsresultat | Endast om citerat i chatten | Extraherade avsiktligt                            |
+| Lärdomar från processen | —                             | Fångade så återvändsgränder inte körs igen        |
+
+**Arbetsflödet:** avsluta en session med `/cc-compact` → starta nästa med `/cc-continue`.
 
 ---
 
@@ -402,7 +424,7 @@ Tungt arbete delegeras till SubTasks. Main hanterar bara design/beslut.
 | ----------- | -------------------------------------------- | --------------------------- | ---------------------------------- |
 | Morgon 3h   | Kodning (Main: design, SubTask: implementering) | Main 100K → 300K (snitt 200K) | 900 anrop × 200K × ＄0.50/M = ＄90 |
 | Lunch/möte  | Borta i 2 timmar                             | —                           | —                                  |
-| Återkomst   | ⚡ Token Guardian blockerar → /clear + /continue | —                        | ＄0 (inga LLM-anrop)                |
+| Återkomst   | ⚡ Token Guardian blockerar → /clear + /cc-continue | —                        | ＄0 (inga LLM-anrop)                |
 | Eftermiddag 3h | Kodning fortsätter                        | Main 100K → 300K (snitt 200K) | 900 anrop × 200K × ＄0.50/M = ＄90 |
 |             | Totalt                                       |                             | ~＄180                              |
 
@@ -433,7 +455,7 @@ Tungt arbete delegeras till SubTasks. Main hanterar bara design/beslut.
     │
 [Sessionsomstart]
     │
-    └─ /continue → Återställer tidigare kontext utan kostnad (inga LLM-anrop)
+    └─ /cc-continue → Återställer tidigare kontext utan kostnad (inga LLM-anrop)
 ```
 
 ---
@@ -450,7 +472,7 @@ claude-code-token-saver är helt öppen källkod (Apache-2.0). Ren JavaScript + 
 
 - **hooks/** — Ändra tröskeln för cache-utgång, anpassa varningsmeddelanden, ändra sessionsarkitekturregler
 - **scripts/** — Analyslogik, rapportbyggare, statusradsformatering
-- **skills/** — Hur /continue och /usage-view fungerar, promptmallar
+- **skills/** — Hur /cc-continue och /usage-view fungerar, promptmallar
 - **locales/** — Lägg till/redigera översättningar, lägg till nya språk
 - **skills/usage-view/** — Förändringar i instrumentpanelens UI/UX-design
 
@@ -508,7 +530,7 @@ Om git-lite är aktiverat **sparar** tillägget ~1 920 tokens per session (ersä
 
 - **Håll CLAUDE.md kortfattad.** Den laddas in i systemprompten vid varje API-anrop. Varje rad kostar pengar.
 - **Delegera tungt arbete till SubTasks.** Kodgenerering, flerfils-redigeringar, testkörningar hör inte hemma i Main. SubTasks har mindre kontext och ett billigare cache-lager.
-- **Borta i 1+ timme?** `/clear` → kom tillbaka → `/continue`. Kontext återställd för $0.
+- **Borta i 1+ timme?** `/clear` → kom tillbaka → `/cc-continue`. Kontext återställd för $0.
 - **[5H] över 70% (🟡)?** Bromsa. Byt till lätta granskningsuppgifter eller öka SubTask-delegering för att minska Mains API-anropsantal.
 - **Använd `/btw` för sidofrågor.** Det går inte in i konversationshistoriken, så din kontext förblir kompakt.
 
@@ -516,7 +538,7 @@ Om git-lite är aktiverat **sparar** tillägget ~1 920 tokens per session (ersä
 
 Allt ovanstående gäller, plus dessa API-specifika prioriteringar:
 
-- **Se [CTX] som en hastighetsmätare.** Ingen hastighetsgräns kommer att stoppa dig — men kontext vid 500K+ innebär att varje API-anrop kostar 2-3 gånger så mycket som det borde. `/clear` → `/continue` är gratis och återställer din kostnadsmultiplikator till grundlinjen.
+- **Se [CTX] som en hastighetsmätare.** Ingen hastighetsgräns kommer att stoppa dig — men kontext vid 500K+ innebär att varje API-anrop kostar 2-3 gånger så mycket som det borde. `/clear` → `/cc-continue` är gratis och återställer din kostnadsmultiplikator till grundlinjen.
 - **Kör `/usage-view` varje vecka.** Max Plan-användare har ett naturligt "aj"-ögonblick när de når hastighetsgränsen. Det har inte du — kostnader stiger tyst. Instrumentpanelen är ditt tidiga varningssystem.
 - **Sätt en mental daglig budget.** Utan ett tak inträffar $200-dagar utan att du märker det. RUN-indikatorn på statusraden gör kosten per tur synlig. Om ett enskilt tur överstiger $1 (🔴) är din kontext för stor.
 

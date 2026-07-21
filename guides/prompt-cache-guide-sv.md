@@ -72,17 +72,17 @@ Med andra ord uppstar cache write inte bara for "nya tokens fran anvandaren." Vi
 **Det ar precis darfor claude-code-token-saver-pluginen visar en cache-utgångsvarning efter 1 timmes inaktivitet.** Nar varningen visas, kontrollera din nuvarande kontextstorlek:
 
 - **Liten kontext**: cache-aterskapandekostnaden ar hanterbar. Fortsatt arbeta — kostnaden ar lag.
-- **Stor kontext**: cachekostnaden blir betydande. Vi rekommenderar `/clear` foljt av `/continue last` for att fortsatta i en ny session. Continue-farndigheten aterstaller automatiskt din tidigare konversationskontext, sa ditt arbetsflode avbryts inte.
+- **Stor kontext**: cachekostnaden blir betydande. Vi rekommenderar `/clear` foljt av `/cc-continue last` for att fortsatta i en ny session. Continue-farndigheten aterstaller automatiskt din tidigare konversationskontext, sa ditt arbetsflode avbryts inte.
 
 ## Strategier for att minska cachekostnader
 
 claude-code-token-saver-pluginen ar utformad for att automatisera eller forenkla alla dessa strategier.
 
-### 1. Hall kontexten liten — `/clear` + `/continue` ⭐
+### 1. Hall kontexten liten — `/clear` + `/cc-continue` ⭐
 
 **Det har ar det enskilt viktigaste sattet att minska kostnader.** Hoga cachekostnader innebar att du far 90 %-rabatten — det ar normalt. Men om kontexten vaxer i onodan och forblir stor okar den absoluta kostnaden per anrop aven med rabatten. **Att halla kontextstorleken under kontroll ar den enskilt mest effektiva kostnadsstrategin.**
 
-Nar amnet andras eller konversationen blir lang, kor `/clear` for att aterstalla, sedan `/continue last` for att aterstalla kontexten. `/continue` aterstaller tidigare konversationer utan nagra LLM-anrop, sa kostnaden ar noll.
+Nar amnet andras eller konversationen blir lang, kor `/clear` for att aterstalla, sedan `/cc-continue last` for att aterstalla kontexten. `/cc-continue` aterstaller tidigare konversationer utan nagra LLM-anrop, sa kostnaden ar noll.
 
 `/compact` minskar kontexten genom att sammanfatta konversationen, men sjalva sammanfattningen medfor LLM-anropskostnader och forlorar konversationsdetaljer. Rekommenderas inte.
 
@@ -90,7 +90,7 @@ Nar amnet andras eller konversationen blir lang, kor `/clear` for att aterstalla
 
 Anthropics huvudsession använder **1-timmes-tier** for cache. Efter utgång maste forsta forfragan aterskapa hela konversationen som cache write, vilket ar dyrt.
 
-claude-code-token-saver upptacker 1 timmes inaktivitet och **visar automatiskt en varning**. Nar varningen visas ar det mest ekonomiska tillvagagangssattet att anvanda metod 1 ovan (`/clear` + `/continue`) for att fortsatta i en ny session.
+claude-code-token-saver upptacker 1 timmes inaktivitet och **visar automatiskt en varning**. Nar varningen visas ar det mest ekonomiska tillvagagangssattet att anvanda metod 1 ovan (`/clear` + `/cc-continue`) for att fortsatta i en ny session.
 
 ### 3. Delegera tungt arbete till SubTasks
 

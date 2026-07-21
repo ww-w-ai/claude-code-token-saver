@@ -15,7 +15,8 @@ Bekerja dengan **Max Plan ($200/bln)** dan **API bayar-per-penggunaan**. Plugin 
 | 🛡️ Token Guardian | Mendeteksi kedaluwarsa cache, memblokir pengiriman ulang $9 sebelum terjadi | Mencegah lonjakan biaya tersembunyi #1 |
 | 🧠 Session Architect | Mendelegasikan pekerjaan berat ke SubTasks secara otomatis (cache 37,5% lebih murah) | Konteks tetap kecil, biaya turun |
 | 🪶 Concise Mode | Memangkas padding respons, mempertahankan substansi | Lebih sedikit token output per respons |
-| 🔄 /continue | Menggantikan /compact — nol panggilan LLM, nol biaya, nol kehilangan informasi | Pemulihan konteks gratis |
+| 🔄 /cc-continue | Menggantikan /compact — nol panggilan LLM, nol biaya, nol kehilangan informasi | Pemulihan konteks gratis |
+| 🤝 /cc-compact | Menulis serah terima sesi yang otomatis dimuat /cc-continue — menangkap temuan sub-agent & hasil tool yang hilang dari transcript | Sesi berikutnya juga resume dengan konteks tersembunyi |
 | 📊 Status Line | Biaya real-time, ukuran konteks, batas rate — di bawah 50ms | Lihat masalah sebelum menguras kantong |
 | 📈 /usage-view | Dasbor HTML interaktif dengan analisis bertenaga AI | Forensik biaya lengkap dalam satu klik |
 | ✂️ /setup-git-lite | Menghapus 2.200 token tersembunyi yang CC suntikkan setiap sesi | ~$48/bln hemat dari instruksi git saja |
@@ -78,7 +79,7 @@ The prompt cache has expired. Continuing will resend the full context.
 Cost may increase significantly.
 
 👉 /context — Check current context usage before deciding
-👉 /clear → /continue — Reset, then restore previous context (recommended, cheapest)
+👉 /clear → /cc-continue — Reset, then restore previous context (recommended, cheapest)
 👉 Re-send — Continue as-is (full re-cache cost incurred)
 ```
 
@@ -127,15 +128,15 @@ Instal sekali, berlaku di mana saja.
 
 ---
 
-## 🔄 Fitur 3: /continue — Pemulihan Konteks
+## 🔄 Fitur 3: /cc-continue — Pemulihan Konteks
 
 **Menggantikan `/compact`. Nol panggilan LLM. Nol biaya token. Nol kehilangan informasi.**
 
 `/compact` mengirimkan seluruh konteks Anda (~1M token) ke LLM untuk dikompres menjadi ringkasan 3,3%. Jika cache telah kedaluwarsa, itu saja sudah memicu re-cache penuh. Kehilangan informasi tidak terhindarkan.
 
-`/continue` mengambil pendekatan yang sama sekali berbeda. Ini memproses transkrip sesi sebelumnya dan memuatnya langsung. Tidak ada panggilan LLM. Tidak ada biaya. Percakapan asli dipulihkan apa adanya.
+`/cc-continue` mengambil pendekatan yang sama sekali berbeda. Ini memproses transkrip sesi sebelumnya dan memuatnya langsung. Tidak ada panggilan LLM. Tidak ada biaya. Percakapan asli dipulihkan apa adanya.
 
-|                         | /compact                                    | /continue                                   |
+|                         | /compact                                    | /cc-continue                                   |
 | ----------------------- | ------------------------------------------- | ------------------------------------------- |
 | Cara kerja              | Mengirim konteks penuh ke LLM untuk diringkas | Memproses transkrip, membaca langsung      |
 | Panggilan LLM           | Diperlukan (biasanya 100K+ token)            | 0                                           |
@@ -145,10 +146,24 @@ Instal sekali, berlaku di mana saja.
 | Saat cache kedaluwarsa  | Biaya re-cache penuh ditambahkan             | Tidak ada dampak                            |
 | Pemulihan multi-sesi    | Tidak mungkin                                | Didukung                                    |
 
-Penggunaan: `/clear` lalu `/continue`. Anda akan melihat daftar sesi sebelumnya. Pilih satu untuk dipulihkan. Untuk pemulihan cepat: `/continue last`.
+Penggunaan: `/clear` lalu `/cc-continue`. Anda akan melihat daftar sesi sebelumnya. Pilih satu untuk dipulihkan. Untuk pemulihan cepat: `/cc-continue last`.
 
 **Hasil:** Lanjutkan pekerjaan sebelumnya tanpa biaya. Tidak ada kehilangan informasi. Memproses transkrip 60MB+ dalam kurang dari 1 detik.
 
+---
+### 🤝 Pasangannya: `/cc-compact` — serah terima lapisan tersembunyi
+
+`/cc-continue` memulihkan transkrip — apa yang Anda dan Claude katakan. Tapi pengetahuan paling berguna dari sesi kerja seringkali hidup DI LUAR dialog itu: apa yang ditemukan sub-agent (transkripnya adalah file terpisah yang tidak pernah dimuat oleh pemulihan), angka penting dalam hasil tool (jumlah test, benchmark), atau pelajaran dari proses ("tidak bisa direproduksi headless ← ternyata masalahnya di build, bukan kode").
+
+Jalankan `/cc-compact` di akhir sesi dan ia akan menyaring persis lapisan tersembunyi itu menjadi sebuah serah terima, disimpan ke `~/.claude/claude-code-token-saver-data/<project>/handoff.md`. Di sesi berikutnya, `/cc-continue` otomatis memuatnya di atas transkrip yang dipulihkan — tanpa perlu menempel manual.
+
+|                     | `/cc-continue` sendiri           | `/cc-compact` + `/cc-continue` (satu paket)       |
+| Memulihkan          | Transkrip (apa yang dikatakan)   | Transkrip plus lapisan tersembunyi               |
+| Temuan sub-agent    | Hilang (file terpisah)           | Disaring ke dalam serah terima                    |
+| Angka hasil tool    | Hanya jika dikutip ke chat       | Diekstrak secara sengaja                          |
+| Pelajaran proses    | —                                | Ditangkap agar jalan buntu tidak diulang          |
+
+Alur kerja: akhiri sesi dengan `/cc-compact` → mulai sesi berikutnya dengan `/cc-continue`.
 ---
 
 ## 📊 Fitur 4: Status Line Langsung
@@ -402,7 +417,7 @@ Pekerjaan berat didelegasikan ke SubTasks. Main hanya menangani desain/keputusan
 | ----------- | --------------------------------------------- | --------------------------- | ----------------------------------- |
 | Pagi 3j     | Pengodean (Main: desain, SubTask: implementasi) | Main 100K → 300K (rata-rata 200K) | 900 panggilan × 200K × ＄0.50/M = ＄90 |
 | Makan siang/rapat | Pergi 2 jam                             | —                           | —                                   |
-| Kembali     | ⚡ Token Guardian memblokir → /clear + /continue | —                        | ＄0 (tanpa panggilan LLM)            |
+| Kembali     | ⚡ Token Guardian memblokir → /clear + /cc-continue | —                        | ＄0 (tanpa panggilan LLM)            |
 | Sore 3j     | Pengodean berlanjut                           | Main 100K → 300K (rata-rata 200K) | 900 panggilan × 200K × ＄0.50/M = ＄90 |
 |             | Total                                         |                             | ~＄180                               |
 
@@ -433,7 +448,7 @@ Pekerjaan berat didelegasikan ke SubTasks. Main hanya menangani desain/keputusan
     │
 [Restart sesi]
     │
-    └─ /continue → Memulihkan konteks sebelumnya tanpa biaya (tanpa panggilan LLM)
+    └─ /cc-continue → Memulihkan konteks sebelumnya tanpa biaya (tanpa panggilan LLM)
 ```
 
 ---
@@ -450,7 +465,7 @@ claude-code-token-saver sepenuhnya open-source (Apache-2.0). JavaScript + Bash b
 
 - **hooks/** — Ubah ambang kedaluwarsa cache, kustomisasi pesan peringatan, modifikasi aturan arsitektur sesi
 - **scripts/** — Logika analisis, pembuat laporan, format status line
-- **skills/** — Cara kerja /continue dan /usage-view, template prompt
+- **skills/** — Cara kerja /cc-continue dan /usage-view, template prompt
 - **locales/** — Tambah/edit terjemahan, tambah bahasa baru
 - **skills/usage-view/** — Perubahan desain UI/UX dasbor
 
@@ -508,7 +523,7 @@ Jika git-lite diaktifkan, plugin **menghemat** ~1.920 token per sesi (menggantik
 
 - **Jaga CLAUDE.md tetap ramping.** File ini dimuat ke system prompt pada setiap panggilan API. Setiap baris menghabiskan uang.
 - **Delegasikan pekerjaan berat ke SubTasks.** Pembuatan kode, pengeditan multi-file, menjalankan tes tidak termasuk dalam Main. SubTasks memiliki konteks yang lebih kecil dan tingkat cache yang lebih murah.
-- **Pergi 1+ jam?** `/clear` → kembali → `/continue`. Konteks dipulihkan seharga $0.
+- **Pergi 1+ jam?** `/clear` → kembali → `/cc-continue`. Konteks dipulihkan seharga $0.
 - **[5H] di atas 70% (🟡)?** Perlambat. Beralih ke tugas tinjauan ringan atau tingkatkan delegasi SubTask untuk mengurangi jumlah panggilan API Main.
 - **Gunakan `/btw` untuk pertanyaan sampingan.** Ini tidak masuk ke riwayat percakapan, sehingga konteks Anda tetap ramping.
 
@@ -516,7 +531,7 @@ Jika git-lite diaktifkan, plugin **menghemat** ~1.920 token per sesi (menggantik
 
 Semua di atas berlaku, ditambah prioritas khusus API ini:
 
-- **Pantau [CTX] seperti speedometer.** Tidak ada batas rate yang akan menghentikan Anda — tetapi konteks di 500K+ berarti setiap panggilan API biayanya 2-3x lebih dari seharusnya. `/clear` → `/continue` gratis dan mengatur ulang pengganda biaya Anda ke baseline.
+- **Pantau [CTX] seperti speedometer.** Tidak ada batas rate yang akan menghentikan Anda — tetapi konteks di 500K+ berarti setiap panggilan API biayanya 2-3x lebih dari seharusnya. `/clear` → `/cc-continue` gratis dan mengatur ulang pengganda biaya Anda ke baseline.
 - **Jalankan `/usage-view` setiap minggu.** Pengguna Max Plan memiliki momen "aduh" alami saat mencapai batas rate. Anda tidak — biaya naik diam-diam. Dasbor adalah sistem peringatan dini Anda.
 - **Tetapkan anggaran harian mental.** Tanpa batas, hari $200 terjadi tanpa disadari. Indikator RUN status line membuat biaya per giliran terlihat. Jika satu giliran melewati $1 (🔴), konteks Anda terlalu besar.
 
