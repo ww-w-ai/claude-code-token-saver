@@ -1,6 +1,6 @@
 ---
 name: report-limit
-description: 'Max plan hit the wall? 💀 Report your 5h window data — we''re mapping the rate limit formula Anthropic won''t publish'
+description: 'Max plan hit the wall? Report your 5h window data — we''re mapping the rate limit formula Anthropic won''t publish'
 when_to_use: Use when user hits a rate limit and wants to contribute data. Triggers on "report limit", "limit report", "rate limit report".
 ---
 
@@ -39,7 +39,7 @@ Before running, ask the user's plan if not already known. The prompt message MUS
 
 > Select your current Claude plan. The report will be generated based on your plan type.
 >
-> (Translate the above message naturally into the user's language. Example Korean translation → "현재 Claude 플랜을 선택해주세요. 선택한 플랜을 기반으로 리포트를 생성합니다.")
+> (Translate the above message naturally into the user's language.)
 >
 > | # | Plan | Price |
 > |---|------|-------|
@@ -69,20 +69,20 @@ If the user doesn't know or skips plan, run without `--plan` (reports as "unknow
 
 ### Unknown model handling (run inline, do NOT stop the skill)
 
-스크립트는 `scripts/model-pricing.json`에 등록되지 않은 모델을 만나면 exit code 2로 실패하면서 stderr에 `ERROR:UNKNOWN_MODEL` 블록을 출력합니다. 이 경우 아래 절차를 인라인으로 처리한 뒤 이어서 진행하세요:
+The script fails with exit code 2 and prints an `ERROR:UNKNOWN_MODEL` block to stderr when it encounters a model not registered in `scripts/model-pricing.json`. Handle it inline, then continue:
 
-1. stderr의 `models:` 줄을 파싱해 미등록 모델 이름 목록을 추출합니다.
-2. WebFetch로 `https://platform.claude.com/docs/en/about-claude/pricing#model-pricing`을 가져와 각 모델의 `input` / `output` / `cacheCreate5m` / `cacheCreate1h` / `cacheRead` / `contextWindow`를 확인합니다.
-3. **6개 필드가 모두 확인되면**: `scripts/model-pricing.json`을 Read한 뒤, 기존 엔트리와 동일한 형식 `{ "input": N, "cacheCreate5m": N, "cacheCreate1h": N, "cacheRead": N, "output": N, "contextWindow": N }`으로 모델마다 한 줄씩 Edit으로 추가합니다. 추측/유도값은 쓰지 마세요.
-4. **어느 하나라도 페이지에서 확인되지 않으면**: JSON을 임의로 채우지 말고 스킬을 중단한 뒤 사용자에게 아래 메시지를 출력하세요.
+1. Parse the `models:` line from stderr to extract the list of unregistered model names.
+2. WebFetch `https://platform.claude.com/docs/en/about-claude/pricing#model-pricing` and confirm each model's `input` / `output` / `cacheCreate5m` / `cacheCreate1h` / `cacheRead` / `contextWindow`.
+3. **If all 6 fields are confirmed**: Read `scripts/model-pricing.json`, then add each model with one Edit per model in the same format as existing entries `{ "input": N, "cacheCreate5m": N, "cacheCreate1h": N, "cacheRead": N, "output": N, "contextWindow": N }`. Do not use guessed or derived values.
+4. **If any field cannot be confirmed on the page**: Do not fill the JSON arbitrarily — stop the skill and show the user the message below.
    ```
-   ⚠️ 미등록 모델 {모델명}의 전체 가격 정보(특히 5m/1h 캐시 티어)를 공식 페이지에서 확인할 수 없습니다.
-   플러그인을 최신 버전으로 업데이트해 주세요:
+   ⚠️ Cannot confirm the full pricing (especially the 5m/1h cache tiers) for unregistered model {model} on the official page.
+   Please update the plugin to the latest version:
      /plugin update claude-code-token-saver
-   업데이트 후에도 문제가 지속되면 https://github.com/ww-w-ai/claude-code-token-saver/issues 에 제보 부탁드립니다.
+   If the problem persists after updating, please report it at https://github.com/ww-w-ai/claude-code-token-saver/issues
    ```
-5. (3번 성공 시) 동일한 Bash 명령을 그대로 재실행합니다. fail-fast 덕분에 stale cache가 없으므로 `--force`는 불필요합니다.
-6. 재실행이 성공하면 그대로 아래 요약 출력 단계로 진행합니다.
+5. (After step 3 succeeds) Re-run the same Bash command as-is. Thanks to fail-fast there is no stale cache, so `--force` is unnecessary.
+6. Once the re-run succeeds, proceed to the summary output step below.
 
 The script outputs JSON to stdout. Parse the result and show the user a brief summary:
 

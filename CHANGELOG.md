@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0] - 2026-07-22
+
+### Changed: skill trigger/description surfaces normalized to English
+
+The plugin ships to 23 locales, so its trigger surfaces should read as English while
+per-user language detection happens at runtime. Several skills still carried Korean text
+baked into the parts Claude matches against — cleaned up here. No behavior or script
+changes; only trigger, description, and instruction text.
+
+- `cc-compact`: removed hardcoded personal Korean shorthand triggers from `description`/`when_to_use` (`세핸프`, `ㅅㅎㅍ`, `핸드오프`, `인계`, `세션 마무리`) so the trigger surface matches the all-English convention of the other skills.
+- `report-limit`: translated the inline unknown-model handling procedure to English; dropped the Korean example line under the plan prompt and the `💀` emoji from the description.
+- `usage-view`: translated the unknown-model user-facing message in the agent prompt template to English.
+- `cc-continue`: topic-restore examples changed from `PDCA 구현` to `PDCA implementation`.
+
 ## [2.3.0] - 2026-07-22
 
 ### Added: `/cc-compact` — session handoff that captures what `/cc-continue` can't recover

@@ -87,7 +87,7 @@ context into this session so you can continue where you left off.
 
 Enter:
   - numbers only (e.g., "1,3" or "1-4") — fast restore
-  - numbers + ":" + topic (e.g., "1,3 : PDCA 구현") — topic-based restore (slower, more accurate)
+  - numbers + ":" + topic (e.g., "1,3 : PDCA implementation") — topic-based restore (slower, more accurate)
   - "more" for pagination
   - (empty) for default
 
@@ -107,7 +107,7 @@ Split user input on the first `:`:
 
 Examples:
 - `1,3` → sessions [1, 3], no topic
-- `1-4 : PDCA 구현` → sessions [1, 2, 3, 4], topic = "PDCA 구현"
+- `1-4 : PDCA implementation` → sessions [1, 2, 3, 4], topic = "PDCA implementation"
 - `: error handling` → only #0 (default), topic = "error handling"
 - `` (empty) → default selection, no topic
 

@@ -1,7 +1,7 @@
 ---
 name: cc-compact
-description: 'Session handoff for the next session (세핸프) — write-side pair of /cc-continue. Triggers on "cc-compact", "session handoff", "handoff prompt", "hand off", "wrap up the session", "prep for next session", "세핸프", "ㅅㅎㅍ", "핸드오프", "인계", "세션 마무리". Distills what /cc-continue cannot recover: subagent findings, tool-output numbers, and decisions that never entered the user↔assistant dialogue. Saves to a per-project file /cc-continue auto-loads.'
-when_to_use: Use at the END of a working session to hand off to the next one — whenever the user says to wrap up, prep a handoff, or is about to /clear. Also whenever they say "세핸프"/"ㅅㅎㅍ"/"핸드오프"/"인계". Pairs with /cc-continue (end with cc-compact → start with cc-continue).
+description: 'Session handoff for the next session — write-side pair of /cc-continue. Triggers on "cc-compact", "session handoff", "handoff prompt", "hand off", "wrap up the session", "prep for next session". Distills what /cc-continue cannot recover: subagent findings, tool-output numbers, and decisions that never entered the user↔assistant dialogue. Saves to a per-project file /cc-continue auto-loads.'
+when_to_use: Use at the END of a working session to hand off to the next one — whenever the user says to wrap up, prep a handoff, or is about to /clear. Pairs with /cc-continue (end with cc-compact → start with cc-continue).
 ---
 
 Generate a **session handoff**: a document that lets the NEXT session pick up with full context and zero re-derivation. `/cc-continue` restores the transcript (user↔assistant messages); **this skill captures what the transcript does NOT hold** and saves it where `/cc-continue` auto-loads it.
