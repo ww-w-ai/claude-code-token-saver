@@ -85,6 +85,8 @@ Cost may increase significantly.
 
 warning के बाद बस वही prompt दोबारा भेजें -- वह through हो जाएगा। Warning हर idle period में सिर्फ एक बार fire होती है, इसलिए यह कभी नहीं नागती। Warning messages आपके OS locale के आधार पर 23 भाषाओं में display होते हैं।
 
+**Background agents कभी block नहीं होते।** सिर्फ वही जो इंसान खुद type करता है, warning पाता है। Background agents और tasks की completion reports -- जो अब अक्सर launch होने के एक घंटे से ज़्यादा बाद आती हैं -- सीधे pass हो जाती हैं, तो किसी long-running agent का result कभी रुकता या खोता नहीं है।
+
 **परिणाम:** हर cache expiry पकड़ी = $9 बचाए। दिन में एक बार पकड़ने पर, यह $270/माह शुद्ध बर्बादी खत्म।
 
 > **अगर आप API pay-per-use पर हैं, यह ज़्यादा असर करता है।** Max Plan subscribers $200 buffer के अंदर $9 खोते हैं। आप $9 असली पैसे खोते हैं — चुपचाप, बार-बार, हर बार जब आप दूर जाते हैं। Token Guardian हर बार पकड़ता है।

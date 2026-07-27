@@ -30,6 +30,7 @@ No npm dependencies. No package.json, no npm install, no build step. Scripts run
 
 ### Hooks are latency-sensitive
 - `cache-expiry-check.sh` runs on every user prompt (10s timeout). Must stay fast.
+- `UserPromptSubmit` also fires for prompts CC enqueues itself (`<task-notification>` from background agents, `<tick>`, `<local-command-stdout>`). `cache-expiry-check.sh` exempts any prompt starting with `<` + a letter, before the flag/timestamp logic. Blocking one strands a subagent report — the notification is consumed off the queue. Match by shape, never by a tag list.
 - All hooks receive JSON via stdin, output JSON decision to stdout.
 - Hook stderr goes to user; stdout is parsed by CC. Never mix them.
 
@@ -64,7 +65,7 @@ Reads preprocessed `compact.txt` directly — no summarization, no token expendi
 - Prompt cache TTL: 3600s (1 hour). Warning threshold: 3590s (10s buffer).
 - SubTask cache: 5 min, $6.25/MTok write. Main session: 1 hour, $10/MTok write.
 - Statusline turn idle timeout: 60s.
-- Gate flag: `$TMPDIR/claude-cache-warn-{SESSION_ID}` (one-time block per idle period).
+- Gate flag: `$TMPDIR/claude-cache-warn-{SESSION_ID}` (one-time block per idle period). Machine-injected prompts never touch it — the exemption runs first.
 
 ## File Relationships
 

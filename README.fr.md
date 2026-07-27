@@ -85,6 +85,8 @@ Cost may increase significantly.
 
 Renvoyez simplement le même prompt après l'avertissement — il passe. L'avertissement ne se déclenche qu'une seule fois par période d'inactivité, donc il ne harcèle jamais. Les messages d'avertissement s'affichent en 23 langues selon votre paramètre régional du système d'exploitation.
 
+**Les agents en arrière-plan ne sont jamais bloqués.** Seul ce qu'un humain tape déclenche l'avertissement. Les rapports d'achèvement des agents et tâches en arrière-plan — qui arrivent désormais couramment plus d'une heure après leur lancement — passent directement, si bien que le résultat d'un agent de longue durée n'est jamais retenu ni perdu.
+
 **Résultat :** Chaque expiration de cache interceptée = $9 économisés. À une interception par jour, c'est $270/mois de gaspillage pur éliminé.
 
 > **Si vous utilisez l'API à la consommation, l'impact est plus fort.** Les abonnés Max Plan perdent $9 dans un tampon de $200. Vous perdez $9 d'argent réel — silencieusement, à répétition, à chaque fois que vous vous éloignez. Token Guardian l'intercepte à chaque fois.

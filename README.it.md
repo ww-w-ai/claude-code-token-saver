@@ -85,6 +85,8 @@ Cost may increase significantly.
 
 Basta rinviare lo stesso prompt dopo l'avviso — passa. L'avviso si attiva solo una volta per periodo di inattività, quindi non disturba mai. I messaggi di avviso vengono visualizzati in 23 lingue in base alle impostazioni locali del sistema operativo.
 
+**Gli agenti in background non vengono mai bloccati.** Solo ciò che digita una persona riceve l'avviso. I report di completamento di agenti e task in background — che ormai arrivano di norma più di un'ora dopo essere stati avviati — passano dritti, così il risultato di un agente di lunga durata non viene mai trattenuto né perso.
+
 **Risultato:** Ogni scadenza della cache intercettata = $9 risparmiati. Con un'intercettazione al giorno, sono $270/mese di puro spreco eliminato.
 
 > **Se utilizzi l'API a pagamento per uso, l'impatto è maggiore.** Gli abbonati al Max Plan perdono $9 all'interno di un buffer di $200. Tu perdi $9 di denaro reale — silenziosamente, ripetutamente, ogni volta che ti allontani. Token Guardian lo intercetta ogni volta.

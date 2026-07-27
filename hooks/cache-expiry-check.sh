@@ -6,13 +6,14 @@
 # a chance to /clear → /cc-continue instead of paying full re-cache cost.
 #
 # How it works:
+#   0. Machine-injected prompts (task notifications etc.) are exempt — see below
 #   1. Reads last assistant timestamp from transcript tail
 #   2. If elapsed ≥ 3590s (3600s TTL - 10s buffer): block with warning
 #   3. One-time gate: first block sets flag, re-sending the same message approves
 #   4. If elapsed < 3590s: approve silently
 #
 # Input:  JSON via stdin (CC UserPromptSubmitInput)
-#   Fields used: transcript_path, session_id
+#   Fields used: transcript_path, session_id, prompt
 #
 # Output: JSON to stdout
 #   { "decision": "approve" }  — allow message through
@@ -32,6 +33,46 @@ INPUT=$(cat)
 # Extract JSON fields without jq — input is a single-line flat JSON object
 TRANSCRIPT=$(echo "$INPUT" | sed -n 's/.*"transcript_path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
 SESSION_ID=$(echo "$INPUT" | sed -n 's/.*"session_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+
+# --- Machine-injected prompt exemption -------------------------------------
+# UserPromptSubmit also fires for prompts CC itself enqueues — most importantly
+# <task-notification>, the completion report of a background agent/task
+# (LocalAgentTask.tsx → enqueuePendingNotification → executeQueuedInput →
+# handlePromptSubmit → processUserInput → executeUserPromptSubmitHooks).
+#
+# Blocking those is wrong twice over:
+#   1. No human is at the keyboard, so the warning has no reader — and the
+#      one-time gate never gets its second attempt.
+#   2. The notification is consumed off the queue when blocked, so the
+#      subagent's report is LOST. Long-running agents (>1h) hit this every time.
+#
+# Rather than enumerating tags (task-notification, tick, local-command-stdout,
+# … — the list grows with each CC release), use the shape: CC injects XML,
+# humans type prose. A prompt starting with an XML-ish tag ('<' + a letter) is
+# machine-injected, so notification types added by future CC releases are exempt
+# automatically without touching this hook. Failure direction is safe: a false
+# exemption merely skips a cost warning, while a false block destroys work.
+PROMPT_HEAD=$(echo "$INPUT" | sed -n 's/.*"prompt"[[:space:]]*:[[:space:]]*"\(.\{0,32\}\).*/\1/p')
+PROMPT_HEAD="${PROMPT_HEAD#\\n}"
+PROMPT_HEAD="${PROMPT_HEAD#\\r}"
+PROMPT_HEAD="${PROMPT_HEAD#\\t}"
+while [ "${PROMPT_HEAD# }" != "$PROMPT_HEAD" ]; do PROMPT_HEAD="${PROMPT_HEAD# }"; done
+
+case "$PROMPT_HEAD" in
+  '<'[a-zA-Z]*)
+    echo '{"decision":"approve"}'
+    exit 0
+    ;;
+esac
+# Belt and suspenders: if the prompt field could not be parsed above, still let
+# task notifications through on a raw substring match.
+case "$INPUT" in
+  *'<task-notification>'*)
+    echo '{"decision":"approve"}'
+    exit 0
+    ;;
+esac
+# ---------------------------------------------------------------------------
 
 WARN_FLAG="${TMPDIR:-${TEMP:-${TMP:-/tmp}}}/claude-cache-warn-${SESSION_ID}"
 

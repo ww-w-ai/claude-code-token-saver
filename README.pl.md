@@ -85,6 +85,8 @@ Cost may increase significantly.
 
 Po ostrzeżeniu po prostu wyślij ponownie ten sam prompt — przejdzie. Ostrzeżenie pojawia się tylko raz na okres bezczynności, więc nigdy nie irytuje. Komunikaty ostrzeżeń wyświetlają się w 23 językach w zależności od ustawień regionalnych systemu operacyjnego.
 
+**Agenty działające w tle nigdy nie są blokowane.** Ostrzeżenie dotyczy tylko tego, co wpisuje człowiek. Raporty ukończenia z agentów i zadań działających w tle — które teraz rutynowo docierają ponad godzinę po uruchomieniu — przechodzą bez przeszkód, więc wynik długo działającego agenta nigdy nie zostaje wstrzymany ani utracony.
+
 **Wynik:** Każde przechwycone wygasanie cache = $9 oszczędności. Przy jednym przechwyceniu dziennie to $270/miesiąc wyeliminowanego czystego marnotrawstwa.
 
 > **Jeśli korzystasz z API płatności za użycie, to uderza mocniej.** Subskrybenci Max Plan tracą $9 w ramach bufora $200. Tracisz $9 prawdziwych pieniędzy — po cichu, wielokrotnie, za każdym razem gdy odejdziesz. Token Guardian przechwytuje to za każdym razem.

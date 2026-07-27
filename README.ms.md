@@ -85,6 +85,8 @@ Cost may increase significantly.
 
 Hanya hantar semula prompt yang sama selepas amaran -- ia akan melalui. Amaran hanya diaktifkan sekali setiap tempoh tidak aktif, jadi ia tidak pernah menyusahkan. Mesej amaran dipaparkan dalam 23 bahasa berdasarkan lokal OS anda.
 
+**Ejen latar belakang tidak pernah disekat.** Hanya apa yang ditaip oleh manusia mendapat amaran. Laporan selesai daripada ejen dan tugas latar belakang -- yang kini secara rutin tiba lebih daripada sejam selepas dilancarkan -- terus lalu, jadi hasil ejen yang berjalan lama tidak pernah tertangguh atau hilang.
+
 **Keputusan:** Setiap tamat tempoh cache yang ditangkap = $9 disimpan. Satu tangkapan sehari bermakna $270/bln pembaziran tulen dihapuskan.
 
 > **Jika anda menggunakan API bayar-per-penggunaan, ini lebih terasa.** Pelanggan Max Plan kehilangan $9 dalam penimbal $200. Anda kehilangan $9 wang sebenar — diam-diam, berulang kali, setiap kali anda pergi. Token Guardian menangkapnya setiap kali.

@@ -85,6 +85,8 @@ Cost may increase significantly.
 
 Skicka bara om samma prompt efter varningen -- den går igenom. Varningen utlöses bara en gång per inaktiv period, så den tjatar aldrig. Varningsmeddelanden visas på 23 språk baserat på ditt OS-locale.
 
+**Bakgrundsagenter blockeras aldrig.** Endast det en människa skriver får varningen. Slutförranderapporter från bakgrundsagenter och uppgifter -- som numera rutinmässigt kommer in mer än en timme efter att de startades -- passerar rakt igenom, så resultatet från en långvarig agent hålls aldrig tillbaka eller går förlorat.
+
 **Resultat:** Varje fångad cache-utgång = $9 sparat. Med en fångst per dag är det $270/mån av rent slöseri eliminerat.
 
 > **Om du använder API betala per användning, slår detta hårdare.** Max Plan-prenumeranter förlorar $9 inom en buffert på $200. Du förlorar $9 riktiga pengar — tyst, upprepade gånger, varje gång du går bort. Token Guardian fångar det varje gång.

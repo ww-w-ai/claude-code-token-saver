@@ -85,6 +85,8 @@ Cost may increase significantly.
 
 Cukup kirim ulang prompt yang sama setelah peringatan -- ia akan lewat. Peringatan hanya aktif sekali per periode tidak aktif, jadi tidak pernah mengganggu. Pesan peringatan ditampilkan dalam 23 bahasa berdasarkan lokal OS Anda.
 
+**Agen latar belakang tidak pernah diblokir.** Hanya yang diketik manusia yang mendapat peringatan. Laporan penyelesaian dari agen dan tugas latar belakang -- yang kini rutin tiba lebih dari satu jam setelah diluncurkan -- lewat begitu saja, sehingga hasil agen yang berjalan lama tidak pernah tertahan atau hilang.
+
 **Hasil:** Setiap kedaluwarsa cache yang tertangkap = $9 terhemat. Satu tangkapan per hari berarti $270/bln pemborosan murni yang dihilangkan.
 
 > **Jika Anda menggunakan API bayar-per-penggunaan, ini lebih terasa.** Pelanggan Max Plan kehilangan $9 dalam buffer $200. Anda kehilangan $9 uang nyata — diam-diam, berulang kali, setiap kali Anda pergi. Token Guardian menangkapnya setiap saat.

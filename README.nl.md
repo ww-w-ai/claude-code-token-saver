@@ -85,6 +85,8 @@ Cost may increase significantly.
 
 Stuur gewoon dezelfde prompt opnieuw na de waarschuwing -- die gaat door. De waarschuwing verschijnt slechts één keer per inactieve periode, dus het zeurt nooit. Waarschuwingsberichten worden in 23 talen weergegeven op basis van je OS-locale.
 
+**Achtergrondagents worden nooit geblokkeerd.** Alleen wat een mens typt, krijgt de waarschuwing. Voltooiingsrapporten van achtergrondagents en -taken -- die inmiddels routinematig meer dan een uur na het starten binnenkomen -- gaan er gewoon doorheen, zodat het resultaat van een langlopende agent nooit wordt opgehouden of verloren gaat.
+
 **Resultaat:** Elke onderschepte cachevervaldatum = $9 bespaard. Bij één onderschepping per dag is dat $270/maand aan pure verspilling geëlimineerd.
 
 > **Als je API betaal-per-gebruik gebruikt, treft dit je harder.** Max Plan-abonnees verliezen $9 binnen een $200-buffer. Jij verliest $9 echt geld — stilletjes, herhaaldelijk, elke keer dat je wegstapt. Token Guardian pakt het elke keer op.

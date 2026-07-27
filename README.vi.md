@@ -85,6 +85,8 @@ Cost may increase significantly.
 
 Chỉ cần gửi lại cùng prompt sau cảnh báo -- nó sẽ đi qua. Cảnh báo chỉ hiển thị một lần mỗi khoảng thời gian nghỉ, vì vậy không bao giờ làm phiền bạn. Thông báo cảnh báo hiển thị bằng 23 ngôn ngữ dựa trên locale hệ điều hành của bạn.
 
+**Các background agent không bao giờ bị chặn.** Chỉ những gì con người tự gõ mới nhận cảnh báo. Báo cáo hoàn thành từ các background agent và task -- vốn giờ đây thường xuyên đến sau hơn một giờ kể từ khi khởi chạy -- được chuyển qua trực tiếp, nên kết quả của một agent chạy lâu sẽ không bao giờ bị giữ lại hay mất đi.
+
 **Kết quả:** Mỗi lần bắt được cache hết hạn = tiết kiệm $9. Một lần bắt mỗi ngày là $270/tháng lãng phí thuần túy được loại bỏ.
 
 > **Nếu bạn dùng API trả theo lượng, điều này ảnh hưởng nặng hơn.** Người dùng Max Plan mất $9 trong giới hạn $200. Bạn mất $9 tiền thật — âm thầm, lặp đi lặp lại, mỗi khi bạn rời đi. Token Guardian bắt được mỗi lần.

@@ -85,6 +85,8 @@ Cost may increase significantly.
 
 Send bare den samme forespørselen på nytt etter advarselen -- den går gjennom. Advarselen utløses bare én gang per inaktiv periode, så den maser aldri. Advarselsmeldingers vises på 23 språk basert på OS-locale.
 
+**Bakgrunnsagenter blokkeres aldri.** Kun det et menneske skriver, får advarselen. Fullføringsrapporter fra bakgrunnsagenter og oppgaver -- som nå rutinemessig kommer mer enn en time etter at de ble startet -- går rett gjennom, slik at resultatet fra en langvarig agent aldri holdes tilbake eller går tapt.
+
 **Resultat:** Hvert fanget cache-utløp = $9 spart. Med én fangst per dag er det $270/mnd i rent sløseri eliminert.
 
 > **Hvis du bruker API betal-per-bruk, treffer dette hardere.** Max Plan-abonnenter mister $9 innenfor en $200-buffer. Du mister $9 ekte penger — stille, gjentatte ganger, hver gang du går bort. Token Guardian fanger det hver gang.

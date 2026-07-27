@@ -85,6 +85,8 @@ Cost may increase significantly.
 
 Solo reenvía el mismo prompt después de la advertencia — pasa sin problemas. La advertencia solo se activa una vez por período de inactividad, así que nunca molesta. Los mensajes de advertencia se muestran en 23 idiomas según tu configuración regional del sistema operativo.
 
+**Los agentes en segundo plano nunca se bloquean.** Solo lo que escribe un humano recibe la advertencia. Los informes de finalización de agentes y tareas en segundo plano — que ahora suelen llegar más de una hora después de haberse lanzado — pasan directo, así que el resultado de un agente de larga duración nunca queda retenido ni se pierde.
+
 **Resultado:** Cada expiración de caché capturada = $9 ahorrados. Con una captura por día, eso son $270/mes de desperdicio puro eliminado.
 
 > **Si usas API de pago por uso, el impacto es mayor.** Los suscriptores de Max Plan pierden $9 dentro de un margen de $200. Tú pierdes $9 de dinero real — silenciosamente, repetidamente, cada vez que te alejas. Token Guardian lo atrapa cada vez.

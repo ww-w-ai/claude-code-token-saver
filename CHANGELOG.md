@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.1] - 2026-07-27
+
+### Fixed: cache-expiry hook no longer blocks background task notifications
+
+`UserPromptSubmit` fires not only for what a human types, but also for prompts Claude Code
+enqueues itself — above all `<task-notification>`, the completion report of a background
+agent or task. With long-running agents (an hour or more is now routine), those reports
+were arriving after the 1-hour cache window and getting blocked by the expiry warning.
+
+That is wrong twice over: nobody is at the keyboard to read the warning, so the one-time
+gate never receives its second attempt; and the notification is consumed off the queue when
+blocked, so **the agent's report is lost**.
+
+- `hooks/cache-expiry-check.sh` now approves immediately when the submitted prompt starts
+  with an XML-ish tag (`<` + a letter), before any of the flag or timestamp logic runs — so
+  a notification never consumes the one-time warning flag either.
+- The check is by shape, not by a list of tag names (`task-notification`, `tick`,
+  `local-command-stdout`, …), so notification types added by future Claude Code releases are
+  exempt automatically. A raw `<task-notification>` substring match backs it up in case the
+  prompt field cannot be parsed.
+- Natural-language prompts are unaffected and still get the expiry warning.
+
 ## [2.4.0] - 2026-07-22
 
 ### Changed: skill trigger/description surfaces normalized to English

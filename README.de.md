@@ -85,6 +85,8 @@ Cost may increase significantly.
 
 Schick nach der Warnung denselben Prompt erneut — er wird durchgelassen. Die Warnung erscheint nur einmal pro Leerlaufperiode, nervt also nicht. Warnmeldungen werden in 23 Sprachen basierend auf deinem OS-Gebietsschema angezeigt.
 
+**Background Agents werden nie blockiert.** Nur was ein Mensch selbst eingibt, löst die Warnung aus. Abschlussberichte von Background Agents und Tasks — die inzwischen oft erst mehr als eine Stunde nach dem Start eintreffen — laufen ungehindert durch, sodass das Ergebnis eines lang laufenden Agents nie zurückgehalten oder verloren geht.
+
 **Ergebnis:** Jeder abgefangene Cache-Ablauf = $9 gespart. Bei einem Abfang pro Tag sind das $270/Monat reiner Verschwendung, die eliminiert wird.
 
 > **Bei API Pay-per-Use trifft das härter.** Max-Plan-Abonnenten verlieren $9 innerhalb eines $200-Puffers. Du verlierst $9 echtes Geld — lautlos, wiederholt, jedes Mal wenn du kurz weggehst. Token Guardian fängt es jedes Mal ab.

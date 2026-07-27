@@ -85,6 +85,8 @@ Cost may increase significantly.
 
 Basta reenviar o mesmo prompt após o aviso — ele passa. O aviso dispara apenas uma vez por período de inatividade, então nunca incomoda. As mensagens de aviso são exibidas em 23 idiomas com base na configuração regional do seu sistema operacional.
 
+**Agentes em segundo plano nunca são bloqueados.** Só o que um humano digita recebe o aviso. Os relatórios de conclusão de agentes e tarefas em segundo plano — que agora costumam chegar mais de uma hora depois de terem sido iniciados — passam direto, então o resultado de um agente de longa duração nunca fica retido nem se perde.
+
 **Resultado:** Cada expiração de cache interceptada = $9 economizados. Com uma interceptação por dia, são $270/mês de desperdício puro eliminado.
 
 > **Se você usa API de pagamento por uso, o impacto é maior.** Assinantes do Max Plan perdem $9 dentro de um limite de $200. Você perde $9 de dinheiro real — silenciosamente, repetidamente, toda vez que se afasta. O Token Guardian intercepta sempre.

@@ -85,6 +85,8 @@ Cost may increase significantly.
 
 Uyarıdan sonra aynı prompt'u yeniden gönderin -- geçecektir. Uyarı her boşta kalma süresi için yalnızca bir kez tetiklenir, bu nedenle asla sıkıştırmaz. Uyarı mesajları OS yerel ayarınıza göre 23 dilde görüntülenir.
 
+**Arka plan ajanları asla engellenmez.** Yalnızca bir insanın yazdığı şey uyarıyı tetikler. Arka plan ajanlarından ve görevlerinden gelen tamamlanma raporları -- ki bunlar artık genellikle başlatılmalarından bir saatten fazla süre sonra gelir -- doğrudan geçer, böylece uzun süre çalışan bir ajanın sonucu asla beklemede kalmaz veya kaybolmaz.
+
 **Sonuç:** Her yakalanan cache süre sonu = $9 tasarruf. Günde bir yakalamada bu $270/ay saf israf önlenmesidir.
 
 > **API kullandıkça ödedeyseniz, bu daha sert çarpar.** Max Plan aboneleri $200'lük bir tampon içinde $9 kaybeder. Siz $9 gerçek para kaybedersiniz — sessizce, tekrar tekrar, her uzaklaştığınızda. Token Guardian her seferinde yakalar.

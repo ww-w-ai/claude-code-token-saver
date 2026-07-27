@@ -85,6 +85,8 @@ Cost may increase significantly.
 
 Just re-send the same prompt after the warning -- it goes through. The warning only fires once per idle period, so it never nags. Warning messages display in 23 languages based on your OS locale.
 
+**Background agents are never blocked.** Only what a human types gets the warning. Completion reports from background agents and tasks -- which now routinely arrive more than an hour after they were launched -- pass straight through, so a long-running agent's result is never held up or lost.
+
 **Result:** Every cache expiry caught = $9 saved. At one catch per day, that's $270/mo of pure waste eliminated.
 
 > **If you're on API pay-per-use, this hits harder.** Max Plan subscribers lose $9 inside a $200 buffer. You lose $9 of real money — silently, repeatedly, every time you step away. Token Guardian catches it every time.
