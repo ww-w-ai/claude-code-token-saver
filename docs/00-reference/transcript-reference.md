@@ -1,5 +1,7 @@
 # Claude Code Transcript Reference
 
+> Status: LIVING — background reference on Claude Code's own transcript format. Describes CC, not this plugin, so it changes only when CC changes.
+
 How Claude Code transcripts work — for any skill or tool that needs to analyze session data.
 
 ## File Location

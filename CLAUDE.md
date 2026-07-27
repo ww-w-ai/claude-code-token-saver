@@ -26,6 +26,13 @@ locales/        → 23 language JSON files for dashboard UI strings
 
 No npm dependencies. No package.json, no npm install, no build step. Scripts run directly with Node.js. The only third-party code is two pure-JS image codecs (pngjs, jpeg-js) vendored verbatim under `scripts/lib/vendor/` — they use Node built-ins only (`zlib`), so the "no install step" property holds; attribution is in `THIRD-PARTY-NOTICES.md`. Test by invoking skills in Claude Code.
 
+## Before Any Release
+
+A version bump touches 27 files across two repos (23 README locales, CHANGELOG, plugin.json, and
+`marketplace.json` in the separate marketplace repo). **Read `docs/CONVENTION.md` §3 before
+bumping** — it lists every surface with verification commands. Missing one ships a version
+mismatch that no test catches.
+
 ## Critical Rules
 
 ### Hooks are latency-sensitive
