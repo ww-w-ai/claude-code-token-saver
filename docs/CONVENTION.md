@@ -46,6 +46,7 @@ pass**, and the version-bearing ones must agree **exactly** or the marketplace s
 | 3 | `../marketplace/.claude-plugin/marketplace.json` → this plugin's `version` | **Different repo.** Needs its own commit and push |
 | 4 | `README.md` **and all 22 locale variants** | A feature described in one locale must be described in all |
 | 5 | `CLAUDE.md` | Only when the change creates a rule a future session must not undo |
+| 6 | Annotated git tag `vX.Y.Z` on the release commit | `git tag -a vX.Y.Z -m "vX.Y.Z — <one line>"` then `git push origin vX.Y.Z`. Same version string as #1. Tagging lapsed for 6 releases once — it is a surface, not an afterthought |
 
 **Verification before push** (do not trust that a bump happened):
 
@@ -66,7 +67,7 @@ trust the label:
 
 | Claim | Verify with |
 |---|---|
-| "released as vX" | The marketplace entry's `version` (#3 above) — that is what users resolve. **Not git tags**: tagging stopped at `v2.2.0` while releases continued, so a missing tag proves nothing either way |
+| "released as vX" | `git tag --list 'v2*'` **and** the marketplace entry's `version` (#3). The `v2` line is complete and each tag was verified to point at the commit whose `plugin.json` carries that version. `v1` tags are incomplete — do not read a missing `v1.x` tag as "not released" |
 | "pushed" | `git log --oneline origin/main..HEAD` — must be empty, in **both** repos |
 | "installed / live for the user" | `ls ~/.claude/plugins/cache/ww-w-ai/claude-code-token-saver/` — the installed copy is a snapshot, not a symlink, so a source edit is NOT live until `/plugin` update |
 
