@@ -25,13 +25,56 @@ const _legacyDirs = [
   path.join(os.homedir(), '.claude', 'cc-token-saver-data'), // v1.1.1–v1.4.x
   path.join(os.homedir(), '.claude', 'cc-token-saver'),      // pre-v1.1.1
 ];
-if (!fs.existsSync(CACHE_BASE)) {
-  for (const old of _legacyDirs) {
-    if (fs.existsSync(old)) {
-      try { fs.renameSync(old, CACHE_BASE); } catch (_) {}
-      break;
+// Merge entry by entry rather than renaming the whole directory.
+//
+// A whole-directory rename only works when the new base does not exist yet,
+// and that is not guaranteed: `statusline-logger.sh` is a Bash hook that
+// writes `ratelimit.csv` straight to the new base with `mkdir -p`, never
+// going through this module. It fires on the first prompt after an upgrade,
+// so by the time any script calls in here, the new base usually exists and
+// holds one tiny file — and a guard of "only migrate if the new base is
+// missing" then silently strands the entire real cache under the old name.
+//
+// Moving entries individually is still a rename (no copy, so a large cache is
+// never duplicated), and it is idempotent: anything already present in the new
+// base is left alone and the legacy copy is kept rather than destroyed.
+function _mergeLegacyDir(oldDir) {
+  let moved = 0;
+  let leftBehind = 0;
+  for (const entry of fs.readdirSync(oldDir)) {
+    const from = path.join(oldDir, entry);
+    const to = path.join(CACHE_BASE, entry);
+    if (!fs.existsSync(to)) {
+      try { fs.renameSync(from, to); moved++; } catch (_) { leftBehind++; }
+      continue;
     }
+    // Same project on both sides: descend one level so sessions merge too.
+    let children = [];
+    try { children = fs.statSync(from).isDirectory() ? fs.readdirSync(from) : []; } catch (_) {}
+    if (!children.length) { leftBehind++; continue; }
+    for (const child of children) {
+      const childTo = path.join(to, child);
+      if (fs.existsSync(childTo)) { leftBehind++; continue; }
+      try { fs.renameSync(path.join(from, child), childTo); moved++; } catch (_) { leftBehind++; }
+    }
+    try { fs.rmdirSync(from); } catch (_) { leftBehind++; }
   }
+  if (leftBehind === 0) { try { fs.rmdirSync(oldDir); } catch (_) {} }
+  return { moved, leftBehind };
+}
+
+for (const old of _legacyDirs) {
+  if (old === CACHE_BASE || !fs.existsSync(old)) continue;
+  try {
+    fs.mkdirSync(CACHE_BASE, { recursive: true });
+    const { moved, leftBehind } = _mergeLegacyDir(old);
+    if (moved) {
+      process.stderr.write(
+        `[cache-paths] moved ${moved} entr${moved === 1 ? 'y' : 'ies'} from ${path.basename(old)}` +
+        (leftBehind ? ` (${leftBehind} left in place — already present in the new cache)` : '') + '\n',
+      );
+    }
+  } catch (_) { /* a cache that cannot be moved must not stop the tool */ }
 }
 
 // ---------------------------------------------------------------------------
