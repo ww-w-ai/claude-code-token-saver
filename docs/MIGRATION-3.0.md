@@ -45,9 +45,10 @@ the old name still works everywhere, which it does not.
 ## Your cached sessions move themselves
 
 `~/.claude/claude-code-token-saver-data/` holds every `compact.txt` this plugin has built and any
-`handoff.md` you wrote. On first run the new version **renames** that directory to
-`~/.claude/super-token-saver-data/` — a rename, not a copy, so a large cache is not duplicated and
-nothing is re-derived. This is the same mechanism that carried the cache through three earlier
+`handoff.md` you wrote. On first run the new version **moves** its contents into
+`~/.claude/super-token-saver-data/`, entry by entry — renames, not copies, so a large cache is not
+duplicated and nothing is re-derived. (3.0.0 tried to rename the directory as a whole and could skip
+the move entirely when a hook had already created the new one; use 3.0.1 or later.) This is the same mechanism that carried the cache through three earlier
 renames; `scripts/lib/cache-paths.js` lists them all.
 
 If you had already started the new version before reading this, the move has happened. Check with

@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.1] - 2026-08-25
+
+### Fixed: the 3.0.0 rename could strand the entire existing cache
+
+`cache-paths.js` renamed the old data directory to the new name only when the new one did not exist
+yet. That guard does not hold: `statusline-logger.sh` is a Bash hook that writes `ratelimit.csv`
+straight to the cache base with `mkdir -p`, never going through that module. It fires on the first
+prompt after an upgrade — so by the time any script called in, the new base already existed and held
+one small file, the migration was skipped, and every `compact.txt` and `handoff.md` stayed behind
+under the old name. Nothing was lost, but nothing was found either, and it failed silently.
+
+Measured on one real machine: **140 MB, 2,864 compact caches and 8 handoffs** orphaned.
+
+The move is now done entry by entry instead of as one directory rename. It is still a rename, so a
+large cache is never duplicated, and it is idempotent — anything already present in the new cache is
+left alone and its legacy copy is kept rather than overwritten.
+
+The same change fixes an older bug in that code: it stopped at the FIRST legacy name it found, so a
+machine carrying more than one predecessor kept the rest forever. The recovery on that same machine
+pulled in a further **641 entries** from two directories that had never been migrated at all.
+
+New gate: `node scripts/test-cache-migration.js`.
+
 ## [3.0.0] - 2026-08-25
 
 ### Changed: the plugin is now `super-token-saver`, and its two shared skills are `/s-continue` and `/s-compact`
