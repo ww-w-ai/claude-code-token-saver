@@ -14,7 +14,7 @@
  *   ~/.claude/projects/{PROJECT_HASH}/{SESSION_ID}.jsonl   (CC transcript file)
  *
  * Output (cache file, not stdout):
- *   ~/.claude/claude-code-token-saver-data/{projectHash}/{sessionId}/compact.txt
+ *   ~/.claude/super-token-saver-data/{projectHash}/{sessionId}/compact.txt
  *   Compact text transcript with [Session:{sid} {ISO} L{n}] headers and markers.
  *   Top:    "# compact-format: {version}"
  *   Bottom: session reference footer pointing to the original JSONL.
@@ -324,11 +324,11 @@ function toISOUtc(ts) {
 
 // Derive cache path from JSONL path.
 // JSONL:  ~/.claude/projects/{projectHash}/{sessionId}.jsonl
-// Cache:  ~/.claude/claude-code-token-saver-data/{projectHash}/{sessionId}/compact.txt
+// Cache:  ~/.claude/super-token-saver-data/{projectHash}/{sessionId}/compact.txt
 function deriveCachePath(jsonlAbsPath) {
   const sessionId = path.basename(jsonlAbsPath, ".jsonl");
   const projectHash = path.basename(path.dirname(jsonlAbsPath));
-  const cacheDir = path.join(os.homedir(), ".claude", "claude-code-token-saver-data", projectHash, sessionId);
+  const cacheDir = path.join(os.homedir(), ".claude", "super-token-saver-data", projectHash, sessionId);
   return { cacheDir, cachePath: path.join(cacheDir, "compact.txt"), sessionId, projectHash };
 }
 
@@ -379,7 +379,7 @@ async function main() {
   const { cacheDir, cachePath, projectHash } = deriveCachePath(absPath);
 
   // Sweep project cache: delete all pre-v6 compact files
-  const projectCacheDir = path.join(os.homedir(), ".claude", "claude-code-token-saver-data", projectHash);
+  const projectCacheDir = path.join(os.homedir(), ".claude", "super-token-saver-data", projectHash);
   if (fs.existsSync(projectCacheDir)) {
     for (const entry of fs.readdirSync(projectCacheDir)) {
       const sessionDir = path.join(projectCacheDir, entry);
@@ -516,7 +516,7 @@ async function main() {
       const cmdNameMatch = rawForCmd && rawForCmd.match(/<command-name>(\/[^<]+)<\/command-name>/);
 
       if (cmdNameMatch) {
-        const cmdName = cmdNameMatch[1].trim(); // e.g. "/clear", "/claude-code-token-saver:continue"
+        const cmdName = cmdNameMatch[1].trim(); // e.g. "/clear", "/super-token-saver:continue"
         const cmdArgsMatch = rawForCmd.match(/<command-args>([^<]*)<\/command-args>/);
         const cmdArgs = cmdArgsMatch ? cmdArgsMatch[1].trim() : "";
 
@@ -534,7 +534,7 @@ async function main() {
         if (cmdKey === "clear") continue;
 
         // /continue skill invocation tracking (unchanged).
-        if (rawForCmd.includes("<command-message>claude-code-token-saver:continue</command-message>")) {
+        if (rawForCmd.includes("<command-message>super-token-saver:continue</command-message>")) {
           inContinueSkill = true;
         }
 
@@ -593,7 +593,7 @@ async function main() {
       if (inContinueSkill && Array.isArray(content)) {
         for (const block of content) {
           if (block && block.type === "tool_use" && block.name === "Read" && block.input && block.input.file_path) {
-            const m = block.input.file_path.match(/\/claude-code-token-saver-data\/[^/]+\/([^/]+)\/compact/);
+            const m = block.input.file_path.match(/\/super-token-saver-data\/[^/]+\/([^/]+)\/compact/);
             if (m) continueCompactFiles.add(m[1]);
           }
         }

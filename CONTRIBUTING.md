@@ -1,4 +1,4 @@
-# Contributing to claude-code-token-saver
+# Contributing to super-token-saver
 
 Thanks for your interest in contributing! This project helps Claude Code users track and reduce token usage.
 
@@ -12,7 +12,7 @@ Thanks for your interest in contributing! This project helps Claude Code users t
 
 There are no automated tests. Test your changes manually:
 
-- **Skills**: Run `/usage-view`, `/cc-continue`, `/setup-statusline`, or `/report-limit` inside Claude Code to verify skills work correctly
+- **Skills**: Run `/usage-view`, `/s-continue`, `/setup-statusline`, or `/report-limit` inside Claude Code to verify skills work correctly
 - **Scripts**: Run the JS scripts in `scripts/` with Node.js against sample JSONL data from `~/.claude/projects/`
 - **Translations**: Open the relevant `README.xx.md` file and verify formatting renders correctly
 

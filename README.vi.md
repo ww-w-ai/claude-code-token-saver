@@ -1,4 +1,4 @@
-# claude-code-token-saver
+# super-token-saver
 
 **Plugin Claude Code duy nhất thực sự đọc mã nguồn của CC để tìm ra nơi token của bạn đang đi — và tự động khắc phục. Chi ít hơn, code lâu hơn.**
 
@@ -15,8 +15,8 @@ Hoạt động với **Max Plan ($200/tháng)** và **API trả theo lượng d�
 | 🛡️ Token Guardian | Phát hiện cache hết hạn, chặn re-send $9 trước khi xảy ra | Ngăn đột biến chi phí âm thầm số 1 |
 | 🧠 Session Architect | Tự động ủy thác công việc nặng cho SubTask (cache rẻ hơn 37,5%) | Ngữ cảnh nhỏ gọn, chi phí giảm |
 | 🪶 Concise Mode | Cắt bỏ phần đệm trong phản hồi, giữ lại nội dung cốt lõi | Ít output token hơn cho mỗi phản hồi |
-| 🔄 /cc-continue | Thay thế /compact — không LLM call, không chi phí, không mất thông tin, và giờ khôi phục được cả phiên **Codex** | Khôi phục ngữ cảnh miễn phí trên cả hai công cụ |
-| 🤝 /cc-compact | Ghi lại bàn giao phiên mà /cc-continue tự động tải — nắm bắt phát hiện của subagent & kết quả công cụ mà transcript bị mất | Phiên tiếp theo khôi phục cả ngữ cảnh ẩn |
+| 🔄 /s-continue | Thay thế /compact — không LLM call, không chi phí, không mất thông tin, và giờ khôi phục được cả phiên **Codex** | Khôi phục ngữ cảnh miễn phí trên cả hai công cụ |
+| 🤝 /s-compact | Ghi lại bàn giao phiên mà /s-continue tự động tải — nắm bắt phát hiện của subagent & kết quả công cụ mà transcript bị mất | Phiên tiếp theo khôi phục cả ngữ cảnh ẩn |
 | 📊 Status Line | Chi phí thời gian thực, kích thước ngữ cảnh, giới hạn tốc độ — dưới 50ms | Thấy vấn đề trước khi chúng tốn tiền |
 | 📈 /usage-view | Bảng điều khiển HTML tương tác với phân tích AI | Điều tra chi phí toàn diện chỉ một cú nhấp |
 | ✂️ /setup-git-lite | Loại bỏ 2.200 token ẩn CC đưa vào mỗi phiên | ~$48/tháng tiết kiệm chỉ từ hướng dẫn git |
@@ -37,7 +37,7 @@ Hoạt động với **Max Plan ($200/tháng)** và **API trả theo lượng d�
 
 **API trả theo lượng dùng?** Tất cả những điều trên, ngoại trừ không có trần giới hạn. Một lần bỏ lỡ cache = $9 tiền thật. Mười lần một tuần = $360/tháng chỉ vì tai nạn. Một ngày thứ Ba tệ với ngữ cảnh phình to có thể tốn nhiều hơn những gì người dùng Max Plan trả trong một tháng.
 
-claude-code-token-saver xử lý tất cả tự động. **Cài một lần. Xong.**
+super-token-saver xử lý tất cả tự động. **Cài một lần. Xong.**
 
 ---
 
@@ -45,7 +45,7 @@ claude-code-token-saver xử lý tất cả tự động. **Cài một lần. Xo
 
 ```
 /plugin marketplace add ww-w-ai/marketplace
-/plugin install claude-code-token-saver@ww-w-ai
+/plugin install super-token-saver@ww-w-ai
 ```
 
 Hoạt động tự động sau khi cài đặt. Không cần cấu hình. Yêu cầu [Claude Code](https://claude.ai/claude-code) v2.1.71+.
@@ -79,7 +79,7 @@ The prompt cache has expired. Continuing will resend the full context.
 Cost may increase significantly.
 
 👉 /context — Check current context usage before deciding
-👉 /clear → /cc-continue — Reset, then restore previous context (recommended, cheapest)
+👉 /clear → /s-continue — Reset, then restore previous context (recommended, cheapest)
 👉 Re-send — Continue as-is (full re-cache cost incurred)
 ```
 
@@ -130,15 +130,15 @@ Cài một lần, áp dụng ở khắp nơi.
 
 ---
 
-## 🔄 Tính năng 3: /cc-continue — Khôi phục ngữ cảnh
+## 🔄 Tính năng 3: /s-continue — Khôi phục ngữ cảnh
 
 **Thay thế `/compact`. Không LLM call. Không tốn token. Không mất thông tin.**
 
 `/compact` gửi toàn bộ ngữ cảnh của bạn (~1M token) đến LLM để nén thành bản tóm tắt 3,3%. Nếu cache đã hết hạn, điều đó một mình kích hoạt full re-cache. Mất thông tin là không thể tránh khỏi.
 
-`/cc-continue` tiếp cận hoàn toàn khác. Nó xử lý trước bản ghi phiên trước đó và tải trực tiếp. Không LLM call. Không chi phí. Cuộc trò chuyện gốc được khôi phục như cũ.
+`/s-continue` tiếp cận hoàn toàn khác. Nó xử lý trước bản ghi phiên trước đó và tải trực tiếp. Không LLM call. Không chi phí. Cuộc trò chuyện gốc được khôi phục như cũ.
 
-|                         | /compact                          | /cc-continue                        |
+|                         | /compact                          | /s-continue                        |
 | ----------------------- | --------------------------------- | -------------------------------- |
 | Cách hoạt động          | Gửi ngữ cảnh đầy đủ đến LLM để tóm tắt | Xử lý trước bản ghi, đọc trực tiếp |
 | LLM call                | Bắt buộc (thường 100K+ token)    | 0                                |
@@ -148,41 +148,41 @@ Cài một lần, áp dụng ở khắp nơi.
 | Khi cache hết hạn       | Chi phí full re-cache cộng thêm  | Không ảnh hưởng                  |
 | Khôi phục đa phiên      | Không thể                         | Được hỗ trợ                       |
 
-Sử dụng: `/clear` rồi `/cc-continue`. Bạn sẽ thấy danh sách các phiên trước. Chọn một để khôi phục. Để khôi phục nhanh: `/cc-continue last`.
+Sử dụng: `/clear` rồi `/s-continue`. Bạn sẽ thấy danh sách các phiên trước. Chọn một để khôi phục. Để khôi phục nhanh: `/s-continue last`.
 
 **Kết quả:** Tiếp tục công việc trước đó với chi phí bằng không. Không mất thông tin. Xử lý bản ghi 60MB+ trong dưới 1 giây.
 
-### 🤝 Người bạn đồng hành: `/cc-compact` — bàn giao lớp ẩn
+### 🤝 Người bạn đồng hành: `/s-compact` — bàn giao lớp ẩn
 
-`/cc-continue` khôi phục **transcript** — những gì bạn và Claude đã nói. Nhưng kiến thức hữu ích nhất của một phiên làm việc thường nằm **ngoài** cuộc đối thoại đó: những gì một **subagent** tìm thấy (transcript của nó là một file riêng mà việc khôi phục không bao giờ tải), một **con số quyết định trong kết quả công cụ** (số lượng test, chỉ số benchmark), một **bài học rút ra từ quá trình** ("không tái hiện được ở chế độ headless → hóa ra là do build, không phải do code").
+`/s-continue` khôi phục **transcript** — những gì bạn và Claude đã nói. Nhưng kiến thức hữu ích nhất của một phiên làm việc thường nằm **ngoài** cuộc đối thoại đó: những gì một **subagent** tìm thấy (transcript của nó là một file riêng mà việc khôi phục không bao giờ tải), một **con số quyết định trong kết quả công cụ** (số lượng test, chỉ số benchmark), một **bài học rút ra từ quá trình** ("không tái hiện được ở chế độ headless → hóa ra là do build, không phải do code").
 
-Chạy `/cc-compact` vào cuối phiên và nó sẽ chắt lọc chính xác lớp ẩn đó thành một bản bàn giao, lưu vào `~/.claude/claude-code-token-saver-data/<project>/handoff.md`. Ở phiên tiếp theo, `/cc-continue` sẽ **tự động tải** nó lên trên transcript đã khôi phục — không cần dán thủ công.
+Chạy `/s-compact` vào cuối phiên và nó sẽ chắt lọc chính xác lớp ẩn đó thành một bản bàn giao, lưu vào `~/.claude/super-token-saver-data/<project>/handoff.md`. Ở phiên tiếp theo, `/s-continue` sẽ **tự động tải** nó lên trên transcript đã khôi phục — không cần dán thủ công.
 
-|                     | Chỉ `/cc-continue`            | `/cc-compact` + `/cc-continue` (cả bộ)          |
+|                     | Chỉ `/s-continue`            | `/s-compact` + `/s-continue` (cả bộ)          |
 | Khôi phục            | Transcript (những gì đã nói)  | Transcript cộng lớp ẩn             |
 | Phát hiện của subagent   | Mất (file riêng)           | Được chắt lọc vào bản bàn giao                       |
 | Số liệu từ kết quả công cụ | Chỉ khi được trích dẫn vào chat    | Được trích xuất có chủ đích                            |
 | Bài học quá trình     | —                               | Được ghi lại để không lặp lại ngõ cụt              |
 
-**Quy trình:** kết thúc một phiên bằng `/cc-compact` → bắt đầu phiên tiếp theo bằng `/cc-continue`.
+**Quy trình:** kết thúc một phiên bằng `/s-compact` → bắt đầu phiên tiếp theo bằng `/s-continue`.
 
 ### 🔀 Hai công cụ, một lịch sử — phiên Codex cũng được khôi phục ở đây
 
 Codex ghi các phiên của nó vào `~/.codex/sessions/`; Claude Code ghi vào `~/.claude/projects/`. Không công cụ nào đọc được file của công cụ kia. Vì vậy một sprint hết ngân sách giữa chừng trong Codex trước đây không thể truy cập được từ Claude Code, và ngược lại cũng vậy.
 
-`/cc-continue` giờ liệt kê và khôi phục được cả hai. Rollout của Codex không được giao cho một parser thứ hai xử lý — mà được viết lại theo đúng khuôn dạng Claude Code sử dụng, **một dòng output cho mỗi dòng input**, nhờ đó cùng một pipeline phục vụ được cả hai công cụ, và mỗi marker `L{n}` vẫn trỏ đúng đến dòng gốc trong file Codex ban đầu. Đo được: một rollout 12 MB, 1,540 dòng được tiền xử lý trong **0.13 s**.
+`/s-continue` giờ liệt kê và khôi phục được cả hai. Rollout của Codex không được giao cho một parser thứ hai xử lý — mà được viết lại theo đúng khuôn dạng Claude Code sử dụng, **một dòng output cho mỗi dòng input**, nhờ đó cùng một pipeline phục vụ được cả hai công cụ, và mỗi marker `L{n}` vẫn trỏ đúng đến dòng gốc trong file Codex ban đầu. Đo được: một rollout 12 MB, 1,540 dòng được tiền xử lý trong **0.13 s**.
 
 |                        | Phiên Claude Code | Phiên Codex |
 | ---------------------- | ------------------- | ------------- |
-| Được liệt kê bởi `/cc-continue` | Có | Có, giới hạn trong project hiện tại |
+| Được liệt kê bởi `/s-continue` | Có | Có, giới hạn trong project hiện tại |
 | Khôi phục với chi phí LLM bằng không | Có | Có |
 | Tìm bằng `L{n}` về file gốc | Có | Có — số dòng là của chính rollout đó |
 | Khôi phục khi mất ngữ cảnh (`#0`) | `/compact`, auto-compact | Cơ chế nén và khôi phục thread riêng của Codex |
-| Bàn giao `/cc-compact` | Dùng chung theo từng project — ghi ở công cụ này, tải ở công cụ kia |
+| Bàn giao `/s-compact` | Dùng chung theo từng project — ghi ở công cụ này, tải ở công cụ kia |
 
 ```
-/cc-continue codex                    chỉ các phiên Codex
-/cc-continue codex : rust migration   các turn khớp với một chủ đề, được khôi phục đầy đủ
+/s-continue codex                    chỉ các phiên Codex
+/s-continue codex : rust migration   các turn khớp với một chủ đề, được khôi phục đầy đủ
 ```
 
 Hai chi tiết tạo nên khác biệt giữa một danh sách đúng và một danh sách trông có vẻ đúng nhưng lại sai: `session_id` của Codex thực chất là id của **thread**, thứ mà một subagent được tạo ra sẽ kế thừa, nên các phiên được đánh khóa theo `payload.id` và rollout của subagent bị lọc bỏ theo đúng cách mà transcript của subtask trong Claude Code đã bị lọc bỏ từ trước. Còn `<codex_internal_context source="goal">` được hệ thống tự động chèn vào, nên nó vẫn được giữ lại trong ngữ cảnh khôi phục nhưng không bao giờ được tính là một turn do bạn gõ ra.
@@ -331,7 +331,7 @@ Cấu trúc cache (`utils/api.ts:321` `splitSysPromptPrefix`) có ba đường d
 
 Trong các phiên tương tác thông thường, hướng dẫn commit/PR (1,7K tok) tích lũy **trên mỗi API call** qua `cache_read`. Trong một phiên 100 call ở giá Opus 4.7, đó là khoảng **$0,08 mỗi phiên** chỉ cho hướng dẫn mà quá trình đào tạo của Claude đã phần lớn bao gồm.
 
-### claude-code-token-saver xử lý thế nào
+### super-token-saver xử lý thế nào
 
 `/setup-git-lite` vô hiệu hóa đường gốc và đưa vào **thay thế 280 token được tối ưu** qua hook SessionStart. Chúng tôi giữ lại chính xác những gì ghi đè hành vi mặc định của Claude (quy tắc an toàn), và loại bỏ mọi thứ Claude đã biết từ quá trình đào tạo (quy trình từng bước, template PR, mẫu dùng gh).
 
@@ -383,7 +383,7 @@ Một trong hai là đủ để vô hiệu hóa CC gốc; chúng tôi đặt c�
 
 Nếu bạn cần biến env vì lý do không liên quan, hãy ghi chú lại trước khi chạy `revert` và thêm lại sau.
 
-### Trước khi gỡ cài đặt claude-code-token-saver
+### Trước khi gỡ cài đặt super-token-saver
 
 **Chạy `/setup-git-lite revert` trước**, hoặc bạn sẽ bị để lại với `includeGitInstructions: false` trong settings.json nhưng không có hook thay thế (Claude không nhận được hướng dẫn git nào cả). Claude Code hiện không có hook vòng đời gỡ cài đặt plugin, vì vậy chúng tôi không thể tự động hóa điều này.
 
@@ -396,7 +396,7 @@ Những gì bạn mất (và tại sao thường không sao):
 
 ### Banner khuyến nghị
 
-Khi hướng dẫn git gốc CC vẫn còn hoạt động trên máy của bạn, claude-code-token-saver hiển thị gợi ý một đoạn khi bắt đầu phiên **~20% thời gian** (cộng thêm trong đầu ra `/usage-view` và `/report-limit`). Tắt vĩnh viễn với `/setup-git-lite dismiss-banner`.
+Khi hướng dẫn git gốc CC vẫn còn hoạt động trên máy của bạn, super-token-saver hiển thị gợi ý một đoạn khi bắt đầu phiên **~20% thời gian** (cộng thêm trong đầu ra `/usage-view` và `/report-limit`). Tắt vĩnh viễn với `/setup-git-lite dismiss-banner`.
 
 ---
 
@@ -419,7 +419,7 @@ Ngay cả khi cache còn hoạt động, chi phí vẫn tích lũy. Đây là t�
 
 Điều kiện: Giá Opus 4, 1 prompt mỗi phút, ~5 API call mỗi prompt (~300 call/giờ).
 
-#### ❌ Không có claude-code-token-saver
+#### ❌ Không có super-token-saver
 
 Hầu hết công việc xảy ra trong Main session. Ngữ cảnh tăng nhanh.
 
@@ -434,7 +434,7 @@ Hầu hết công việc xảy ra trong Main session. Ngữ cảnh tăng nhanh.
 
 > Ở mức sử dụng này, bạn có thể sẽ đạt giới hạn tốc độ cửa sổ 5 giờ. **Chi phí tệ, nhưng vấn đề thực sự là công việc của bạn dừng hoàn toàn. Đây chính xác là lúc Claude Code tắt điện.**
 
-#### ✅ Với claude-code-token-saver
+#### ✅ Với super-token-saver
 
 Công việc nặng được ủy thác cho SubTask. Main chỉ xử lý thiết kế/quyết định.
 
@@ -442,7 +442,7 @@ Công việc nặng được ủy thác cho SubTask. Main chỉ xử lý thiết
 | ----------- | -------------------------------------------- | --------------------------- | ---------------------------------- |
 | Buổi sáng 3h  | Code (Main: thiết kế, SubTask: thực thi)  | Main 100K → 300K (TB 200K) | 900 call × 200K × ＄0.50/M = ＄90 |
 | Ăn trưa/họp   | Vắng mặt 2 giờ                           | —                           | —                                  |
-| Trở về      | ⚡ Token Guardian chặn → /clear + /cc-continue | —                           | ＄0 (không LLM call)               |
+| Trở về      | ⚡ Token Guardian chặn → /clear + /s-continue | —                           | ＄0 (không LLM call)               |
 | Buổi chiều 3h | Code tiếp tục                             | Main 100K → 300K (TB 200K) | 900 call × 200K × ＄0.50/M = ＄90 |
 |             | Tổng cộng                                    |                             | ~＄180                              |
 
@@ -454,7 +454,7 @@ Công việc nặng được ủy thác cho SubTask. Main chỉ xử lý thiết
 >
 > **API trả theo lượng:** ＄146/ngày × 22 ngày làm việc = **＄3.200/tháng thẳng khỏi hóa đơn của bạn.** Một tháng nặng không có plugin này vượt ＄7.000. Với nó, dưới ＄4.000. Cùng đầu ra.
 
-### Nơi claude-code-token-saver can thiệp
+### Nơi super-token-saver can thiệp
 
 ```
 [Session Start]
@@ -473,7 +473,7 @@ Công việc nặng được ủy thác cho SubTask. Main chỉ xử lý thiết
     │
 [Khởi động lại phiên]
     │
-    └─ /cc-continue → Khôi phục ngữ cảnh trước đó với chi phí bằng không (không LLM call)
+    └─ /s-continue → Khôi phục ngữ cảnh trước đó với chi phí bằng không (không LLM call)
 ```
 
 ---
@@ -481,16 +481,16 @@ Công việc nặng được ủy thác cho SubTask. Main chỉ xử lý thiết
 ## 🔧 Cài đặt từ nguồn & Tùy chỉnh
 
 ```bash
-git clone https://github.com/ww-w-ai/claude-code-token-saver.git
-/plugin marketplace add /path/to/claude-code-token-saver
-/plugin install claude-code-token-saver@ww-w-ai
+git clone https://github.com/ww-w-ai/super-token-saver.git
+/plugin marketplace add /path/to/super-token-saver
+/plugin install super-token-saver@ww-w-ai
 ```
 
-claude-code-token-saver hoàn toàn mã nguồn mở (Apache-2.0). JavaScript thuần + Bash — không có binary đã biên dịch, không có API call bên ngoài, không có telemetry. Mỗi dòng có thể kiểm tra. Mỗi tuyên bố trong README này ánh xạ đến một file cụ thể bạn có thể đọc.
+super-token-saver hoàn toàn mã nguồn mở (Apache-2.0). JavaScript thuần + Bash — không có binary đã biên dịch, không có API call bên ngoài, không có telemetry. Mỗi dòng có thể kiểm tra. Mỗi tuyên bố trong README này ánh xạ đến một file cụ thể bạn có thể đọc.
 
 - **hooks/** — Thay đổi ngưỡng hết hạn cache, tùy chỉnh thông báo cảnh báo, sửa đổi quy tắc kiến trúc phiên
 - **scripts/** — Logic phân tích, trình tạo báo cáo, định dạng thanh trạng thái
-- **skills/** — Cách /cc-continue và /usage-view hoạt động, template prompt
+- **skills/** — Cách /s-continue và /usage-view hoạt động, template prompt
 - **locales/** — Thêm/chỉnh sửa bản dịch, thêm ngôn ngữ mới
 - **skills/usage-view/** — Thay đổi thiết kế UI/UX bảng điều khiển
 
@@ -548,7 +548,7 @@ Nếu git-lite được bật, plugin **tiết kiệm** ~1.920 token mỗi phiê
 
 - **Giữ CLAUDE.md gọn nhẹ.** Nó tải vào system prompt trên mỗi API call. Mỗi dòng tốn tiền.
 - **Ủy thác công việc nặng cho SubTask.** Tạo code, chỉnh sửa đa file, chạy test không thuộc về Main. SubTask có ngữ cảnh nhỏ hơn và cache tier rẻ hơn.
-- **Vắng mặt 1+ giờ?** `/clear` → quay lại → `/cc-continue`. Ngữ cảnh được khôi phục với $0.
+- **Vắng mặt 1+ giờ?** `/clear` → quay lại → `/s-continue`. Ngữ cảnh được khôi phục với $0.
 - **[5H] trên 70% (🟡)?** Chậm lại. Chuyển sang công việc đánh giá nhẹ hoặc tăng ủy thác SubTask để giảm số API call của Main.
 - **Dùng `/btw` cho câu hỏi phụ.** Nó không đi vào lịch sử cuộc trò chuyện, vì vậy ngữ cảnh của bạn vẫn gọn nhẹ.
 
@@ -556,7 +556,7 @@ Nếu git-lite được bật, plugin **tiết kiệm** ~1.920 token mỗi phiê
 
 Tất cả những điều trên đều áp dụng, cộng thêm những ưu tiên riêng cho API:
 
-- **Theo dõi [CTX] như đồng hồ tốc độ.** Không có giới hạn tốc độ nào sẽ dừng bạn — nhưng ngữ cảnh ở 500K+ có nghĩa là mỗi API call tốn gấp 2-3 lần so với nên là. `/clear` → `/cc-continue` là miễn phí và reset hệ số nhân chi phí về mức cơ sở.
+- **Theo dõi [CTX] như đồng hồ tốc độ.** Không có giới hạn tốc độ nào sẽ dừng bạn — nhưng ngữ cảnh ở 500K+ có nghĩa là mỗi API call tốn gấp 2-3 lần so với nên là. `/clear` → `/s-continue` là miễn phí và reset hệ số nhân chi phí về mức cơ sở.
 - **Chạy `/usage-view` hàng tuần.** Người dùng Max Plan có thời điểm "ối" tự nhiên khi bị giới hạn tốc độ. Bạn thì không — chi phí tăng âm thầm. Bảng điều khiển là hệ thống cảnh báo sớm của bạn.
 - **Đặt ngân sách hàng ngày trong đầu.** Không có giới hạn, những ngày $200 xảy ra mà không chú ý. Chỉ số RUN trên status line làm chi phí mỗi lượt hiển thị. Nếu một lượt đơn vượt $1 (🔴), ngữ cảnh của bạn quá lớn.
 

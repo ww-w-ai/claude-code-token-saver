@@ -1,4 +1,4 @@
-# claude-code-token-saver
+# super-token-saver
 
 **Jedyna wtyczka Claude Code, która naprawdę czyta kod źródłowy CC, aby znaleźć, gdzie trafiają Twoje tokeny — i automatycznie to naprawia. Wydawaj mniej, koduj dłużej.**
 
@@ -15,8 +15,8 @@ Działa z **Max Plan ($200/miesiąc)** i **API płatność za użycie**. Ta sama
 | 🛡️ Token Guardian | Wykrywa wygasanie cache, blokuje drogie ponowne wysyłki po $9 zanim do nich dojdzie | Zapobiega cichym skokom kosztów |
 | 🧠 Session Architect | Automatycznie deleguje ciężką pracę do SubTask (37,5% tańszy cache) | Kontekst pozostaje mały, koszty spadają |
 | 🪶 Concise Mode | Usuwa wypełnienie odpowiedzi, zachowuje treść | Mniej tokenów wyjściowych na odpowiedź |
-| 🔄 /cc-continue | Zastępuje /compact — zero wywołań LLM, zero kosztu, zero utraty informacji, a do tego przywraca też sesje **Codex** | Bezpłatne przywracanie kontekstu w obu narzędziach |
-| 🤝 /cc-compact | Zapisuje przekazanie sesji, które /cc-continue automatycznie wczytuje — przechwytuje ustalenia subagentów i wyniki narzędzi, które transkrypt traci | Kolejna sesja wznawia się także z ukrytym kontekstem |
+| 🔄 /s-continue | Zastępuje /compact — zero wywołań LLM, zero kosztu, zero utraty informacji, a do tego przywraca też sesje **Codex** | Bezpłatne przywracanie kontekstu w obu narzędziach |
+| 🤝 /s-compact | Zapisuje przekazanie sesji, które /s-continue automatycznie wczytuje — przechwytuje ustalenia subagentów i wyniki narzędzi, które transkrypt traci | Kolejna sesja wznawia się także z ukrytym kontekstem |
 | 📊 Status Line | Koszt w czasie rzeczywistym, rozmiar kontekstu, limit szybkości — poniżej 50ms | Widzisz problemy zanim staną się kosztowne |
 | 📈 /usage-view | Interaktywny panel HTML z analizą AI | Pełna analiza kosztów jednym kliknięciem |
 | ✂️ /setup-git-lite | Usuwa 2200 ukrytych tokenów wstrzykiwanych przez CC w każdej sesji | ~$48/miesiąc oszczędności tylko na instrukcjach git |
@@ -37,7 +37,7 @@ Działa z **Max Plan ($200/miesiąc)** i **API płatność za użycie**. Ta sama
 
 **API płatność za użycie?** Wszystko powyższe, z wyjątkiem braku górnego limitu. Jeden chybiony cache = $9 prawdziwych pieniędzy. Dziesięć razy w tygodniu = $360/miesiąc tylko na przypadkach. Zły wtorek z rozrośniętym kontekstem może kosztować więcej niż subskrybent Max Plan płaci przez miesiąc.
 
-claude-code-token-saver obsługuje to wszystko automatycznie. **Zainstaluj raz. Gotowe.**
+super-token-saver obsługuje to wszystko automatycznie. **Zainstaluj raz. Gotowe.**
 
 ---
 
@@ -45,7 +45,7 @@ claude-code-token-saver obsługuje to wszystko automatycznie. **Zainstaluj raz. 
 
 ```
 /plugin marketplace add ww-w-ai/marketplace
-/plugin install claude-code-token-saver@ww-w-ai
+/plugin install super-token-saver@ww-w-ai
 ```
 
 Działa automatycznie po instalacji. Zero konfiguracji. Wymaga [Claude Code](https://claude.ai/claude-code) v2.1.71+.
@@ -79,7 +79,7 @@ The prompt cache has expired. Continuing will resend the full context.
 Cost may increase significantly.
 
 👉 /context — Check current context usage before deciding
-👉 /clear → /cc-continue — Reset, then restore previous context (recommended, cheapest)
+👉 /clear → /s-continue — Reset, then restore previous context (recommended, cheapest)
 👉 Re-send — Continue as-is (full re-cache cost incurred)
 ```
 
@@ -130,15 +130,15 @@ Zainstaluj raz, stosuje się wszędzie.
 
 ---
 
-## 🔄 Funkcja 3: /cc-continue — Przywracanie kontekstu
+## 🔄 Funkcja 3: /s-continue — Przywracanie kontekstu
 
 **Zastępuje `/compact`. Zero wywołań LLM. Zero kosztów tokenów. Zero utraty informacji.**
 
 `/compact` wysyła cały kontekst (~1M tokenów) do LLM, aby skompresować go do 3,3% streszczenia. Jeśli cache wygasł, samo to wywołuje pełne ponowne cachowanie. Utrata informacji jest nieunikniona.
 
-`/cc-continue` przyjmuje zupełnie inne podejście. Wstępnie przetwarza poprzedni transkrypt sesji i ładuje go bezpośrednio. Brak wywołania LLM. Brak kosztu. Oryginalna rozmowa zostaje przywrócona w niezmienionej postaci.
+`/s-continue` przyjmuje zupełnie inne podejście. Wstępnie przetwarza poprzedni transkrypt sesji i ładuje go bezpośrednio. Brak wywołania LLM. Brak kosztu. Oryginalna rozmowa zostaje przywrócona w niezmienionej postaci.
 
-|                         | /compact                          | /cc-continue                        |
+|                         | /compact                          | /s-continue                        |
 | ----------------------- | --------------------------------- | -------------------------------- |
 | Jak działa              | Wysyła pełny kontekst do LLM w celu podsumowania | Wstępnie przetwarza transkrypt, odczytuje bezpośrednio |
 | Wywołania LLM           | Wymagane (zazwyczaj 100K+ tokenów) | 0                               |
@@ -148,49 +148,49 @@ Zainstaluj raz, stosuje się wszędzie.
 | Gdy cache wygasł        | Dodatkowy koszt pełnego ponownego cachowania | Brak wpływu              |
 | Przywracanie wielu sesji | Niemożliwe                       | Obsługiwane                      |
 
-Użycie: `/clear` następnie `/cc-continue`. Zobaczysz listę poprzednich sesji. Wybierz jedną do przywrócenia. Dla szybkiego odtworzenia: `/cc-continue last`.
+Użycie: `/clear` następnie `/s-continue`. Zobaczysz listę poprzednich sesji. Wybierz jedną do przywrócenia. Dla szybkiego odtworzenia: `/s-continue last`.
 
 **Wynik:** Wznów poprzednią pracę bez żadnych kosztów. Brak utraty informacji. Przetwarza transkrypty 60MB+ w mniej niż 1 sekundę.
 
-### 🤝 Jego para: `/cc-compact` — przekazanie ukrytej warstwy
+### 🤝 Jego para: `/s-compact` — przekazanie ukrytej warstwy
 
-`/cc-continue` przywraca **transkrypt** — to, co powiedzieliście ty i Claude. Ale najbardziej przydatna
+`/s-continue` przywraca **transkrypt** — to, co powiedzieliście ty i Claude. Ale najbardziej przydatna
 wiedza z sesji roboczej często żyje POZA tym dialogiem: co znalazł **subagent** (jego transkrypt to
 osobny plik, którego przywracanie nigdy nie wczytuje), decydująca **liczba w wyniku narzędzia** (liczba
 testów, wynik benchmarku), **wniosek wyciągnięty z procesu** ("nie udało się odtworzyć w trybie
 headless → problem był w buildzie, nie w kodzie").
 
-Uruchom `/cc-compact` na **końcu** sesji, a destyluje dokładnie tę ukrytą warstwę w przekazanie,
-zapisane w `~/.claude/claude-code-token-saver-data/<project>/handoff.md`. W kolejnej sesji
-`/cc-continue` **automatycznie wczytuje** je na wierzchu przywróconego transkryptu — bez wklejania.
+Uruchom `/s-compact` na **końcu** sesji, a destyluje dokładnie tę ukrytą warstwę w przekazanie,
+zapisane w `~/.claude/super-token-saver-data/<project>/handoff.md`. W kolejnej sesji
+`/s-continue` **automatycznie wczytuje** je na wierzchu przywróconego transkryptu — bez wklejania.
 
-|                     | Samo `/cc-continue`              | `/cc-compact` + `/cc-continue` (para)             |
+|                     | Samo `/s-continue`              | `/s-compact` + `/s-continue` (para)             |
 | ------------------- | -------------------------------- | ------------------------------------------------ |
 | Odzyskuje           | Transkrypt (co zostało powiedziane) | Transkrypt **plus** ukryta warstwa             |
 | Ustalenia subagentów | Utracone (osobne pliki)         | Zdestylowane w przekazaniu                        |
 | Liczby z wyników narzędzi | Tylko jeśli zacytowane w czacie | Wyodrębnione celowo                          |
 | Wnioski z procesu   | —                                 | Zachowane, aby ślepych zaułków nie powtarzać      |
 
-**Przebieg pracy:** zakończ sesję poleceniem `/cc-compact` → rozpocznij kolejną poleceniem `/cc-continue`.
+**Przebieg pracy:** zakończ sesję poleceniem `/s-compact` → rozpocznij kolejną poleceniem `/s-continue`.
 
 
 ### 🔀 Jedna historia dla obu narzędzi — tu przywrócisz też sesje Codex
 
 Codex zapisuje swoje sesje w `~/.codex/sessions/`, Claude Code — w `~/.claude/projects/`. Żadne z nich nie odczytuje plików drugiego. Dlatego sprint, w którym w Codex skończył się budżet, był nieosiągalny z poziomu Claude Code — i odwrotnie.
 
-`/cc-continue` pokazuje teraz i przywraca sesje z obu narzędzi. Rollout z Codex nie trafia do drugiego parsera — jest przepisywany do dokładnie tej postaci, w jakiej zapisuje Claude Code, **jedna linia wyjściowa na jedną linię wejściową**, dzięki czemu ten sam pipeline obsługuje oba narzędzia, a każdy znacznik `L{n}` nadal wskazuje dokładnie tę samą linię oryginalnego pliku Codex. Zmierzone: rollout 12 MB, 1,540-line, jest wstępnie przetwarzany w **0.13 s**.
+`/s-continue` pokazuje teraz i przywraca sesje z obu narzędzi. Rollout z Codex nie trafia do drugiego parsera — jest przepisywany do dokładnie tej postaci, w jakiej zapisuje Claude Code, **jedna linia wyjściowa na jedną linię wejściową**, dzięki czemu ten sam pipeline obsługuje oba narzędzia, a każdy znacznik `L{n}` nadal wskazuje dokładnie tę samą linię oryginalnego pliku Codex. Zmierzone: rollout 12 MB, 1,540-line, jest wstępnie przetwarzany w **0.13 s**.
 
 |                          | Sesja Claude Code | Sesja Codex |
 | ------------------------ | -------------------- | -------------- |
-| Widoczna w `/cc-continue` | Tak | Tak, ograniczona do bieżącego projektu |
+| Widoczna w `/s-continue` | Tak | Tak, ograniczona do bieżącego projektu |
 | Przywracana bez kosztów LLM | Tak | Tak |
 | Przeskok `L{n}` do oryginału | Tak | Tak — numery linii pochodzą z samego rollout'u |
 | Przywracanie po utracie kontekstu (`#0`) | `/compact`, auto-compact | Kompaktowanie Codex i cofnięcie wątku |
-| Przekazanie `/cc-compact` | Współdzielone per projekt — zapisz w jednym narzędziu, wczytaj w drugim |
+| Przekazanie `/s-compact` | Współdzielone per projekt — zapisz w jednym narzędziu, wczytaj w drugim |
 
 ```
-/cc-continue codex                    only Codex sessions
-/cc-continue codex : rust migration   the turns matching a topic, restored in full
+/s-continue codex                    only Codex sessions
+/s-continue codex : rust migration   the turns matching a topic, restored in full
 ```
 
 Dwa szczegóły decydują o różnicy między poprawną listą a błędną, choć wiarygodnie wyglądającą: `session_id` w Codex to id **wątku**, które dziedziczy każdy uruchomiony subagent, więc sesje są indeksowane po `payload.id`, a rollouty subagentów są odfiltrowywane tak samo, jak Claude Code odfiltrowuje już własne transkrypty podzadań. A `<codex_internal_context source="goal">` jest wstawiane maszynowo, więc pozostaje w przywróconym kontekście, ale nigdy nie liczy się jako tura, którą wpisałeś.
@@ -341,7 +341,7 @@ Struktura cache (`utils/api.ts:321` `splitSysPromptPrefix`) ma trzy ścieżki w 
 
 W typowych sesjach interaktywnych instrukcje commit/PR (1,7K tok) kumulują się **przy każdym wywołaniu API** przez `cache_read`. W sesji 100 wywołań przy cenach Opus 4.7 to mniej więcej **$0,08 na sesję** tylko za instrukcje, które trening Claude'a i tak w większości pokrywa.
 
-### Jak claude-code-token-saver sobie z tym radzi
+### Jak super-token-saver sobie z tym radzi
 
 `/setup-git-lite` wyłącza natywną ścieżkę i wstrzykuje **wyselekcjonowane 280-tokenowe zastępstwo** przez hook SessionStart. Zachowaliśmy dokładnie to, co nadpisuje domyślne zachowanie Claude'a (reguły bezpieczeństwa) i odrzuciliśmy wszystko, co Claude już wie z treningu (krok po kroku przepływy pracy, szablony PR, wzorce użycia gh).
 
@@ -393,7 +393,7 @@ Jedno z nich samo w sobie wystarczy, aby wyłączyć CC native; ustawiamy oba, �
 
 Jeśli potrzebujesz zmiennej środowiskowej z niezwiązanych powodów, zanotuj ją przed uruchomieniem `revert` i dodaj ponownie po.
 
-### Przed odinstalowaniem claude-code-token-saver
+### Przed odinstalowaniem super-token-saver
 
 **Najpierw uruchom `/setup-git-lite revert`**, inaczej zostaniesz z `includeGitInstructions: false` w settings.json, ale bez zastępczego hooka (Claude nie otrzymuje żadnego wskazówek dotyczących git). Claude Code nie ma obecnie hooka cyklu życia odinstalowania wtyczki, więc nie możemy tego zautomatyzować.
 
@@ -406,7 +406,7 @@ Co tracisz (i dlaczego zazwyczaj to nic nie szkodzi):
 
 ### Baner z zaleceniem
 
-Gdy natywne instrukcje git CC są nadal aktywne na Twoim komputerze, claude-code-token-saver pokazuje jednoakapitową wskazówkę na początku sesji **~20% czasu** (plus w wyjściach `/usage-view` i `/report-limit`). Trwale wycisz za pomocą `/setup-git-lite dismiss-banner`.
+Gdy natywne instrukcje git CC są nadal aktywne na Twoim komputerze, super-token-saver pokazuje jednoakapitową wskazówkę na początku sesji **~20% czasu** (plus w wyjściach `/usage-view` i `/report-limit`). Trwale wycisz za pomocą `/setup-git-lite dismiss-banner`.
 
 ---
 
@@ -429,7 +429,7 @@ Nawet gdy cache jest aktywny, koszty kumulują się. Oto ekstremalny scenariusz 
 
 Warunki: Ceny Opus 4, 1 prompt na minutę, ~5 wywołań API na prompt (~300 wywołań/godzinę).
 
-#### ❌ Bez claude-code-token-saver
+#### ❌ Bez super-token-saver
 
 Większość pracy odbywa się w sesji Main. Kontekst szybko rośnie.
 
@@ -444,7 +444,7 @@ Większość pracy odbywa się w sesji Main. Kontekst szybko rośnie.
 
 > Przy tym poziomie użycia prawdopodobnie osiągniesz limit szybkości okna 5-godzinnego. **Koszt jest zły, ale prawdziwym problemem jest całkowite zatrzymanie Twojej pracy. To jest dokładny moment, kiedy Claude Code gaśnie.**
 
-#### ✅ Z claude-code-token-saver
+#### ✅ Z super-token-saver
 
 Ciężka praca jest delegowana do SubTask. Main obsługuje tylko projektowanie/decyzje.
 
@@ -452,7 +452,7 @@ Ciężka praca jest delegowana do SubTask. Main obsługuje tylko projektowanie/d
 | ----------- | -------------------------------------------- | --------------------------- | ---------------------------------- |
 | Rano 3h     | Kodowanie (Main: projekt, SubTask: implementacja) | Main 100K → 300K (śr. 200K) | 900 wywołań × 200K × ＄0.50/M = ＄90 |
 | Obiad/spotkanie | Brak przez 2 godziny                     | —                           | —                                  |
-| Powrót      | ⚡ Token Guardian blokuje → /clear + /cc-continue | —                        | ＄0 (brak wywołań LLM)              |
+| Powrót      | ⚡ Token Guardian blokuje → /clear + /s-continue | —                        | ＄0 (brak wywołań LLM)              |
 | Po południu 3h | Kodowanie kontynuowane                   | Main 100K → 300K (śr. 200K) | 900 wywołań × 200K × ＄0.50/M = ＄90 |
 |             | Łącznie                                      |                             | ~＄180                              |
 
@@ -464,7 +464,7 @@ Ciężka praca jest delegowana do SubTask. Main obsługuje tylko projektowanie/d
 >
 > **API płatność za użycie:** ＄146/dzień × 22 dni robocze = **＄3200/miesiąc prosto z faktury.** Ciężki miesiąc bez tej wtyczki przekracza ＄7000. Z nią poniżej ＄4000. Taki sam wynik.
 
-### Gdzie wkracza claude-code-token-saver
+### Gdzie wkracza super-token-saver
 
 ```
 [Session Start]
@@ -483,7 +483,7 @@ Ciężka praca jest delegowana do SubTask. Main obsługuje tylko projektowanie/d
     │
 [Restart sesji]
     │
-    └─ /cc-continue → Przywraca poprzedni kontekst bez żadnych kosztów (brak wywołań LLM)
+    └─ /s-continue → Przywraca poprzedni kontekst bez żadnych kosztów (brak wywołań LLM)
 ```
 
 ---
@@ -491,16 +491,16 @@ Ciężka praca jest delegowana do SubTask. Main obsługuje tylko projektowanie/d
 ## 🔧 Instalacja ze źródła i personalizacja
 
 ```bash
-git clone https://github.com/ww-w-ai/claude-code-token-saver.git
-/plugin marketplace add /path/to/claude-code-token-saver
-/plugin install claude-code-token-saver@ww-w-ai
+git clone https://github.com/ww-w-ai/super-token-saver.git
+/plugin marketplace add /path/to/super-token-saver
+/plugin install super-token-saver@ww-w-ai
 ```
 
-claude-code-token-saver jest w pełni open-source (Apache-2.0). Czysty JavaScript + Bash — brak skompilowanych plików binarnych, brak zewnętrznych wywołań API, brak telemetrii. Każda linia jest audytowalna. Każde twierdzenie w tym README odpowiada konkretnemu plikowi, który możesz przeczytać.
+super-token-saver jest w pełni open-source (Apache-2.0). Czysty JavaScript + Bash — brak skompilowanych plików binarnych, brak zewnętrznych wywołań API, brak telemetrii. Każda linia jest audytowalna. Każde twierdzenie w tym README odpowiada konkretnemu plikowi, który możesz przeczytać.
 
 - **hooks/** — Zmień próg wygasania cache, dostosuj komunikaty ostrzeżeń, modyfikuj reguły architektury sesji
 - **scripts/** — Logika analizy, konstruktor raportów, formatowanie paska stanu
-- **skills/** — Jak działają /cc-continue i /usage-view, szablony promptów
+- **skills/** — Jak działają /s-continue i /usage-view, szablony promptów
 - **locales/** — Dodawaj/edytuj tłumaczenia, dodawaj nowe języki
 - **skills/usage-view/** — Zmiany projektu UI/UX panelu
 
@@ -558,7 +558,7 @@ Jeśli git-lite jest włączone, wtyczka **oszczędza** ~1920 tokenów na sesję
 
 - **Trzymaj CLAUDE.md krótko.** Ładuje się do system prompt przy każdym wywołaniu API. Każda linia kosztuje.
 - **Deleguj ciężką pracę do SubTask.** Generowanie kodu, edycje wielu plików, uruchamianie testów nie należą do Main. SubTask mają mniejszy kontekst i tańszą warstwę cache.
-- **Odszedłeś na 1+ godzinę?** `/clear` → wróć → `/cc-continue`. Kontekst przywrócony za $0.
+- **Odszedłeś na 1+ godzinę?** `/clear` → wróć → `/s-continue`. Kontekst przywrócony za $0.
 - **[5H] powyżej 70% (🟡)?** Zwolnij. Przełącz się na lekkie zadania przeglądowe lub zwiększ delegowanie do SubTask, żeby zredukować liczbę wywołań API Main.
 - **Używaj `/btw` do pobocznych pytań.** Nie wchodzi do historii rozmowy, więc kontekst pozostaje zwarty.
 
@@ -566,7 +566,7 @@ Jeśli git-lite jest włączone, wtyczka **oszczędza** ~1920 tokenów na sesję
 
 Wszystko powyżej obowiązuje, plus te priorytety specyficzne dla API:
 
-- **Obserwuj [CTX] jak prędkościomierz.** Żaden limit szybkości Cię nie zatrzyma — ale kontekst przy 500K+ oznacza, że każde wywołanie API kosztuje 2-3x tyle, ile powinno. `/clear` → `/cc-continue` jest darmowe i resetuje mnożnik kosztów do poziomu bazowego.
+- **Obserwuj [CTX] jak prędkościomierz.** Żaden limit szybkości Cię nie zatrzyma — ale kontekst przy 500K+ oznacza, że każde wywołanie API kosztuje 2-3x tyle, ile powinno. `/clear` → `/s-continue` jest darmowe i resetuje mnożnik kosztów do poziomu bazowego.
 - **Uruchamiaj `/usage-view` co tydzień.** Użytkownicy Max Plan mają naturalny moment „autsch" gdy osiągają limit szybkości. Ty nie — koszty rosną po cichu. Panel to Twój system wczesnego ostrzegania.
 - **Wyznacz sobie mentalny dzienny budżet.** Bez górnego limitu, dni za $200 zdarzają się niezauważone. Wskaźnik RUN paska stanu sprawia, że koszt na turę jest widoczny. Jeśli jedna tura przekroczy $1 (🔴), Twój kontekst jest zbyt duży.
 

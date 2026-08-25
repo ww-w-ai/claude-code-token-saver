@@ -1,4 +1,4 @@
-# Doc convention — claude-code-token-saver
+# Doc convention — super-token-saver
 
 > Status: LIVING. Local instance of the `cowork-doc-sync` taxonomy contract (§6). Read this every doc-sync run.
 
@@ -57,8 +57,8 @@ pass**, and the version-bearing ones must agree **exactly** or the marketplace s
 ```bash
 grep '"version"' .claude-plugin/plugin.json .codex-plugin/plugin.json manifest.json  # all three agree
 head -12 CHANGELOG.md | grep '^## '
-grep -A2 'claude-code-token-saver' ../marketplace/.claude-plugin/marketplace.json | grep version
-grep -A3 'claude-code-token-saver' ../marketplace/.agents/plugins/marketplace.json  # Codex entry present
+grep -A2 'super-token-saver' ../marketplace/.claude-plugin/marketplace.json | grep version
+grep -A3 'super-token-saver' ../marketplace/.agents/plugins/marketplace.json  # Codex entry present
 git status --short | grep -c '^ M README'   # expect 23 when README text changed
 python3 scripts/test_product_parity.py      # skills, manifests, Codex READMEs, plugin-root rule
 node scripts/test-codex-adapter.js          # the Codex transcript adapter
@@ -79,11 +79,11 @@ trust the label:
 |---|---|
 | "released as vX" | `git tag --list 'v2*'` **and** the marketplace entry's `version` (#3). The `v2` line is complete and each tag was verified to point at the commit whose `plugin.json` carries that version. `v1` tags are incomplete — do not read a missing `v1.x` tag as "not released" |
 | "pushed" | `git log --oneline origin/main..HEAD` — must be empty, in **both** repos |
-| "installed / live for the user" | `ls ~/.claude/plugins/cache/ww-w-ai/claude-code-token-saver/` — the installed copy is a snapshot, not a symlink, so a source edit is NOT live until `/plugin` update |
+| "installed / live for the user" | `ls ~/.claude/plugins/cache/ww-w-ai/super-token-saver/` — the installed copy is a snapshot, not a symlink, so a source edit is NOT live until `/plugin` update |
 
 ## 5. Editing rule
 
-Edit the **source repo**. `~/.claude/plugins/cache/.../claude-code-token-saver/<version>/` is a
+Edit the **source repo**. `~/.claude/plugins/cache/.../super-token-saver/<version>/` is a
 read-only copy overwritten on install — edits there are lost and never reach users.
 
 ## 6. vault vs repo

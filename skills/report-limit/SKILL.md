@@ -20,7 +20,7 @@ If the user provides "help" as argument, show usage summary and stop:
 
 Got rate limited? This skill automatically finds your blocked
 5-hour windows from cached timeline data and opens a pre-filled
-GitHub Discussion to ww-w-ai/claude-code-token-saver.
+GitHub Discussion to ww-w-ai/super-token-saver.
 
 No manual input needed. Just run it and confirm in your browser.
 
@@ -81,8 +81,8 @@ The script fails with exit code 2 and prints an `ERROR:UNKNOWN_MODEL` block to s
    ```
    ⚠️ Cannot confirm the full pricing (especially the 5m/1h cache tiers) for unregistered model {model} on the official page.
    Please update the plugin to the latest version:
-     /plugin update claude-code-token-saver
-   If the problem persists after updating, please report it at https://github.com/ww-w-ai/claude-code-token-saver/issues
+     /plugin update super-token-saver
+   If the problem persists after updating, please report it at https://github.com/ww-w-ai/super-token-saver/issues
    ```
 5. (After step 3 succeeds) Re-run the same Bash command as-is. Thanks to fail-fast there is no stale cache, so `--force` is unnecessary.
 6. Once the re-run succeeds, proceed to the summary output step below.
@@ -111,5 +111,5 @@ Discussion opened in browser. Review and submit.
 
 ## Prerequisites
 
-- GitHub Discussion category "Rate Limits" must exist on ww-w-ai/claude-code-token-saver
+- GitHub Discussion category "Rate Limits" must exist on ww-w-ai/super-token-saver
 - `gh` CLI authenticated for gist upload (optional — falls back to local files)

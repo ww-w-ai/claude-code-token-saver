@@ -1,4 +1,4 @@
-# claude-code-token-saver
+# super-token-saver
 
 **CCのソースコードを実際に読み込み、トークンの消費先を特定して自動修正する唯一のClaude Codeプラグイン。コストを減らし、より長くコーディングできる。**
 
@@ -15,8 +15,8 @@
 | 🛡️ Token Guardian | キャッシュ期限切れを検知し、$9 の再送信を事前にブロック | サイレントコストスパイクの第1位を防止 |
 | 🧠 Session Architect | 重い作業を SubTask に自動委譲（37.5% 安いキャッシュ） | コンテキストをコンパクトに保ちコストを削減 |
 | 🪶 Concise Mode | レスポンスの冗長な表現を削減し、内容を維持 | 1回のレスポンスあたりの出力トークンを削減 |
-| 🔄 /cc-continue | /compact の代替 — LLM呼び出しゼロ、コストゼロ、情報損失ゼロ、**Codex** セッションも復元 | 両ツールにまたがって無料でコンテキストを復元 |
-| 🤝 /cc-compact | /cc-continue が自動で読み込むセッション引き継ぎ記録を作成 — トランスクリプトが失うサブエージェントの発見やツール結果を保存 | 次のセッションで見えないコンテキストも引き継げる |
+| 🔄 /s-continue | /compact の代替 — LLM呼び出しゼロ、コストゼロ、情報損失ゼロ、**Codex** セッションも復元 | 両ツールにまたがって無料でコンテキストを復元 |
+| 🤝 /s-compact | /s-continue が自動で読み込むセッション引き継ぎ記録を作成 — トランスクリプトが失うサブエージェントの発見やツール結果を保存 | 次のセッションで見えないコンテキストも引き継げる |
 | 📊 Status Line | リアルタイムのコスト、コンテキストサイズ、レート制限 — 50ms以内 | コストが発生する前に問題を把握 |
 | 📈 /usage-view | AI分析付きのインタラクティブなHTMLダッシュボード | ワンクリックでコストを完全分析 |
 | ✂️ /setup-git-lite | CCが毎セッション注入する2,200個の隠しトークンを削除 | git指示だけで月約$48を節約 |
@@ -37,7 +37,7 @@
 
 **API従量課金の場合？** 上記すべてに加え、上限がない。1回のキャッシュミス = $9 の実際のお金。週に10回 = 事故だけで $360/月。コンテキストが肥大化した最悪の火曜日は、Max Planユーザーが1ヶ月に払う金額より高くなる可能性がある。
 
-claude-code-token-saver はこれらすべてを自動的に処理する。**1回インストールするだけ。**
+super-token-saver はこれらすべてを自動的に処理する。**1回インストールするだけ。**
 
 ---
 
@@ -45,7 +45,7 @@ claude-code-token-saver はこれらすべてを自動的に処理する。**1�
 
 ```
 /plugin marketplace add ww-w-ai/marketplace
-/plugin install claude-code-token-saver@ww-w-ai
+/plugin install super-token-saver@ww-w-ai
 ```
 
 インストール後、自動的に動作する。ゼロ設定。[Claude Code](https://claude.ai/claude-code) v2.1.71+ が必要。
@@ -79,7 +79,7 @@ The prompt cache has expired. Continuing will resend the full context.
 Cost may increase significantly.
 
 👉 /context — Check current context usage before deciding
-👉 /clear → /cc-continue — Reset, then restore previous context (recommended, cheapest)
+👉 /clear → /s-continue — Reset, then restore previous context (recommended, cheapest)
 👉 Re-send — Continue as-is (full re-cache cost incurred)
 ```
 
@@ -130,15 +130,15 @@ SessionStartフックは **すべてのセッションとすべてのモデル**
 
 ---
 
-## 🔄 機能3: /cc-continue — コンテキストの復元
+## 🔄 機能3: /s-continue — コンテキストの復元
 
 **`/compact` の代替。LLM呼び出しゼロ。トークンコストゼロ。情報損失ゼロ。**
 
 `/compact` はコンテキスト全体（約100万トークン）をLLMに送信して3.3%のサマリーに圧縮する。キャッシュが期限切れの場合、それだけでフルキャッシュ再構築が発生する。情報損失は避けられない。
 
-`/cc-continue` はまったく異なるアプローチを取る。前のセッションのトランスクリプトを前処理して直接読み込む。LLM呼び出しなし。コストなし。元の会話がそのまま復元される。
+`/s-continue` はまったく異なるアプローチを取る。前のセッションのトランスクリプトを前処理して直接読み込む。LLM呼び出しなし。コストなし。元の会話がそのまま復元される。
 
-|                         | /compact                          | /cc-continue                        |
+|                         | /compact                          | /s-continue                        |
 | ----------------------- | --------------------------------- | -------------------------------- |
 | 仕組み            | コンテキスト全体をLLMに送信してサマリー作成 | トランスクリプトを前処理して直接読み込み |
 | LLM呼び出し               | 必要（通常10万トークン以上） | 0                                |
@@ -148,41 +148,41 @@ SessionStartフックは **すべてのセッションとすべてのモデル**
 | キャッシュ期限切れ時   | 追加でフルキャッシュ再構築コスト発生         | 影響なし                        |
 | マルチセッション復元   | 不可                      | 対応済み                        |
 
-使い方：`/clear` してから `/cc-continue`。前のセッションのリストが表示される。復元したいものを選択する。素早く回復する場合：`/cc-continue last`。
+使い方：`/clear` してから `/s-continue`。前のセッションのリストが表示される。復元したいものを選択する。素早く回復する場合：`/s-continue last`。
 
 **結果：** ゼロコストで前の作業を再開。情報損失なし。60MB以上のトランスクリプトを1秒以内に処理。
 
-### 🤝 対になる機能：`/cc-compact` — 見えないレイヤーを引き継ぐ
+### 🤝 対になる機能：`/s-compact` — 見えないレイヤーを引き継ぐ
 
-`/cc-continue` はトランスクリプト — あなたとClaudeが交わした会話 — を復元する。しかし作業セッションで最も有用な知識は、しばしばその対話の外にある：サブエージェントが見つけたこと（そのトランスクリプトは別ファイルで、復元時には読み込まれない）、ツール出力の中の決定的な数字（テスト件数、ベンチマーク値）、作業過程で得た教訓（「ヘッドレスで再現しなかったのはコードではなくビルドの問題だった」）。
+`/s-continue` はトランスクリプト — あなたとClaudeが交わした会話 — を復元する。しかし作業セッションで最も有用な知識は、しばしばその対話の外にある：サブエージェントが見つけたこと（そのトランスクリプトは別ファイルで、復元時には読み込まれない）、ツール出力の中の決定的な数字（テスト件数、ベンチマーク値）、作業過程で得た教訓（「ヘッドレスで再現しなかったのはコードではなくビルドの問題だった」）。
 
-セッションの終わりに `/cc-compact` を実行すると、まさにこの見えないレイヤーを引き継ぎ記録に凝縮し、`~/.claude/claude-code-token-saver-data/<project>/handoff.md` に保存する。次のセッションでは `/cc-continue` が復元したトランスクリプトの上にこれを自動で読み込む — 貼り付け不要。
+セッションの終わりに `/s-compact` を実行すると、まさにこの見えないレイヤーを引き継ぎ記録に凝縮し、`~/.claude/super-token-saver-data/<project>/handoff.md` に保存する。次のセッションでは `/s-continue` が復元したトランスクリプトの上にこれを自動で読み込む — 貼り付け不要。
 
-|                     | `/cc-continue` 単独            | `/cc-compact` + `/cc-continue`（セット）          |
+|                     | `/s-continue` 単独            | `/s-compact` + `/s-continue`（セット）          |
 | 復元範囲            | トランスクリプト（交わした会話）  | トランスクリプト＋見えないレイヤー             |
 | サブエージェントの発見   | 失われる（別ファイル）           | 引き継ぎ記録に凝縮                       |
 | ツール出力の数字 | チャットに引用された場合のみ    | 意図的に抽出                            |
 | 作業過程の教訓     | なし                               | 同じ失敗を繰り返さないよう記録              |
 
-**作業の流れ：** セッションを `/cc-compact` で終え → 次のセッションを `/cc-continue` で始める。
+**作業の流れ：** セッションを `/s-compact` で終え → 次のセッションを `/s-continue` で始める。
 
 ### 🔀 二つのツール、一つの履歴 — Codexのセッションもここで復元できる
 
 Codexはセッションを `~/.codex/sessions/` に、Claude Codeは `~/.claude/projects/` に書き込む。互いに相手のファイルを読まないため、Codexで予算切れになったタスクはClaude Codeから手が届かなかった。逆方向も同じだった。
 
-`/cc-continue` は今、両方の履歴を一覧表示し、復元する。Codexのrolloutを別のパーサーに渡すのではなく、Claude Codeが書く形式へと **入力1行につき出力1行** でそのまま書き換える。だから同じパイプラインが両方に対応し、`L{n}` マーカーは元のCodexファイルの正確な行を指し続ける。実測:12 MB、1,540行のrolloutの前処理は **0.13 s**。
+`/s-continue` は今、両方の履歴を一覧表示し、復元する。Codexのrolloutを別のパーサーに渡すのではなく、Claude Codeが書く形式へと **入力1行につき出力1行** でそのまま書き換える。だから同じパイプラインが両方に対応し、`L{n}` マーカーは元のCodexファイルの正確な行を指し続ける。実測:12 MB、1,540行のrolloutの前処理は **0.13 s**。
 
 |                        | Claude Codeセッション | Codexセッション |
 | ---------------------- | ------------------- | ------------- |
-| `/cc-continue` に表示 | ○ | ○、現在のプロジェクトに限定 |
+| `/s-continue` に表示 | ○ | ○、現在のプロジェクトに限定 |
 | LLMコスト0で復元 | ○ | ○ |
 | `L{n}` で元の位置へ | ○ | ○ — 行番号はrollout自身のもの |
 | コンテキスト消失（`#0`）からの復元 | `/compact`、自動compact | Codexのcompactionとスレッドロールバック |
-| `/cc-compact` の引き継ぎ | プロジェクト単位で共有 — 片方で書いて、もう片方で読み込む |
+| `/s-compact` の引き継ぎ | プロジェクト単位で共有 — 片方で書いて、もう片方で読み込む |
 
 ```
-/cc-continue codex                    only Codex sessions
-/cc-continue codex : rust migration   the turns matching a topic, restored in full
+/s-continue codex                    only Codex sessions
+/s-continue codex : rust migration   the turns matching a topic, restored in full
 ```
 
 正しい一覧と、もっともらしいが間違った一覧を分けるのはこの二点だ。Codexの `session_id` はサブエージェントがそのまま引き継ぐ **スレッド** idなので、セッションは `payload.id` で識別し、サブエージェントのrolloutはClaude Codeがsubtaskのトランスクリプトを除外するのと同じ方法で取り除く。そして `<codex_internal_context source="goal">` はシステムが自動で挿入するものなので、復元後のコンテキストには残るが、ユーザーが打ったターンとしては数えない。
@@ -331,7 +331,7 @@ Claude Codeソース（v2.1.88）の2つの独立した注入ポイントにト�
 
 通常のインタラクティブセッションでは、コミット/PR指示（1.7Kトークン）が `cache_read` 経由で **すべてのAPI呼び出し** に蓄積される。Opus 4.7の価格設定で100回呼び出しのセッションでは、Claudeのトレーニングがほとんどカバーしている指示に対してだけで約 **$0.08/セッション** となる。
 
-### claude-code-token-saverによる対処法
+### super-token-saverによる対処法
 
 `/setup-git-lite` はネイティブパスを無効化し、SessionStartフック経由で **280トークンの厳選した代替** を注入する。Claudeのデフォルト動作を上書きするもの（安全ルール）だけを残し、Claudeがトレーニングですでに知っていること（ステップごとのワークフロー、PRテンプレート、ghの使用パターン）はすべて削除した。
 
@@ -383,7 +383,7 @@ Claude Codeソース（v2.1.88）の2つの独立した注入ポイントにト�
 
 別の理由で環境変数が必要な場合は、`revert` を実行する前にメモしておき、後で再追加する。
 
-### claude-code-token-saverをアンインストールする前に
+### super-token-saverをアンインストールする前に
 
 **先に `/setup-git-lite revert` を実行**すること。そうしないと、settings.jsonには `includeGitInstructions: false` が残るが代替フックがない状態になる（Claudeはgitのガイダンスを全く受け取らない）。Claude Codeには現在プラグインのアンインストールライフサイクルフックがないため、自動化できない。
 
@@ -396,7 +396,7 @@ Claude Codeソース（v2.1.88）の2つの独立した注入ポイントにト�
 
 ### 推奨バナー
 
-CCのネイティブgit指示がまだアクティブな場合、claude-code-token-saverはセッション開始時に **約20%の確率**で1段落のヒントを表示する（`/usage-view` と `/report-limit` の出力にも表示）。`/setup-git-lite dismiss-banner` で恒久的に非表示にできる。
+CCのネイティブgit指示がまだアクティブな場合、super-token-saverはセッション開始時に **約20%の確率**で1段落のヒントを表示する（`/usage-view` と `/report-limit` の出力にも表示）。`/setup-git-lite dismiss-banner` で恒久的に非表示にできる。
 
 ---
 
@@ -419,7 +419,7 @@ Claude CodeはすべてのAPI呼び出しで会話履歴全体をモデルに送
 
 条件：Opus 4価格設定、1分1プロンプト、プロンプトあたり約5回のAPI呼び出し（約300回/時間）。
 
-#### ❌ claude-code-token-saverなし
+#### ❌ super-token-saverなし
 
 ほとんどの作業がメインセッションで行われる。コンテキストが急速に成長する。
 
@@ -434,7 +434,7 @@ Claude CodeはすべてのAPI呼び出しで会話履歴全体をモデルに送
 
 > この使用レベルでは5時間ウィンドウのレート制限に達する可能性が高い。**コストも問題だが、本当の問題は作業が完全に止まること。これがClaude Codeが暗くなる瞬間だ。**
 
-#### ✅ claude-code-token-saverあり
+#### ✅ super-token-saverあり
 
 重い作業をSubTaskに委譲。メインは設計/意思決定のみ。
 
@@ -442,7 +442,7 @@ Claude CodeはすべてのAPI呼び出しで会話履歴全体をモデルに送
 | ----------- | -------------------------------------------- | --------------------------- | ---------------------------------- |
 | 午前3時間  | コーディング（メイン：設計、SubTask：実装） | Main 100K → 300K (avg 200K) | 900 calls × 200K × ＄0.50/M = ＄90 |
 | 昼食/会議   | 2時間離席                             | —                           | —                                  |
-| 復帰      | ⚡ Token Guardianがブロック → /clear + /cc-continue | —                           | ＄0 (no LLM calls)                 |
+| 復帰      | ⚡ Token Guardianがブロック → /clear + /s-continue | —                           | ＄0 (no LLM calls)                 |
 | 午後3時間 | コーディング継続                             | Main 100K → 300K (avg 200K) | 900 calls × 200K × ＄0.50/M = ＄90 |
 |             | 合計                                        |                             | ~＄180                              |
 
@@ -454,7 +454,7 @@ Claude CodeはすべてのAPI呼び出しで会話履歴全体をモデルに送
 >
 > **API従量課金：** ＄146/日 × 22就業日 = **月＄3,200が請求書から削減。** このプラグインなしの重い月は＄7,000を超える。使えば＄4,000以下。同じ出力量。
 
-### claude-code-token-saverの介入ポイント
+### super-token-saverの介入ポイント
 
 ```
 [Session Start]
@@ -473,7 +473,7 @@ Claude CodeはすべてのAPI呼び出しで会話履歴全体をモデルに送
     │
 [Session restart]
     │
-    └─ /cc-continue → Restores previous context at zero cost (no LLM calls)
+    └─ /s-continue → Restores previous context at zero cost (no LLM calls)
 ```
 
 ---
@@ -481,16 +481,16 @@ Claude CodeはすべてのAPI呼び出しで会話履歴全体をモデルに送
 ## 🔧 ソースからのインストールとカスタマイズ
 
 ```bash
-git clone https://github.com/ww-w-ai/claude-code-token-saver.git
-/plugin marketplace add /path/to/claude-code-token-saver
-/plugin install claude-code-token-saver@ww-w-ai
+git clone https://github.com/ww-w-ai/super-token-saver.git
+/plugin marketplace add /path/to/super-token-saver
+/plugin install super-token-saver@ww-w-ai
 ```
 
-claude-code-token-saverは完全オープンソース（Apache-2.0）。プレーンなJavaScript + Bash — コンパイル済みバイナリなし、外部API呼び出しなし、テレメトリなし。すべての行が監査可能。このREADMEのすべての主張は、読める具体的なファイルに対応している。
+super-token-saverは完全オープンソース（Apache-2.0）。プレーンなJavaScript + Bash — コンパイル済みバイナリなし、外部API呼び出しなし、テレメトリなし。すべての行が監査可能。このREADMEのすべての主張は、読める具体的なファイルに対応している。
 
 - **hooks/** — キャッシュ期限切れのしきい値変更、警告メッセージのカスタマイズ、セッションアーキテクチャルールの変更
 - **scripts/** — 分析ロジック、レポートビルダー、ステータスラインのフォーマット
-- **skills/** — /cc-continue と /usage-view の動作、プロンプトテンプレート
+- **skills/** — /s-continue と /usage-view の動作、プロンプトテンプレート
 - **locales/** — 翻訳の追加/編集、新しい言語の追加
 - **skills/usage-view/** — ダッシュボードのUI/UXデザイン変更
 
@@ -548,7 +548,7 @@ git-liteが有効の場合、プラグインはセッションあたり約1,920�
 
 - **CLAUDE.mdをスリムに保つ。** すべてのAPI呼び出しでシステムプロンプトに読み込まれる。すべての行がコストになる。
 - **重い作業をSubTaskに委譲する。** コード生成、マルチファイル編集、テスト実行はメインセッションに属さない。SubTaskはコンテキストが小さく、より安いキャッシュ層を持つ。
-- **1時間以上離席する？** `/clear` → 戻ってきたら → `/cc-continue`。コンテキストが $0 で復元される。
+- **1時間以上離席する？** `/clear` → 戻ってきたら → `/s-continue`。コンテキストが $0 で復元される。
 - **[5H] が70%以上（🟡）？** ペースを落とす。軽量なレビュータスクに切り替えるか、メインのAPI呼び出し数を減らすためにSubTask委譲を増やす。
 - **サイドクエスチョンには `/btw` を使う。** 会話履歴に入らないため、コンテキストがスリムに保たれる。
 
@@ -556,7 +556,7 @@ git-liteが有効の場合、プラグインはセッションあたり約1,920�
 
 上記すべてに加え、API固有の優先事項：
 
-- **[CTX] をスピードメーターのように見る。** レート制限で止まることはないが、コンテキストが50万以上になると、すべてのAPI呼び出しが本来の2〜3倍のコストになる。`/clear` → `/cc-continue` は無料でコスト乗数をベースラインにリセットする。
+- **[CTX] をスピードメーターのように見る。** レート制限で止まることはないが、コンテキストが50万以上になると、すべてのAPI呼び出しが本来の2〜3倍のコストになる。`/clear` → `/s-continue` は無料でコスト乗数をベースラインにリセットする。
 - **週次で `/usage-view` を実行する。** Max Planユーザーはレート制限に達したときに「痛い」と感じる瞬間がある。あなたにはそれがない — コストが静かに上昇する。ダッシュボードが早期警告システムになる。
 - **日次の精神的な予算を設定する。** 上限がなければ、$200の日が気づかずに発生する。ステータスラインのRUNインジケーターがターンごとのコストを可視化する。1ターンが $1（🔴）を超えたら、コンテキストが大きすぎる。
 

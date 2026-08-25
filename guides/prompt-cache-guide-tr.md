@@ -69,20 +69,20 @@ Anthropic'te cache write maliyeti input'un 1,25 katı (5 dakikalık tier) veya 2
 
 Başka bir deyişle, cache write yalnızca "kullanıcının yazdığı yeni tokenlar" için gerçekleşmez. Oturum başlangıcında tüm system prompt cache'lenir; süre dolduktan sonra biriken tüm konuşma cache write hedefi olur. 100K tokenlik bir konuşmanın cache'i sona ererse, tek bir mesaj aynı anda 100K tokenlik cache write tetikler.
 
-**claude-code-token-saver plugin'inin 1 saat hareketsizlikten sonra cache süre dolumu uyarısı göstermesinin nedeni tam olarak budur.** Uyarı göründüğünde mevcut bağlam boyutunuzu kontrol edin:
+**super-token-saver plugin'inin 1 saat hareketsizlikten sonra cache süre dolumu uyarısı göstermesinin nedeni tam olarak budur.** Uyarı göründüğünde mevcut bağlam boyutunuzu kontrol edin:
 
 - **Küçük bağlam**: Cache yeniden oluşturma maliyeti yönetilebilir. Çalışmaya devam edin — maliyet düşüktür.
-- **Büyük bağlam**: Cache maliyeti önemli olacaktır. Yeni bir oturumda devam etmek için `/clear` ardından `/cc-continue last` kullanmanızı öneririz. continue skill'i önceki konuşma bağlamınızı otomatik olarak geri yükler, böylece iş akışınız kesintiye uğramaz.
+- **Büyük bağlam**: Cache maliyeti önemli olacaktır. Yeni bir oturumda devam etmek için `/clear` ardından `/s-continue last` kullanmanızı öneririz. continue skill'i önceki konuşma bağlamınızı otomatik olarak geri yükler, böylece iş akışınız kesintiye uğramaz.
 
 ## Cache Maliyetlerini Düşürme Stratejileri
 
-claude-code-token-saver plugin'i bu stratejilerin tümünü otomatikleştirmek veya basitleştirmek için tasarlanmıştır.
+super-token-saver plugin'i bu stratejilerin tümünü otomatikleştirmek veya basitleştirmek için tasarlanmıştır.
 
-### 1. Bağlamı Küçük Tutun — `/clear` + `/cc-continue` ⭐
+### 1. Bağlamı Küçük Tutun — `/clear` + `/s-continue` ⭐
 
 **Maliyetleri düşürmenin en önemli yolu budur.** Yüksek cache maliyetleri %90 indirim aldığınız anlamına gelir — bu normaldir. Ancak bağlam gereksiz yere büyür ve öyle kalırsa, indirime rağmen çağrı başına mutlak maliyet artar. **Bağlam boyutunu kontrol altında tutmak, en etkili maliyet yönetimi stratejisidir.**
 
-Konu değiştiğinde veya konuşma uzadığında, sıfırlamak için `/clear` çalıştırın, ardından önceki bağlamı geri yüklemek için `/cc-continue last` kullanın. `/cc-continue` önceki konuşmaları herhangi bir LLM çağrısı olmadan geri yükler, dolayısıyla maliyeti sıfırdır.
+Konu değiştiğinde veya konuşma uzadığında, sıfırlamak için `/clear` çalıştırın, ardından önceki bağlamı geri yüklemek için `/s-continue last` kullanın. `/s-continue` önceki konuşmaları herhangi bir LLM çağrısı olmadan geri yükler, dolayısıyla maliyeti sıfırdır.
 
 `/compact` konuşmayı özetleyerek bağlamı küçültür, ancak özetleme sürecinin kendisi LLM çağrı maliyeti oluşturur ve konuşma detayını kaybettirir. Önerilmez.
 
@@ -90,13 +90,13 @@ Konu değiştiğinde veya konuşma uzadığında, sıfırlamak için `/clear` ç
 
 Anthropic'in ana oturum cache'i **1 saatlik tier** kullanır. Süre dolduktan sonra ilk istek, tüm konuşmayı cache write olarak yeniden oluşturmak zorundadır — bu pahalıdır.
 
-claude-code-token-saver, 1 saatlik boşta kalma durumlarını algılar ve **otomatik olarak uyarı gösterir**. Uyarı göründüğünde, yukarıdaki 1. yöntemi (`/clear` + `/cc-continue`) kullanarak yeni bir oturumda devam etmek en ekonomik yaklaşımdır.
+super-token-saver, 1 saatlik boşta kalma durumlarını algılar ve **otomatik olarak uyarı gösterir**. Uyarı göründüğünde, yukarıdaki 1. yöntemi (`/clear` + `/s-continue`) kullanarak yeni bir oturumda devam etmek en ekonomik yaklaşımdır.
 
 ### 3. Ağır İşleri SubTask'lara Devredin
 
 Kod oluşturma veya çoklu dosya düzenleme gibi ağır görevler, ana oturumda doğrudan çalıştırılmak yerine SubTask'lara devredilebilir. SubTask'lar 5 dakikalık cache tier'ını kullanır, bu da **cache write'ı %37,5 daha ucuz** yapar ve daha küçük, izole bir bağlamda çalışarak çağrı başına cache read hacmini azaltır.
 
-claude-code-token-saver, oturum başlangıcında bu iş ayırma kalıbını otomatik olarak yönlendirir.
+super-token-saver, oturum başlangıcında bu iş ayırma kalıbını otomatik olarak yönlendirir.
 
 ### 4. Gerçek Zamanlı Maliyet İzleme — `/setup-statusline`
 
@@ -110,7 +110,7 @@ Tüm kullanım geçmişinizi bir dashboard olarak incelemek için `/usage-view` 
 
 System prompt'a ne kadar çok plugin, MCP sunucusu ve skill yüklenirse, başlangıç cache write maliyeti o kadar yüksek olur. Kullanmadıklarınızı kaldırın.
 
-claude-code-token-saver'ın `/setup-git-lite` komutu, Claude Code'un varsayılan Git talimatlarını (~2.200 token) 280 tokenlık çekirdeğe düşürür — oturum başına Git ile ilgili system prompt'ta yaklaşık %88 azalma sağlar.
+super-token-saver'ın `/setup-git-lite` komutu, Claude Code'un varsayılan Git talimatlarını (~2.200 token) 280 tokenlık çekirdeğe düşürür — oturum başına Git ile ilgili system prompt'ta yaklaşık %88 azalma sağlar.
 
 ### 7. Tool Seçimi — Bağlam Etkisi Tool'a Göre Değişir
 
@@ -137,7 +137,7 @@ Aynı ilke düzenleme ve karşılaştırma için de geçerlidir:
 | **git diff / diff** | Dosya/klasör karşılaştırma | **Minimal** — yalnızca farklar döner |
 | Her iki dosyayı ayrı ayrı okuma | Dosya/klasör karşılaştırma | **Büyük** — her iki dosyanın tamamı bağlama eklenir |
 
-claude-code-token-saver, oturum başlangıcında bu tool seçim rehberini AI'a otomatik olarak enjekte eder ve önce hafif tool'ların kullanımını teşvik eder.
+super-token-saver, oturum başlangıcında bu tool seçim rehberini AI'a otomatik olarak enjekte eder ve önce hafif tool'ların kullanımını teşvik eder.
 
 ## Ek: AI Sağlayıcıları Arasında Cache Karşılaştırması
 

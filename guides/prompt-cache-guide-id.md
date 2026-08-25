@@ -69,20 +69,20 @@ Dua alasan:
 
 Dengan kata lain, cache write tidak hanya terjadi untuk "token baru yang diketik pengguna." Saat sesi dimulai, seluruh system prompt di-cache; setelah kedaluwarsa, seluruh percakapan terakumulasi menjadi target cache write. Jika cache percakapan 100K token kedaluwarsa, satu pesan memicu cache write 100K token sekaligus.
 
-**Inilah mengapa plugin claude-code-token-saver menampilkan peringatan kedaluwarsa cache setelah 1 jam tidak aktif.** Saat peringatan muncul, periksa ukuran konteks Anda saat ini:
+**Inilah mengapa plugin super-token-saver menampilkan peringatan kedaluwarsa cache setelah 1 jam tidak aktif.** Saat peringatan muncul, periksa ukuran konteks Anda saat ini:
 
 - **Konteks kecil**: Biaya pembuatan ulang cache masih terjangkau. Lanjutkan saja — biayanya rendah.
-- **Konteks besar**: Biaya cache akan signifikan. Kami merekomendasikan `/clear` diikuti `/cc-continue last` untuk melanjutkan di sesi baru. Skill continue secara otomatis memulihkan konteks percakapan sebelumnya, sehingga alur kerja Anda tidak terganggu.
+- **Konteks besar**: Biaya cache akan signifikan. Kami merekomendasikan `/clear` diikuti `/s-continue last` untuk melanjutkan di sesi baru. Skill continue secara otomatis memulihkan konteks percakapan sebelumnya, sehingga alur kerja Anda tidak terganggu.
 
 ## Strategi Mengurangi Biaya Cache
 
-Plugin claude-code-token-saver dirancang untuk mengotomatiskan atau menyederhanakan semua strategi ini.
+Plugin super-token-saver dirancang untuk mengotomatiskan atau menyederhanakan semua strategi ini.
 
-### 1. Jaga Konteks Tetap Kecil — `/clear` + `/cc-continue` ⭐
+### 1. Jaga Konteks Tetap Kecil — `/clear` + `/s-continue` ⭐
 
 **Ini adalah cara paling penting untuk mengurangi biaya.** Biaya cache yang tinggi berarti Anda mendapatkan diskon 90% — itu normal. Tetapi jika konteks tumbuh terlalu besar tanpa perlu dan tetap seperti itu, biaya absolut per panggilan meningkat meskipun ada diskon. **Menjaga ukuran konteks tetap terkendali adalah strategi manajemen biaya yang paling efektif.**
 
-Saat topik berubah atau percakapan menjadi panjang, jalankan `/clear` untuk mereset, lalu `/cc-continue last` untuk memulihkan konteks sebelumnya. `/cc-continue` memulihkan percakapan sebelumnya tanpa panggilan LLM apa pun, sehingga biayanya nol.
+Saat topik berubah atau percakapan menjadi panjang, jalankan `/clear` untuk mereset, lalu `/s-continue last` untuk memulihkan konteks sebelumnya. `/s-continue` memulihkan percakapan sebelumnya tanpa panggilan LLM apa pun, sehingga biayanya nol.
 
 `/compact` mengurangi konteks dengan merangkum percakapan, tetapi proses perangkuman itu sendiri menimbulkan biaya panggilan LLM dan menghilangkan detail percakapan. Tidak direkomendasikan.
 
@@ -90,13 +90,13 @@ Saat topik berubah atau percakapan menjadi panjang, jalankan `/clear` untuk mere
 
 Cache sesi utama Anthropic menggunakan **tier 1 jam**. Setelah kedaluwarsa, permintaan pertama harus membuat ulang seluruh percakapan sebagai cache write, yang mahal.
 
-claude-code-token-saver mendeteksi status idle 1 jam dan **secara otomatis menampilkan peringatan**. Saat peringatan muncul, menggunakan metode 1 di atas (`/clear` + `/cc-continue`) untuk melanjutkan di sesi baru adalah pendekatan paling ekonomis.
+super-token-saver mendeteksi status idle 1 jam dan **secara otomatis menampilkan peringatan**. Saat peringatan muncul, menggunakan metode 1 di atas (`/clear` + `/s-continue`) untuk melanjutkan di sesi baru adalah pendekatan paling ekonomis.
 
 ### 3. Delegasikan Pekerjaan Berat ke SubTask
 
 Tugas berat seperti pembuatan kode atau editing multi-file dapat didelegasikan ke SubTask alih-alih dijalankan langsung di sesi utama. SubTask menggunakan tier cache 5 menit, membuat **cache write 37,5% lebih murah**, dan berjalan dalam konteks terisolasi yang lebih kecil, mengurangi volume cache read per panggilan.
 
-claude-code-token-saver secara otomatis membimbing pola pemisahan kerja ini saat sesi dimulai.
+super-token-saver secara otomatis membimbing pola pemisahan kerja ini saat sesi dimulai.
 
 ### 4. Pemantauan Biaya Real-Time — `/setup-statusline`
 
@@ -110,7 +110,7 @@ Gunakan `/usage-view` untuk meninjau seluruh riwayat penggunaan Anda sebagai das
 
 Semakin banyak plugin, server MCP, dan skill yang dimuat ke system prompt, semakin tinggi biaya cache write awal. Hapus yang tidak Anda gunakan.
 
-`/setup-git-lite` dari claude-code-token-saver mengurangi instruksi Git bawaan Claude Code (~2.200 token) menjadi inti 280 token — pengurangan sekitar 88% pada system prompt terkait Git per sesi.
+`/setup-git-lite` dari super-token-saver mengurangi instruksi Git bawaan Claude Code (~2.200 token) menjadi inti 280 token — pengurangan sekitar 88% pada system prompt terkait Git per sesi.
 
 ### 7. Pemilihan Tool — Dampak Konteks Berbeda per Tool
 
@@ -137,7 +137,7 @@ Prinsip yang sama berlaku untuk editing dan perbandingan:
 | **git diff / diff** | Bandingkan file/folder | **Minimal** — hanya perbedaan yang dikembalikan |
 | Baca kedua file terpisah | Bandingkan file/folder | **Besar** — kedua file penuh ditambahkan ke konteks |
 
-claude-code-token-saver secara otomatis menyuntikkan panduan pemilihan tool ini ke AI saat sesi dimulai, mendorong penggunaan tool ringan terlebih dahulu.
+super-token-saver secara otomatis menyuntikkan panduan pemilihan tool ini ke AI saat sesi dimulai, mendorong penggunaan tool ringan terlebih dahulu.
 
 ## Lampiran: Perbandingan Cache Antar Penyedia AI
 

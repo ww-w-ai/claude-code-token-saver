@@ -69,20 +69,20 @@ AI编程工具必然会产生长对话和大上下文，单次请求最多可达
 
 也就是说，Cache Write不仅仅发生在"用户输入的新token"上。会话开始时整个系统提示词会被缓存；过期后，累积的整个对话都会成为Cache Write的对象。如果一个10万token的对话缓存过期了，一条消息就会触发10万token的Cache Write。
 
-**这正是claude-code-token-saver插件在闲置1小时后显示缓存过期警告的原因。** 看到警告时，请检查当前上下文大小：
+**这正是super-token-saver插件在闲置1小时后显示缓存过期警告的原因。** 看到警告时，请检查当前上下文大小：
 
 - **上下文较小**：缓存重建成本在可接受范围内。继续工作即可，费用不高。
-- **上下文较大**：缓存成本会很可观。建议执行 `/clear` 然后 `/cc-continue last` 在新会话中恢复。continue技能会自动恢复之前的对话上下文，工作流程不会中断。
+- **上下文较大**：缓存成本会很可观。建议执行 `/clear` 然后 `/s-continue last` 在新会话中恢复。continue技能会自动恢复之前的对话上下文，工作流程不会中断。
 
 ## 降低缓存成本的策略
 
-claude-code-token-saver插件的设计目标就是自动化或简化以下所有策略。
+super-token-saver插件的设计目标就是自动化或简化以下所有策略。
 
-### 1. 保持上下文精简 — `/clear` + `/cc-continue` ⭐
+### 1. 保持上下文精简 — `/clear` + `/s-continue` ⭐
 
 **这是降低成本最重要的方法。** 缓存成本高意味着你享受了90%折扣——这本身是正常的。但如果上下文不必要地增大且长期保持，即使有折扣，每次调用的绝对成本也会上升。**控制上下文大小是最有效的成本管理策略。**
 
-当话题切换或对话变长时，执行 `/clear` 重置，然后用 `/cc-continue last` 恢复之前的上下文。`/cc-continue` 无需LLM调用即可恢复之前的对话，成本为零。
+当话题切换或对话变长时，执行 `/clear` 重置，然后用 `/s-continue last` 恢复之前的上下文。`/s-continue` 无需LLM调用即可恢复之前的对话，成本为零。
 
 `/compact` 通过总结对话来缩小上下文，但总结过程本身需要LLM调用且会丢失对话细节。不推荐使用。
 
@@ -90,13 +90,13 @@ claude-code-token-saver插件的设计目标就是自动化或简化以下所有
 
 Anthropic的主会话缓存使用**1小时tier**。过期后，首次请求需要将整个对话重新创建为Cache Write，成本很高。
 
-claude-code-token-saver检测到1小时闲置状态后会**自动显示警告**。看到警告时，使用上面的方法1（`/clear` + `/cc-continue`）在新会话中继续是最经济的做法。
+super-token-saver检测到1小时闲置状态后会**自动显示警告**。看到警告时，使用上面的方法1（`/clear` + `/s-continue`）在新会话中继续是最经济的做法。
 
 ### 3. 将繁重工作委托给SubTasks
 
 代码生成或多文件编辑等繁重任务可以委托给SubTasks，而不是在主会话中直接执行。SubTasks使用5分钟cache tier，**Cache Write便宜37.5%**，并且在独立的小上下文中运行，减少了每次调用的Cache Read量。
 
-claude-code-token-saver在会话开始时自动引导这种工作分离模式。
+super-token-saver在会话开始时自动引导这种工作分离模式。
 
 ### 4. 实时成本监控 — `/setup-statusline`
 
@@ -110,7 +110,7 @@ claude-code-token-saver在会话开始时自动引导这种工作分离模式。
 
 加载到系统提示词中的插件、MCP服务器和技能越多，初始Cache Write成本就越高。请移除不使用的部分。
 
-claude-code-token-saver的 `/setup-git-lite` 将Claude Code默认的Git指令（约2,200 token）精简为核心的280 token——每个会话的Git相关系统提示词减少约88%。
+super-token-saver的 `/setup-git-lite` 将Claude Code默认的Git指令（约2,200 token）精简为核心的280 token——每个会话的Git相关系统提示词减少约88%。
 
 ### 7. 工具选择 — 不同工具对上下文的影响差异很大
 
@@ -137,7 +137,7 @@ claude-code-token-saver的 `/setup-git-lite` 将Claude Code默认的Git指令（
 | **git diff / diff** | 比较文件/文件夹 | **极小** — 仅返回差异 |
 | 分别Read两个文件 | 比较文件/文件夹 | **大** — 两个完整文件都添加到上下文 |
 
-claude-code-token-saver在会话开始时自动向AI注入此工具选择指南，鼓励优先使用轻量级工具。
+super-token-saver在会话开始时自动向AI注入此工具选择指南，鼓励优先使用轻量级工具。
 
 ## 附录：AI服务商缓存对比
 

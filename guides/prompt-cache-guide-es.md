@@ -69,20 +69,20 @@ Dos razones:
 
 En otras palabras, la escritura de cache no ocurre solo por "nuevos tokens que el usuario escribio". Al inicio de la sesion, todo el prompt del sistema se almacena en cache; tras la expiracion, toda la conversacion acumulada se convierte en objetivo de escritura de cache. Si la cache de una conversacion de 100K tokens expira, un solo mensaje genera una escritura de cache de 100K tokens de golpe.
 
-**Exactamente por eso el plugin claude-code-token-saver muestra una advertencia de expiracion de cache tras 1 hora de inactividad.** Cuando aparezca la advertencia, comprueba el tamano de tu contexto actual:
+**Exactamente por eso el plugin super-token-saver muestra una advertencia de expiracion de cache tras 1 hora de inactividad.** Cuando aparezca la advertencia, comprueba el tamano de tu contexto actual:
 
 - **Contexto pequeno**: El coste de recreacion de cache es manejable. Simplemente sigue trabajando — el coste es bajo.
-- **Contexto grande**: El coste de cache sera significativo. Recomendamos `/clear` seguido de `/cc-continue last` para reanudar en una nueva sesion. La habilidad continue restaura automaticamente el contexto de tu conversacion anterior, asi que tu flujo de trabajo no se interrumpe.
+- **Contexto grande**: El coste de cache sera significativo. Recomendamos `/clear` seguido de `/s-continue last` para reanudar en una nueva sesion. La habilidad continue restaura automaticamente el contexto de tu conversacion anterior, asi que tu flujo de trabajo no se interrumpe.
 
 ## Estrategias para reducir los costes de cache
 
-El plugin claude-code-token-saver esta disenado para automatizar o simplificar todas estas estrategias.
+El plugin super-token-saver esta disenado para automatizar o simplificar todas estas estrategias.
 
-### 1. Mantener el contexto pequeno — `/clear` + `/cc-continue` ⭐
+### 1. Mantener el contexto pequeno — `/clear` + `/s-continue` ⭐
 
 **Esta es la forma mas importante de reducir costes.** Los costes altos de cache significan que estas recibiendo el descuento del 90% — eso es normal. Pero si el contexto crece innecesariamente y se mantiene asi, el coste absoluto por llamada aumenta incluso con el descuento. **Mantener el tamano del contexto bajo control es la estrategia de gestion de costes mas efectiva.**
 
-Cuando el tema cambia o la conversacion se alarga, ejecuta `/clear` para reiniciar, y luego `/cc-continue last` para restaurar el contexto anterior. `/cc-continue` restaura conversaciones anteriores sin ninguna llamada al LLM, asi que el coste es cero.
+Cuando el tema cambia o la conversacion se alarga, ejecuta `/clear` para reiniciar, y luego `/s-continue last` para restaurar el contexto anterior. `/s-continue` restaura conversaciones anteriores sin ninguna llamada al LLM, asi que el coste es cero.
 
 `/compact` reduce el contexto resumiendo la conversacion, pero el proceso de resumen en si incurre en costes de llamadas al LLM y descarta detalles de la conversacion. No recomendado.
 
@@ -90,13 +90,13 @@ Cuando el tema cambia o la conversacion se alarga, ejecuta `/clear` para reinici
 
 La cache de sesion principal de Anthropic usa un **nivel de 1 hora**. Tras la expiracion, la primera solicitud debe recrear toda la conversacion como escritura de cache, lo cual es costoso.
 
-claude-code-token-saver detecta estados de inactividad de 1 hora y **muestra automaticamente una advertencia**. Cuando aparezca la advertencia, usar el metodo 1 anterior (`/clear` + `/cc-continue`) para continuar en una nueva sesion es el enfoque mas economico.
+super-token-saver detecta estados de inactividad de 1 hora y **muestra automaticamente una advertencia**. Cuando aparezca la advertencia, usar el metodo 1 anterior (`/clear` + `/s-continue`) para continuar en una nueva sesion es el enfoque mas economico.
 
 ### 3. Delegar trabajo pesado a SubTasks
 
 Las tareas pesadas como generacion de codigo o ediciones de multiples archivos pueden delegarse a SubTasks en lugar de ejecutarlas directamente en la sesion principal. Los SubTasks usan el nivel de cache de 5 minutos, haciendo las **escrituras de cache un 37.5% mas baratas**, y se ejecutan en un contexto aislado mas pequeno, reduciendo el volumen de lectura de cache por llamada.
 
-claude-code-token-saver guia automaticamente este patron de separacion de trabajo al inicio de la sesion.
+super-token-saver guia automaticamente este patron de separacion de trabajo al inicio de la sesion.
 
 ### 4. Monitoreo de costes en tiempo real — `/setup-statusline`
 
@@ -110,7 +110,7 @@ Usa `/usage-view` para revisar tu historial completo de uso como un panel intera
 
 Cuantos mas plugins, servidores MCP y habilidades se carguen en el prompt del sistema, mayor sera el coste inicial de escritura de cache. Elimina lo que no estes usando.
 
-`/setup-git-lite` de claude-code-token-saver reduce las instrucciones Git predeterminadas de Claude Code (~2,200 tokens) a un nucleo de 280 tokens — una reduccion de aproximadamente el 88% en el prompt del sistema relacionado con Git por sesion.
+`/setup-git-lite` de super-token-saver reduce las instrucciones Git predeterminadas de Claude Code (~2,200 tokens) a un nucleo de 280 tokens — una reduccion de aproximadamente el 88% en el prompt del sistema relacionado con Git por sesion.
 
 ### 7. Seleccion de herramientas — El impacto en el contexto varia segun la herramienta
 
@@ -137,7 +137,7 @@ El mismo principio aplica para editar y comparar:
 | **git diff / diff** | Comparar archivos/carpetas | **Minimo** — solo se devuelven las diferencias |
 | Leer ambos archivos por separado | Comparar archivos/carpetas | **Grande** — ambos archivos completos anadidos al contexto |
 
-claude-code-token-saver inyecta automaticamente esta guia de seleccion de herramientas a la IA al inicio de la sesion, fomentando el uso de herramientas ligeras primero.
+super-token-saver inyecta automaticamente esta guia de seleccion de herramientas a la IA al inicio de la sesion, fomentando el uso de herramientas ligeras primero.
 
 ## Apendice: Comparacion de cache entre proveedores de IA
 

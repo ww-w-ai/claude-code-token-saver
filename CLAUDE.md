@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-Claude Code plugin (claude-code-token-saver) that automates token/cache management, cost tracking, session control, and research-backed thinking patterns. No npm dependencies, zero config. Pure Node.js + Bash (two pure-JS image codecs are vendored under `scripts/lib/vendor/`, still no install step).
+Claude Code plugin (super-token-saver) that automates token/cache management, cost tracking, session control, and research-backed thinking patterns. No npm dependencies, zero config. Pure Node.js + Bash (two pure-JS image codecs are vendored under `scripts/lib/vendor/`, still no install step).
 
 ## Architecture
 
 ```
 hooks/          → Lifecycle hooks (Bash). Run on UserPromptSubmit & SessionStart.
-skills/         → 5 SKILL.md-based skills invoked via /cc-continue, /cc-compact, /usage-view, /setup-statusline, /report-limit
+skills/         → 5 SKILL.md-based skills invoked via /s-continue, /s-compact, /usage-view, /setup-statusline, /report-limit
 scripts/        → Node.js processing pipeline (no npm, no build step)
                   + shrink-img.js — image downscaler for cheaper file attachments
 scripts/lib/    → Shared utilities (pricing, cache paths, locale, window calculations)
@@ -22,7 +22,7 @@ locales/        → 23 language JSON files for dashboard UI strings
 
 ### Two transcript sources, one pipeline
 
-`/cc-continue` and `/cc-compact` read Claude Code AND Codex sessions. A Codex rollout is not parsed
+`/s-continue` and `/s-compact` read Claude Code AND Codex sessions. A Codex rollout is not parsed
 by a second parser — `scripts/lib/codex-transcript.js` rewrites it into the shape CC writes, **one
 output line per input line**, and everything downstream runs unchanged.
 
@@ -54,7 +54,7 @@ Three manifests, **one version between them**:
 | `.codex-plugin/plugin.json` | Codex |
 | `manifest.json` | Codex marketplace listing |
 
-- **Only `cc-continue` and `cc-compact` are dual-host.** `usage-view`, `report-limit` and
+- **Only `s-continue` and `s-compact` are dual-host.** `usage-view`, `report-limit` and
   `setup-statusline` read Claude Code's own billing/rate-limit records and stay single-host.
 - **A dual-host skill must not hardcode one host's plugin root.** Claude Code exports
   `CLAUDE_PLUGIN_ROOT`; Codex does not reliably export `CODEX_PLUGIN_ROOT`. Use
@@ -103,8 +103,8 @@ All model rates (input, cacheCreate5m, cacheCreate1h, cacheRead, output, context
 
 ### Plugin installation paths
 - Source repo: this directory (editable).
-- Plugin cache: `~/.claude/plugin-cache/claude-code-token-saver/` (read-only, overwritten on `plugin install`). **Always edit source repo, never plugin cache.**
-- Dev mode symlink may exist — check with `ls -la ~/.claude/plugin-cache/claude-code-token-saver`.
+- Plugin cache: `~/.claude/plugin-cache/super-token-saver/` (read-only, overwritten on `plugin install`). **Always edit source repo, never plugin cache.**
+- Dev mode symlink may exist — check with `ls -la ~/.claude/plugin-cache/super-token-saver`.
 
 ### Skills execute via LLM instruction
 Skills have no runtime code — `SKILL.md` files contain the full execution plan that Claude follows. The LLM is the runtime.
@@ -112,8 +112,8 @@ Skills have no runtime code — `SKILL.md` files contain the full execution plan
 ### /usage-view runs as background agent
 `/usage-view` launches a background Agent (SubTask) so the user can keep working. The agent runs `analyze-usage.js` → `build-report.js` → opens browser. Agent prompt is in `skills/usage-view/agent-prompt-template.txt`.
 
-### /cc-continue restores sessions at zero LLM cost
-Reads preprocessed `compact.txt` directly — no summarization, no token expenditure. Topic matching (`/cc-continue : topic`) loads only relevant sessions to save context size. `--current-source` names the host tool so `isCurrent` marks the running session rather than whichever transcript is newest.
+### /s-continue restores sessions at zero LLM cost
+Reads preprocessed `compact.txt` directly — no summarization, no token expenditure. Topic matching (`/s-continue : topic`) loads only relevant sessions to save context size. `--current-source` names the host tool so `isCurrent` marks the running session rather than whichever transcript is newest.
 
 ## Key Constants
 
@@ -130,7 +130,7 @@ skills/usage-view/SKILL.md
     → calls scripts/analyze-usage.js (per-session JSONL → timeline.csv)
     → calls scripts/build-report.js  (timeline CSVs → HTML via template.html)
 
-skills/cc-continue/SKILL.md
+skills/s-continue/SKILL.md
   → calls scripts/list-sessions.js   (enumerate sessions, both sources)
     → calls scripts/lib/codex-transcript.js (Codex rollout → CC-shaped JSONL)
   → calls scripts/preprocess.js      (JSONL → compact.txt)

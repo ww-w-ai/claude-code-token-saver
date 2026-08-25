@@ -1,4 +1,4 @@
-# claude-code-token-saver
+# super-token-saver
 
 **Den eneste Claude Code-utvidelsen som faktisk leser CC-kildekoden for å finne ut hvor tokenene dine tar veien — og fikser det automatisk. Bruk mindre, kod lenger.**
 
@@ -15,8 +15,8 @@ Fungerer med **Max Plan ($200/mnd)** og **API betal-per-bruk**. Samme utvidelse,
 | 🛡️ Token Guardian | Oppdager cache-utløp, blokkerer $9-reserver innen de skjer | Forhindrer den vanligste stille kostnadsøkningen |
 | 🧠 Session Architect | Delegerer tungt arbeid automatisk til SubTasks (37,5% billigere cache) | Kontekst forblir liten, kostnader synker |
 | 🪶 Concise Mode | Kutter responsutfylling, beholder substansen | Færre output-tokens per respons |
-| 🔄 /cc-continue | Erstatter /compact — null LLM-anrop, null kostnad, null informasjonstap, og gjenoppretter nå også **Codex**-økter | Gratis konteksGjenoppretting på tvers av begge verktøy |
-| 🤝 /cc-compact | Skriver en øktoverlevering som /cc-continue laster automatisk — fanger opp subagent-funn og verktøyresultater transkriptet mister | Neste økt gjenopptar også med den skjulte konteksten |
+| 🔄 /s-continue | Erstatter /compact — null LLM-anrop, null kostnad, null informasjonstap, og gjenoppretter nå også **Codex**-økter | Gratis konteksGjenoppretting på tvers av begge verktøy |
+| 🤝 /s-compact | Skriver en øktoverlevering som /s-continue laster automatisk — fanger opp subagent-funn og verktøyresultater transkriptet mister | Neste økt gjenopptar også med den skjulte konteksten |
 | 📊 Status Line | Sanntidskostnad, kontekststørrelse, hastighetsgrense — under 50ms | Se problemer før de koster deg penger |
 | 📈 /usage-view | Interaktivt HTML-dashbord med AI-analyse | Fullstendig kostnadsetterforskning med ett klikk |
 | ✂️ /setup-git-lite | Fjerner 2 200 skjulte tokens som CC injiserer hver økt | ~$48/mnd spart bare på git-instruksjoner |
@@ -37,7 +37,7 @@ Fungerer med **Max Plan ($200/mnd)** og **API betal-per-bruk**. Samme utvidelse,
 
 **API betal-per-bruk?** Alt ovennevnte, bortsett fra at det ikke er noe tak. En cache-miss = $9 ekte penger. Ti ganger i uken = $360/mnd bare på uhell. En dårlig tirsdag med oppblåst kontekst kan koste mer enn hva en Max Plan-abonnent betaler i løpet av en måned.
 
-claude-code-token-saver håndterer alt dette automatisk. **Installer én gang. Ferdig.**
+super-token-saver håndterer alt dette automatisk. **Installer én gang. Ferdig.**
 
 ---
 
@@ -45,7 +45,7 @@ claude-code-token-saver håndterer alt dette automatisk. **Installer én gang. F
 
 ```
 /plugin marketplace add ww-w-ai/marketplace
-/plugin install claude-code-token-saver@ww-w-ai
+/plugin install super-token-saver@ww-w-ai
 ```
 
 Fungerer automatisk etter installasjon. Null konfigurasjon. Krever [Claude Code](https://claude.ai/claude-code) v2.1.71+.
@@ -79,7 +79,7 @@ The prompt cache has expired. Continuing will resend the full context.
 Cost may increase significantly.
 
 👉 /context — Check current context usage before deciding
-👉 /clear → /cc-continue — Reset, then restore previous context (recommended, cheapest)
+👉 /clear → /s-continue — Reset, then restore previous context (recommended, cheapest)
 👉 Re-send — Continue as-is (full re-cache cost incurred)
 ```
 
@@ -130,15 +130,15 @@ Installer én gang, gjelder overalt.
 
 ---
 
-## 🔄 Funksjon 3: /cc-continue — KonteksGjenoppretting
+## 🔄 Funksjon 3: /s-continue — KonteksGjenoppretting
 
 **Erstatter `/compact`. Null LLM-anrop. Null tokenkostnad. Null informasjonstap.**
 
 `/compact` sender hele konteksten din (~1M tokens) til LLM-en for å komprimere den til et 3,3%-sammendrag. Hvis cachen har utløpt, utløser det alene en full re-caching. Informasjonstap er uunngåelig.
 
-`/cc-continue` tar en helt annen tilnærming. Den forhåndsbehandler det forrige økt-transkriptet og laster det direkte. Intet LLM-anrop. Ingen kostnad. Den opprinnelige samtalen gjenopprettes som den var.
+`/s-continue` tar en helt annen tilnærming. Den forhåndsbehandler det forrige økt-transkriptet og laster det direkte. Intet LLM-anrop. Ingen kostnad. Den opprinnelige samtalen gjenopprettes som den var.
 
-|                         | /compact                          | /cc-continue                        |
+|                         | /compact                          | /s-continue                        |
 | ----------------------- | --------------------------------- | -------------------------------- |
 | Hvordan det fungerer    | Sender full kontekst til LLM for sammendrag | Forhåndsbehandler transkripsjon, leser direkte |
 | LLM-anrop               | Påkrevd (vanligvis 100K+ tokens)  | 0                                |
@@ -148,48 +148,48 @@ Installer én gang, gjelder overalt.
 | Når cache er utløpt     | Full re-cachekostnad på toppen    | Ingen innvirkning                |
 | Multi-økt-gjenoppretting | Ikke mulig                       | Støttet                          |
 
-Bruk: `/clear` deretter `/cc-continue`. Du ser en liste over tidligere økter. Velg én for å gjenopprette. For rask gjenoppretting: `/cc-continue last`.
+Bruk: `/clear` deretter `/s-continue`. Du ser en liste over tidligere økter. Velg én for å gjenopprette. For rask gjenoppretting: `/s-continue last`.
 
 **Resultat:** Gjenoppta tidligere arbeid uten kostnad. Ingen informasjonstap. Behandler 60MB+ transskripter på under 1 sekund.
 
-### 🤝 Makkeren: `/cc-compact` — overlever det skjulte laget
+### 🤝 Makkeren: `/s-compact` — overlever det skjulte laget
 
-`/cc-continue` gjenoppretter **transkriptet** — det du og Claude sa. Men den mest nyttige kunnskapen fra
+`/s-continue` gjenoppretter **transkriptet** — det du og Claude sa. Men den mest nyttige kunnskapen fra
 en arbeidsøkt lever ofte UTENFOR den dialogen: hva en **subagent** fant (transkriptet dens er en egen
 fil som gjenopprettingen aldri laster), et avgjørende **tall i verktøyresultater** (et testantall, en
 benchmark), en **lærdom fra prosessen** ("kunne ikke reprodusere i headless-modus → det var byggingen, ikke koden").
 
-Kjør `/cc-compact` på **slutten** av en økt, så destillerer den nettopp det skjulte laget til en
-overlevering, lagret i `~/.claude/claude-code-token-saver-data/<project>/handoff.md`. I neste økt
-laster `/cc-continue` den **automatisk** oppå det gjenopprettede transkriptet — ingen liming nødvendig.
+Kjør `/s-compact` på **slutten** av en økt, så destillerer den nettopp det skjulte laget til en
+overlevering, lagret i `~/.claude/super-token-saver-data/<project>/handoff.md`. I neste økt
+laster `/s-continue` den **automatisk** oppå det gjenopprettede transkriptet — ingen liming nødvendig.
 
-|                     | Bare `/cc-continue`             | `/cc-compact` + `/cc-continue` (paret)            |
+|                     | Bare `/s-continue`             | `/s-compact` + `/s-continue` (paret)            |
 | ------------------- | -------------------------------- | ------------------------------------------------ |
 | Gjenoppretter       | Transkriptet (det som ble sagt)  | Transkriptet **pluss** det skjulte laget          |
 | Subagent-funn       | Tapt (separate filer)            | Destillert inn i overleveringen                    |
 | Tall fra verktøyresultater | Kun hvis sitert i chatten  | Hentet ut bevisst                                 |
 | Lærdommer fra prosessen | —                            | Fanget opp så blindveier ikke gjentas             |
 
-**Arbeidsflyten:** avslutt en økt med `/cc-compact` → start den neste med `/cc-continue`.
+**Arbeidsflyten:** avslutt en økt med `/s-compact` → start den neste med `/s-continue`.
 
 
 ### 🔀 To verktøy, én historikk — Codex-økter gjenopprettes her også
 
 Codex skriver øktene sine til `~/.codex/sessions/`, Claude Code til `~/.claude/projects/`. Ingen av dem leser filene til den andre. En sprint som gikk tom for budsjett i Codex var derfor utilgjengelig fra Claude Code — og motsatt.
 
-`/cc-continue` lister og gjenoppretter nå begge deler. En Codex-rollout sendes ikke til en ny parser — den skrives om til nøyaktig det formatet Claude Code bruker, **én utdatalinje per inndatalinje**, slik at samme pipeline betjener begge verktøy og hver `L{n}`-markør fortsatt peker på nøyaktig samme linje i den opprinnelige Codex-filen. Målt: en 12 MB, 1,540-line rollout forhåndsbehandles på **0.13 s**.
+`/s-continue` lister og gjenoppretter nå begge deler. En Codex-rollout sendes ikke til en ny parser — den skrives om til nøyaktig det formatet Claude Code bruker, **én utdatalinje per inndatalinje**, slik at samme pipeline betjener begge verktøy og hver `L{n}`-markør fortsatt peker på nøyaktig samme linje i den opprinnelige Codex-filen. Målt: en 12 MB, 1,540-line rollout forhåndsbehandles på **0.13 s**.
 
 |                             | Claude Code-økt | Codex-økt |
 | --------------------------- | ------------------ | ----------- |
-| Listet i `/cc-continue`     | Ja | Ja, avgrenset til gjeldende prosjekt |
+| Listet i `/s-continue`     | Ja | Ja, avgrenset til gjeldende prosjekt |
 | Gjenopprettet uten LLM-kostnad | Ja | Ja |
 | `L{n}`-hopp til originalen | Ja | Ja — linjenumrene er rollout'ens egne |
 | Gjenoppretting etter kontekstap (`#0`) | `/compact`, auto-compact | Codex-komprimering og tråd-tilbakestilling |
-| `/cc-compact`-overlevering | Delt per prosjekt — skriv i det ene verktøyet, last i det andre |
+| `/s-compact`-overlevering | Delt per prosjekt — skriv i det ene verktøyet, last i det andre |
 
 ```
-/cc-continue codex                    only Codex sessions
-/cc-continue codex : rust migration   the turns matching a topic, restored in full
+/s-continue codex                    only Codex sessions
+/s-continue codex : rust migration   the turns matching a topic, restored in full
 ```
 
 To detaljer avgjør forskjellen mellom en korrekt liste og en som bare ser riktig ut: Codex' `session_id` er id-en til **tråden**, som en startet subagent arver, så økter nøkles på `payload.id`, og subagent-rollouter filtreres bort på samme måte som Claude Code allerede filtrerer sine egne deloppgave-transkripsjoner. Og `<codex_internal_context source="goal">` settes inn av maskinen selv, så den beholdes i den gjenopprettede konteksten, men telles aldri som en tur du skrev.
@@ -340,7 +340,7 @@ Cache-strukturen (`utils/api.ts:321` `splitSysPromptPrefix`) har tre stier baser
 
 I typiske interaktive økter akkumuleres commit/PR-instruksjonene (1,7K tok) **ved hvert API-anrop** via `cache_read`. Over en 100-anrops økt ved Opus 4.7-prissetting er det omtrent **$0,08 per økt** bare for instruksjoner som Claudes trening allerede for det meste dekker.
 
-### Hvordan claude-code-token-saver håndterer det
+### Hvordan super-token-saver håndterer det
 
 `/setup-git-lite` deaktiverer den native stien og injiserer en **nøye utvalgt 280-tokens-erstatning** via en SessionStart-hook. Vi beholdt nøyaktig de tingene som overstyrer Claudes standardatferd (sikkerhetsregler) og droppet alt som Claude allerede vet fra trening (steg-for-steg-arbeidsflyter, PR-maler, gh-bruksmønstre).
 
@@ -392,7 +392,7 @@ Enten alene er nok til å deaktivere CC native; vi setter begge slik at en milj�
 
 Hvis du trenger miljøvariabelen av urelaterte årsaker, noter den ned før du kjører `revert` og legg den til igjen etterpå.
 
-### Før avinstallering av claude-code-token-saver
+### Før avinstallering av super-token-saver
 
 **Kjør `/setup-git-lite revert` først**, ellers blir du sittende igjen med `includeGitInstructions: false` i settings.json men uten erstatningshook (Claude får ingen git-veiledning i det hele tatt). Claude Code har for øyeblikket ingen avinstalleringslivssyklus-hook for utvidelser, så vi kan ikke automatisere dette.
 
@@ -405,7 +405,7 @@ Hva du mister (og hvorfor det vanligvis er greit):
 
 ### Anbefalingsbanner
 
-Når CC:s innebygde git-instruksjoner fortsatt er aktive på maskinen din, viser claude-code-token-saver et avsnittips ved øktstart **~20% av tiden** (pluss i `/usage-view`- og `/report-limit`-utdata). Demp permanent med `/setup-git-lite dismiss-banner`.
+Når CC:s innebygde git-instruksjoner fortsatt er aktive på maskinen din, viser super-token-saver et avsnittips ved øktstart **~20% av tiden** (pluss i `/usage-view`- og `/report-limit`-utdata). Demp permanent med `/setup-git-lite dismiss-banner`.
 
 ---
 
@@ -428,7 +428,7 @@ Selv med aktiv cache akkumulerer kostnadene seg. Her er et ekstremt scenario for
 
 Betingelser: Opus 4-prissetting, 1 forespørsel per minutt, ~5 API-anrop per forespørsel (~300 anrop/time).
 
-#### ❌ Uten claude-code-token-saver
+#### ❌ Uten super-token-saver
 
 Det meste av arbeidet skjer i Main-økt. Konteksten vokser raskt.
 
@@ -443,7 +443,7 @@ Det meste av arbeidet skjer i Main-økt. Konteksten vokser raskt.
 
 > På dette bruksnivået vil du sannsynligvis nå hastighetsgrensen for 5-timersvinduet. **Kostnaden er dårlig, men det virkelige problemet er at arbeidet ditt stopper fullstendig. Dette er det nøyaktige øyeblikket Claude Code slukker.**
 
-#### ✅ Med claude-code-token-saver
+#### ✅ Med super-token-saver
 
 Tungt arbeid delegeres til SubTasks. Main håndterer bare design/beslutninger.
 
@@ -451,7 +451,7 @@ Tungt arbeid delegeres til SubTasks. Main håndterer bare design/beslutninger.
 | ----------- | -------------------------------------------- | --------------------------- | ---------------------------------- |
 | Morgen 3t   | Koding (Main: design, SubTask: implementering) | Main 100K → 300K (snitt 200K) | 900 anrop × 200K × ＄0.50/M = ＄90 |
 | Lunsj/møte  | Borte i 2 timer                              | —                           | —                                  |
-| Retur        | ⚡ Token Guardian blokkerer → /clear + /cc-continue | —                        | ＄0 (ingen LLM-anrop)               |
+| Retur        | ⚡ Token Guardian blokkerer → /clear + /s-continue | —                        | ＄0 (ingen LLM-anrop)               |
 | Ettermiddag 3t | Koding fortsetter                         | Main 100K → 300K (snitt 200K) | 900 anrop × 200K × ＄0.50/M = ＄90 |
 |             | Totalt                                       |                             | ~＄180                              |
 
@@ -463,7 +463,7 @@ Tungt arbeid delegeres til SubTasks. Main håndterer bare design/beslutninger.
 >
 > **API betal-per-bruk:** ＄146/dag × 22 arbeidsdager = **＄3 200/mnd rett fra fakturaen din.** En tung måned uten denne utvidelsen krysser ＄7 000. Med den, under ＄4 000. Samme utdata.
 
-### Hvor claude-code-token-saver griper inn
+### Hvor super-token-saver griper inn
 
 ```
 [Session Start]
@@ -482,7 +482,7 @@ Tungt arbeid delegeres til SubTasks. Main håndterer bare design/beslutninger.
     │
 [Økt-omstart]
     │
-    └─ /cc-continue → Gjenoppretter tidligere kontekst uten kostnad (ingen LLM-anrop)
+    └─ /s-continue → Gjenoppretter tidligere kontekst uten kostnad (ingen LLM-anrop)
 ```
 
 ---
@@ -490,16 +490,16 @@ Tungt arbeid delegeres til SubTasks. Main håndterer bare design/beslutninger.
 ## 🔧 Kildeinstallasjon og tilpasning
 
 ```bash
-git clone https://github.com/ww-w-ai/claude-code-token-saver.git
-/plugin marketplace add /path/to/claude-code-token-saver
-/plugin install claude-code-token-saver@ww-w-ai
+git clone https://github.com/ww-w-ai/super-token-saver.git
+/plugin marketplace add /path/to/super-token-saver
+/plugin install super-token-saver@ww-w-ai
 ```
 
-claude-code-token-saver er fullt åpen kildekode (Apache-2.0). Ren JavaScript + Bash — ingen kompilerte binærfiler, ingen eksterne API-anrop, ingen telemetri. Hver linje er reviderbar. Hvert krav i denne README-en kartlegges til en spesifikk fil du kan lese.
+super-token-saver er fullt åpen kildekode (Apache-2.0). Ren JavaScript + Bash — ingen kompilerte binærfiler, ingen eksterne API-anrop, ingen telemetri. Hver linje er reviderbar. Hvert krav i denne README-en kartlegges til en spesifikk fil du kan lese.
 
 - **hooks/** — Endre cache-utløpsterskelen, tilpass advarselsmeldinker, endre øktarkitekturregler
 - **scripts/** — Analyselogikk, rapportbygger, statuslinjeformatering
-- **skills/** — Hvordan /cc-continue og /usage-view fungerer, promptmaler
+- **skills/** — Hvordan /s-continue og /usage-view fungerer, promptmaler
 - **locales/** — Legg til/rediger oversettelser, legg til nye språk
 - **skills/usage-view/** — Dashbord UI/UX-designendringer
 
@@ -557,7 +557,7 @@ Hvis git-lite er aktivert, **sparer** utvidelsen ~1 920 tokens per økt (erstatt
 
 - **Hold CLAUDE.md kort.** Den lastes inn i systemprompt ved hvert API-anrop. Hver linje koster penger.
 - **Deleger tungt arbeid til SubTasks.** Kodegenerering, flerfils-redigeringer, testkjøringer hører ikke hjemme i Main. SubTasks har mindre kontekst og et billigere cache-lag.
-- **Borte i 1+ time?** `/clear` → kom tilbake → `/cc-continue`. Kontekst gjenopprettet for $0.
+- **Borte i 1+ time?** `/clear` → kom tilbake → `/s-continue`. Kontekst gjenopprettet for $0.
 - **[5H] over 70% (🟡)?** Bremse. Bytt til lette gjennomgangsoppgaver eller øk SubTask-delegering for å redusere Mains API-anropsantall.
 - **Bruk `/btw` for sideforespørsler.** Det går ikke inn i samtalehistorikken, slik at konteksten din forblir kompakt.
 
@@ -565,7 +565,7 @@ Hvis git-lite er aktivert, **sparer** utvidelsen ~1 920 tokens per økt (erstatt
 
 Alt ovennevnte gjelder, pluss disse API-spesifikke prioriteringene:
 
-- **Se [CTX] som et fartsmåler.** Ingen hastighetsgrense vil stoppe deg — men kontekst ved 500K+ betyr at hvert API-anrop koster 2-3x mer enn det burde. `/clear` → `/cc-continue` er gratis og tilbakestiller kostnadsmultiplikatoren til grunnlinjen.
+- **Se [CTX] som et fartsmåler.** Ingen hastighetsgrense vil stoppe deg — men kontekst ved 500K+ betyr at hvert API-anrop koster 2-3x mer enn det burde. `/clear` → `/s-continue` er gratis og tilbakestiller kostnadsmultiplikatoren til grunnlinjen.
 - **Kjør `/usage-view` ukentlig.** Max Plan-brukere har et naturlig "au"-øyeblikk når de treffer hastighetsgrensen. Det har ikke du — kostnader stiger stille. Dashbordet er ditt tidlige varslingssystem.
 - **Sett et mentalt daglig budsjett.** Uten et tak skjer $200-dager uten at du legger merke til det. RUN-indikatoren på statuslinjen gjør kostnad per tur synlig. Hvis en enkelt tur krysser $1 (🔴), er konteksten din for stor.
 

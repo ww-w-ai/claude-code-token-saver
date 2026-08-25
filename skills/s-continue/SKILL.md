@@ -1,7 +1,7 @@
 ---
-name: cc-continue
-description: 'Cheaper and faster than /compact. Restores previous session context from Claude Code AND Codex transcripts by reading them directly — no LLM calls, no token cost. Also auto-loads a handoff written by /cc-compact, if one exists. Triggers on "cc-continue", "restore context", "what was I doing", "pick up where I left off", "resume work", "previous session", "codex session".'
-when_to_use: Use when starting a new session and want to pick up previous work, including work left unfinished in Codex — the read-side pair of /cc-compact (end a session with /cc-compact → start the next with /cc-continue). Triggers on "cc-continue", "restore context", "what was I doing", "pick up where I left off", "resume work", "previous session", "codex session".
+name: s-continue
+description: 'Cheaper and faster than /compact. Restores previous session context from Claude Code AND Codex transcripts by reading them directly — no LLM calls, no token cost. Also auto-loads a handoff written by /s-compact, if one exists. Triggers on "s-continue", "restore context", "what was I doing", "pick up where I left off", "resume work", "previous session", "codex session".'
+when_to_use: Use when starting a new session and want to pick up previous work, including work left unfinished in Codex — the read-side pair of /s-compact (end a session with /s-compact → start the next with /s-continue). Triggers on "s-continue", "restore context", "what was I doing", "pick up where I left off", "resume work", "previous session", "codex session".
 ---
 
 Restore context from previous sessions so the user can pick up where they left off — without the cost of /compact.
@@ -13,12 +13,12 @@ Codex original's line. Work stopped in one tool is therefore resumable in the ot
 
 ## Help
 
-**ONLY show help if the user's argument literally contains the word "help" (e.g. `/cc-continue help`). If no argument or any other argument is given, SKIP this section entirely and proceed to Step 1.**
+**ONLY show help if the user's argument literally contains the word "help" (e.g. `/s-continue help`). If no argument or any other argument is given, SKIP this section entirely and proceed to Step 1.**
 
 If the user provides "help" as argument, show usage summary and stop:
 
 ```
-/cc-continue — Restore context from previous sessions (zero LLM calls)
+/s-continue — Restore context from previous sessions (zero LLM calls)
 
 Options:
   (nothing)     Show session list (Claude Code + Codex), pick which to restore
@@ -31,21 +31,21 @@ Options:
   help          Show this help
 
 Examples:
-  /cc-continue
-  /cc-continue last
-  /cc-continue codex
-  /cc-continue codex : rust migration
+  /s-continue
+  /s-continue last
+  /s-continue codex
+  /s-continue codex : rust migration
 ```
 
 Do not run any analysis or restoration. Just display the help text and stop.
 
 ## Language
 
-Detect the user's language from their message accompanying the /cc-continue invocation. If no message was provided (bare `/cc-continue`), detect the dominant language from the session list's firstMsg/lastMsg content after Step 1 runs. All UI messages (session list header, selection prompt, progress updates, final reference note) MUST be in the detected language. The examples below are in English — translate naturally, don't transliterate.
+Detect the user's language from their message accompanying the /s-continue invocation. If no message was provided (bare `/s-continue`), detect the dominant language from the session list's firstMsg/lastMsg content after Step 1 runs. All UI messages (session list header, selection prompt, progress updates, final reference note) MUST be in the detected language. The examples below are in English — translate naturally, don't transliterate.
 
-## Quick Restore: `/cc-continue last`
+## Quick Restore: `/s-continue last`
 
-If the user invoked `/cc-continue last`, skip the session list entirely. Run list-sessions with `--limit 3` (same flags as Step 1). Then pick automatically based on the `isCurrent` and `hasContextLoss` fields:
+If the user invoked `/s-continue last`, skip the session list entirely. Run list-sessions with `--limit 3` (same flags as Step 1). Then pick automatically based on the `isCurrent` and `hasContextLoss` fields:
 
 - **If the current session has context-loss** (`isCurrent: true` AND `hasContextLoss: true`) → auto-pick the CURRENT session. Its pre-context-loss content is what needs restoration.
 - **Otherwise** → auto-pick the most recent session where `isCurrent: false` (the previous session).
@@ -55,7 +55,7 @@ Jump directly to Step 3 with the selected session. No user prompt needed.
 
 ## Step 1: List & Select
 
-If `/cc-continue last` was used, skip this step (see above).
+If `/s-continue last` was used, skip this step (see above).
 
 Run the list-sessions script to get main sessions only (subtask/system-only sessions are filtered out). Requires Node.js.
 
@@ -126,7 +126,7 @@ Wait for user selection before proceeding. This avoids preprocessing sessions th
 
 ## Step 2: Parse Input
 
-First, if the ARGUMENT to `/cc-continue` is `claude` or `codex` (alone or before a `:` topic), that
+First, if the ARGUMENT to `/s-continue` is `claude` or `codex` (alone or before a `:` topic), that
 is a source filter, not a selection — re-run Step 1 with `--source claude` or `--source codex` and
 show the narrowed list.
 
@@ -158,7 +158,7 @@ node "${PLUGIN_ROOT}/scripts/preprocess.js" "${TRANSCRIPT_PATH}" --original "${O
 The cache file is at:
 ```bash
 PROJECT_HASH=$(echo "${PWD}" | sed 's/[^a-zA-Z0-9]/-/g')
-CACHE_FILE="${HOME}/.claude/claude-code-token-saver-data/${PROJECT_HASH}/${SESSION_ID}/compact.txt"
+CACHE_FILE="${HOME}/.claude/super-token-saver-data/${PROJECT_HASH}/${SESSION_ID}/compact.txt"
 ```
 
 **Current session with context-loss**: The compact.txt contains the FULL session. When reading it, use `lastContextLossLine` from list-sessions.js to filter: only read entries where `L{n} < lastContextLossLine`. Content after the last context-loss event is already in live LLM memory.
@@ -354,7 +354,7 @@ PYEOF
 
 Read the temp file (`/tmp/continue-restored.txt`) into conversation context using the Read tool. Use offset/limit chunks for large files. Then proceed to Step 6.
 
-**Important**: The temp file is ephemeral — it may differ each time `/cc-continue` is invoked with a different topic. The original compact.txt files remain unchanged.
+**Important**: The temp file is ephemeral — it may differ each time `/s-continue` is invoked with a different topic. The original compact.txt files remain unchanged.
 
 ## Step 6: Final Completion Message
 
@@ -370,7 +370,7 @@ git log --since="${FROM}" --until="${TO}" --format="%h %aI %s" --stat --no-merge
 
 ### Last active context
 
-You MUST review the last 5 messages from the restored context and provide a "Last 5 messages" section. Without it, the user has to ask "what was I doing?" separately, which defeats the purpose of /cc-continue.
+You MUST review the last 5 messages from the restored context and provide a "Last 5 messages" section. Without it, the user has to ask "what was I doing?" separately, which defeats the purpose of /s-continue.
 
 1. **Last 5 messages (where you left off):** When sessions from both tools were restored, label each line with its tool. Show the last 5 **USER messages ONLY** (lines starting with `[Session:`) with `[Session:{sid} L{n}]` markers, sorted **chronologically (oldest first → newest last)**. Do NOT include assistant messages. Copy the VERBATIM text from the preprocessed transcript — do NOT paraphrase or rewrite. If a message exceeds ~100 chars, hard-cut at 100 chars and append `...`.
 
@@ -380,11 +380,11 @@ You MUST review the last 5 messages from the restored context and provide a "Las
 
 ```
 ---
-[Context restored by /cc-continue]
+[Context restored by /s-continue]
 - {N} session(s) loaded ({date range}) — {n} Claude Code, {m} Codex
 - [Session:{sid} {ISO} L{n}] headers link to the original transcript — Claude Code at ~/.claude/projects/{PROJECT_HASH}/{SESSION_ID}.jsonl, Codex at the `originalPath` from list-sessions. Use L{n} to read the exact line; the numbering is the original's in both cases.
-- Preprocessed caches: ~/.claude/claude-code-token-saver-data/{PROJECT_HASH}/{SESSION_ID}/compact.txt
-- 💡 Next session: run `/clear` first, then `/cc-continue` to restore context cheaply
+- Preprocessed caches: ~/.claude/super-token-saver-data/{PROJECT_HASH}/{SESSION_ID}/compact.txt
+- 💡 Next session: run `/clear` first, then `/s-continue` to restore context cheaply
 
 **Last 5 messages:**
 - [Session:{sid} L{n}] "{user message, truncated to ~100 chars}..."
@@ -403,27 +403,27 @@ You MUST review the last 5 messages from the restored context and provide a "Las
 
 The Memory search prompt block goes at the VERY END (after Last messages and Session summary), so it's the last thing the LLM/user sees.
 
-## Step 7: Auto-load a `/cc-compact` handoff (if present)
+## Step 7: Auto-load a `/s-compact` handoff (if present)
 
-`/cc-compact` (the write-side pair of this skill) may have saved a handoff for this project — the
+`/s-compact` (the write-side pair of this skill) may have saved a handoff for this project — the
 distilled non-dialogue layer (subagent findings, tool-output numbers, process lessons) that the
 transcript restore above cannot recover. Load it automatically so the user never has to paste it.
 
 ```bash
 PROJECT_HASH=$(echo "${PWD}" | sed 's/[^a-zA-Z0-9]/-/g')
-HANDOFF="${HOME}/.claude/claude-code-token-saver-data/${PROJECT_HASH}/handoff.md"
+HANDOFF="${HOME}/.claude/super-token-saver-data/${PROJECT_HASH}/handoff.md"
 [ -f "${HANDOFF}" ] && echo "FOUND ${HANDOFF}" || echo "none"
 ```
 
 - **If it exists**: Read it fully into context (it complements the restored transcript — it holds what
   the transcript does not). Then mark it consumed so a stale handoff is never silently re-applied on a
-  later `/cc-continue`:
+  later `/s-continue`:
   ```bash
   mv "${HANDOFF}" "${HANDOFF%.md}.applied.md"
   ```
-  Add one line to the completion message: `- Handoff loaded from /cc-compact (non-dialogue context: subagents, measurements, lessons).`
+  Add one line to the completion message: `- Handoff loaded from /s-compact (non-dialogue context: subagents, measurements, lessons).`
 - **If it does not exist**: do nothing extra — the transcript restore stands on its own. (This is the
-  `/cc-continue`-alone path: fast context restore with no wasted `/compact` tokens.)
+  `/s-continue`-alone path: fast context restore with no wasted `/compact` tokens.)
 
 Run this step AFTER the transcript restore (Steps 1–6) so the handoff layers on top of it.
 

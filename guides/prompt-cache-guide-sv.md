@@ -69,20 +69,20 @@ Tva orsaker:
 
 Med andra ord uppstar cache write inte bara for "nya tokens fran anvandaren." Vid sessionsstart cachas hela systemprompten; efter utgång blir hela den ackumulerade konversationen ett cache write-mal. Om cachen for en 100K-tokens-konversation gar ut utloser ett enda meddelande en cache write pa 100K tokens pa en gang.
 
-**Det ar precis darfor claude-code-token-saver-pluginen visar en cache-utgångsvarning efter 1 timmes inaktivitet.** Nar varningen visas, kontrollera din nuvarande kontextstorlek:
+**Det ar precis darfor super-token-saver-pluginen visar en cache-utgångsvarning efter 1 timmes inaktivitet.** Nar varningen visas, kontrollera din nuvarande kontextstorlek:
 
 - **Liten kontext**: cache-aterskapandekostnaden ar hanterbar. Fortsatt arbeta — kostnaden ar lag.
-- **Stor kontext**: cachekostnaden blir betydande. Vi rekommenderar `/clear` foljt av `/cc-continue last` for att fortsatta i en ny session. Continue-farndigheten aterstaller automatiskt din tidigare konversationskontext, sa ditt arbetsflode avbryts inte.
+- **Stor kontext**: cachekostnaden blir betydande. Vi rekommenderar `/clear` foljt av `/s-continue last` for att fortsatta i en ny session. Continue-farndigheten aterstaller automatiskt din tidigare konversationskontext, sa ditt arbetsflode avbryts inte.
 
 ## Strategier for att minska cachekostnader
 
-claude-code-token-saver-pluginen ar utformad for att automatisera eller forenkla alla dessa strategier.
+super-token-saver-pluginen ar utformad for att automatisera eller forenkla alla dessa strategier.
 
-### 1. Hall kontexten liten — `/clear` + `/cc-continue` ⭐
+### 1. Hall kontexten liten — `/clear` + `/s-continue` ⭐
 
 **Det har ar det enskilt viktigaste sattet att minska kostnader.** Hoga cachekostnader innebar att du far 90 %-rabatten — det ar normalt. Men om kontexten vaxer i onodan och forblir stor okar den absoluta kostnaden per anrop aven med rabatten. **Att halla kontextstorleken under kontroll ar den enskilt mest effektiva kostnadsstrategin.**
 
-Nar amnet andras eller konversationen blir lang, kor `/clear` for att aterstalla, sedan `/cc-continue last` for att aterstalla kontexten. `/cc-continue` aterstaller tidigare konversationer utan nagra LLM-anrop, sa kostnaden ar noll.
+Nar amnet andras eller konversationen blir lang, kor `/clear` for att aterstalla, sedan `/s-continue last` for att aterstalla kontexten. `/s-continue` aterstaller tidigare konversationer utan nagra LLM-anrop, sa kostnaden ar noll.
 
 `/compact` minskar kontexten genom att sammanfatta konversationen, men sjalva sammanfattningen medfor LLM-anropskostnader och forlorar konversationsdetaljer. Rekommenderas inte.
 
@@ -90,13 +90,13 @@ Nar amnet andras eller konversationen blir lang, kor `/clear` for att aterstalla
 
 Anthropics huvudsession använder **1-timmes-tier** for cache. Efter utgång maste forsta forfragan aterskapa hela konversationen som cache write, vilket ar dyrt.
 
-claude-code-token-saver upptacker 1 timmes inaktivitet och **visar automatiskt en varning**. Nar varningen visas ar det mest ekonomiska tillvagagangssattet att anvanda metod 1 ovan (`/clear` + `/cc-continue`) for att fortsatta i en ny session.
+super-token-saver upptacker 1 timmes inaktivitet och **visar automatiskt en varning**. Nar varningen visas ar det mest ekonomiska tillvagagangssattet att anvanda metod 1 ovan (`/clear` + `/s-continue`) for att fortsatta i en ny session.
 
 ### 3. Delegera tungt arbete till SubTasks
 
 Tunga uppgifter som kodgenerering eller redigering av flera filer kan delegeras till SubTasks istallet for att koras direkt i huvudsessionen. SubTasks använder 5-minuters cache-tier, vilket gor **cache writes 37,5 % billigare**, och kor i en isolerad mindre kontext som minskar cache read-volymen per anrop.
 
-claude-code-token-saver varleder automatiskt till detta arbetsfordelningsmonster vid sessionsstart.
+super-token-saver varleder automatiskt till detta arbetsfordelningsmonster vid sessionsstart.
 
 ### 4. Realtidskostnadsovervakning — `/setup-statusline`
 
@@ -110,7 +110,7 @@ Anvand `/usage-view` for att granska hela din anvandningshistorik som en dashboa
 
 Ju fler plugins, MCP-servrar och fardigheter som laddas i systemprompten, desto hogre blir den initiala cache write-kostnaden. Ta bort allt du inte använder.
 
-`/setup-git-lite` fran claude-code-token-saver minskar Claude Codes standardmaossiga Git-instruktioner (~2 200 tokens) till en karna pa 280 tokens — en minskning pa cirka 88 % av Git-relaterad systemprompt per session.
+`/setup-git-lite` fran super-token-saver minskar Claude Codes standardmaossiga Git-instruktioner (~2 200 tokens) till en karna pa 280 tokens — en minskning pa cirka 88 % av Git-relaterad systemprompt per session.
 
 ### 7. Verktygsval — kontextpaverkan varierar per verktyg
 
@@ -137,7 +137,7 @@ Samma princip galler for redigering och jamforelse:
 | **git diff / diff** | Jamfor filer/mappar | **Minimal** — bara skillnader returneras |
 | Las bada filer separat | Jamfor filer/mappar | **Stor** — bada fullstandiga filer laggs till i kontexten |
 
-claude-code-token-saver injicerar automatiskt denna verktygsguide till AI:n vid sessionsstart och uppmanar till att anvanda lättviktiga verktyg forst.
+super-token-saver injicerar automatiskt denna verktygsguide till AI:n vid sessionsstart och uppmanar till att anvanda lättviktiga verktyg forst.
 
 ## Bilaga: cachejamforelse mellan AI-leverantorer
 

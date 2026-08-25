@@ -67,7 +67,7 @@
     "dowNoteAll": "* All days: divided by total occurrences of that weekday in the period (each weekday may have a different count).",
     "dowNoteMax": "* Max: the highest single-week cost recorded for that day of the week.",
     "dowNotePartial": "* Partial days at the start/end are normalized to 1 day (e.g., 6 hours of data is scaled ×4).",
-    "ctxNote": "* Lower context = cheaper per call. Keeping context small via /clear or /cc-continue saves cost.",
+    "ctxNote": "* Lower context = cheaper per call. Keeping context small via /clear or /s-continue saves cost.",
     "ctxGuideLine1": "📖 Context Size vs Cost Guide",
     "ctxGuideLine2": "· <b>CW option</b>: calls where Cache Write was the dominant cost component. Cache creation is the most expensive token type, so it's separated for analysis. Dots at large context sizes indicate cache re-creation after 1+ hours of idle time. A single call can be costly — be careful.<br>· <b>Non-CW option</b>: calls where Cache Write was NOT the dominant cost. Usually Cache Read dominates, but since it gets a 90% discount, Output cost can be higher. Points above the price line typically occur during design docs or large code tasks — this is normal.<br>· <b>User Turn option</b>: AI makes multiple API calls per user question. This option aggregates all API costs for a single conversation turn to analyze per-question cost. Turns costing tens of dollars usually involve large-scale parallel or iterative tasks.<br>📈 As X-axis (context size) grows, caching (creation or reads) always occurs proportionally, so Y-axis (cost) increases. Refer to the price lines.<br>👆 Hover over any dot to see the prompt text, and the token count and cost breakdown for Input / Output / Cache Write / Cache Read.",
     "ctxDistTitle": "Context Size Distribution",
@@ -121,7 +121,7 @@
     "windowDetailTitle": "📋 {date} {start}~{end} Session Details (${cost})",
     "programmaticExec": "📦 Programmatic Execution ({count})",
     "batchExec": "🔄 Batch Execution ({count})",
-    "continueRestore": "💚 /cc-continue restored {n} sessions (0 LLM calls)",
+    "continueRestore": "💚 /s-continue restored {n} sessions (0 LLM calls)",
     "continueContext": "   Restored context: {tokens} tokens",
     "continueCompactCost": "   /compact estimated cost: ${min} ~ ${max}",
     "continueSaved": "   → ${min} ~ ${max} saved!",
@@ -141,11 +141,11 @@
     "ctxDanger": "🔴 Context window exceeded 70% — cache write/read cost is very high.",
     "compactManual": "📦 Manual /compact — cache regenerated, cost incurred",
     "compactAuto": "📦 /compact fired automatically (context pressure).",
-    "continue1": "💚 /cc-continue skill restored 1 session",
-    "continueN": "💚 /cc-continue skill restored 2+ sessions",
-    "continueSkillTip": " 💡 We recommend /cc-continue skill after a new session.\n",
+    "continue1": "💚 /s-continue skill restored 1 session",
+    "continueN": "💚 /s-continue skill restored 2+ sessions",
+    "continueSkillTip": " 💡 We recommend /s-continue skill after a new session.\n",
     "cacheWritePrefix": "{icon} In this call, cache write {tokens} tokens were newly cached — ",
-    "compactManualReason": "/compact manually invoked, cache regenerated — large cost! Consider /cc-continue skill for lighter context restoration.",
+    "compactManualReason": "/compact manually invoked, cache regenerated — large cost! Consider /s-continue skill for lighter context restoration.",
     "compactAutoReason": "/compact fired automatically due to context pressure. Cache was regenerated.",
     "clearReason": "{reason} caused cache creation (${cost})",
     "clearReasonClear": "/clear restart",
@@ -153,7 +153,7 @@
     "pluginOverload": " — too many plugins, MCP, or skills may be loaded. Keep only what you need.",
     "reloadReason": "/reload-plugins caused system prompt change, cache regenerated (${cost})",
     "modelReason": "/model change invalidated previous cache, regenerated (${cost})",
-    "resumeHeuristicReason": "Resuming a session with claude --continue or /resume uses a lot of tokens. Unless necessary, we recommend /cc-continue skill after a new session.",
+    "resumeHeuristicReason": "Resuming a session with claude --continue or /resume uses a lot of tokens. Unless necessary, we recommend /s-continue skill after a new session.",
     "cacheExpiredReason": "When context is large and over 1 hour has passed, new cache is generated — large cost!",
     "costTopLabel": "{icon} {type} tokens were significant. ({tokens}, ${cost})",
     "costCacheReadLabel": "{icon} Cache read cost is high. Large context ({ctx}) with many consecutive tool calls ({calls}) multiplies cost. (${cost})",
@@ -166,7 +166,7 @@
   },
   "ai": {
     "analysis": "✨ AI Analysis",
-    "tips": "💡 Tips — claude-code-token-saver Usage Guide"
+    "tips": "💡 Tips — super-token-saver Usage Guide"
   },
   "gitLite": {
     "tip": "Tip: CC's built-in git instructions consume ~2,200 tok/session + ~1,700 tok/call. `/setup-git-lite install` replaces them with a curated 280-tok minimum. `/setup-git-lite dismiss-banner` hides this tip."

@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-08-25
+
+### Changed: the plugin is now `super-token-saver`, and its two shared skills are `/s-continue` and `/s-compact`
+
+2.5.0 made this plugin run on Claude Code and Codex from one tree. A name claiming one host was
+then telling half its users the product was not for them.
+
+**This release renames things and nothing else.** Cache format, transcript handling, pricing data
+and every skill's behaviour are untouched.
+
+| Was | Is |
+|---|---|
+| plugin `claude-code-token-saver` | `super-token-saver` |
+| `/cc-continue` | `/s-continue` |
+| `/cc-compact` | `/s-compact` |
+| `github.com/ww-w-ai/claude-code-token-saver` | `github.com/ww-w-ai/super-token-saver` |
+| `~/.claude/claude-code-token-saver-data/` | `~/.claude/super-token-saver-data/` |
+
+`usage-view`, `report-limit`, `setup-statusline` and `setup-git-lite` keep their names.
+
+**A plugin's name is its install identity, so you reinstall rather than upgrade** — the steps for
+both hosts are in `docs/MIGRATION-3.0.md`. Your cached sessions and handoffs move themselves: the
+data directory is **renamed** on first run, the same mechanism that carried the cache through three
+earlier renames.
+
+Two things that bite if missed, both covered in the migration note: re-run `/setup-statusline`,
+because it wrote the old plugin path into your `settings.json` and will silently stop updating; and
+the old command names are gone rather than deprecated, so a skill never answers to a name the
+product no longer has.
+
+Entries below this one keep the names they shipped under. They are history and were not rewritten.
+
 ## [2.5.0] - 2026-08-25
 
 ### Added: /cc-continue and /cc-compact read Codex sessions too

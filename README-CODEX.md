@@ -1,4 +1,4 @@
-# claude-code-token-saver for Codex
+# super-token-saver for Codex
 
 [English](./README-CODEX.md) · [한국어](./README-CODEX.ko.md) · [日本語](./README-CODEX.ja.md) · [简体中文](./README-CODEX.zh-Hans.md)
 
@@ -6,14 +6,14 @@
 
 Codex writes every session to `~/.codex/sessions/`. Claude Code writes every session to `~/.claude/projects/`. Neither tool reads the other's, and the usual way back — asking the model to summarize what happened — costs a full context window before you have typed a single instruction.
 
-**This plugin reads the transcripts instead.** `/cc-continue` restores a prior session from either tool by parsing its JSONL directly: no summarization call, no token spend, and every restored turn carries a `L{n}` marker that addresses the exact line of the original rollout, so you can pull the full text of anything that was truncated.
+**This plugin reads the transcripts instead.** `/s-continue` restores a prior session from either tool by parsing its JSONL directly: no summarization call, no token spend, and every restored turn carries a `L{n}` marker that addresses the exact line of the original rollout, so you can pull the full text of anything that was truncated.
 
 ## What you get
 
 | Skill | Use it when you need to… |
 |---|---|
-| `cc-continue` | Restore a previous Claude Code **or** Codex session — pick from a list, or jump straight to the last one. |
-| `cc-compact` | Write a handoff before you clear, capturing what the transcript cannot hold: subagent findings, tool-output numbers, killed approaches. |
+| `s-continue` | Restore a previous Claude Code **or** Codex session — pick from a list, or jump straight to the last one. |
+| `s-compact` | Write a handoff before you clear, capturing what the transcript cannot hold: subagent findings, tool-output numbers, killed approaches. |
 
 The handoff is stored per project, not per tool. End a sprint in Codex, pick it up in Claude Code, and the file is already there.
 
@@ -31,7 +31,7 @@ Measured on a real rollout: a 12 MB, 1,540-line Codex session preprocesses in 0.
 
 ```
 codex plugin marketplace add ww-w-ai/marketplace
-codex plugin add claude-code-token-saver@ww-w-ai
+codex plugin add super-token-saver@ww-w-ai
 ```
 
 Verify and upgrade:
@@ -44,11 +44,11 @@ codex plugin marketplace upgrade ww-w-ai
 ## Use
 
 ```
-/cc-continue           list this project's sessions from both tools, pick what to restore
-/cc-continue last      restore the most recent one
-/cc-continue codex     restrict the list to Codex sessions
-/cc-continue codex : rust migration      restore the turns that match a topic, in full
-/cc-compact            write the handoff for whoever comes next
+/s-continue           list this project's sessions from both tools, pick what to restore
+/s-continue last      restore the most recent one
+/s-continue codex     restrict the list to Codex sessions
+/s-continue codex : rust migration      restore the turns that match a topic, in full
+/s-compact            write the handoff for whoever comes next
 ```
 
 `CODEX_HOME` is honoured if you keep Codex state somewhere other than `~/.codex`.

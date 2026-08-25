@@ -13,8 +13,8 @@
  *
  * Layout:
  *   source ~/.codex/sessions/YYYY/MM/DD/rollout-<ts>-<sessionId>.jsonl
- *   norm   ~/.claude/claude-code-token-saver-data/.codex-normalized/{projectHash}/{sessionId}.jsonl
- *   cache  ~/.claude/claude-code-token-saver-data/{projectHash}/{sessionId}/compact.txt
+ *   norm   ~/.claude/super-token-saver-data/.codex-normalized/{projectHash}/{sessionId}.jsonl
+ *   cache  ~/.claude/super-token-saver-data/{projectHash}/{sessionId}/compact.txt
  *
  * The normalized file lives under a dot-prefixed dir so `listProjects()` skips it.
  */

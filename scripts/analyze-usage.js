@@ -10,7 +10,7 @@
  *                       Default: all projects.
  *   --force             Force re-analyze, ignore cached results
  *
- * Cache structure: ~/.claude/claude-code-token-saver-data/{projectName}/{sessionId}/
+ * Cache structure: ~/.claude/super-token-saver-data/{projectName}/{sessionId}/
  *   summary.json   — session metadata (tokens, cost, timestamps)
  *   timeline.csv   — per-API-call timeline
  *   subagents/{agentId}/summary.json, timeline.csv — agent sessions
@@ -367,7 +367,7 @@ async function analyzeSession(filePath) {
       let text = "";
       if (typeof content === "string") text = content;
       else if (Array.isArray(content)) text = content.filter(b => b.type === "text" && b.text).map(b => b.text).join(" ");
-      if (text.includes("claude-code-token-saver:continue")) {
+      if (text.includes("super-token-saver:continue")) {
         inContinueSequence = true;
         continueStartTs = ts;
         continueReads = [];

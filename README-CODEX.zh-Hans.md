@@ -1,4 +1,4 @@
-# 面向 Codex 的 claude-code-token-saver
+# 面向 Codex 的 super-token-saver
 
 [English](./README-CODEX.md) · [한국어](./README-CODEX.ko.md) · [日本語](./README-CODEX.ja.md) · [简体中文](./README-CODEX.zh-Hans.md)
 
@@ -6,14 +6,14 @@
 
 Codex 把每个会话写入 `~/.codex/sessions/`。Claude Code 把每个会话写入 `~/.claude/projects/`。两边互不读取对方的文件。找回上下文的常规办法——让模型总结刚才发生了什么——会在你敲下第一条指令之前就先耗掉一整个上下文窗口。
 
-**这个插件直接读取转写记录(transcript)。** `/cc-continue` 通过直接解析 JSONL 来恢复任意一方工具的历史会话:不调用总结、不消耗额外 token。每个恢复出来的对话轮次都带有 `L{n}` 标记,指向原始 rollout 中的确切行号,被截断的内容可以随时按行取出全文。
+**这个插件直接读取转写记录(transcript)。** `/s-continue` 通过直接解析 JSONL 来恢复任意一方工具的历史会话:不调用总结、不消耗额外 token。每个恢复出来的对话轮次都带有 `L{n}` 标记,指向原始 rollout 中的确切行号,被截断的内容可以随时按行取出全文。
 
 ## 你能获得什么
 
 | 技能 | 使用场景 |
 |---|---|
-| `cc-continue` | 恢复此前的 Claude Code **或** Codex 会话——从列表中选择,或直接跳到最近一次。 |
-| `cc-compact` | 在清空上下文前写交接记录,保存转写记录留不住的内容:子代理的发现、工具输出中的数字、被放弃的方案。 |
+| `s-continue` | 恢复此前的 Claude Code **或** Codex 会话——从列表中选择,或直接跳到最近一次。 |
+| `s-compact` | 在清空上下文前写交接记录,保存转写记录留不住的内容:子代理的发现、工具输出中的数字、被放弃的方案。 |
 
 交接文件按项目保存,而不是按工具保存。在 Codex 里结束一个冲刺,再到 Claude Code 里接着做,文件已经在那里等着。
 
@@ -31,7 +31,7 @@ Codex 把每个会话写入 `~/.codex/sessions/`。Claude Code 把每个会话�
 
 ```
 codex plugin marketplace add ww-w-ai/marketplace
-codex plugin add claude-code-token-saver@ww-w-ai
+codex plugin add super-token-saver@ww-w-ai
 ```
 
 验证并升级:
@@ -44,11 +44,11 @@ codex plugin marketplace upgrade ww-w-ai
 ## 使用
 
 ```
-/cc-continue           列出这个项目在两个工具中的会话,选择要恢复的那一个
-/cc-continue last      恢复最近一次会话
-/cc-continue codex     只列出 Codex 会话
-/cc-continue codex : rust migration      恢复匹配该主题的对话轮次,取全文
-/cc-compact            为下一个接手的人写交接记录
+/s-continue           列出这个项目在两个工具中的会话,选择要恢复的那一个
+/s-continue last      恢复最近一次会话
+/s-continue codex     只列出 Codex 会话
+/s-continue codex : rust migration      恢复匹配该主题的对话轮次,取全文
+/s-compact            为下一个接手的人写交接记录
 ```
 
 如果 Codex 状态没有存放在 `~/.codex`,插件会读取 `CODEX_HOME`。

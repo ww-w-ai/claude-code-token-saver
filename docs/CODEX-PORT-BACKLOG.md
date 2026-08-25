@@ -1,6 +1,6 @@
 # Codex port backlog — the rest of the dual-host surface
 
-`cc-continue` and `cc-compact` ship to both hosts. The three remaining skills do not, and one of
+`s-continue` and `s-compact` ship to both hosts. The three remaining skills do not, and one of
 those three is a deliberate stop rather than a task. Written 2026-08-25.
 
 Related: `docs/RENAME-super-token-saver.md` (the rename these ports should land around).

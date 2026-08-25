@@ -1,4 +1,4 @@
-# claude-code-token-saver
+# super-token-saver
 
 **Claude Code-এর একমাত্র প্লাগইন যা CC-এর সোর্স কোড সত্যিকার অর্থে পড়ে জানতে পারে আপনার টোকেন কোথায় যাচ্ছে — এবং এটি স্বয়ংক্রিয়ভাবে ঠিক করে দেয়। কম খরচ করুন, বেশিক্ষণ কাজ করুন।**
 
@@ -15,8 +15,8 @@
 | 🛡️ Token Guardian | ক্যাশ এক্সপায়ারি শনাক্ত করে, $9 রি-সেন্ড ঘটার আগেই ব্লক করে | #1 গোপন খরচ বৃদ্ধি প্রতিরোধ করে |
 | 🧠 Session Architect | ভারী কাজ স্বয়ংক্রিয়ভাবে SubTask-এ ডেলিগেট করে (৩৭.৫% সস্তা ক্যাশ) | কনটেক্সট ছোট থাকে, খরচ কমে |
 | 🪶 Concise Mode | রেসপন্সের padding কাটে, বিষয়বস্তু রাখে | প্রতি রেসপন্সে কম output টোকেন |
-| 🔄 /cc-continue | /compact প্রতিস্থাপন করে — শূন্য LLM কল, শূন্য খরচ, শূন্য তথ্য হারানো, আর এখন **Codex** সেশনও পুনরুদ্ধার করে | দুই টুলেই বিনামূল্যে কনটেক্সট পুনরুদ্ধার |
-| 🤝 /cc-compact | একটি সেশন handoff লেখে যা /cc-continue স্বয়ংক্রিয়ভাবে লোড করে — sub-agent findings ও tool results ধরে রাখে যা transcript হারিয়ে ফেলে | পরের সেশন hidden context সহও resume হয় |
+| 🔄 /s-continue | /compact প্রতিস্থাপন করে — শূন্য LLM কল, শূন্য খরচ, শূন্য তথ্য হারানো, আর এখন **Codex** সেশনও পুনরুদ্ধার করে | দুই টুলেই বিনামূল্যে কনটেক্সট পুনরুদ্ধার |
+| 🤝 /s-compact | একটি সেশন handoff লেখে যা /s-continue স্বয়ংক্রিয়ভাবে লোড করে — sub-agent findings ও tool results ধরে রাখে যা transcript হারিয়ে ফেলে | পরের সেশন hidden context সহও resume হয় |
 | 📊 Status Line | রিয়েল-টাইম খরচ, কনটেক্সট সাইজ, রেট লিমিট — ৫০ms-এর কম | সমস্যা খরচ হওয়ার আগেই দেখুন |
 | 📈 /usage-view | AI-চালিত বিশ্লেষণ সহ ইন্টারেক্টিভ HTML ড্যাশবোর্ড | এক ক্লিকে সম্পূর্ণ খরচ ফরেনসিক্স |
 | ✂️ /setup-git-lite | CC প্রতিটি সেশনে যে ২,২০০ লুকানো টোকেন ইনজেক্ট করে তা সরায় | শুধু git নির্দেশাবলীতে ~$48/মাস সাশ্রয় |
@@ -37,7 +37,7 @@
 
 **API pay-per-use?** উপরের সব, তবে কোনো সিলিং নেই। একটি cache miss = $9 প্রকৃত অর্থ। সপ্তাহে দশবার = শুধু দুর্ঘটনায় $360/মাস। ফুলে ওঠা কনটেক্সটের একটি খারাপ মঙ্গলবার Max Plan সাবস্ক্রাইবার মাসে যা দেয় তার চেয়ে বেশি খরচ করতে পারে।
 
-claude-code-token-saver এই সব স্বয়ংক্রিয়ভাবে হ্যান্ডেল করে। **একবার ইনস্টল করুন। শেষ।**
+super-token-saver এই সব স্বয়ংক্রিয়ভাবে হ্যান্ডেল করে। **একবার ইনস্টল করুন। শেষ।**
 
 ---
 
@@ -45,7 +45,7 @@ claude-code-token-saver এই সব স্বয়ংক্রিয়ভা
 
 ```
 /plugin marketplace add ww-w-ai/marketplace
-/plugin install claude-code-token-saver@ww-w-ai
+/plugin install super-token-saver@ww-w-ai
 ```
 
 ইনস্টলের পরে স্বয়ংক্রিয়ভাবে কাজ করে। Zero config। [Claude Code](https://claude.ai/claude-code) v2.1.71+ প্রয়োজন।
@@ -79,7 +79,7 @@ The prompt cache has expired. Continuing will resend the full context.
 Cost may increase significantly.
 
 👉 /context — Check current context usage before deciding
-👉 /clear → /cc-continue — Reset, then restore previous context (recommended, cheapest)
+👉 /clear → /s-continue — Reset, then restore previous context (recommended, cheapest)
 👉 Re-send — Continue as-is (full re-cache cost incurred)
 ```
 
@@ -130,15 +130,15 @@ SessionStart hook একটি রেসপন্স-স্টাইল নি�
 
 ---
 
-## 🔄 ফিচার ৩: /cc-continue — কনটেক্সট পুনরুদ্ধার
+## 🔄 ফিচার ৩: /s-continue — কনটেক্সট পুনরুদ্ধার
 
 **`/compact` প্রতিস্থাপন করে। শূন্য LLM কল। শূন্য টোকেন খরচ। শূন্য তথ্য হারানো।**
 
 `/compact` আপনার পুরো কনটেক্সট (~১M টোকেন) LLM-এ পাঠায় এটিকে ৩.৩% সারসংক্ষেপে সংকুচিত করতে। যদি ক্যাশ মেয়াদ শেষ হয়, এটি একা একটি পূর্ণ রি-ক্যাশ ট্রিগার করে। তথ্য হারানো অনিবার্য।
 
-`/cc-continue` সম্পূর্ণ ভিন্ন পদ্ধতি নেয়। এটি পূর্ববর্তী সেশন ট্রান্সক্রিপ্ট প্রি-প্রসেস করে এবং সরাসরি লোড করে। কোনো LLM কল নেই। কোনো খরচ নেই। মূল কথোপকথন যেমন ছিল তেমনই পুনরুদ্ধার হয়।
+`/s-continue` সম্পূর্ণ ভিন্ন পদ্ধতি নেয়। এটি পূর্ববর্তী সেশন ট্রান্সক্রিপ্ট প্রি-প্রসেস করে এবং সরাসরি লোড করে। কোনো LLM কল নেই। কোনো খরচ নেই। মূল কথোপকথন যেমন ছিল তেমনই পুনরুদ্ধার হয়।
 
-|                         | /compact                                    | /cc-continue                                   |
+|                         | /compact                                    | /s-continue                                   |
 | ----------------------- | ------------------------------------------- | ------------------------------------------- |
 | কীভাবে কাজ করে         | সারসংক্ষেপের জন্য LLM-এ পুরো কনটেক্সট পাঠায় | ট্রান্সক্রিপ্ট প্রি-প্রসেস করে, সরাসরি পড়ে |
 | LLM কল                  | প্রয়োজন (সাধারণত ১০০K+ টোকেন)              | ০                                           |
@@ -148,42 +148,42 @@ SessionStart hook একটি রেসপন্স-স্টাইল নি�
 | ক্যাশ মেয়াদ শেষ হলে   | উপরে পূর্ণ রি-ক্যাশ খরচ                     | কোনো প্রভাব নেই                             |
 | মাল্টি-সেশন পুনরুদ্ধার | সম্ভব নয়                                    | সমর্থিত                                     |
 
-ব্যবহার: `/clear` তারপর `/cc-continue`। পূর্ববর্তী সেশনের তালিকা দেখাবে। পুনরুদ্ধারের জন্য একটি বেছে নিন। দ্রুত পুনরুদ্ধারের জন্য: `/cc-continue last`।
+ব্যবহার: `/clear` তারপর `/s-continue`। পূর্ববর্তী সেশনের তালিকা দেখাবে। পুনরুদ্ধারের জন্য একটি বেছে নিন। দ্রুত পুনরুদ্ধারের জন্য: `/s-continue last`।
 
 **ফলাফল:** শূন্য খরচে পূর্ববর্তী কাজ পুনরায় শুরু করুন। কোনো তথ্য হারানো নেই। ৬০MB+ ট্রান্সক্রিপ্ট ১ সেকেন্ডেরও কম সময়ে প্রক্রিয়া করে।
 
 ---
-### 🤝 এর জোড়া: `/cc-compact` — লুকানো স্তরের handoff
+### 🤝 এর জোড়া: `/s-compact` — লুকানো স্তরের handoff
 
-`/cc-continue` transcript পুনরুদ্ধার করে — আপনি ও Claude যা বলেছেন। কিন্তু একটি working session-এর সবচেয়ে দরকারি জ্ঞান প্রায়ই সেই কথোপকথনের বাইরে থাকে: একটি sub-agent কী খুঁজে পেয়েছিল (তার transcript একটি আলাদা ফাইল যা পুনরুদ্ধার কখনো লোড করে না), tool output-এর একটি সিদ্ধান্তমূলক সংখ্যা (test count, benchmark), অথবা প্রক্রিয়া থেকে শেখা একটি শিক্ষা ("headless reproduce করা যায়নি ← কারণ ছিল build, code নয়")।
+`/s-continue` transcript পুনরুদ্ধার করে — আপনি ও Claude যা বলেছেন। কিন্তু একটি working session-এর সবচেয়ে দরকারি জ্ঞান প্রায়ই সেই কথোপকথনের বাইরে থাকে: একটি sub-agent কী খুঁজে পেয়েছিল (তার transcript একটি আলাদা ফাইল যা পুনরুদ্ধার কখনো লোড করে না), tool output-এর একটি সিদ্ধান্তমূলক সংখ্যা (test count, benchmark), অথবা প্রক্রিয়া থেকে শেখা একটি শিক্ষা ("headless reproduce করা যায়নি ← কারণ ছিল build, code নয়")।
 
-সেশনের শেষে `/cc-compact` চালান, এটি ঠিক সেই লুকানো স্তরকে distill করে একটি handoff-এ পরিণত করে, যা সংরক্ষিত হয় `~/.claude/claude-code-token-saver-data/<project>/handoff.md`-এ। পরের সেশনে, `/cc-continue` পুনরুদ্ধারকৃত transcript-এর উপরে এটি স্বয়ংক্রিয়ভাবে লোড করে — কিছু paste করার দরকার নেই।
+সেশনের শেষে `/s-compact` চালান, এটি ঠিক সেই লুকানো স্তরকে distill করে একটি handoff-এ পরিণত করে, যা সংরক্ষিত হয় `~/.claude/super-token-saver-data/<project>/handoff.md`-এ। পরের সেশনে, `/s-continue` পুনরুদ্ধারকৃত transcript-এর উপরে এটি স্বয়ংক্রিয়ভাবে লোড করে — কিছু paste করার দরকার নেই।
 
-|                     | শুধু `/cc-continue`              | `/cc-compact` + `/cc-continue` (জোড়া)             |
+|                     | শুধু `/s-continue`              | `/s-compact` + `/s-continue` (জোড়া)             |
 | পুনরুদ্ধার করে       | Transcript (যা বলা হয়েছে)        | Transcript এবং লুকানো স্তর দুটোই                 |
 | Sub-agent findings   | হারিয়ে যায় (আলাদা ফাইল)          | Handoff-এ distill হয়                              |
 | Tool-output সংখ্যা   | শুধু chat-এ উদ্ধৃত হলে           | ইচ্ছাকৃতভাবে extract হয়                            |
 | প্রক্রিয়ার শিক্ষা    | —                                | Capture হয় যাতে dead end আবার না চলে              |
 
-Workflow: সেশন শেষ করুন `/cc-compact` দিয়ে → পরেরটি শুরু করুন `/cc-continue` দিয়ে।
+Workflow: সেশন শেষ করুন `/s-compact` দিয়ে → পরেরটি শুরু করুন `/s-continue` দিয়ে।
 
 ### 🔀 দুটো টুল, একটাই history — Codex সেশনও এখান থেকেই পুনরুদ্ধার হয়
 
 Codex তার সেশন লেখে `~/.codex/sessions/`-এ; Claude Code লেখে `~/.claude/projects/`-এ। একটা টুল অন্যটার ফাইল পড়ে না। ফলে Codex-এ বাজেট ফুরিয়ে থেমে যাওয়া কোনো স্প্রিন্ট আগে Claude Code থেকে ধরাই যেত না, আর উল্টোটাও।
 
-`/cc-continue` এখন দুটোই দেখায় ও পুনরুদ্ধার করে। Codex-এর rollout-কে দ্বিতীয় কোনো parser-এর হাতে দেওয়া হয় না — বরং সেটাকে Claude Code যে আকারে লেখে সেই আকারেই নতুন করে লেখা হয়, **প্রতিটি input লাইনের জন্য একটা output লাইন**, ফলে একই pipeline দুটো টুলকেই সার্ভ করে আর প্রতিটি `L{n}` marker এখনও মূল Codex ফাইলের ঠিক সেই লাইনকেই নির্দেশ করে। পরিমাপ: 12 MB, 1,540-লাইনের একটা rollout preprocess হয় মাত্র **0.13 s**-এ।
+`/s-continue` এখন দুটোই দেখায় ও পুনরুদ্ধার করে। Codex-এর rollout-কে দ্বিতীয় কোনো parser-এর হাতে দেওয়া হয় না — বরং সেটাকে Claude Code যে আকারে লেখে সেই আকারেই নতুন করে লেখা হয়, **প্রতিটি input লাইনের জন্য একটা output লাইন**, ফলে একই pipeline দুটো টুলকেই সার্ভ করে আর প্রতিটি `L{n}` marker এখনও মূল Codex ফাইলের ঠিক সেই লাইনকেই নির্দেশ করে। পরিমাপ: 12 MB, 1,540-লাইনের একটা rollout preprocess হয় মাত্র **0.13 s**-এ।
 
 |                        | Claude Code সেশন | Codex সেশন |
 | ---------------------- | ------------------- | ------------- |
-| `/cc-continue`-এ তালিকাভুক্ত | হ্যাঁ | হ্যাঁ, বর্তমান project-এর মধ্যে সীমিত |
+| `/s-continue`-এ তালিকাভুক্ত | হ্যাঁ | হ্যাঁ, বর্তমান project-এর মধ্যে সীমিত |
 | শূন্য LLM খরচে পুনরুদ্ধার | হ্যাঁ | হ্যাঁ |
 | মূল ফাইলে `L{n}` দিয়ে খোঁজা | হ্যাঁ | হ্যাঁ — লাইন নম্বর rollout-এরই নিজস্ব |
 | কনটেক্সট-হারানো (`#0`) পুনরুদ্ধার | `/compact`, auto-compact | Codex-এর নিজস্ব compaction ও thread rollback |
-| `/cc-compact` handoff | প্রতি project-এ শেয়ার হয় — এক টুলে লিখুন, আরেকটাতে লোড করুন |
+| `/s-compact` handoff | প্রতি project-এ শেয়ার হয় — এক টুলে লিখুন, আরেকটাতে লোড করুন |
 
 ```
-/cc-continue codex                    শুধু Codex সেশন
-/cc-continue codex : rust migration   একটা টপিকের সাথে মেলা turn-গুলো, সম্পূর্ণভাবে পুনরুদ্ধার করা
+/s-continue codex                    শুধু Codex সেশন
+/s-continue codex : rust migration   একটা টপিকের সাথে মেলা turn-গুলো, সম্পূর্ণভাবে পুনরুদ্ধার করা
 ```
 
 দুটো ছোট বিষয় সঠিক তালিকা আর দেখতে-ঠিক-কিন্তু-ভুল তালিকার মধ্যে পার্থক্য গড়ে দেয়: Codex-এর `session_id` আসলে **thread**-এর id, যেটা spawn হওয়া কোনো sub-agent উত্তরাধিকার সূত্রে পায়, তাই সেশনগুলো `payload.id` দিয়ে key করা হয় আর sub-agent rollout-কে সেই একই ভাবে বাদ দেওয়া হয় যেভাবে Claude Code-এর subtask transcript ইতিমধ্যে বাদ দেওয়া হয়। আর `<codex_internal_context source="goal">` machine-injected, তাই সেটা পুনরুদ্ধার করা কনটেক্সটে থাকে ঠিকই, কিন্তু আপনার টাইপ করা turn হিসেবে কখনো গোনা হয় না।
@@ -332,7 +332,7 @@ Cache structure (`utils/api.ts:321` `splitSysPromptPrefix`)-এর active MCP to
 
 সাধারণ interactive সেশনে, commit/PR instructions (১.৭K tok) `cache_read` এর মাধ্যমে **প্রতিটি API কলে** জমা হয়। Opus 4.7 মূল্যে ১০০-কল সেশনে, এটি মোটামুটি **প্রতি সেশনে $০.০৮** শুধুমাত্র সেই instructions-এর জন্য যা Claude-এর training ইতিমধ্যে বেশিরভাগ cover করে।
 
-### claude-code-token-saver কীভাবে এটি handle করে
+### super-token-saver কীভাবে এটি handle করে
 
 `/setup-git-lite` native path disable করে এবং SessionStart hook-এর মাধ্যমে **curated ২৮০-টোকেন প্রতিস্থাপন** ইনজেক্ট করে। আমরা ঠিক সেটুকু রেখেছি যা Claude-এর default behavior override করে (safety rules), এবং যা Claude training থেকে ইতিমধ্যে জানে তা বাদ দিয়েছি (step-by-step workflows, PR templates, gh usage patterns)।
 
@@ -384,7 +384,7 @@ Cache structure (`utils/api.ts:321` `splitSysPromptPrefix`)-এর active MCP to
 
 যদি আপনার অসম্পর্কিত কারণে env var দরকার হয়, `revert` চালানোর আগে নোট করে রাখুন এবং পরে পুনরায় যোগ করুন।
 
-### claude-code-token-saver আনইনস্টল করার আগে
+### super-token-saver আনইনস্টল করার আগে
 
 **প্রথমে `/setup-git-lite revert` চালান**, অন্যথায় আপনার settings.json-এ `includeGitInstructions: false` থাকবে কিন্তু কোনো replacement hook থাকবে না (Claude কোনো git guidance পাবে না)। Claude Code-এ বর্তমানে কোনো plugin uninstall lifecycle hook নেই, তাই আমরা এটি automate করতে পারি না।
 
@@ -397,7 +397,7 @@ Cache structure (`utils/api.ts:321` `splitSysPromptPrefix`)-এর active MCP to
 
 ### Recommendation banner
 
-যখন CC native git instructions এখনও আপনার machine-এ সক্রিয়, claude-code-token-saver session শুরুতে **~২০% সময়** একটি one-paragraph tip দেখায় (plus `/usage-view` এবং `/report-limit` outputs-এ)। `/setup-git-lite dismiss-banner` দিয়ে স্থায়ীভাবে dismiss করুন।
+যখন CC native git instructions এখনও আপনার machine-এ সক্রিয়, super-token-saver session শুরুতে **~২০% সময়** একটি one-paragraph tip দেখায় (plus `/usage-view` এবং `/report-limit` outputs-এ)। `/setup-git-lite dismiss-banner` দিয়ে স্থায়ীভাবে dismiss করুন।
 
 ---
 
@@ -420,7 +420,7 @@ Cache জীবিত থাকলেও, খরচ জমে। পার্থ
 
 Conditions: Opus 4 মূল্য, প্রতি মিনিটে ১টি prompt, প্রতি prompt-এ ~৫ API calls (~৩০০ calls/hour)।
 
-#### ❌ claude-code-token-saver ছাড়া
+#### ❌ super-token-saver ছাড়া
 
 বেশিরভাগ কাজ Main session-এ হয়। কনটেক্সট দ্রুত বাড়ে।
 
@@ -435,7 +435,7 @@ Conditions: Opus 4 মূল্য, প্রতি মিনিটে ১টি
 
 > এই ব্যবহারের মাত্রায়, আপনি সম্ভবত ৫-ঘণ্টা উইন্ডো রেট লিমিট হিট করবেন। **খরচ খারাপ, কিন্তু আসল সমস্যা হল আপনার কাজ সম্পূর্ণ থেমে যায়। এটি ঠিক সেই মুহূর্ত যখন Claude Code অন্ধকার হয়।**
 
-#### ✅ claude-code-token-saver সহ
+#### ✅ super-token-saver সহ
 
 ভারী কাজ SubTask-এ delegate। Main শুধু design/decisions handle করে।
 
@@ -443,7 +443,7 @@ Conditions: Opus 4 মূল্য, প্রতি মিনিটে ১টি
 | ----------- | -------------------------------------------- | --------------------------- | ---------------------------------- |
 | সকাল ৩h     | Coding (Main: design, SubTask: implementation) | Main ১০০K → ৩০০K (avg ২০০K) | ৯০০ calls × ২০০K × ＄0.50/M = ＄90 |
 | দুপুর/মিটিং  | ২ ঘণ্টা দূরে                                 | —                           | —                                  |
-| ফেরা        | ⚡ Token Guardian blocks → /clear + /cc-continue | —                           | ＄0 (no LLM calls)                 |
+| ফেরা        | ⚡ Token Guardian blocks → /clear + /s-continue | —                           | ＄0 (no LLM calls)                 |
 | বিকেল ৩h    | Coding continues                             | Main ১০০K → ৩০০K (avg ২০০K) | ৯০০ calls × ২০০K × ＄0.50/M = ＄90 |
 |             | Total                                        |                             | ~＄180                              |
 
@@ -455,7 +455,7 @@ Conditions: Opus 4 মূল্য, প্রতি মিনিটে ১টি
 >
 > **API pay-per-use:** ＄146/day × ২২ workdays = **আপনার invoice থেকে সরাসরি ＄3,200/মাস।** এই প্লাগইন ছাড়া ভারী মাস ＄7,000 অতিক্রম করে। এটি সহ, ＄4,000-এর নিচে। একই আউটপুট।
 
-### claude-code-token-saver কোথায় step in করে
+### super-token-saver কোথায় step in করে
 
 ```
 [Session Start]
@@ -474,7 +474,7 @@ Conditions: Opus 4 মূল্য, প্রতি মিনিটে ১টি
     │
 [Session restart]
     │
-    └─ /cc-continue → শূন্য খরচে previous কনটেক্সট পুনরুদ্ধার (no LLM calls)
+    └─ /s-continue → শূন্য খরচে previous কনটেক্সট পুনরুদ্ধার (no LLM calls)
 ```
 
 ---
@@ -482,16 +482,16 @@ Conditions: Opus 4 মূল্য, প্রতি মিনিটে ১টি
 ## 🔧 Source Install & Customization
 
 ```bash
-git clone https://github.com/ww-w-ai/claude-code-token-saver.git
-/plugin marketplace add /path/to/claude-code-token-saver
-/plugin install claude-code-token-saver@ww-w-ai
+git clone https://github.com/ww-w-ai/super-token-saver.git
+/plugin marketplace add /path/to/super-token-saver
+/plugin install super-token-saver@ww-w-ai
 ```
 
-claude-code-token-saver সম্পূর্ণ open-source (Apache-2.0)। Plain JavaScript + Bash — কোনো compiled binaries নেই, কোনো external API calls নেই, কোনো telemetry নেই। প্রতিটি লাইন auditable। এই README-এ প্রতিটি claim একটি নির্দিষ্ট ফাইলে map করে যা আপনি পড়তে পারেন।
+super-token-saver সম্পূর্ণ open-source (Apache-2.0)। Plain JavaScript + Bash — কোনো compiled binaries নেই, কোনো external API calls নেই, কোনো telemetry নেই। প্রতিটি লাইন auditable। এই README-এ প্রতিটি claim একটি নির্দিষ্ট ফাইলে map করে যা আপনি পড়তে পারেন।
 
 - **hooks/** — Cache expiry threshold পরিবর্তন করুন, warning messages customize করুন, session architecture rules modify করুন
 - **scripts/** — Analysis logic, report builder, status line formatting
-- **skills/** — /cc-continue এবং /usage-view কীভাবে কাজ করে, prompt templates
+- **skills/** — /s-continue এবং /usage-view কীভাবে কাজ করে, prompt templates
 - **locales/** — Translations যোগ/সম্পাদনা করুন, নতুন ভাষা যোগ করুন
 - **skills/usage-view/** — Dashboard UI/UX design changes
 
@@ -549,7 +549,7 @@ Opus মূল্যে ($0.50/MTok cache read), এটি **প্রতি API
 
 - **CLAUDE.md সংক্ষিপ্ত রাখুন।** এটি প্রতিটি API call-এ system prompt-এ load হয়। প্রতিটি লাইন অর্থ ব্যয় করে।
 - **SubTask-এ ভারী কাজ delegate করুন।** Code generation, multi-file edits, test runs Main-এ থাকার নয়। SubTask-এর smaller context এবং cheaper cache tier আছে।
-- **১+ ঘণ্টার জন্য দূরে?** `/clear` → ফিরে আসুন → `/cc-continue`। কনটেক্সট $0-এ restored।
+- **১+ ঘণ্টার জন্য দূরে?** `/clear` → ফিরে আসুন → `/s-continue`। কনটেক্সট $0-এ restored।
 - **[5H] ৭০%-এর উপরে (🟡)?** Slow down। Lightweight review tasks-এ switch করুন বা Main-এর API call count কমাতে SubTask delegation বাড়ান।
 - **Side questions-এর জন্য `/btw` ব্যবহার করুন।** এটি conversation history-তে প্রবেশ করে না, তাই আপনার কনটেক্সট lean থাকে।
 
@@ -557,7 +557,7 @@ Opus মূল্যে ($0.50/MTok cache read), এটি **প্রতি API
 
 উপরের সবকিছু প্রযোজ্য, plus এই API-specific priorities:
 
-- **[CTX]-কে speedometer-এর মতো দেখুন।** Rate limit আপনাকে থামাবে না — কিন্তু ৫০০K+-এ কনটেক্সট মানে প্রতিটি API call যা হওয়া উচিত তার চেয়ে ২-৩গুণ বেশি খরচ করে। `/clear` → `/cc-continue` free এবং আপনার cost multiplier baseline-এ reset করে।
+- **[CTX]-কে speedometer-এর মতো দেখুন।** Rate limit আপনাকে থামাবে না — কিন্তু ৫০০K+-এ কনটেক্সট মানে প্রতিটি API call যা হওয়া উচিত তার চেয়ে ২-৩গুণ বেশি খরচ করে। `/clear` → `/s-continue` free এবং আপনার cost multiplier baseline-এ reset করে।
 - **Weekly `/usage-view` চালান।** Max Plan ব্যবহারকারীদের রেট লিমিট হলে naturally "ouch" moment থাকে। আপনার নেই — খরচ নীরবে বাড়ে। Dashboard আপনার early warning system।
 - **Mental daily budget set করুন।** Cap ছাড়া, $200 days না জেনেই হয়। Status line-এর RUN indicator per-turn cost দৃশ্যমান করে। যদি একটি single turn $1 cross করে (🔴), আপনার কনটেক্সট too large।
 

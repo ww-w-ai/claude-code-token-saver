@@ -1,4 +1,4 @@
-# claude-code-token-saver
+# super-token-saver
 
 **Claude Code 소스를 직접 뜯어서, 당신 돈이 어디서 새는지 찾아냈습니다. 자동으로 막아주고, 더 싸게, 더 오래 쓰게 해줍니다.**
 
@@ -15,8 +15,8 @@
 | 🛡️ Token Guardian | 캐시 만료 감지, $9짜리 재전송 사전 차단 | 가장 큰 무음 비용 급등 방지 |
 | 🧠 Session Architect | 무거운 작업을 SubTask에 자동 위임 (37.5% 저렴한 캐시) | 컨텍스트 축소, 비용 절감 |
 | 🪶 Concise Mode | 응답 패딩 제거, 내용은 그대로 | 응답당 출력 토큰 감소 |
-| 🔄 /cc-continue | /compact 대체 — LLM 호출 0, 비용 0, 정보 손실 0, **Codex** 세션도 복원 | 두 도구 모두 무료로 컨텍스트 복원 |
-| 🤝 /cc-compact | /cc-continue가 자동으로 불러오는 세션 인계 기록을 작성 — transcript가 놓치는 서브에이전트 발견·도구 결과를 포착 | 다음 세션이 숨겨진 컨텍스트까지 이어받음 |
+| 🔄 /s-continue | /compact 대체 — LLM 호출 0, 비용 0, 정보 손실 0, **Codex** 세션도 복원 | 두 도구 모두 무료로 컨텍스트 복원 |
+| 🤝 /s-compact | /s-continue가 자동으로 불러오는 세션 인계 기록을 작성 — transcript가 놓치는 서브에이전트 발견·도구 결과를 포착 | 다음 세션이 숨겨진 컨텍스트까지 이어받음 |
 | 📊 Status Line | 실시간 비용·컨텍스트·요금 한도 — 50ms 이하 | 비용 터지기 전에 먼저 확인 |
 | 📈 /usage-view | AI 분석이 포함된 인터랙티브 HTML 대시보드 | 클릭 한 번으로 비용 전체 추적 |
 | ✂️ /setup-git-lite | 매 세션마다 몰래 주입되는 2,200개 숨겨진 토큰 제거 | git 지침만으로 월 ~$48 절감 |
@@ -37,7 +37,7 @@
 
 **API 종량제?** 위의 모든 것에, 상한선도 없습니다. 캐시 미스 한 번 = 실제 돈 $9. 일주일에 열 번 = 사고만으로 월 $360. 컨텍스트가 부풀어 오른 나쁜 화요일 하루가 Max Plan 구독자의 한 달치 요금보다 더 나올 수 있습니다.
 
-claude-code-token-saver가 이 모든 것을 자동으로 처리합니다. **한 번 설치. 끝.**
+super-token-saver가 이 모든 것을 자동으로 처리합니다. **한 번 설치. 끝.**
 
 ---
 
@@ -45,7 +45,7 @@ claude-code-token-saver가 이 모든 것을 자동으로 처리합니다. **한
 
 ```
 /plugin marketplace add ww-w-ai/marketplace
-/plugin install claude-code-token-saver@ww-w-ai
+/plugin install super-token-saver@ww-w-ai
 ```
 
 설치 후 자동으로 작동합니다. 설정 불필요. [Claude Code](https://claude.ai/claude-code) v2.1.71+ 필요.
@@ -79,7 +79,7 @@ The prompt cache has expired. Continuing will resend the full context.
 Cost may increase significantly.
 
 👉 /context — Check current context usage before deciding
-👉 /clear → /cc-continue — Reset, then restore previous context (recommended, cheapest)
+👉 /clear → /s-continue — Reset, then restore previous context (recommended, cheapest)
 👉 Re-send — Continue as-is (full re-cache cost incurred)
 ```
 
@@ -130,15 +130,15 @@ SessionStart 훅이 응답 스타일 규칙을 **모든 세션과 모든 모델*
 
 ---
 
-## 🔄 기능 3: /cc-continue — 컨텍스트 복원
+## 🔄 기능 3: /s-continue — 컨텍스트 복원
 
 **`/compact` 필요 없습니다. LLM 호출 0번. 비용 $0. 날아가는 정보 0.**
 
 `/compact`는 전체 컨텍스트(~1M 토큰)를 LLM에 전송해 3.3% 요약본으로 압축합니다. 캐시가 만료된 상태라면 이것만으로 전체 재캐시가 발생합니다. 정보 손실은 피할 수 없습니다.
 
-`/cc-continue`는 완전히 다른 방식으로 작동합니다. 이전 세션 트랜스크립트를 전처리해서 직접 로드합니다. LLM 호출 없음. 비용 없음. 원본 대화가 그대로 복원됩니다.
+`/s-continue`는 완전히 다른 방식으로 작동합니다. 이전 세션 트랜스크립트를 전처리해서 직접 로드합니다. LLM 호출 없음. 비용 없음. 원본 대화가 그대로 복원됩니다.
 
-|                         | /compact                          | /cc-continue                        |
+|                         | /compact                          | /s-continue                        |
 | ----------------------- | --------------------------------- | -------------------------------- |
 | 작동 방식               | 전체 컨텍스트를 LLM에 전송해 요약 | 트랜스크립트 전처리 후 직접 로드 |
 | LLM 호출                | 필요 (일반적으로 100K+ 토큰)      | 0                                |
@@ -148,41 +148,41 @@ SessionStart 훅이 응답 스타일 규칙을 **모든 세션과 모든 모델*
 | 캐시 만료 시            | 위에 전체 재캐시 비용 추가        | 영향 없음                        |
 | 다중 세션 복원          | 불가                              | 지원                             |
 
-사용법: `/clear` 후 `/cc-continue`. 이전 세션 목록이 표시됩니다. 복원할 세션을 선택하세요. 빠른 복원: `/cc-continue last`.
+사용법: `/clear` 후 `/s-continue`. 이전 세션 목록이 표시됩니다. 복원할 세션을 선택하세요. 빠른 복원: `/s-continue last`.
 
 **결과:** 이전 작업을 무료로 재개. 정보 손실 없음. 60MB+ 트랜스크립트도 1초 이내 처리.
 
-### 🤝 짝을 이루는 기능: `/cc-compact` — 숨겨진 레이어까지 인계
+### 🤝 짝을 이루는 기능: `/s-compact` — 숨겨진 레이어까지 인계
 
-`/cc-continue`는 트랜스크립트 — 여러분과 Claude가 나눈 대화 — 를 복원합니다. 하지만 작업 세션에서 가장 유용한 지식은 종종 그 대화 밖에 있습니다: 서브에이전트가 찾아낸 것(그 트랜스크립트는 별도 파일이라 복원 시 로드되지 않습니다), 도구 출력 속의 결정적인 숫자(테스트 개수, 벤치마크 수치), 작업 과정에서 얻은 교훈("헤드리스에서 재현이 안 됐던 건 코드가 아니라 빌드 문제였다").
+`/s-continue`는 트랜스크립트 — 여러분과 Claude가 나눈 대화 — 를 복원합니다. 하지만 작업 세션에서 가장 유용한 지식은 종종 그 대화 밖에 있습니다: 서브에이전트가 찾아낸 것(그 트랜스크립트는 별도 파일이라 복원 시 로드되지 않습니다), 도구 출력 속의 결정적인 숫자(테스트 개수, 벤치마크 수치), 작업 과정에서 얻은 교훈("헤드리스에서 재현이 안 됐던 건 코드가 아니라 빌드 문제였다").
 
-세션을 마칠 때 `/cc-compact`를 실행하면 바로 이 숨겨진 레이어를 인계 기록으로 압축해 `~/.claude/claude-code-token-saver-data/<project>/handoff.md`에 저장합니다. 다음 세션에서는 `/cc-continue`가 복원된 트랜스크립트 위에 이 기록을 자동으로 불러옵니다 — 따로 붙여넣을 필요가 없습니다.
+세션을 마칠 때 `/s-compact`를 실행하면 바로 이 숨겨진 레이어를 인계 기록으로 압축해 `~/.claude/super-token-saver-data/<project>/handoff.md`에 저장합니다. 다음 세션에서는 `/s-continue`가 복원된 트랜스크립트 위에 이 기록을 자동으로 불러옵니다 — 따로 붙여넣을 필요가 없습니다.
 
-|                     | `/cc-continue` 단독            | `/cc-compact` + `/cc-continue` (세트)          |
+|                     | `/s-continue` 단독            | `/s-compact` + `/s-continue` (세트)          |
 | 복원 범위            | 트랜스크립트(나눈 대화)  | 트랜스크립트 + 숨겨진 레이어             |
 | 서브에이전트 발견   | 유실(별도 파일)           | 인계 기록에 압축되어 보존                       |
 | 도구 출력 숫자 | 대화에 직접 언급된 경우만    | 의도적으로 추출                            |
 | 작업 과정의 교훈     | 없음                               | 막다른 길을 반복하지 않도록 기록              |
 
-**작업 흐름:** 세션을 `/cc-compact`로 마치고 → 다음 세션을 `/cc-continue`로 시작하세요.
+**작업 흐름:** 세션을 `/s-compact`로 마치고 → 다음 세션을 `/s-continue`로 시작하세요.
 
 ### 🔀 두 도구, 하나의 히스토리 — Codex 세션도 여기서 복원됩니다
 
 Codex는 세션을 `~/.codex/sessions/`에 쓰고, Claude Code는 `~/.claude/projects/`에 씁니다. 서로 상대방의 파일을 읽지 못해서, Codex에서 예산을 다 쓰고 중단된 작업을 Claude Code에서 이어받을 방법이 없었습니다. 반대 방향도 마찬가지였습니다.
 
-이제 `/cc-continue`는 두 히스토리를 함께 목록에 띄우고 복원합니다. Codex의 rollout 파일을 별도 파서로 처리하는 게 아니라, Claude Code가 쓰는 형식으로 **입력 한 줄당 출력 한 줄**씩 그대로 재작성합니다 — 그래서 파이프라인이 하나로 통일되고, `L{n}` 마커는 여전히 원본 Codex 파일의 정확한 줄을 가리킵니다. 실측: 12 MB, 1,540줄짜리 rollout을 전처리하는 데 **0.13 s**가 걸렸습니다.
+이제 `/s-continue`는 두 히스토리를 함께 목록에 띄우고 복원합니다. Codex의 rollout 파일을 별도 파서로 처리하는 게 아니라, Claude Code가 쓰는 형식으로 **입력 한 줄당 출력 한 줄**씩 그대로 재작성합니다 — 그래서 파이프라인이 하나로 통일되고, `L{n}` 마커는 여전히 원본 Codex 파일의 정확한 줄을 가리킵니다. 실측: 12 MB, 1,540줄짜리 rollout을 전처리하는 데 **0.13 s**가 걸렸습니다.
 
 |                        | Claude Code 세션 | Codex 세션 |
 | ---------------------- | ------------------- | ------------- |
-| `/cc-continue`에 표시됨 | O | O, 현재 프로젝트로 범위 제한 |
+| `/s-continue`에 표시됨 | O | O, 현재 프로젝트로 범위 제한 |
 | LLM 비용 0으로 복원 | O | O |
 | `L{n}`으로 원본 위치 이동 | O | O — 줄 번호는 rollout 자체의 것 |
 | 컨텍스트 손실(`#0`) 복원 | `/compact`, 자동 compact | Codex의 compaction과 스레드 롤백 |
-| `/cc-compact` 인계 기록 | 프로젝트 단위로 공유 — 한 도구에서 쓰고 다른 도구에서 불러옵니다 |
+| `/s-compact` 인계 기록 | 프로젝트 단위로 공유 — 한 도구에서 쓰고 다른 도구에서 불러옵니다 |
 
 ```
-/cc-continue codex                    only Codex sessions
-/cc-continue codex : rust migration   the turns matching a topic, restored in full
+/s-continue codex                    only Codex sessions
+/s-continue codex : rust migration   the turns matching a topic, restored in full
 ```
 
 정확한 목록과 그럴듯해 보이지만 틀린 목록을 가르는 것은 이 두 가지입니다. Codex의 `session_id`는 서브에이전트가 그대로 물려받는 **스레드** id라서, 세션은 `payload.id`로 구분하고 서브에이전트의 rollout은 Claude Code가 subtask 트랜스크립트를 걸러내는 것과 같은 방식으로 제외합니다. 그리고 `<codex_internal_context source="goal">`는 시스템이 주입한 것이라 복원된 컨텍스트에는 남지만 사용자가 입력한 턴으로는 세지 않습니다.
@@ -331,7 +331,7 @@ Anthropic은 5시간 윈도우의 정확한 공식을 공개하지 않습니다.
 
 일반적인 인터랙티브 세션에서 커밋/PR 지침(1.7K tok)은 `cache_read`를 통해 **모든 API 호출에 누적**됩니다. Opus 4.7 가격 기준 100회 호출 세션이라면, Claude의 학습 데이터가 이미 대부분 커버하는 지침에 **세션당 ~$0.08**이 소모됩니다.
 
-### claude-code-token-saver의 처리 방식
+### super-token-saver의 처리 방식
 
 `/setup-git-lite`는 네이티브 경로를 비활성화하고 SessionStart 훅을 통해 **280 토큰 맞춤형 대체 지침**을 주입합니다. Claude의 기본 행동을 재정의하는 것(안전 규칙)만 남기고, Claude가 학습으로 이미 아는 것(단계별 워크플로우, PR 템플릿, gh 사용 패턴)은 제거했습니다.
 
@@ -383,7 +383,7 @@ Anthropic은 5시간 윈도우의 정확한 공식을 공개하지 않습니다.
 
 다른 이유로 해당 환경 변수가 필요하다면, `revert` 실행 전에 기록해 두고 이후에 다시 추가하세요.
 
-### claude-code-token-saver 제거 전
+### super-token-saver 제거 전
 
 **먼저 `/setup-git-lite revert`를 실행하세요.** 그렇지 않으면 settings.json에 `includeGitInstructions: false`만 남고 대체 훅은 없는 상태가 됩니다(Claude가 git 지침을 전혀 받지 못합니다). Claude Code는 현재 플러그인 제거 라이프사이클 훅을 지원하지 않아 자동화할 수 없습니다.
 
@@ -396,7 +396,7 @@ Anthropic은 5시간 윈도우의 정확한 공식을 공개하지 않습니다.
 
 ### 추천 배너
 
-CC 네이티브 git 지침이 아직 활성화된 상태라면, claude-code-token-saver가 세션 시작 시 **~20% 확률**로 한 단락짜리 팁을 표시합니다(`/usage-view`와 `/report-limit` 출력에도 포함). `/setup-git-lite dismiss-banner`로 영구적으로 숨길 수 있습니다.
+CC 네이티브 git 지침이 아직 활성화된 상태라면, super-token-saver가 세션 시작 시 **~20% 확률**로 한 단락짜리 팁을 표시합니다(`/usage-view`와 `/report-limit` 출력에도 포함). `/setup-git-lite dismiss-banner`로 영구적으로 숨길 수 있습니다.
 
 ---
 
@@ -419,7 +419,7 @@ Claude Code는 모든 API 호출에서 전체 대화 기록을 모델에 전송�
 
 조건: Opus 4 가격, 분당 프롬프트 1개, 프롬프트당 API 호출 ~5회(시간당 ~300회).
 
-#### ❌ claude-code-token-saver 없이
+#### ❌ super-token-saver 없이
 
 대부분의 작업이 Main 세션에서 이루어집니다. 컨텍스트가 빠르게 늘어납니다.
 
@@ -434,7 +434,7 @@ Claude Code는 모든 API 호출에서 전체 대화 기록을 모델에 전송�
 
 > 이 사용량 수준에서는 5시간 윈도우 요금 한도에 걸릴 가능성이 높습니다. **비용도 문제지만, 진짜 문제는 작업이 완전히 멈추는 것입니다. 바로 이 순간 Claude Code가 암흑 속으로 들어갑니다.**
 
-#### ✅ claude-code-token-saver로
+#### ✅ super-token-saver로
 
 무거운 작업은 SubTask에 위임됩니다. Main은 설계/의사결정만 처리합니다.
 
@@ -442,7 +442,7 @@ Claude Code는 모든 API 호출에서 전체 대화 기록을 모델에 전송�
 | ----------- | -------------------------------------------- | --------------------------- | ---------------------------------- |
 | 오전 3시간  | 코딩 (Main: 설계, SubTask: 구현)             | Main 100K → 300K (평균 200K) | 900회 × 200K × ＄0.50/M = ＄90 |
 | 점심/회의   | 2시간 자리 비움                              | —                           | —                                  |
-| 복귀        | ⚡ Token Guardian 차단 → /clear + /cc-continue | —                           | ＄0 (LLM 호출 없음)                 |
+| 복귀        | ⚡ Token Guardian 차단 → /clear + /s-continue | —                           | ＄0 (LLM 호출 없음)                 |
 | 오후 3시간  | 코딩 계속                                    | Main 100K → 300K (평균 200K) | 900회 × 200K × ＄0.50/M = ＄90 |
 |             | 합계                                         |                             | ~＄180                              |
 
@@ -454,7 +454,7 @@ Claude Code는 모든 API 호출에서 전체 대화 기록을 모델에 전송�
 >
 > **API 종량제:** ＄146/일 × 22 근무일 = **청구서에서 월 ＄3,200 절감.** 이 플러그인 없이 무거운 달은 ＄7,000을 넘습니다. 있으면 ＄4,000 미만. 같은 출력.
 
-### claude-code-token-saver가 개입하는 지점
+### super-token-saver가 개입하는 지점
 
 ```
 [세션 시작]
@@ -473,7 +473,7 @@ Claude Code는 모든 API 호출에서 전체 대화 기록을 모델에 전송�
     │
 [세션 재시작]
     │
-    └─ /cc-continue → 무비용으로 이전 컨텍스트 복원 (LLM 호출 없음)
+    └─ /s-continue → 무비용으로 이전 컨텍스트 복원 (LLM 호출 없음)
 ```
 
 ---
@@ -481,16 +481,16 @@ Claude Code는 모든 API 호출에서 전체 대화 기록을 모델에 전송�
 ## 🔧 소스 설치 및 커스터마이징
 
 ```bash
-git clone https://github.com/ww-w-ai/claude-code-token-saver.git
-/plugin marketplace add /path/to/claude-code-token-saver
-/plugin install claude-code-token-saver@ww-w-ai
+git clone https://github.com/ww-w-ai/super-token-saver.git
+/plugin marketplace add /path/to/super-token-saver
+/plugin install super-token-saver@ww-w-ai
 ```
 
-claude-code-token-saver는 완전한 오픈소스(Apache-2.0)입니다. 순수 JavaScript + Bash — 컴파일된 바이너리, 외부 API 호출, 텔레메트리 없음. 모든 라인이 감사 가능합니다. 이 README의 모든 주장은 직접 읽을 수 있는 특정 파일에 매핑됩니다.
+super-token-saver는 완전한 오픈소스(Apache-2.0)입니다. 순수 JavaScript + Bash — 컴파일된 바이너리, 외부 API 호출, 텔레메트리 없음. 모든 라인이 감사 가능합니다. 이 README의 모든 주장은 직접 읽을 수 있는 특정 파일에 매핑됩니다.
 
 - **hooks/** — 캐시 만료 임계값 변경, 경고 메시지 커스터마이징, 세션 아키텍처 규칙 수정
 - **scripts/** — 분석 로직, 리포트 빌더, 상태 표시줄 형식
-- **skills/** — /cc-continue와 /usage-view 작동 방식, 프롬프트 템플릿
+- **skills/** — /s-continue와 /usage-view 작동 방식, 프롬프트 템플릿
 - **locales/** — 번역 추가/편집, 새 언어 추가
 - **skills/usage-view/** — 대시보드 UI/UX 디자인 변경
 
@@ -548,7 +548,7 @@ git-lite가 활성화된 경우, 플러그인은 세션당 ~1,920 토큰을 **�
 
 - **CLAUDE.md를 간결하게 유지하세요.** 모든 API 호출에서 시스템 프롬프트로 로드됩니다. 한 줄 한 줄이 돈입니다.
 - **무거운 작업은 SubTask에 위임하세요.** 코드 생성, 다중 파일 편집, 테스트 실행은 Main에 있을 필요가 없습니다. SubTask는 컨텍스트가 작고 캐시 티어가 저렴합니다.
-- **1시간 이상 자리를 비우나요?** `/clear` → 복귀 → `/cc-continue`. 컨텍스트가 $0에 복원됩니다.
+- **1시간 이상 자리를 비우나요?** `/clear` → 복귀 → `/s-continue`. 컨텍스트가 $0에 복원됩니다.
 - **[5H]가 70% (🟡) 이상?** 속도를 줄이세요. 가벼운 리뷰 작업으로 전환하거나 SubTask 위임을 늘려 Main의 API 호출 수를 줄이세요.
 - **간단한 질문에는 `/btw`를 사용하세요.** 대화 기록에 들어가지 않아 컨텍스트가 가볍게 유지됩니다.
 
@@ -556,7 +556,7 @@ git-lite가 활성화된 경우, 플러그인은 세션당 ~1,920 토큰을 **�
 
 위의 모든 것에 더해 API 전용 우선순위:
 
-- **[CTX]를 속도계처럼 주시하세요.** 요금 한도는 여러분을 멈추지 않습니다 — 하지만 500K+ 컨텍스트는 모든 API 호출이 적정 비용의 2-3배가 됨을 의미합니다. `/clear` → `/cc-continue`는 무료이고 비용 배수를 기본값으로 리셋합니다.
+- **[CTX]를 속도계처럼 주시하세요.** 요금 한도는 여러분을 멈추지 않습니다 — 하지만 500K+ 컨텍스트는 모든 API 호출이 적정 비용의 2-3배가 됨을 의미합니다. `/clear` → `/s-continue`는 무료이고 비용 배수를 기본값으로 리셋합니다.
 - **주 1회 `/usage-view`를 실행하세요.** Max Plan 사용자는 요금 한도에 걸릴 때 자연스러운 "아야" 순간이 있습니다. 여러분에게는 없습니다 — 비용이 조용히 올라갑니다. 대시보드가 조기 경보 시스템입니다.
 - **하루 예산을 머릿속에 설정하세요.** 상한선 없이는 $200짜리 날이 알아채기 전에 발생합니다. 상태 표시줄의 RUN 지표가 턴별 비용을 눈에 보이게 합니다. 한 턴이 $1 (🔴)을 넘으면 컨텍스트가 너무 큰 겁니다.
 

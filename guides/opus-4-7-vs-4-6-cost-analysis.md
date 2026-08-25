@@ -26,7 +26,7 @@ This report explains why it happens and **what you can do about it**.
 
 ---
 
-¹ Measurement basis: claude-code-token-saver + doooz JSONL data, simulated over 100 turns of English/code-heavy dialog. **Mixed Korean/English: ~26%; Korean-heavy: ~18%**. Varies by task type, language ratio, and session length. See §5 for full simulation conditions.
+¹ Measurement basis: super-token-saver + doooz JSONL data, simulated over 100 turns of English/code-heavy dialog. **Mixed Korean/English: ~26%; Korean-heavy: ~18%**. Varies by task type, language ratio, and session length. See §5 for full simulation conditions.
 
 ### The three causes in detail
 
@@ -73,16 +73,16 @@ Tell Claude "launch a subagent with sonnet to do X", or set `model: sonnet` in a
 
 **Pitfall to avoid**: don't delegate planning itself to subagents. They can't think, so plans come out shallow. Design in main, execute in subagents — that's the key division.
 
-#### Option 3 — claude-code-token-saver plugin (Option 2 + automated token management)
+#### Option 3 — super-token-saver plugin (Option 2 + automated token management)
 
-For those who find manual management tedious. [claude-code-token-saver](https://github.com/ww-w-ai/claude-code-token-saver) is an open-source Claude Code plugin that automatically tracks and reduces token costs.
+For those who find manual management tedious. [super-token-saver](https://github.com/ww-w-ai/super-token-saver) is an open-source Claude Code plugin that automatically tracks and reduces token costs.
 
 - Design via `claude -p` (main, thinking active), execution via SubTask + Sonnet — automatic distribution
 - Warns on prompt cache expiry to prevent unnecessary re-caching costs
 - `/usage-view` for real-time cost dashboard
-- `/cc-continue` to restore context between sessions at zero LLM cost
+- `/s-continue` to restore context between sessions at zero LLM cost
 
-The analysis data in this report was collected using claude-code-token-saver.
+The analysis data in this report was collected using super-token-saver.
 
 If you're unsure, **start with Option 1.** One command, reversible anytime.
 
@@ -116,7 +116,7 @@ After switching to Opus 4.7, I noticed the **5-hour usage window draining faster
 Session JSONL files from two projects I actually worked on (since 2026-04-17, main + subagent):
 
 - **doooz** (personal project, design refactoring — [github.com/taekim34/doooz](https://github.com/taekim34/doooz)): 4.7 = 1,847 calls (main 728 / sub 1,119), 4.6 = 4,899 calls (main 1,749 / sub 3,150)
-- **claude-code-token-saver** (analysis/debugging): 4.7 = 1,630 calls (main 1,589 / sub 41), 4.6 = 187 calls (main 169 / sub 18)
+- **super-token-saver** (analysis/debugging): 4.7 = 1,630 calls (main 1,589 / sub 41), 4.6 = 187 calls (main 169 / sub 18)
 - **Total**: 4.7 = 3,477 calls, 4.6 = 5,086 calls (8,563 total)
 
 Fields extracted from JSONL:
@@ -206,7 +206,7 @@ Main session calls where both models responded without triggering thinking.
 Both environments show 4.7 is more verbose:
 
 - Subagent: 1.34× (strongest control, same short execution tasks)
-- Main no-think: 2.26× (some task-complexity bias — claude-code-token-saver's analytical work concentrated on 4.7)
+- Main no-think: 2.26× (some task-complexity bias — super-token-saver's analytical work concentrated on 4.7)
 
 Even with maximum tokenizer correction, 1.27× remains in the subagent condition. **The residual after thinking-disabled + tokenizer-corrected = 4.7's intrinsic verbosity increase.** Controlled-condition range: **27~34%**; less-controlled conditions show more.
 
@@ -353,7 +353,7 @@ Design in main, execute in subagents — that's the key division.
 
 #### Common habits
 
-- **Session management**: use `/cc-continue` to keep initial context light; compress long sessions periodically
+- **Session management**: use `/s-continue` to keep initial context light; compress long sessions periodically
 
 ---
 
@@ -393,7 +393,7 @@ opus-4-7:   985 tok/call (think 17.9%, no-think 82.1%)
 opus-4-6:   278 tok/call (think  2.85%, no-think 97.15%)
 
 === Per-project distribution ===
-claude-code-token-saver: 4-7 main=1,589(28.7%) / sub=41     / 4-6 main=169(9.5%)  / sub=18
+super-token-saver: 4-7 main=1,589(28.7%) / sub=41     / 4-6 main=169(9.5%)  / sub=18
 doooz:          4-7 main=728(22.7%)   / sub=1,119  / 4-6 main=1,749(7.4%) / sub=3,150
 ```
 
@@ -417,7 +417,7 @@ from pathlib import Path
 HOME = Path.home()
 FILTER_SINCE = "2026-04-17T00:00:00Z"
 PROJECTS = {
-    "claude-code-token-saver": HOME / ".claude/projects/{claude-code-token-saver-project-hash}",
+    "super-token-saver": HOME / ".claude/projects/{super-token-saver-project-hash}",
     "doooz":          HOME / ".claude/projects/{doooz-project-hash}",
 }
 # Regexes for effort signals captured in local-command-stdout messages.
@@ -584,4 +584,4 @@ This report started from a simple question: "why am I running out of usage so fa
 
 It's natural for cost structures to shift as models evolve. But when users don't notice the change and only see higher bills — that's a problem. I hope this report helps bridge that gap.
 
-I'll update as more data comes in. If you'd like to contribute your own usage data, you can do so anonymously through [claude-code-token-saver's /report-limit](https://github.com/ww-w-ai/claude-code-token-saver).
+I'll update as more data comes in. If you'd like to contribute your own usage data, you can do so anonymously through [super-token-saver's /report-limit](https://github.com/ww-w-ai/super-token-saver).

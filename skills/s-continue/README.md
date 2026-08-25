@@ -1,12 +1,12 @@
-# /cc-continue
+# /s-continue
 
 Restore context from previous sessions — smarter, cheaper alternative to `/compact`.
 
 ## Usage
 
 ```
-/cc-continue                    # show session list, pick which to restore
-/cc-continue last               # instantly restore the most recent session
+/s-continue                    # show session list, pick which to restore
+/s-continue last               # instantly restore the most recent session
 ```
 
 ## How It Works
@@ -41,6 +41,6 @@ Each turn header includes `[Session:{sid} {ISO} L{n}]` — the session ID, times
 
 ## Caching
 
-- Location: `~/.claude/claude-code-token-saver-data/{projectName}/{sessionId}/compact.txt` and `~/.claude/claude-code-token-saver-data/{projectName}/{sessionId}/compact.aggressive.txt`
+- Location: `~/.claude/super-token-saver-data/{projectName}/{sessionId}/compact.txt` and `~/.claude/super-token-saver-data/{projectName}/{sessionId}/compact.aggressive.txt`
 - Valid when: BOTH files must exist and both must have mtime >= transcript mtime
 - Plain text format, instant preprocessing (< 1s even for 60MB+ transcripts)

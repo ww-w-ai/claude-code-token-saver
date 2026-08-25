@@ -60,7 +60,7 @@
     "dowNoteActive": "* Aktywne dni: średnia tylko z tygodni, w których pracowano w ten dzień.",
     "dowNoteAll": "* Wszystkie dni: podzielone przez łączną liczbę wystąpień danego dnia tygodnia w okresie (każdy dzień tygodnia może mieć inną liczbę).",
     "dowNotePartial": "* Niepełne dni na początku/końcu są normalizowane do 1 dnia (np. 6 godz. danych skalowane ×4).",
-    "ctxNote": "* Mniejszy kontekst = tańsze wywołanie. Utrzymuj mały kontekst za pomocą /clear lub /cc-continue, aby oszczędzać.",
+    "ctxNote": "* Mniejszy kontekst = tańsze wywołanie. Utrzymuj mały kontekst za pomocą /clear lub /s-continue, aby oszczędzać.",
     "ctxDistTitle": "Rozkład rozmiaru kontekstu",
     "ctxCostYApi": "Koszt na wywołanie API ($)",
     "ctxCostYTurn": "Koszt na interakcję użytkownika ($)",
@@ -114,7 +114,7 @@
     "windowDetailTitle": "📋 {date} {start}~{end} Szczegóły sesji (${cost})",
     "programmaticExec": "📦 Wykonanie programowe ({count})",
     "batchExec": "🔄 Wykonanie wsadowe ({count})",
-    "continueRestore": "💚 /cc-continue przywrócił {n} sesji (0 wywołań LLM)",
+    "continueRestore": "💚 /s-continue przywrócił {n} sesji (0 wywołań LLM)",
     "continueContext": "   Przywrócony kontekst: {tokens} tokenów",
     "continueCompactCost": "   /compact szacowany koszt: ${min} ~ ${max}",
     "continueSaved": "   → ${min} ~ ${max} zaoszczędzono!",
@@ -134,11 +134,11 @@
     "ctxDanger": "🔴 Context window przekroczyło 70% — koszt cache write/read jest bardzo wysoki.",
     "compactManual": "📦 Ręczny /compact — cache wygenerowany ponownie, poniesiony koszt",
     "compactAuto": "📦 /compact uruchomiony automatycznie (presja context).",
-    "continue1": "💚 /cc-continue skill przywrócił 1 sesję",
-    "continueN": "💚 /cc-continue skill przywrócił 2+ sesji",
-    "continueSkillTip": " 💡 Zalecamy /cc-continue skill po nowej sesji.\n",
+    "continue1": "💚 /s-continue skill przywrócił 1 sesję",
+    "continueN": "💚 /s-continue skill przywrócił 2+ sesji",
+    "continueSkillTip": " 💡 Zalecamy /s-continue skill po nowej sesji.\n",
     "cacheWritePrefix": "{icon} W tym wywołaniu cache write {tokens} tokenów zostało nowo zapisanych — ",
-    "compactManualReason": "/compact został wywołany ręcznie, cache wygenerowany ponownie — wysoki koszt! Rozważ /cc-continue skill dla lżejszego przywrócenia context.",
+    "compactManualReason": "/compact został wywołany ręcznie, cache wygenerowany ponownie — wysoki koszt! Rozważ /s-continue skill dla lżejszego przywrócenia context.",
     "compactAutoReason": "/compact został uruchomiony automatycznie z powodu presji context. Cache został wygenerowany ponownie.",
     "clearReason": "{reason} spowodował utworzenie cache (${cost})",
     "clearReasonClear": "/clear restart",
@@ -146,7 +146,7 @@
     "pluginOverload": " — może być załadowanych zbyt wiele wtyczek, MCP lub skills. Zachowaj tylko potrzebne.",
     "reloadReason": "/reload-plugins spowodował zmianę promptu systemowego, cache wygenerowany ponownie (${cost})",
     "modelReason": "/model zmiana unieważniła poprzedni cache, wygenerowany ponownie (${cost})",
-    "resumeHeuristicReason": "Wznawianie sesji przez claude --continue lub /resume zużywa dużo tokenów. Jeśli nie jest konieczne, zalecamy /cc-continue skill po nowej sesji.",
+    "resumeHeuristicReason": "Wznawianie sesji przez claude --continue lub /resume zużywa dużo tokenów. Jeśli nie jest konieczne, zalecamy /s-continue skill po nowej sesji.",
     "cacheExpiredReason": "Gdy kontekst jest duży i minęła ponad 1 godzina, generowany jest nowy cache — wysoki koszt!",
     "costTopLabel": "{icon} Wygenerowano znaczącą liczbę tokenów {type}. ({tokens}, ${cost})",
     "costCacheReadLabel": "{icon} Koszt odczytu cache jest wysoki. Duży kontekst ({ctx}) z wieloma kolejnymi wywołaniami narzędzi ({calls}) zwielokrotnia koszt. (${cost})",
@@ -159,7 +159,7 @@
   },
   "ai": {
     "analysis": "✨ Analiza AI",
-    "tips": "💡 Wskazówki — Przewodnik po claude-code-token-saver"
+    "tips": "💡 Wskazówki — Przewodnik po super-token-saver"
   },
   "gitLite": {
     "tip": "Wskazówka: Wbudowane instrukcje git w CC zużywają ~2 200 tok/sesję + ~1 700 tok/wywołanie. `/setup-git-lite install` zastępuje je wyselekcjonowanym minimum 280 tok. `/setup-git-lite dismiss-banner` ukrywa tę wskazówkę."

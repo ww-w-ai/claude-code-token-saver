@@ -1,44 +1,44 @@
 ---
-name: cc-compact
-description: 'Session handoff for the next session — write-side pair of /cc-continue. Triggers on "cc-compact", "session handoff", "handoff prompt", "hand off", "wrap up the session", "prep for next session". Distills what /cc-continue cannot recover: subagent findings, tool-output numbers, and decisions that never entered the user↔assistant dialogue. Saves to a per-project file /cc-continue auto-loads.'
-when_to_use: Use at the END of a working session to hand off to the next one — whenever the user says to wrap up, prep a handoff, or is about to /clear, including when handing work from Claude Code to Codex or back. Pairs with /cc-continue (end with cc-compact → start with cc-continue).
+name: s-compact
+description: 'Session handoff for the next session — write-side pair of /s-continue. Triggers on "s-compact", "session handoff", "handoff prompt", "hand off", "wrap up the session", "prep for next session". Distills what /s-continue cannot recover: subagent findings, tool-output numbers, and decisions that never entered the user↔assistant dialogue. Saves to a per-project file /s-continue auto-loads.'
+when_to_use: Use at the END of a working session to hand off to the next one — whenever the user says to wrap up, prep a handoff, or is about to /clear, including when handing work from Claude Code to Codex or back. Pairs with /s-continue (end with s-compact → start with s-continue).
 ---
 
 Generate a **session handoff**: a document that lets the NEXT session pick up with full context and zero re-derivation — in EITHER tool. The handoff is stored per project, not per tool, so a session ended in Claude Code is picked up by Codex and the reverse.
 
- `/cc-continue` restores the transcript (user↔assistant messages); **this skill captures what the transcript does NOT hold** and saves it where `/cc-continue` auto-loads it.
+ `/s-continue` restores the transcript (user↔assistant messages); **this skill captures what the transcript does NOT hold** and saves it where `/s-continue` auto-loads it.
 
 **ONE JOB: distill the non-dialogue knowledge. The transcript is already restorable — do not re-summarize it.**
 
 The two tools form a ladder of recovery:
-- **`/cc-continue` alone** → fast, accurate context restore with no wasted `/compact` tokens (the transcript).
-- **`/cc-compact` + `/cc-continue` as a set** → ALSO recovers the hidden results and process that never appeared in the dialogue (subagent findings, tool-output numbers, process lessons). That extra layer is THIS skill's entire reason to exist — so it must be captured in FULL, not gestured at.
+- **`/s-continue` alone** → fast, accurate context restore with no wasted `/compact` tokens (the transcript).
+- **`/s-compact` + `/s-continue` as a set** → ALSO recovers the hidden results and process that never appeared in the dialogue (subagent findings, tool-output numbers, process lessons). That extra layer is THIS skill's entire reason to exist — so it must be captured in FULL, not gestured at.
 
-**A terse handoff is a FAILED handoff.** The common failure mode is a handoff too short to carry the hidden layer — a few bullets that just restate what the transcript already has. This skill exists precisely because that is not enough. Favor completeness of the non-dialogue layer over brevity; the token cost of `/cc-compact` is paid back many times over by the next session not re-running the same subagents and tool calls.
+**A terse handoff is a FAILED handoff.** The common failure mode is a handoff too short to carry the hidden layer — a few bullets that just restate what the transcript already has. This skill exists precisely because that is not enough. Favor completeness of the non-dialogue layer over brevity; the token cost of `/s-compact` is paid back many times over by the next session not re-running the same subagents and tool calls.
 
 ## Help
 
-**ONLY if the user's argument literally contains "help" (e.g. `/cc-compact help`).** Otherwise skip to Step 1.
+**ONLY if the user's argument literally contains "help" (e.g. `/s-compact help`).** Otherwise skip to Step 1.
 
 ```
-/cc-compact — Write a session handoff for the next session (pairs with /cc-continue)
+/s-compact — Write a session handoff for the next session (pairs with /s-continue)
 
-  /cc-compact            Generate the handoff, save it, print it, copy to clipboard
-  /cc-compact help       This help
+  /s-compact            Generate the handoff, save it, print it, copy to clipboard
+  /s-compact help       This help
 
-The handoff is saved to  ~/.claude/claude-code-token-saver-data/<project>/handoff.md
-On the next session, /cc-continue restores the transcript AND auto-loads this file.
+The handoff is saved to  ~/.claude/super-token-saver-data/<project>/handoff.md
+On the next session, /s-continue restores the transcript AND auto-loads this file.
 The path is shared by both tools, so the next session can be Claude Code or Codex.
-Workflow:  end a session → /cc-compact   ·   start the next → /cc-continue
+Workflow:  end a session → /s-compact   ·   start the next → /s-continue
 ```
 
 ## Language
 
 Write the handoff in the language the user has been working in (detect from the recent conversation). Section labels may stay English; the content matches the user's language.
 
-## The principle — capture what `/cc-continue` cannot recover
+## The principle — capture what `/s-continue` cannot recover
 
-`/cc-continue` reads the transcript, so anything **said between the user and the assistant** is already restorable. Test for each fact: *"Is this in the sentences the user and I exchanged, or only in a tool output / subagent reply?"* If the latter, it is invisible to `/cc-continue` and MUST be lifted into the handoff.
+`/s-continue` reads the transcript, so anything **said between the user and the assistant** is already restorable. Test for each fact: *"Is this in the sentences the user and I exchanged, or only in a tool output / subagent reply?"* If the latter, it is invisible to `/s-continue` and MUST be lifted into the handoff.
 
 **Truth lives in source, not the handoff.** Where a durable artifact exists (a plan doc, as-built, status file, commit), POINT to it and say "read this first, don't trust this prompt" — a copied fact goes stale. Only facts that live *nowhere but* a tool result / subagent reply get written into the body directly.
 
@@ -46,7 +46,7 @@ Write the handoff in the language the user has been working in (detect from the 
 
 The non-dialogue layer (handoff part 4) is the point of this skill, so its coverage is not optional. Walk the ENTIRE session and extract every item in each category below — enumerate, do not summarize-away. If a category is genuinely empty this session, write "none" for it explicitly (so the next session knows it was checked, not skipped).
 
-1. **Every subagent dispatched this session — one entry each.** For each Task/Agent run: what it was asked, its concrete findings (facts, numbers, `file:line` anchors), its verdict, and **what it could NOT do / flagged as a gap**. Subagent transcripts are separate files `/cc-continue` never loads — if you don't extract it here, it is gone. Missing a subagent is the #1 way this handoff fails.
+1. **Every subagent dispatched this session — one entry each.** For each Task/Agent run: what it was asked, its concrete findings (facts, numbers, `file:line` anchors), its verdict, and **what it could NOT do / flagged as a gap**. Subagent transcripts are separate files `/s-continue` never loads — if you don't extract it here, it is gone. Missing a subagent is the #1 way this handoff fails.
 2. **Every decisive number or fact from tool output.** Test counts, benchmarks, measurements, grep results, build outcomes, version/config facts (e.g. "279→529 tests", "45ms→301ms", "style X has no fill field"). If it decided something and only appeared in a tool result, it goes here.
 3. **Every process-learned lesson.** Meta-facts that only surfaced by running tools: "couldn't reproduce headless → cause was the build, not the code"; "this check passes but can't see X"; "the probe measures only top-level, not cell content". These stop the next session repeating a dead end.
 4. **Every abandoned/reverted approach**, with the one-line evidence that killed it (so it isn't re-tried).
@@ -82,7 +82,7 @@ Compose the handoff with these six parts, in order:
 1. **Read-first sources (pointers, no duplication).** Durable state (as-built, plan docs, status, commit hashes) is owned by the repo — point to it and say "re-verify against `git log` / these docs; don't trust this prompt." Copying facts here makes them go stale.
 2. **Entry state + verify.** Tool this session ran in (Claude Code or Codex) · branch · HEAD hash · working-tree status · green baseline (test/build numbers) · deploy state — each with "don't trust, re-run to confirm." Name the tool because the next session may be the other one, and anything tool-specific (a skill name, a plugin path, a goal id) has to be translated rather than pasted.
 3. **This session, done (conclusion + de-noised build-up).** Strip the back-and-forth. Keep the final conclusion and only the build-up that led to it. Name reverted detours as "noise, final = X."
-4. **★ Non-dialogue distillation (the heart).** Fill this from the MANDATORY extraction checklist above — every subagent, every decisive number, every process lesson, every killed approach, every non-committed artifact, every open gap. This is what `/cc-continue` cannot recover; if it is thin, the handoff has failed. Enumerate, don't sample.
+4. **★ Non-dialogue distillation (the heart).** Fill this from the MANDATORY extraction checklist above — every subagent, every decisive number, every process lesson, every killed approach, every non-committed artifact, every open gap. This is what `/s-continue` cannot recover; if it is thin, the handoff has failed. Enumerate, don't sample.
 5. **Next-session work (detailed, paste-ready).** Separate from "done." Per item: *why* · *already-decided values (so they aren't re-litigated)* · *exact anchors (file:line)* · *paste-ready code/spec already produced* · *definition-of-done + verify command* · *size (do-inline / one-feature / multi-sprint)*.
 6. **First move.** One concrete starting point, so the next session spends zero tokens searching.
 
@@ -92,11 +92,11 @@ Keep it tight: pointers over copies, conclusions over transcripts, distilled non
 
 ## Step 3: Save, print, copy
 
-Save to the per-project path `/cc-continue` auto-loads, and also surface it for the human:
+Save to the per-project path `/s-continue` auto-loads, and also surface it for the human:
 
 ```bash
 PROJECT_HASH=$(echo "${PWD}" | sed 's/[^a-zA-Z0-9]/-/g')
-DATA_DIR="${HOME}/.claude/claude-code-token-saver-data/${PROJECT_HASH}"
+DATA_DIR="${HOME}/.claude/super-token-saver-data/${PROJECT_HASH}"
 mkdir -p "${DATA_DIR}"
 # Write the composed handoff to handoff.md (author it to a temp file first, then move):
 #   cat > /tmp/cc-handoff.md <<'HANDOFF' ... HANDOFF
@@ -105,13 +105,13 @@ cat "${DATA_DIR}/handoff.md" | pbcopy 2>/dev/null || true    # macOS clipboard; 
 echo "Saved handoff → ${DATA_DIR}/handoff.md"
 ```
 
-- Write the handoff to a temp file, then `cp` it to `${DATA_DIR}/handoff.md` (the exact path `/cc-continue` looks for).
+- Write the handoff to a temp file, then `cp` it to `${DATA_DIR}/handoff.md` (the exact path `/s-continue` looks for).
 - Copy to the clipboard when `pbcopy` exists (macOS), so the user can paste it anywhere. Never fail the skill if `pbcopy` is missing.
 - **Do NOT commit the handoff to the repo.** It is ephemeral and per-project; committing it leaves stale noise. It lives only in the data dir (and the clipboard).
 
 ## Step 4: Confirm
 
-Print the saved path and a one-line note: the next session should run `/cc-continue`, which restores the transcript AND auto-loads this handoff. Show the handoff body in the conversation too (the user often reads it before clearing).
+Print the saved path and a one-line note: the next session should run `/s-continue`, which restores the transcript AND auto-loads this handoff. Show the handoff body in the conversation too (the user often reads it before clearing).
 
 ## Output Rules
 
