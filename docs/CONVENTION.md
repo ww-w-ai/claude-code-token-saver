@@ -47,15 +47,25 @@ pass**, and the version-bearing ones must agree **exactly** or the marketplace s
 | 4 | `README.md` **and all 22 locale variants** | A feature described in one locale must be described in all |
 | 5 | `CLAUDE.md` | Only when the change creates a rule a future session must not undo |
 | 6 | Annotated git tag `vX.Y.Z` on the release commit | `git tag -a vX.Y.Z -m "vX.Y.Z — <one line>"` then `git push origin vX.Y.Z`. Same version string as #1. Tagging lapsed for 6 releases once — it is a surface, not an afterthought |
+| 7 | `.codex-plugin/plugin.json` → `version` | Codex's manifest. Same version string as #1 |
+| 8 | `manifest.json` → `version` | The Codex marketplace listing. Same version string as #1 |
+| 9 | `README-CODEX.md` + `.ko` `.ja` `.zh-Hans` | Only when the Codex-facing surface changed. The install command names the plugin, so a rename lands here |
+| 10 | `../marketplace/.agents/plugins/marketplace.json` + the vendored copy under `../marketplace/plugins/<name>/` | **Codex installs `source: local`**, so the marketplace repo carries an actual copy of the plugin — a version bump there is a re-vendor, not a one-line edit |
 
 **Verification before push** (do not trust that a bump happened):
 
 ```bash
-grep '"version"' .claude-plugin/plugin.json
+grep '"version"' .claude-plugin/plugin.json .codex-plugin/plugin.json manifest.json  # all three agree
 head -12 CHANGELOG.md | grep '^## '
 grep -A2 'claude-code-token-saver' ../marketplace/.claude-plugin/marketplace.json | grep version
+grep -A3 'claude-code-token-saver' ../marketplace/.agents/plugins/marketplace.json  # Codex entry present
 git status --short | grep -c '^ M README'   # expect 23 when README text changed
+python3 scripts/test_product_parity.py      # skills, manifests, Codex READMEs, plugin-root rule
+node scripts/test-codex-adapter.js          # the Codex transcript adapter
 ```
+
+**Two hosts now, so a version lives in three manifests.** Bumping one and not the others ships a
+plugin whose own files disagree about what it is; the parity gate exists to fail on exactly that.
 
 **Both repos push, or neither.** Pushing the plugin without the marketplace leaves users on the old
 version; pushing the marketplace first advertises a version that does not exist yet.

@@ -15,7 +15,7 @@ Bekerja dengan **Max Plan ($200/bln)** dan **API bayar-per-penggunaan**. Plugin 
 | 🛡️ Token Guardian | Mendeteksi kedaluwarsa cache, memblokir pengiriman ulang $9 sebelum terjadi | Mencegah lonjakan biaya tersembunyi #1 |
 | 🧠 Session Architect | Mendelegasikan pekerjaan berat ke SubTasks secara otomatis (cache 37,5% lebih murah) | Konteks tetap kecil, biaya turun |
 | 🪶 Concise Mode | Memangkas padding respons, mempertahankan substansi | Lebih sedikit token output per respons |
-| 🔄 /cc-continue | Menggantikan /compact — nol panggilan LLM, nol biaya, nol kehilangan informasi | Pemulihan konteks gratis |
+| 🔄 /cc-continue | Menggantikan /compact — nol panggilan LLM, nol biaya, nol kehilangan informasi, dan kini juga memulihkan sesi **Codex** | Pemulihan konteks gratis di kedua tool |
 | 🤝 /cc-compact | Menulis serah terima sesi yang otomatis dimuat /cc-continue — menangkap temuan sub-agent & hasil tool yang hilang dari transcript | Sesi berikutnya juga resume dengan konteks tersembunyi |
 | 📊 Status Line | Biaya real-time, ukuran konteks, batas rate — di bawah 50ms | Lihat masalah sebelum menguras kantong |
 | 📈 /usage-view | Dasbor HTML interaktif dengan analisis bertenaga AI | Forensik biaya lengkap dalam satu klik |
@@ -166,6 +166,30 @@ Jalankan `/cc-compact` di akhir sesi dan ia akan menyaring persis lapisan tersem
 | Pelajaran proses    | —                                | Ditangkap agar jalan buntu tidak diulang          |
 
 Alur kerja: akhiri sesi dengan `/cc-compact` → mulai sesi berikutnya dengan `/cc-continue`.
+
+### 🔀 Dua tool, satu riwayat — sesi Codex juga dipulihkan di sini
+
+Codex menulis sesinya ke `~/.codex/sessions/`; Claude Code menulis ke `~/.claude/projects/`. Tidak ada tool yang membaca milik tool lain. Jadi sprint yang kehabisan budget di Codex dulu tidak bisa dijangkau dari Claude Code, begitu juga sebaliknya.
+
+`/cc-continue` kini mendaftar dan memulihkan keduanya. Rollout Codex tidak diserahkan ke parser kedua — ia ditulis ulang ke bentuk yang ditulis Claude Code, **satu baris output untuk setiap baris input**, sehingga pipeline yang sama melayani keduanya dan setiap penanda `L{n}` tetap menunjuk ke baris persis di file Codex aslinya. Hasil pengukuran: rollout 12 MB dengan 1,540 baris diproses dalam **0.13 s**.
+
+|                        | Sesi Claude Code | Sesi Codex |
+| ---------------------- | ------------------- | ------------- |
+| Terdaftar di `/cc-continue` | Ya | Ya, dibatasi pada project saat ini |
+| Dipulihkan tanpa biaya LLM | Ya | Ya |
+| Pencarian `L{n}` ke file asli | Ya | Ya — nomor baris milik rollout itu sendiri |
+| Pemulihan kehilangan konteks (`#0`) | `/compact`, auto-compact | Compaction dan thread rollback milik Codex sendiri |
+| Serah terima `/cc-compact` | Dibagikan per project — tulis di satu tool, muat di tool lainnya |
+
+```
+/cc-continue codex                    hanya sesi Codex
+/cc-continue codex : rust migration   turn yang cocok dengan sebuah topik, dipulihkan utuh
+```
+
+Dua detail inilah yang membedakan daftar yang benar dari daftar yang tampak benar tapi salah: `session_id` milik Codex sebenarnya adalah id **thread**, yang diwarisi oleh sub-agent mana pun yang di-spawn, sehingga sesi dikunci berdasarkan `payload.id` dan rollout sub-agent disaring dengan cara yang sama seperti transkrip subtask Claude Code sudah disaring. Sementara `<codex_internal_context source="goal">` disisipkan otomatis oleh sistem, sehingga tetap ada di konteks yang dipulihkan tapi tidak pernah dihitung sebagai turn yang Anda ketik.
+
+Plugin ini juga terpasang di dalam Codex — lihat **[README-CODEX.md](./README-CODEX.md)** ([한국어](./README-CODEX.ko.md) · [日本語](./README-CODEX.ja.md) · [简体中文](./README-CODEX.zh-Hans.md)). `usage-view`, `report-limit`, dan `setup-statusline` untuk saat ini masih khusus Claude Code.
+
 ---
 
 ## 📊 Fitur 4: Status Line Langsung

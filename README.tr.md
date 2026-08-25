@@ -15,7 +15,7 @@
 | 🛡️ Token Guardian | Cache süresinin dolmasını algılar, gerçekleşmeden önce $9'lık yeniden gönderimi engeller | Birinci sessiz maliyet artışını önler |
 | 🧠 Session Architect | Ağır işleri SubTask'lara otomatik devreder (%37,5 daha ucuz cache) | Context küçük kalır, maliyetler düşer |
 | 🪶 Concise Mode | Yanıt dolgusunu keser, özü korur | Yanıt başına daha az output token |
-| 🔄 /cc-continue | /compact'ın yerini alır — sıfır LLM çağrısı, sıfır maliyet, sıfır bilgi kaybı | Ücretsiz context geri yükleme |
+| 🔄 /cc-continue | /compact'ın yerini alır — sıfır LLM çağrısı, sıfır maliyet, sıfır bilgi kaybı, üstelik artık **Codex** oturumlarını da geri yüklüyor | İki araçta birden ücretsiz context geri yükleme |
 | 🤝 /cc-compact | /cc-continue'nun otomatik yüklediği bir oturum devir notu yazar — transcript'in kaybettiği sub-agent bulgularını ve araç çıktılarını yakalar | Bir sonraki oturum gizli context ile de devam eder |
 | 📊 Status Line | Gerçek zamanlı maliyet, context boyutu, hız sınırı — 50ms altında | Sorunları size mal olmadan önce görün |
 | 📈 /usage-view | Yapay zeka destekli analizle etkileşimli HTML panosu | Tek tıklamayla eksiksiz maliyet analizi |
@@ -166,6 +166,32 @@ Bir oturumun sonunda `/cc-compact` çalıştırın; tam olarak bu gizli katmanı
 | Süreç dersleri       | —                                | Çıkmaz sokaklar tekrarlanmasın diye yakalanır     |
 
 İş akışı: Bir oturumu `/cc-compact` ile bitirin → bir sonrakini `/cc-continue` ile başlatın.
+
+
+### 🔀 İki araç, tek geçmiş — Codex oturumları da burada geri yüklenir
+
+Codex oturumlarını `~/.codex/sessions/` içine yazar; Claude Code kendi oturumlarını `~/.claude/projects/` içine yazar. İkisi de diğerinin dosyalarını okumaz. Bu yüzden Codex'te bütçesi biten bir sprint Claude Code'dan erişilemez oluyordu — tersi de geçerliydi.
+
+`/cc-continue` artık ikisini de listeliyor ve geri yüklüyor. Bir Codex rollout'u ikinci bir parser'a teslim edilmiyor — Claude Code'un yazdığı biçime, **girdi satırı başına bir çıktı satırı** olacak şekilde yeniden yazılıyor; böylece aynı pipeline her ikisine de hizmet veriyor ve her `L{n}` işareti hâlâ orijinal Codex dosyasındaki tam olarak aynı satırı gösteriyor. Ölçüldü: 12 MB, 1,540-line bir rollout **0.13 s**'de ön işlemden geçiyor.
+
+|                             | Claude Code oturumu | Codex oturumu |
+| --------------------------- | ---------------------- | --------------- |
+| `/cc-continue` tarafından listelenir | Evet | Evet, geçerli projeyle sınırlı |
+| Sıfır LLM maliyetiyle geri yüklenir | Evet | Evet |
+| Orijinale `L{n}` ile atlama | Evet | Evet — satır numaraları rollout'un kendisine ait |
+| Context kaybı (`#0`) sonrası geri yükleme | `/compact`, otomatik compact | Codex sıkıştırması ve thread geri alma |
+| `/cc-compact` devir notu | Proje başına paylaşılır — birinde yazın, diğerinde yükleyin |
+
+```
+/cc-continue codex                    only Codex sessions
+/cc-continue codex : rust migration   the turns matching a topic, restored in full
+```
+
+Doğru bir listeyle inandırıcı görünen yanlış bir liste arasındaki farkı yaratan iki ayrıntı var: Codex'te `session_id`, tetiklenen bir sub-agent'ın devraldığı **thread** id'sidir; bu yüzden oturumlar `payload.id` üzerinden anahtarlanır ve sub-agent rollout'ları, Claude Code'un kendi alt görev transkriptlerini zaten filtrelediği yöntemle elenir. `<codex_internal_context source="goal">` ise sistem tarafından eklenir; bu yüzden geri yüklenen context'te kalır ama sizin yazdığınız bir tur olarak asla sayılmaz.
+
+Eklenti Codex'e de kuruluyor — bkz. **[README-CODEX.md](./README-CODEX.md)**
+([한국어](./README-CODEX.ko.md) · [日本語](./README-CODEX.ja.md) · [简体中文](./README-CODEX.zh-Hans.md)).
+`usage-view`, `report-limit` ve `setup-statusline` şimdilik yalnızca Claude Code'da.
 ---
 
 ## 📊 Özellik 4: Canlı Durum Çubuğu

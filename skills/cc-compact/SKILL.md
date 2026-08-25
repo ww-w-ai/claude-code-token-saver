@@ -1,10 +1,12 @@
 ---
 name: cc-compact
 description: 'Session handoff for the next session — write-side pair of /cc-continue. Triggers on "cc-compact", "session handoff", "handoff prompt", "hand off", "wrap up the session", "prep for next session". Distills what /cc-continue cannot recover: subagent findings, tool-output numbers, and decisions that never entered the user↔assistant dialogue. Saves to a per-project file /cc-continue auto-loads.'
-when_to_use: Use at the END of a working session to hand off to the next one — whenever the user says to wrap up, prep a handoff, or is about to /clear. Pairs with /cc-continue (end with cc-compact → start with cc-continue).
+when_to_use: Use at the END of a working session to hand off to the next one — whenever the user says to wrap up, prep a handoff, or is about to /clear, including when handing work from Claude Code to Codex or back. Pairs with /cc-continue (end with cc-compact → start with cc-continue).
 ---
 
-Generate a **session handoff**: a document that lets the NEXT session pick up with full context and zero re-derivation. `/cc-continue` restores the transcript (user↔assistant messages); **this skill captures what the transcript does NOT hold** and saves it where `/cc-continue` auto-loads it.
+Generate a **session handoff**: a document that lets the NEXT session pick up with full context and zero re-derivation — in EITHER tool. The handoff is stored per project, not per tool, so a session ended in Claude Code is picked up by Codex and the reverse.
+
+ `/cc-continue` restores the transcript (user↔assistant messages); **this skill captures what the transcript does NOT hold** and saves it where `/cc-continue` auto-loads it.
 
 **ONE JOB: distill the non-dialogue knowledge. The transcript is already restorable — do not re-summarize it.**
 
@@ -26,6 +28,7 @@ The two tools form a ladder of recovery:
 
 The handoff is saved to  ~/.claude/claude-code-token-saver-data/<project>/handoff.md
 On the next session, /cc-continue restores the transcript AND auto-loads this file.
+The path is shared by both tools, so the next session can be Claude Code or Codex.
 Workflow:  end a session → /cc-compact   ·   start the next → /cc-continue
 ```
 
@@ -77,7 +80,7 @@ Identify with `pgrep -fl` / `lsof -ti :PORT`.
 Compose the handoff with these six parts, in order:
 
 1. **Read-first sources (pointers, no duplication).** Durable state (as-built, plan docs, status, commit hashes) is owned by the repo — point to it and say "re-verify against `git log` / these docs; don't trust this prompt." Copying facts here makes them go stale.
-2. **Entry state + verify.** Branch · HEAD hash · working-tree status · green baseline (test/build numbers) · deploy state — each with "don't trust, re-run to confirm."
+2. **Entry state + verify.** Tool this session ran in (Claude Code or Codex) · branch · HEAD hash · working-tree status · green baseline (test/build numbers) · deploy state — each with "don't trust, re-run to confirm." Name the tool because the next session may be the other one, and anything tool-specific (a skill name, a plugin path, a goal id) has to be translated rather than pasted.
 3. **This session, done (conclusion + de-noised build-up).** Strip the back-and-forth. Keep the final conclusion and only the build-up that led to it. Name reverted detours as "noise, final = X."
 4. **★ Non-dialogue distillation (the heart).** Fill this from the MANDATORY extraction checklist above — every subagent, every decisive number, every process lesson, every killed approach, every non-committed artifact, every open gap. This is what `/cc-continue` cannot recover; if it is thin, the handoff has failed. Enumerate, don't sample.
 5. **Next-session work (detailed, paste-ready).** Separate from "done." Per item: *why* · *already-decided values (so they aren't re-litigated)* · *exact anchors (file:line)* · *paste-ready code/spec already produced* · *definition-of-done + verify command* · *size (do-inline / one-feature / multi-sprint)*.

@@ -15,7 +15,7 @@ Fungerar med **Max Plan ($200/mån)** och **API betala per användning**. Samma 
 | 🛡️ Token Guardian | Identifierar cache-utgång, blockerar $9-återsändningar innan de inträffar | Förhindrar den vanligaste tysta kostnadsökningen |
 | 🧠 Session Architect | Delegerar tungt arbete automatiskt till SubTasks (37,5% billigare cache) | Kontext förblir liten, kostnader sjunker |
 | 🪶 Concise Mode | Tar bort svada i svar, behåller substansen | Färre utdatatokens per svar |
-| 🔄 /cc-continue | Ersätter /compact — noll LLM-anrop, noll kostnad, noll informationsförlust | Gratis kontextåterställning |
+| 🔄 /cc-continue | Ersätter /compact — noll LLM-anrop, noll kostnad, noll informationsförlust, och återställer numera även **Codex**-sessioner | Gratis kontextåterställning för båda verktygen |
 | 🤝 /cc-compact | Skriver en sessionsöverlämning som /cc-continue laddar automatiskt — fångar subagent-fynd & verktygsresultat som transkriptet förlorar | Nästa session återupptar även med den dolda kontexten |
 | 📊 Status Line | Realtidskostnad, kontextstorlek, hastighetsgräns — under 50ms | Se problem innan de kostar dig pengar |
 | 📈 /usage-view | Interaktiv HTML-instrumentpanel med AI-analys | Fullständig kostnadsutredning med ett klick |
@@ -172,6 +172,32 @@ laddar `/cc-continue` den **automatiskt** ovanpå det återställda transkriptet
 | Lärdomar från processen | —                             | Fångade så återvändsgränder inte körs igen        |
 
 **Arbetsflödet:** avsluta en session med `/cc-compact` → starta nästa med `/cc-continue`.
+
+
+### 🔀 Två verktyg, en historik — Codex-sessioner återställs här också
+
+Codex skriver sina sessioner till `~/.codex/sessions/`, Claude Code till `~/.claude/projects/`. Ingetdera läser den andras filer. En sprint som tog slut på budget i Codex gick därför inte att nå från Claude Code — och tvärtom.
+
+`/cc-continue` listar och återställer nu båda. En Codex-rollout skickas inte till en andra parser — den skrivs om till exakt det format Claude Code använder, **en utdatarad per indatarad**, så samma pipeline betjänar båda verktygen och varje `L{n}`-markering fortfarande pekar på precis samma rad i den ursprungliga Codex-filen. Uppmätt: en 12 MB, 1,540-line rollout förbehandlas på **0.13 s**.
+
+|                             | Claude Code-session | Codex-session |
+| --------------------------- | ---------------------- | --------------- |
+| Listas av `/cc-continue`    | Ja | Ja, avgränsat till aktuellt projekt |
+| Återställs utan LLM-kostnad | Ja | Ja |
+| `L{n}`-hopp till originalet | Ja | Ja — radnumren kommer från rollouten själv |
+| Återställning efter kontextförlust (`#0`) | `/compact`, auto-compact | Codex-komprimering och trådåterställning |
+| `/cc-compact`-överlämning | Delad per projekt — skriv i det ena verktyget, ladda i det andra |
+
+```
+/cc-continue codex                    only Codex sessions
+/cc-continue codex : rust migration   the turns matching a topic, restored in full
+```
+
+Två detaljer avgör skillnaden mellan en korrekt lista och en som bara ser rätt ut: Codex `session_id` är **trådens** id, som ärvs av en startad subagent, så sessioner nyckelas på `payload.id` och subagent-rollouter filtreras bort på samma sätt som Claude Code redan filtrerar sina egna deluppgiftstranskript. Och `<codex_internal_context source="goal">` läggs till av systemet, så den behålls i det återställda sammanhanget men räknas aldrig som ett drag du skrev själv.
+
+Pluginet installeras även i Codex — se **[README-CODEX.md](./README-CODEX.md)**
+([한국어](./README-CODEX.ko.md) · [日本語](./README-CODEX.ja.md) · [简体中文](./README-CODEX.zh-Hans.md)).
+`usage-view`, `report-limit` och `setup-statusline` är tills vidare bara för Claude Code.
 
 ---
 

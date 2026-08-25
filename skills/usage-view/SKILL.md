@@ -2,7 +2,10 @@
 name: usage-view
 description: 'Know exactly what you spent. Interactive HTML dashboard with cost breakdown, token usage, and 5-hour window timeline across all sessions'
 when_to_use: Use when user wants to see token usage, cost breakdown, or 5-hour window timeline. Triggers on "usage view", "usage dashboard", "show usage", "usage report".
+host: claude-code
 ---
+
+> Claude Code only **today**. Codex records the same facts in its rollouts (`event_msg/token_count`), so this is a port that has not been done yet, not a limitation — see `docs/CODEX-PORT-BACKLOG.md`.
 
 Parse user arguments, then launch a **single background Agent** that runs the entire pipeline (analyze → AI insights → build → open browser). The user can continue working while the dashboard is being generated.
 

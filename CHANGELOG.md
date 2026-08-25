@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2026-08-25
+
+### Added: /cc-continue and /cc-compact read Codex sessions too
+
+Work stopped in Codex was unreachable from Claude Code and the reverse, so a session that ran
+out of budget mid-task had to be re-derived by hand.
+
+Both skills now list and restore sessions from `~/.codex/sessions/` alongside
+`~/.claude/projects/`. A Codex rollout is not given a second parser: it is rewritten into the
+shape Claude Code writes, **one output line per input line**, so every `L{n}` marker still
+addresses the Codex original's line and the existing pipeline runs unchanged. The Claude path
+is byte-identical, verified against the previous revision on real transcripts.
+
+- Codex compaction (`compacted`, `context_compacted`, `thread_rolled_back`) is translated into
+  the `system/compact_boundary` vocabulary the detector already reads, so a compacted Codex
+  session earns the same `#0` pre-loss restore a compacted Claude session gets.
+- Sessions are keyed on `payload.id`, not `session_id` — in Codex the latter is the thread id,
+  which a spawned subagent inherits, so three files can share one. Subagent rollouts are
+  excluded from the list, as Claude subtask transcripts already are.
+- `--source claude|codex|all`, `--cwd`, and `--current-source` on `list-sessions.js`;
+  `--original` on `preprocess.js` for the footer reference.
+- `CODEX_HOME` is honoured.
+- New gate: `node scripts/test-codex-adapter.js` (synthetic fixture, no real transcript needed).
+
+### Added: the plugin ships to Codex from this same tree
+
+Following the pattern `ai-native-cowork` established: `.codex-plugin/plugin.json` and a root
+`manifest.json` alongside the existing Claude Code manifest, all three pinned to one version,
+plus `README-CODEX.*` and a parity gate (`scripts/test_product_parity.py`) that fails on version
+drift, a missing Codex README, or a dual-host skill that hardcodes one host's plugin root.
+
+There is no separate Codex build. The previous Codex port kept its own copy of the preprocessor
+and stayed at 1.7.0 while this repo moved on — one tree is what prevents that.
+
+`cc-continue` and `cc-compact` are the dual-host pair; `usage-view`, `report-limit` and
+`setup-statusline` read Claude Code's own billing records and remain Claude Code only.
+
 ## [2.4.1] - 2026-07-27
 
 ### Fixed: cache-expiry hook no longer blocks background task notifications

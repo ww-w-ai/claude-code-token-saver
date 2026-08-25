@@ -357,10 +357,16 @@ function isCacheFresh(cachePath, jsonlPath) {
 }
 
 async function main() {
-  const filePath = process.argv[2];
+  const argv = process.argv.slice(2);
+  const filePath = argv.find((a) => !a.startsWith("--"));
+  // A Codex transcript is read through a normalized copy, so the copy is what
+  // this script parses — but the line numbers are the ORIGINAL rollout's, and
+  // that is the file a reader should open. --original names it for the footer.
+  const originalIdx = argv.indexOf("--original");
+  const originalPath = originalIdx >= 0 ? argv[originalIdx + 1] : null;
 
   if (!filePath) {
-    process.stderr.write("Usage: node preprocess.js <transcript.jsonl>\n");
+    process.stderr.write("Usage: node preprocess.js <transcript.jsonl> [--original <path>]\n");
     process.exit(1);
   }
 
@@ -659,8 +665,13 @@ async function main() {
   // Footer
   out.push("---");
   out.push("# Session references:");
-  out.push(`- Session ${sid8} → ${absPath}`);
-  out.push(`# [Session:{sid} {ISO} L{n}] headers link to original transcripts at ~/.claude/projects/{projectHash}/{sessionId}.jsonl — use L{n} to read the exact line.`);
+  out.push(`- Session ${sid8} → ${originalPath || absPath}`);
+  if (originalPath) out.push(`- Session ${sid8} (normalized copy) → ${absPath}`);
+  out.push(
+    originalPath
+      ? `# [Session:{sid} {ISO} L{n}] headers link to the original transcript above — use L{n} to read the exact line.`
+      : `# [Session:{sid} {ISO} L{n}] headers link to original transcripts at ~/.claude/projects/{projectHash}/{sessionId}.jsonl — use L{n} to read the exact line.`,
+  );
 
   // Write to cache file
   fs.mkdirSync(cacheDir, { recursive: true });

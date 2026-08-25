@@ -1,0 +1,34 @@
+{
+  "name": "claude-code-token-saver",
+  "version": "2.5.0",
+  "description": "Cut agent-session cost on Claude Code and Codex: cache-expiry prevention, zero-LLM context restore across both tools, cross-tool session handoff, and a real cost dashboard.",
+  "author": {
+    "name": "taekim34"
+  },
+  "repository": "https://github.com/ww-w-ai/claude-code-token-saver",
+  "license": "Apache-2.0",
+  "keywords": [
+    "token-saver",
+    "context-restore",
+    "session-handoff",
+    "cost-tracking",
+    "prompt-cache"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Token Saver",
+    "shortDescription": "Restore context and cut session cost.",
+    "longDescription": "Restore prior Claude Code or Codex sessions by reading their transcripts directly — no summarization call — write a cross-tool handoff before clearing, and see where the money actually went.",
+    "developerName": "taekim34",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Restore my previous Claude Code or Codex session.",
+      "Write a handoff for the next session.",
+      "Show my token usage."
+    ]
+  }
+}

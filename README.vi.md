@@ -15,7 +15,7 @@ Hoạt động với **Max Plan ($200/tháng)** và **API trả theo lượng d�
 | 🛡️ Token Guardian | Phát hiện cache hết hạn, chặn re-send $9 trước khi xảy ra | Ngăn đột biến chi phí âm thầm số 1 |
 | 🧠 Session Architect | Tự động ủy thác công việc nặng cho SubTask (cache rẻ hơn 37,5%) | Ngữ cảnh nhỏ gọn, chi phí giảm |
 | 🪶 Concise Mode | Cắt bỏ phần đệm trong phản hồi, giữ lại nội dung cốt lõi | Ít output token hơn cho mỗi phản hồi |
-| 🔄 /cc-continue | Thay thế /compact — không LLM call, không chi phí, không mất thông tin | Khôi phục ngữ cảnh miễn phí |
+| 🔄 /cc-continue | Thay thế /compact — không LLM call, không chi phí, không mất thông tin, và giờ khôi phục được cả phiên **Codex** | Khôi phục ngữ cảnh miễn phí trên cả hai công cụ |
 | 🤝 /cc-compact | Ghi lại bàn giao phiên mà /cc-continue tự động tải — nắm bắt phát hiện của subagent & kết quả công cụ mà transcript bị mất | Phiên tiếp theo khôi phục cả ngữ cảnh ẩn |
 | 📊 Status Line | Chi phí thời gian thực, kích thước ngữ cảnh, giới hạn tốc độ — dưới 50ms | Thấy vấn đề trước khi chúng tốn tiền |
 | 📈 /usage-view | Bảng điều khiển HTML tương tác với phân tích AI | Điều tra chi phí toàn diện chỉ một cú nhấp |
@@ -165,6 +165,29 @@ Chạy `/cc-compact` vào cuối phiên và nó sẽ chắt lọc chính xác l�
 | Bài học quá trình     | —                               | Được ghi lại để không lặp lại ngõ cụt              |
 
 **Quy trình:** kết thúc một phiên bằng `/cc-compact` → bắt đầu phiên tiếp theo bằng `/cc-continue`.
+
+### 🔀 Hai công cụ, một lịch sử — phiên Codex cũng được khôi phục ở đây
+
+Codex ghi các phiên của nó vào `~/.codex/sessions/`; Claude Code ghi vào `~/.claude/projects/`. Không công cụ nào đọc được file của công cụ kia. Vì vậy một sprint hết ngân sách giữa chừng trong Codex trước đây không thể truy cập được từ Claude Code, và ngược lại cũng vậy.
+
+`/cc-continue` giờ liệt kê và khôi phục được cả hai. Rollout của Codex không được giao cho một parser thứ hai xử lý — mà được viết lại theo đúng khuôn dạng Claude Code sử dụng, **một dòng output cho mỗi dòng input**, nhờ đó cùng một pipeline phục vụ được cả hai công cụ, và mỗi marker `L{n}` vẫn trỏ đúng đến dòng gốc trong file Codex ban đầu. Đo được: một rollout 12 MB, 1,540 dòng được tiền xử lý trong **0.13 s**.
+
+|                        | Phiên Claude Code | Phiên Codex |
+| ---------------------- | ------------------- | ------------- |
+| Được liệt kê bởi `/cc-continue` | Có | Có, giới hạn trong project hiện tại |
+| Khôi phục với chi phí LLM bằng không | Có | Có |
+| Tìm bằng `L{n}` về file gốc | Có | Có — số dòng là của chính rollout đó |
+| Khôi phục khi mất ngữ cảnh (`#0`) | `/compact`, auto-compact | Cơ chế nén và khôi phục thread riêng của Codex |
+| Bàn giao `/cc-compact` | Dùng chung theo từng project — ghi ở công cụ này, tải ở công cụ kia |
+
+```
+/cc-continue codex                    chỉ các phiên Codex
+/cc-continue codex : rust migration   các turn khớp với một chủ đề, được khôi phục đầy đủ
+```
+
+Hai chi tiết tạo nên khác biệt giữa một danh sách đúng và một danh sách trông có vẻ đúng nhưng lại sai: `session_id` của Codex thực chất là id của **thread**, thứ mà một subagent được tạo ra sẽ kế thừa, nên các phiên được đánh khóa theo `payload.id` và rollout của subagent bị lọc bỏ theo đúng cách mà transcript của subtask trong Claude Code đã bị lọc bỏ từ trước. Còn `<codex_internal_context source="goal">` được hệ thống tự động chèn vào, nên nó vẫn được giữ lại trong ngữ cảnh khôi phục nhưng không bao giờ được tính là một turn do bạn gõ ra.
+
+Plugin này cũng được cài đặt vào Codex — xem **[README-CODEX.md](./README-CODEX.md)** ([한국어](./README-CODEX.ko.md) · [日本語](./README-CODEX.ja.md) · [简体中文](./README-CODEX.zh-Hans.md)). `usage-view`, `report-limit` và `setup-statusline` hiện tại vẫn chỉ dành riêng cho Claude Code.
 
 ---
 
