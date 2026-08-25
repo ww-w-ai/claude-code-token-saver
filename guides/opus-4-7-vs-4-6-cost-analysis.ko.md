@@ -26,7 +26,7 @@
 
 ---
 
-¹ 측정 기준: claude-code-token-saver + doooz 두 프로젝트 JSONL 기반, 영어/코드 위주 100턴 시뮬레이션. **한/영 혼합 사용 시 약 26%, 한글 위주 시 약 18%**. 작업 유형·언어 비율·세션 길이에 따라 달라질 수 있습니다. 자세한 시뮬레이션 조건은 §5 참조.
+¹ 측정 기준: super-token-saver + doooz 두 프로젝트 JSONL 기반, 영어/코드 위주 100턴 시뮬레이션. **한/영 혼합 사용 시 약 26%, 한글 위주 시 약 18%**. 작업 유형·언어 비율·세션 길이에 따라 달라질 수 있습니다. 자세한 시뮬레이션 조건은 §5 참조.
 
 ### 원인 상세: 세 가지 복합 효과
 
@@ -73,16 +73,16 @@ Claude에게 "sonnet으로 서브태스크 띄워서 X 해줘"라고 말하면 �
 
 **피해야 할 실수**: 계획 작업 자체를 서브태스크로 위임하지 마세요. 서브태스크는 thinking이 꺼져 있어서 계획이 얕게 나옵니다. 설계는 main에서, 실행은 서브태스크에서 — 이 분업이 핵심입니다.
 
-#### 방법 3 — claude-code-token-saver 플러그인 사용 (방법 2 + 토큰 관리 자동화)
+#### 방법 3 — super-token-saver 플러그인 사용 (방법 2 + 토큰 관리 자동화)
 
-위 방법들을 수동으로 관리하기 번거로운 분들에게 추천합니다. [claude-code-token-saver](https://github.com/ww-w-ai/claude-code-token-saver)는 Claude Code 세션의 토큰/비용을 자동으로 추적하고 절감하는 오픈소스 플러그인입니다.
+위 방법들을 수동으로 관리하기 번거로운 분들에게 추천합니다. [super-token-saver](https://github.com/ww-w-ai/super-token-saver)는 Claude Code 세션의 토큰/비용을 자동으로 추적하고 절감하는 오픈소스 플러그인입니다.
 
 - 설계는 `claude -p`(main, thinking 활성)로, 실행은 SubTask + Sonnet으로 자동 분산
 - 프롬프트 캐시 만료 시 경고해서 불필요한 재캐시 비용을 방지
 - `/usage-view`로 실시간 비용 대시보드 확인
-- `/cc-continue`로 세션 간 context를 LLM 호출 없이(= 비용 0) 복원
+- `/s-continue`로 세션 간 context를 LLM 호출 없이(= 비용 0) 복원
 
-이 리포트의 분석 데이터도 claude-code-token-saver로 수집한 것입니다.
+이 리포트의 분석 데이터도 super-token-saver로 수집한 것입니다.
 
 고민된다면 **방법 1부터 시작하세요.** 명령어 하나고, 언제든 되돌릴 수 있습니다.
 
@@ -116,7 +116,7 @@ Opus 4.7로 Claude Code를 쓰면서 **5시간 윈도우가 평소보다 빨리 
 제가 실제로 작업한 두 프로젝트의 세션 JSONL 파일입니다 (2026-04-17 이후, main + subagent 포함):
 
 - **doooz** (개인 프로젝트, 디자인 리팩토링 — [github.com/taekim34/doooz](https://github.com/taekim34/doooz)): 4-7 calls 1,847개 (main 728 / sub 1,119), 4-6 calls 4,899개 (main 1,749 / sub 3,150)
-- **claude-code-token-saver** (분석/디버깅): 4-7 calls 1,630개 (main 1,589 / sub 41), 4-6 calls 187개 (main 169 / sub 18)
+- **super-token-saver** (분석/디버깅): 4-7 calls 1,630개 (main 1,589 / sub 41), 4-6 calls 187개 (main 169 / sub 18)
 - **합계**: 4-7 3,477 calls, 4-6 5,086 calls (총 8,563 calls)
 
 JSONL에서 뽑은 필드들:
@@ -206,7 +206,7 @@ Main 세션에서 두 모델 모두 thinking 없이 응답한 호출만 골라�
 두 환경 모두에서 4-7이 더 장황합니다:
 
 - Subagent 1.34배 (가장 통제된 조건, 같은 짧은 실행 작업)
-- Main no-think 2.26배 (작업 복잡도 편향이 있긴 하지만 — claude-code-token-saver 분석 작업이 4-7에 집중)
+- Main no-think 2.26배 (작업 복잡도 편향이 있긴 하지만 — super-token-saver 분석 작업이 4-7에 집중)
 
 Tokenizer 최대 보정을 적용해도 subagent에서 1.27배가 남습니다. **Thinking도 끄고, tokenizer 차이도 보정한 뒤에 남는 차이 = 4-7 고유 verbosity 증가분**입니다. 통제 조건 기준 **27~34%**, 덜 통제된 조건에서는 더 크게 나타납니다.
 
@@ -353,7 +353,7 @@ Cache read는 context 크기에 비례해서 모델과 무관합니다. 세션�
 
 #### 공통 습관
 
-- **세션 관리**: `/cc-continue`로 초기 context 경량화, 긴 세션은 정기적으로 압축
+- **세션 관리**: `/s-continue`로 초기 context 경량화, 긴 세션은 정기적으로 압축
 
 ---
 
@@ -393,7 +393,7 @@ opus-4-7:   985 tok/call (think 17.9%, no-think 82.1%)
 opus-4-6:   278 tok/call (think  2.85%, no-think 97.15%)
 
 === 프로젝트별 분포 ===
-claude-code-token-saver: 4-7 main=1,589(28.7%) / sub=41     / 4-6 main=169(9.5%)  / sub=18
+super-token-saver: 4-7 main=1,589(28.7%) / sub=41     / 4-6 main=169(9.5%)  / sub=18
 doooz:          4-7 main=728(22.7%)   / sub=1,119  / 4-6 main=1,749(7.4%) / sub=3,150
 ```
 
@@ -417,7 +417,7 @@ from pathlib import Path
 HOME = Path.home()
 FILTER_SINCE = "2026-04-17T00:00:00Z"
 PROJECTS = {
-    "claude-code-token-saver": HOME / ".claude/projects/{claude-code-token-saver-project-hash}",
+    "super-token-saver": HOME / ".claude/projects/{super-token-saver-project-hash}",
     "doooz":          HOME / ".claude/projects/{doooz-project-hash}",
 }
 # local-command-stdout에 담긴 effort 전환 신호 정규식
@@ -585,4 +585,4 @@ for name, infl in SCENARIOS.items():
 
 모델이 발전하면서 비용 구조가 바뀌는 건 자연스러운 일이지만, 사용자가 그 변화를 인지하지 못한 채 비용만 늘어나는 건 문제라고 생각합니다. 이 리포트가 그 격차를 메우는 데 도움이 되었으면 합니다.
 
-데이터가 더 쌓이면 업데이트하겠습니다. 혹시 본인의 사용 데이터를 공유해주실 분이 있다면, [claude-code-token-saver의 /report-limit](https://github.com/ww-w-ai/claude-code-token-saver)을 통해 익명으로 기여하실 수 있습니다.
+데이터가 더 쌓이면 업데이트하겠습니다. 혹시 본인의 사용 데이터를 공유해주실 분이 있다면, [super-token-saver의 /report-limit](https://github.com/ww-w-ai/super-token-saver)을 통해 익명으로 기여하실 수 있습니다.

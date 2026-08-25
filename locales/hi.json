@@ -60,7 +60,7 @@
     "dowNoteActive": "* सक्रिय दिन: केवल उन सप्ताहों का औसत जब आपने उस दिन काम किया।",
     "dowNoteAll": "* सभी दिन: अवधि में उस सप्ताह के दिन की कुल आवृत्तियों से विभाजित (प्रत्येक दिन की गिनती भिन्न हो सकती है)।",
     "dowNotePartial": "* शुरू/अंत के अपूर्ण दिन 1 दिन में सामान्यीकृत (उदा: 6 घंटे डेटा ×4 स्केल)।",
-    "ctxNote": "* छोटा संदर्भ = प्रति कॉल कम लागत। /clear या /cc-continue से संदर्भ छोटा रखने पर लागत बचती है।",
+    "ctxNote": "* छोटा संदर्भ = प्रति कॉल कम लागत। /clear या /s-continue से संदर्भ छोटा रखने पर लागत बचती है।",
     "ctxDistTitle": "संदर्भ आकार वितरण",
     "ctxCostYApi": "प्रति API call लागत ($)",
     "ctxCostYTurn": "प्रति यूज़र प्रॉम्प्ट लागत ($)",
@@ -114,7 +114,7 @@
     "windowDetailTitle": "📋 {date} {start}~{end} सत्र विवरण (${cost})",
     "programmaticExec": "📦 प्रोग्रामैटिक निष्पादन ({count})",
     "batchExec": "🔄 बैच निष्पादन ({count})",
-    "continueRestore": "💚 /cc-continue ने {n} सत्र पुनर्स्थापित किए (0 LLM कॉल)",
+    "continueRestore": "💚 /s-continue ने {n} सत्र पुनर्स्थापित किए (0 LLM कॉल)",
     "continueContext": "   पुनर्स्थापित संदर्भ: {tokens} टोकन",
     "continueCompactCost": "   /compact अनुमानित लागत: ${min} ~ ${max}",
     "continueSaved": "   → ${min} ~ ${max} बचाए!",
@@ -134,11 +134,11 @@
     "ctxDanger": "🔴 Context window 70% से अधिक हो गया — cache write/read लागत बहुत अधिक है।",
     "compactManual": "📦 मैनुअल /compact — cache पुनः उत्पन्न, लागत लगी",
     "compactAuto": "📦 /compact स्वचालित रूप से चला (context दबाव)।",
-    "continue1": "💚 /cc-continue skill ने 1 सत्र पुनर्स्थापित किया",
-    "continueN": "💚 /cc-continue skill ने 2+ सत्र पुनर्स्थापित किए",
-    "continueSkillTip": " 💡 नए सत्र के बाद /cc-continue skill की सिफारिश करते हैं।\n",
+    "continue1": "💚 /s-continue skill ने 1 सत्र पुनर्स्थापित किया",
+    "continueN": "💚 /s-continue skill ने 2+ सत्र पुनर्स्थापित किए",
+    "continueSkillTip": " 💡 नए सत्र के बाद /s-continue skill की सिफारिश करते हैं।\n",
     "cacheWritePrefix": "{icon} इस कॉल में, cache write {tokens} टोकन नए कैश किए गए — ",
-    "compactManualReason": "/compact को मैन्युअली चलाया गया, cache पुनर्जनन हुआ — बड़ी लागत! हल्के context पुनर्स्थापन के लिए /cc-continue skill पर विचार करें।",
+    "compactManualReason": "/compact को मैन्युअली चलाया गया, cache पुनर्जनन हुआ — बड़ी लागत! हल्के context पुनर्स्थापन के लिए /s-continue skill पर विचार करें।",
     "compactAutoReason": "context दबाव के कारण /compact स्वचालित रूप से चला। cache पुनर्जनन हुआ।",
     "clearReason": "{reason} ने cache निर्माण किया (${cost})",
     "clearReasonClear": "/clear पुनः आरंभ",
@@ -146,7 +146,7 @@
     "pluginOverload": " — बहुत अधिक प्लगइन, MCP या skills लोड हो सकते हैं। केवल आवश्यक रखें।",
     "reloadReason": "/reload-plugins ने सिस्टम प्रॉम्प्ट बदला, cache पुनः उत्पन्न (${cost})",
     "modelReason": "/model परिवर्तन ने पिछला cache अमान्य किया, पुनः उत्पन्न (${cost})",
-    "resumeHeuristicReason": "claude --continue या /resume से सत्र फिर से शुरू करने में बहुत सारे टोकन लगते हैं। आवश्यक न हो तो नए सत्र के बाद /cc-continue skill की सिफारिश करते हैं।",
+    "resumeHeuristicReason": "claude --continue या /resume से सत्र फिर से शुरू करने में बहुत सारे टोकन लगते हैं। आवश्यक न हो तो नए सत्र के बाद /s-continue skill की सिफारिश करते हैं।",
     "cacheExpiredReason": "जब संदर्भ बड़ा हो और 1 घंटे से अधिक बीत चुका हो, तो नया cache उत्पन्न होता है — उच्च लागत!",
     "costTopLabel": "{icon} {type} टोकन काफी अधिक थे। ({tokens}, ${cost})",
     "costCacheReadLabel": "{icon} Cache read की लागत अधिक है। बड़ा context ({ctx}) और लगातार tool calls ({calls}) से लागत बढ़ती है। (${cost})",
@@ -159,7 +159,7 @@
   },
   "ai": {
     "analysis": "✨ AI विश्लेषण",
-    "tips": "💡 सुझाव — claude-code-token-saver उपयोग गाइड"
+    "tips": "💡 सुझाव — super-token-saver उपयोग गाइड"
   },
   "gitLite": {
     "tip": "सुझाव: CC के बिल्ट-इन git निर्देश ~2,200 tok/सेशन + ~1,700 tok/कॉल खपत करते हैं। `/setup-git-lite install` उन्हें 280-tok के क्यूरेटेड न्यूनतम से बदल देता है। `/setup-git-lite dismiss-banner` इस सुझाव को छुपाता है।"

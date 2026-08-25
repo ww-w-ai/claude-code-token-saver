@@ -60,7 +60,7 @@
     "dowNoteActive": "* Aktiva dagar: genomsnitt bara för veckor då du arbetade den dagen.",
     "dowNoteAll": "* Alla dagar: delat med totala antalet förekomster av den veckodagen i perioden (varje veckodag kan ha ett annat antal).",
     "dowNotePartial": "* Ofullständiga dagar i början/slutet normaliseras till 1 dag (t.ex. 6 timmars data skalas ×4).",
-    "ctxNote": "* Mindre kontext = billigare per anrop. Håll kontexten liten med /clear eller /cc-continue för att spara kostnad.",
+    "ctxNote": "* Mindre kontext = billigare per anrop. Håll kontexten liten med /clear eller /s-continue för att spara kostnad.",
     "ctxDistTitle": "Fördelning av kontextstorlek",
     "ctxCostYApi": "Kostnad per API-anrop ($)",
     "ctxCostYTurn": "Kostnad per användarinteraktion ($)",
@@ -114,7 +114,7 @@
     "windowDetailTitle": "📋 {date} {start}~{end} Sessionsdetaljer (${cost})",
     "programmaticExec": "📦 Programmatisk körning ({count})",
     "batchExec": "🔄 Batchkörning ({count})",
-    "continueRestore": "💚 /cc-continue återställde {n} sessioner (0 LLM-anrop)",
+    "continueRestore": "💚 /s-continue återställde {n} sessioner (0 LLM-anrop)",
     "continueContext": "   Återställd kontext: {tokens} tokens",
     "continueCompactCost": "   /compact uppskattad kostnad: ${min} ~ ${max}",
     "continueSaved": "   → ${min} ~ ${max} sparade!",
@@ -134,11 +134,11 @@
     "ctxDanger": "🔴 Context window översteg 70% — cache write/read-kostnaden är mycket hög.",
     "compactManual": "📦 Manuell /compact — cache återskapad, kostnad uppstod",
     "compactAuto": "📦 /compact utlöstes automatiskt (context-tryck).",
-    "continue1": "💚 /cc-continue skill återställde 1 session",
-    "continueN": "💚 /cc-continue skill återställde 2+ sessioner",
-    "continueSkillTip": " 💡 Vi rekommenderar /cc-continue skill efter en ny session.\n",
+    "continue1": "💚 /s-continue skill återställde 1 session",
+    "continueN": "💚 /s-continue skill återställde 2+ sessioner",
+    "continueSkillTip": " 💡 Vi rekommenderar /s-continue skill efter en ny session.\n",
     "cacheWritePrefix": "{icon} I detta anrop cachades cache write {tokens} tokens — ",
-    "compactManualReason": "/compact kördes manuellt, cache återskapad — hög kostnad! Överväg /cc-continue skill för en lättare context-återställning.",
+    "compactManualReason": "/compact kördes manuellt, cache återskapad — hög kostnad! Överväg /s-continue skill för en lättare context-återställning.",
     "compactAutoReason": "/compact utlöstes automatiskt på grund av context-tryck. Cachen återskapades.",
     "clearReason": "{reason} orsakade cache-skapande (${cost})",
     "clearReasonClear": "/clear omstart",
@@ -146,7 +146,7 @@
     "pluginOverload": " — kanske för många plugins, MCP eller skills laddade. Behåll bara det nödvändiga.",
     "reloadReason": "/reload-plugins orsakade ändring av systemprompt, cache återskapad (${cost})",
     "modelReason": "/model ändring ogiltigförklarade tidigare cache, återskapad (${cost})",
-    "resumeHeuristicReason": "Att återuppta en session med claude --continue eller /resume förbrukar många tokens. Om det inte är nödvändigt rekommenderar vi /cc-continue skill efter en ny session.",
+    "resumeHeuristicReason": "Att återuppta en session med claude --continue eller /resume förbrukar många tokens. Om det inte är nödvändigt rekommenderar vi /s-continue skill efter en ny session.",
     "cacheExpiredReason": "När kontexten är stor och mer än 1 timme har passerat genereras ny cache — hög kostnad!",
     "costTopLabel": "{icon} Betydande antal {type}-tokens genererades. ({tokens}, ${cost})",
     "costCacheReadLabel": "{icon} Cache-läskostnaden är hög. Stor kontext ({ctx}) med många på varandra följande verktygsanrop ({calls}) multiplicerar kostnaden. (${cost})",
@@ -159,7 +159,7 @@
   },
   "ai": {
     "analysis": "✨ AI-analys",
-    "tips": "💡 Tips — claude-code-token-saver Användarguide"
+    "tips": "💡 Tips — super-token-saver Användarguide"
   },
   "gitLite": {
     "tip": "Tips: CC:s inbyggda git-instruktioner förbrukar ~2 200 tok/session + ~1 700 tok/anrop. `/setup-git-lite install` ersätter dem med ett kurerat minimum på 280 tok. `/setup-git-lite dismiss-banner` döljer detta tips."

@@ -69,20 +69,20 @@ Dwa powody:
 
 Innymi słowy, cache write nie dotyczy wyłącznie „nowych tokenów użytkownika". Przy starcie sesji cały prompt systemowy jest cache'owany; po wygaśnięciu cała skumulowana rozmowa staje się obiektem cache write. Jeśli cache 100K-tokenowej rozmowy wygaśnie, jedna wiadomość wygeneruje cache write na 100K tokenów jednorazowo.
 
-**Właśnie dlatego plugin claude-code-token-saver wyświetla ostrzeżenie o wygaśnięciu cache po 1 godzinie bezczynności.** Gdy pojawi się ostrzeżenie, sprawdź aktualny rozmiar kontekstu:
+**Właśnie dlatego plugin super-token-saver wyświetla ostrzeżenie o wygaśnięciu cache po 1 godzinie bezczynności.** Gdy pojawi się ostrzeżenie, sprawdź aktualny rozmiar kontekstu:
 
 - **Mały kontekst**: koszt ponownego tworzenia cache jest niewielki. Kontynuuj pracę — koszty będą niskie.
-- **Duży kontekst**: koszt cache będzie znaczący. Zalecamy `/clear`, a następnie `/cc-continue last`, aby kontynuować w nowej sesji. Umiejętność continue automatycznie przywróci kontekst poprzedniej rozmowy, więc przepływ pracy nie zostanie przerwany.
+- **Duży kontekst**: koszt cache będzie znaczący. Zalecamy `/clear`, a następnie `/s-continue last`, aby kontynuować w nowej sesji. Umiejętność continue automatycznie przywróci kontekst poprzedniej rozmowy, więc przepływ pracy nie zostanie przerwany.
 
 ## Strategie redukcji kosztów cache
 
-Plugin claude-code-token-saver został zaprojektowany do automatyzacji lub uproszczenia wszystkich tych strategii.
+Plugin super-token-saver został zaprojektowany do automatyzacji lub uproszczenia wszystkich tych strategii.
 
-### 1. Utrzymuj mały kontekst — `/clear` + `/cc-continue` ⭐
+### 1. Utrzymuj mały kontekst — `/clear` + `/s-continue` ⭐
 
 **To najważniejszy sposób na redukcję kosztów.** Wysokie koszty cache oznaczają, że otrzymujesz zniżkę 90% — to normalne. Ale jeśli kontekst niepotrzebnie rośnie i taki pozostaje, bezwzględny koszt na wywołanie wzrasta nawet ze zniżką. **Kontrolowanie rozmiaru kontekstu to najskuteczniejsza strategia zarządzania kosztami.**
 
-Gdy temat się zmienia lub rozmowa jest długa, użyj `/clear` do resetu, potem `/cc-continue last` do przywrócenia kontekstu. `/cc-continue` przywraca poprzednie rozmowy bez wywołań LLM, więc koszt wynosi zero.
+Gdy temat się zmienia lub rozmowa jest długa, użyj `/clear` do resetu, potem `/s-continue last` do przywrócenia kontekstu. `/s-continue` przywraca poprzednie rozmowy bez wywołań LLM, więc koszt wynosi zero.
 
 `/compact` zmniejsza kontekst przez streszczenie rozmowy, ale sam proces streszczania wymaga wywołań LLM i traci szczegóły rozmowy. Niezalecane.
 
@@ -90,13 +90,13 @@ Gdy temat się zmienia lub rozmowa jest długa, użyj `/clear` do resetu, potem 
 
 Główna sesja Anthropic używa **godzinnego poziomu** cache. Po wygaśnięciu pierwsze zapytanie musi odtworzyć całą rozmowę jako cache write, co jest kosztowne.
 
-claude-code-token-saver wykrywa godzinną bezczynność i **automatycznie wyświetla ostrzeżenie**. Gdy pojawi się ostrzeżenie, najekonomiczniejszym podejściem jest użycie metody 1 powyżej (`/clear` + `/cc-continue`), aby kontynuować w nowej sesji.
+super-token-saver wykrywa godzinną bezczynność i **automatycznie wyświetla ostrzeżenie**. Gdy pojawi się ostrzeżenie, najekonomiczniejszym podejściem jest użycie metody 1 powyżej (`/clear` + `/s-continue`), aby kontynuować w nowej sesji.
 
 ### 3. Deleguj ciężkie zadania do SubTasks
 
 Zasobochłonne zadania jak generowanie kodu czy edycja wielu plików można delegować do SubTasks zamiast wykonywać je w głównej sesji. SubTasks używają 5-minutowego poziomu cache, co sprawia, że **cache write jest o 37,5% tańszy**, i działają w izolowanym mniejszym kontekście, zmniejszając wolumen cache read na wywołanie.
 
-claude-code-token-saver automatycznie kieruje do tego wzorca separacji pracy przy starcie sesji.
+super-token-saver automatycznie kieruje do tego wzorca separacji pracy przy starcie sesji.
 
 ### 4. Monitoring kosztów w czasie rzeczywistym — `/setup-statusline`
 
@@ -110,7 +110,7 @@ Użyj `/usage-view`, aby przejrzeć pełną historię użycia na dashboardzie. W
 
 Im więcej pluginów, serwerów MCP i umiejętności załadowanych do promptu systemowego, tym wyższy początkowy koszt cache write. Usuń wszystko, czego nie używasz.
 
-`/setup-git-lite` z claude-code-token-saver redukuje domyślne instrukcje Git Claude Code (~2 200 tokenów) do podstawowych 280 tokenów — redukcja o około 88% w zakresie instrukcji Git w prompcie systemowym na sesję.
+`/setup-git-lite` z super-token-saver redukuje domyślne instrukcje Git Claude Code (~2 200 tokenów) do podstawowych 280 tokenów — redukcja o około 88% w zakresie instrukcji Git w prompcie systemowym na sesję.
 
 ### 7. Wybór narzędzi — wpływ na kontekst różni się w zależności od narzędzia
 
@@ -137,7 +137,7 @@ Ta sama zasada dotyczy edycji i porównywania:
 | **git diff / diff** | Porównywanie plików/folderów | **Minimalne** — zwracane są tylko różnice |
 | Odczyt obu plików osobno | Porównywanie plików/folderów | **Duże** — oba pełne pliki dodawane do kontekstu |
 
-claude-code-token-saver automatycznie wstrzykuje ten przewodnik po wyborze narzędzi do AI przy starcie sesji, zachęcając do korzystania najpierw z lekkich narzędzi.
+super-token-saver automatycznie wstrzykuje ten przewodnik po wyborze narzędzi do AI przy starcie sesji, zachęcając do korzystania najpierw z lekkich narzędzi.
 
 ## Załącznik: porównanie cache u dostawców AI
 

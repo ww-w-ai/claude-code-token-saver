@@ -2,13 +2,13 @@
  * cache-paths.js — Single source of truth for all cache path resolution.
  *
  * Structure:
- *   ~/.claude/claude-code-token-saver-data/{projectName}/{sessionId}/timeline.csv
- *   ~/.claude/claude-code-token-saver-data/{projectName}/{sessionId}/summary.json
- *   ~/.claude/claude-code-token-saver-data/{projectName}/{sessionId}/ratelimit.csv
- *   ~/.claude/claude-code-token-saver-data/{projectName}/{sessionId}/compact.txt
- *   ~/.claude/claude-code-token-saver-data/{projectName}/{sessionId}/compact.aggressive.txt
- *   ~/.claude/claude-code-token-saver-data/{projectName}/{sessionId}/subagents/{agentId}/timeline.csv
- *   ~/.claude/claude-code-token-saver-data/{projectName}/{sessionId}/subagents/{agentId}/summary.json
+ *   ~/.claude/super-token-saver-data/{projectName}/{sessionId}/timeline.csv
+ *   ~/.claude/super-token-saver-data/{projectName}/{sessionId}/summary.json
+ *   ~/.claude/super-token-saver-data/{projectName}/{sessionId}/ratelimit.csv
+ *   ~/.claude/super-token-saver-data/{projectName}/{sessionId}/compact.txt
+ *   ~/.claude/super-token-saver-data/{projectName}/{sessionId}/compact.aggressive.txt
+ *   ~/.claude/super-token-saver-data/{projectName}/{sessionId}/subagents/{agentId}/timeline.csv
+ *   ~/.claude/super-token-saver-data/{projectName}/{sessionId}/subagents/{agentId}/summary.json
  */
 
 const path = require('path');
@@ -16,10 +16,11 @@ const os = require('os');
 const fs = require('fs');
 const crypto = require('crypto');
 
-const CACHE_BASE = path.join(os.homedir(), '.claude', 'claude-code-token-saver-data');
+const CACHE_BASE = path.join(os.homedir(), '.claude', 'super-token-saver-data');
 
 // Auto-migrate from previous names (rename only, no cross-device copy)
 const _legacyDirs = [
+  path.join(os.homedir(), '.claude', 'claude-code-token-saver-data'), // v1.6.0–v2.5.0
   path.join(os.homedir(), '.claude', 'claude-code-upgrader-data'), // v1.5.x
   path.join(os.homedir(), '.claude', 'cc-token-saver-data'), // v1.1.1–v1.4.x
   path.join(os.homedir(), '.claude', 'cc-token-saver'),      // pre-v1.1.1

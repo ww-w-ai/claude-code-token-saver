@@ -1,4 +1,4 @@
-# claude-code-token-saver
+# super-token-saver
 
 **The only Claude Code plugin that actually reads CC's source code to find where your tokens go — and fixes it automatically. Spend less, code longer.**
 
@@ -15,8 +15,8 @@ Works with **Max Plan ($200/mo)** and **API pay-per-use**. Same plugin, same fea
 | 🛡️ Token Guardian | Detects cache expiry, blocks $9 re-sends before they happen | Prevents the #1 silent cost spike |
 | 🧠 Session Architect | Auto-delegates to SubTasks (37.5% cheaper) + parallelizes tool calls to cut round-trips | Context stays small, round-trips drop, costs compound down |
 | 🪶 Concise Mode | Decision-focused responses: essential context + choices, nothing else | Fewer output tokens, faster user decisions |
-| 🔄 /cc-continue | Replaces /compact — zero LLM calls, zero cost, zero info loss, and it restores **Codex** sessions too | Free context restoration across both tools |
-| 🤝 /cc-compact | Writes a session handoff /cc-continue auto-loads — captures subagent findings & tool results the transcript loses | Next session resumes with the hidden context too |
+| 🔄 /s-continue | Replaces /compact — zero LLM calls, zero cost, zero info loss, and it restores **Codex** sessions too | Free context restoration across both tools |
+| 🤝 /s-compact | Writes a session handoff /s-continue auto-loads — captures subagent findings & tool results the transcript loses | Next session resumes with the hidden context too |
 | 📊 Status Line | Real-time cost, context size, rate limit — under 50ms | See problems before they cost you |
 | 📈 /usage-view | Interactive HTML dashboard with AI-powered analysis | Full cost forensics in one click |
 | ✂️ /setup-git-lite | Removes 2,200 hidden tokens CC injects every session | ~$48/mo saved on git instructions alone |
@@ -37,7 +37,7 @@ Works with **Max Plan ($200/mo)** and **API pay-per-use**. Same plugin, same fea
 
 **API pay-per-use?** All of the above, except there's no ceiling. One cache miss = $9 of real money. Ten times a week = $360/mo on accidents alone. A bad Tuesday with bloated context can cost more than a Max Plan subscriber pays in a month.
 
-claude-code-token-saver handles all of it automatically. **Install once. Done.**
+super-token-saver handles all of it automatically. **Install once. Done.**
 
 ---
 
@@ -45,7 +45,7 @@ claude-code-token-saver handles all of it automatically. **Install once. Done.**
 
 ```
 /plugin marketplace add ww-w-ai/marketplace
-/plugin install claude-code-token-saver@ww-w-ai
+/plugin install super-token-saver@ww-w-ai
 ```
 
 Works automatically after install. Zero config. Requires [Claude Code](https://claude.ai/claude-code) v2.1.71+.
@@ -79,7 +79,7 @@ The prompt cache has expired. Continuing will resend the full context.
 Cost may increase significantly.
 
 👉 /context — Check current context usage before deciding
-👉 /clear → /cc-continue — Reset, then restore previous context (recommended, cheapest)
+👉 /clear → /s-continue — Reset, then restore previous context (recommended, cheapest)
 👉 Re-send — Continue as-is (full re-cache cost incurred)
 ```
 
@@ -132,15 +132,15 @@ Install once, applies everywhere.
 
 ---
 
-## 🔄 Feature 3: /cc-continue — Context Restoration
+## 🔄 Feature 3: /s-continue — Context Restoration
 
 **Replaces `/compact`. Zero LLM calls. Zero token cost. Zero information loss.**
 
 `/compact` sends your entire context (~1M tokens) to the LLM to compress it into a 3.3% summary. If the cache has expired, that alone triggers a full re-cache. Information loss is inevitable.
 
-`/cc-continue` takes a completely different approach. It preprocesses the previous session transcript and loads it directly. No LLM call. No cost. The original conversation is restored as-is.
+`/s-continue` takes a completely different approach. It preprocesses the previous session transcript and loads it directly. No LLM call. No cost. The original conversation is restored as-is.
 
-|                         | /compact                          | /cc-continue                        |
+|                         | /compact                          | /s-continue                        |
 | ----------------------- | --------------------------------- | -------------------------------- |
 | How it works            | Sends full context to LLM for summary | Preprocesses transcript, reads directly |
 | LLM calls               | Required (typically 100K+ tokens) | 0                                |
@@ -150,30 +150,30 @@ Install once, applies everywhere.
 | When cache is expired   | Full re-cache cost on top         | No impact                        |
 | Multi-session restore   | Not possible                      | Supported                        |
 
-Usage: `/clear` then `/cc-continue`. You'll see a list of previous sessions. Pick one to restore. For quick recovery: `/cc-continue last`.
+Usage: `/clear` then `/s-continue`. You'll see a list of previous sessions. Pick one to restore. For quick recovery: `/s-continue last`.
 
 **Result:** Resume previous work at zero cost. No information loss. Processes 60MB+ transcripts in under 1 second.
 
-### 🤝 Its pair: `/cc-compact` — hand off the hidden layer
+### 🤝 Its pair: `/s-compact` — hand off the hidden layer
 
-`/cc-continue` restores the **transcript** — what you and Claude said. But a working session's most
+`/s-continue` restores the **transcript** — what you and Claude said. But a working session's most
 useful knowledge often lives OUTSIDE that dialogue: what a **subagent** found (its transcript is a
 separate file the restore never loads), a decisive **number in tool output** (a test count, a
 benchmark), a **lesson learned from the process** ("couldn't reproduce headless → it was the build,
 not the code").
 
-Run `/cc-compact` at the **end** of a session and it distills exactly that hidden layer into a
-handoff, saved to `~/.claude/claude-code-token-saver-data/<project>/handoff.md`. On the next session,
-`/cc-continue` **auto-loads** it on top of the restored transcript — no pasting.
+Run `/s-compact` at the **end** of a session and it distills exactly that hidden layer into a
+handoff, saved to `~/.claude/super-token-saver-data/<project>/handoff.md`. On the next session,
+`/s-continue` **auto-loads** it on top of the restored transcript — no pasting.
 
-|                     | `/cc-continue` alone            | `/cc-compact` + `/cc-continue` (the set)          |
+|                     | `/s-continue` alone            | `/s-compact` + `/s-continue` (the set)          |
 | ------------------- | ------------------------------- | ------------------------------------------------ |
 | Recovers            | The transcript (what was said)  | The transcript **plus** the hidden layer         |
 | Subagent findings   | Lost (separate files)           | Distilled into the handoff                       |
 | Tool-output numbers | Only if quoted into the chat    | Extracted deliberately                            |
 | Process lessons     | —                               | Captured so dead ends aren't re-run              |
 
-**The workflow:** end a session with `/cc-compact` → start the next with `/cc-continue`.
+**The workflow:** end a session with `/s-compact` → start the next with `/s-continue`.
 
 ### 🔀 Both tools, one history — Codex sessions restore here too
 
@@ -181,22 +181,22 @@ Codex writes its sessions to `~/.codex/sessions/`; Claude Code writes to `~/.cla
 Neither tool reads the other's. So a sprint that ran out of budget in Codex used to be unreachable
 from Claude Code, and the reverse.
 
-`/cc-continue` now lists and restores both. A Codex rollout is not handed to a second parser — it is
+`/s-continue` now lists and restores both. A Codex rollout is not handed to a second parser — it is
 rewritten into the shape Claude Code writes, **one output line per input line**, so the same
 pipeline serves both and every `L{n}` marker still addresses the exact line of the original Codex
 file. Measured: a 12 MB, 1,540-line rollout preprocesses in **0.13 s**.
 
 |                        | Claude Code session | Codex session |
 | ---------------------- | ------------------- | ------------- |
-| Listed by `/cc-continue` | Yes | Yes, scoped to the current project |
+| Listed by `/s-continue` | Yes | Yes, scoped to the current project |
 | Restored at zero LLM cost | Yes | Yes |
 | `L{n}` seek into the original | Yes | Yes — line numbers are the rollout's own |
 | Context-loss (`#0`) restore | `/compact`, auto-compact | Codex compaction and thread rollback |
-| `/cc-compact` handoff | Shared per project — write it in one tool, load it in the other |
+| `/s-compact` handoff | Shared per project — write it in one tool, load it in the other |
 
 ```
-/cc-continue codex                    only Codex sessions
-/cc-continue codex : rust migration   the turns matching a topic, restored in full
+/s-continue codex                    only Codex sessions
+/s-continue codex : rust migration   the turns matching a topic, restored in full
 ```
 
 Two details that make the difference between a correct list and a plausible-looking wrong one:
@@ -351,7 +351,7 @@ The cache structure (`utils/api.ts:321` `splitSysPromptPrefix`) has three paths 
 
 In typical interactive sessions, the commit/PR instructions (1.7K tok) accumulate **on every API call** via `cache_read`. Over a 100-call session at Opus 4.7 pricing, that's roughly **$0.08 per session** just for instructions Claude's training already mostly covers.
 
-### How claude-code-token-saver handles it
+### How super-token-saver handles it
 
 `/setup-git-lite` disables the native path and injects a **curated 280-token replacement** via a SessionStart hook. We kept exactly the things that override Claude's default behavior (safety rules), and dropped everything that Claude already knows from training (step-by-step workflows, PR templates, gh usage patterns).
 
@@ -403,7 +403,7 @@ Either one alone is enough to disable CC native; we set both so an environment o
 
 If you need the env var for unrelated reasons, note it down before running `revert` and re-add it after.
 
-### Before uninstalling claude-code-token-saver
+### Before uninstalling super-token-saver
 
 **Run `/setup-git-lite revert` first**, or you'll be left with `includeGitInstructions: false` in your settings.json but no replacement hook (Claude gets no git guidance at all). Claude Code currently has no plugin uninstall lifecycle hook, so we can't automate this.
 
@@ -416,7 +416,7 @@ What you lose (and why it's usually fine):
 
 ### Recommendation banner
 
-When CC native git instructions are still active on your machine, claude-code-token-saver shows a one-paragraph tip at session start **~20% of the time** (plus in `/usage-view` and `/report-limit` outputs). Dismiss permanently with `/setup-git-lite dismiss-banner`.
+When CC native git instructions are still active on your machine, super-token-saver shows a one-paragraph tip at session start **~20% of the time** (plus in `/usage-view` and `/report-limit` outputs). Dismiss permanently with `/setup-git-lite dismiss-banner`.
 
 ---
 
@@ -439,7 +439,7 @@ Even with cache alive, costs accumulate. Here's an extreme scenario to show the 
 
 Conditions: Opus 4 pricing, 1 prompt per minute, ~5 API calls per prompt (~300 calls/hour).
 
-#### ❌ Without claude-code-token-saver
+#### ❌ Without super-token-saver
 
 Most work happens in the Main session. Context grows fast.
 
@@ -454,7 +454,7 @@ Most work happens in the Main session. Context grows fast.
 
 > At this usage level, you'll likely hit the 5-hour window rate limit. **Cost is bad, but the real problem is your work stopping completely. This is the exact moment Claude Code goes dark.**
 
-#### ✅ With claude-code-token-saver
+#### ✅ With super-token-saver
 
 Heavy work is delegated to SubTasks. Main handles design/decisions only.
 
@@ -462,7 +462,7 @@ Heavy work is delegated to SubTasks. Main handles design/decisions only.
 | ----------- | -------------------------------------------- | --------------------------- | ---------------------------------- |
 | Morning 3h  | Coding (Main: design, SubTask: implementation) | Main 100K → 300K (avg 200K) | 900 calls × 200K × ＄0.50/M = ＄90 |
 | Lunch/mtg   | Away for 2 hours                             | —                           | —                                  |
-| Return      | ⚡ Token Guardian blocks → /clear + /cc-continue | —                           | ＄0 (no LLM calls)                 |
+| Return      | ⚡ Token Guardian blocks → /clear + /s-continue | —                           | ＄0 (no LLM calls)                 |
 | Afternoon 3h | Coding continues                             | Main 100K → 300K (avg 200K) | 900 calls × 200K × ＄0.50/M = ＄90 |
 |             | Total                                        |                             | ~＄180                              |
 
@@ -474,7 +474,7 @@ Heavy work is delegated to SubTasks. Main handles design/decisions only.
 >
 > **API pay-per-use:** ＄146/day × 22 workdays = **＄3,200/mo straight off your invoice.** A heavy month without this plugin crosses ＄7,000. With it, under ＄4,000. Same output.
 
-### Where claude-code-token-saver steps in
+### Where super-token-saver steps in
 
 ```
 [Session Start]
@@ -493,7 +493,7 @@ Heavy work is delegated to SubTasks. Main handles design/decisions only.
     │
 [Session restart]
     │
-    └─ /cc-continue → Restores previous context at zero cost (no LLM calls)
+    └─ /s-continue → Restores previous context at zero cost (no LLM calls)
 ```
 
 ---
@@ -501,16 +501,16 @@ Heavy work is delegated to SubTasks. Main handles design/decisions only.
 ## 🔧 Source Install & Customization
 
 ```bash
-git clone https://github.com/ww-w-ai/claude-code-token-saver.git
-/plugin marketplace add /path/to/claude-code-token-saver
-/plugin install claude-code-token-saver@ww-w-ai
+git clone https://github.com/ww-w-ai/super-token-saver.git
+/plugin marketplace add /path/to/super-token-saver
+/plugin install super-token-saver@ww-w-ai
 ```
 
-claude-code-token-saver is fully open-source (Apache-2.0). Plain JavaScript + Bash — no compiled binaries, no external API calls, no telemetry. Every line is auditable. Every claim in this README maps to a specific file you can read.
+super-token-saver is fully open-source (Apache-2.0). Plain JavaScript + Bash — no compiled binaries, no external API calls, no telemetry. Every line is auditable. Every claim in this README maps to a specific file you can read.
 
 - **hooks/** — Change cache expiry threshold, customize warning messages, modify session architecture rules
 - **scripts/** — Analysis logic, report builder, status line formatting
-- **skills/** — How /cc-continue and /usage-view work, prompt templates
+- **skills/** — How /s-continue and /usage-view work, prompt templates
 - **locales/** — Add/edit translations, add new languages
 - **skills/usage-view/** — Dashboard UI/UX design changes
 
@@ -568,7 +568,7 @@ If git-lite is enabled, the plugin **saves** ~1,920 tokens per session (replaces
 
 - **Keep CLAUDE.md lean.** It loads into the system prompt on every API call. Every line costs money.
 - **Delegate heavy work to SubTasks.** Code generation, multi-file edits, test runs don't belong in Main. SubTasks have smaller context and a cheaper cache tier.
-- **Away for 1+ hours?** `/clear` → come back → `/cc-continue`. Context restored at $0.
+- **Away for 1+ hours?** `/clear` → come back → `/s-continue`. Context restored at $0.
 - **[5H] above 70% (🟡)?** Slow down. Switch to lightweight review tasks or increase SubTask delegation to reduce Main's API call count.
 - **Use `/btw` for side questions.** It doesn't enter conversation history, so your context stays lean.
 
@@ -576,7 +576,7 @@ If git-lite is enabled, the plugin **saves** ~1,920 tokens per session (replaces
 
 Everything above applies, plus these API-specific priorities:
 
-- **Watch [CTX] like a speedometer.** No rate limit will stop you — but context at 500K+ means every API call costs 2-3x what it should. `/clear` → `/cc-continue` is free and resets your cost multiplier to baseline.
+- **Watch [CTX] like a speedometer.** No rate limit will stop you — but context at 500K+ means every API call costs 2-3x what it should. `/clear` → `/s-continue` is free and resets your cost multiplier to baseline.
 - **Run `/usage-view` weekly.** Max Plan users have a natural "ouch" moment when they get rate limited. You don't — costs climb silently. The dashboard is your early warning system.
 - **Set a mental daily budget.** Without a cap, $200 days happen without noticing. The status line's RUN indicator makes per-turn cost visible. If a single turn crosses $1 (🔴), your context is too large.
 

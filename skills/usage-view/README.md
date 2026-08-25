@@ -49,7 +49,7 @@ Each 5-hour window expands to show individual sessions. Sessions are grouped by 
 | **Subtask** | Background agents spawned by a main session (linked to parent) |
 | **Programmatic** | Sessions started via `claude -p` or automated pipelines |
 | **Batch** | Multiple sessions with identical first messages (e.g., repeated skill runs) |
-| **/cc-continue restore** | Sessions that used `/cc-continue` to restore previous context |
+| **/s-continue restore** | Sessions that used `/s-continue` to restore previous context |
 
 Each session card shows:
 
@@ -80,7 +80,7 @@ Displays cost warnings and context size alerts that fired during sessions, sorte
 ## Output
 
 - **File**: `/tmp/cc-usage-report-{timestamp}.html` (self-contained, shareable)
-- **Cache**: `~/.claude/claude-code-token-saver-data/{projectName}/{sessionId}/summary.json` and `timeline.csv`
+- **Cache**: `~/.claude/super-token-saver-data/{projectName}/{sessionId}/summary.json` and `timeline.csv`
 - **Pricing**: `scripts/model-pricing.json` — per-model token costs from Anthropic's published pricing
 
 Use `--force` flag via the runner script to bypass cache and re-analyze all sessions.

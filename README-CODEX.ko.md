@@ -1,4 +1,4 @@
-# Codex용 claude-code-token-saver
+# Codex용 super-token-saver
 
 [English](./README-CODEX.md) · [한국어](./README-CODEX.ko.md) · [日本語](./README-CODEX.ja.md) · [简体中文](./README-CODEX.zh-Hans.md)
 
@@ -6,14 +6,14 @@
 
 Codex 는 모든 세션을 `~/.codex/sessions/` 에 기록한다. Claude Code 는 `~/.claude/projects/` 에 기록한다. 어느 쪽도 상대방의 기록을 읽지 않는다. 되돌아가는 보통의 방법 — 모델에게 무슨 일이 있었는지 요약해 달라고 하는 것 — 은 지시 한 줄 입력하기도 전에 컨텍스트 윈도우 전체를 써버린다.
 
-**이 플러그인은 그 대신 전사(transcript)를 직접 읽는다.** `/cc-continue` 는 두 도구 중 어느 쪽 세션이든 JSONL 을 직접 파싱해 복원한다 — 요약 호출도, 토큰 소모도 없다. 복원된 모든 턴에는 원본 rollout 의 정확한 줄을 가리키는 `L{n}` 마커가 붙어, 잘린 내용의 전체 텍스트를 그 자리에서 꺼내올 수 있다.
+**이 플러그인은 그 대신 전사(transcript)를 직접 읽는다.** `/s-continue` 는 두 도구 중 어느 쪽 세션이든 JSONL 을 직접 파싱해 복원한다 — 요약 호출도, 토큰 소모도 없다. 복원된 모든 턴에는 원본 rollout 의 정확한 줄을 가리키는 `L{n}` 마커가 붙어, 잘린 내용의 전체 텍스트를 그 자리에서 꺼내올 수 있다.
 
 ## 제공 스킬
 
 | 스킬 | 이럴 때 쓴다 |
 |---|---|
-| `cc-continue` | 이전 Claude Code **또는** Codex 세션을 복원한다 — 목록에서 고르거나, 바로 마지막 세션으로 간다. |
-| `cc-compact` | 클리어하기 전에 인계 기록을 남긴다 — 전사에는 남지 않는 것들: 서브에이전트가 찾아낸 것, 도구 출력의 수치, 폐기한 접근법. |
+| `s-continue` | 이전 Claude Code **또는** Codex 세션을 복원한다 — 목록에서 고르거나, 바로 마지막 세션으로 간다. |
+| `s-compact` | 클리어하기 전에 인계 기록을 남긴다 — 전사에는 남지 않는 것들: 서브에이전트가 찾아낸 것, 도구 출력의 수치, 폐기한 접근법. |
 
 인계 기록은 도구별이 아니라 프로젝트별로 저장된다. Codex 에서 스프린트를 마치고 Claude Code 에서 이어받아도, 그 파일은 이미 거기 있다.
 
@@ -31,7 +31,7 @@ Codex 는 모든 세션을 `~/.codex/sessions/` 에 기록한다. Claude Code �
 
 ```
 codex plugin marketplace add ww-w-ai/marketplace
-codex plugin add claude-code-token-saver@ww-w-ai
+codex plugin add super-token-saver@ww-w-ai
 ```
 
 확인 및 업그레이드:
@@ -44,11 +44,11 @@ codex plugin marketplace upgrade ww-w-ai
 ## 사용
 
 ```
-/cc-continue           이 프로젝트의 두 도구 세션을 모두 나열하고, 복원할 것을 고른다
-/cc-continue last      가장 최근 세션을 복원한다
-/cc-continue codex     목록을 Codex 세션으로 제한한다
-/cc-continue codex : rust migration      주제와 일치하는 턴을 전체 복원한다
-/cc-compact            다음 사람을 위한 인계 기록을 남긴다
+/s-continue           이 프로젝트의 두 도구 세션을 모두 나열하고, 복원할 것을 고른다
+/s-continue last      가장 최근 세션을 복원한다
+/s-continue codex     목록을 Codex 세션으로 제한한다
+/s-continue codex : rust migration      주제와 일치하는 턴을 전체 복원한다
+/s-compact            다음 사람을 위한 인계 기록을 남긴다
 ```
 
 `~/.codex` 가 아닌 다른 곳에 Codex 상태를 두었다면 `CODEX_HOME` 이 반영된다.

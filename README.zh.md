@@ -1,4 +1,4 @@
-# claude-code-token-saver
+# super-token-saver
 
 **唯一真正读取 CC 源代码、找出 token 流向并自动修复的 Claude Code 插件。花更少的钱，写更久的代码。**
 
@@ -15,8 +15,8 @@
 | 🛡️ Token Guardian | 检测缓存过期，在 $9 重发前提前拦截 | 防止头号隐性成本飙升 |
 | 🧠 Session Architect | 自动将繁重工作委托给 SubTask（缓存便宜 37.5%） | 上下文保持精简，成本下降 |
 | 🪶 Concise Mode | 削减冗余填充，保留核心内容 | 每次响应的输出 token 减少 |
-| 🔄 /cc-continue | 替代 /compact——零 LLM 调用，零成本，零信息损失，还能恢复 **Codex** 会话 | 两个工具的上下文都能免费恢复 |
-| 🤝 /cc-compact | 编写 /cc-continue 自动加载的会话交接记录——捕获 transcript 会丢失的子代理发现和工具结果 | 下一个会话也能恢复隐藏的上下文 |
+| 🔄 /s-continue | 替代 /compact——零 LLM 调用，零成本，零信息损失，还能恢复 **Codex** 会话 | 两个工具的上下文都能免费恢复 |
+| 🤝 /s-compact | 编写 /s-continue 自动加载的会话交接记录——捕获 transcript 会丢失的子代理发现和工具结果 | 下一个会话也能恢复隐藏的上下文 |
 | 📊 Status Line | 实时成本、上下文大小、速率限制——延迟低于 50ms | 在问题产生费用之前发现它 |
 | 📈 /usage-view | 带 AI 分析的交互式 HTML 仪表盘 | 一键完成成本全面溯源 |
 | ✂️ /setup-git-lite | 移除 CC 每次会话注入的 2,200 个隐藏 token | 仅 git 指令每月节省约 $48 |
@@ -37,7 +37,7 @@
 
 **API 按量付费？** 以上全部，而且没有上限。一次缓存未命中 = $9 真实资金。每周十次 = 仅事故就 $360/月。一个上下文膨胀的糟糕星期二，花费可能超过 Max Plan 用户一整个月的订阅费。
 
-claude-code-token-saver 自动处理这一切。**安装一次，搞定。**
+super-token-saver 自动处理这一切。**安装一次，搞定。**
 
 ---
 
@@ -45,7 +45,7 @@ claude-code-token-saver 自动处理这一切。**安装一次，搞定。**
 
 ```
 /plugin marketplace add ww-w-ai/marketplace
-/plugin install claude-code-token-saver@ww-w-ai
+/plugin install super-token-saver@ww-w-ai
 ```
 
 安装后自动运行。零配置。需要 [Claude Code](https://claude.ai/claude-code) v2.1.71+。
@@ -79,7 +79,7 @@ The prompt cache has expired. Continuing will resend the full context.
 Cost may increase significantly.
 
 👉 /context — Check current context usage before deciding
-👉 /clear → /cc-continue — Reset, then restore previous context (recommended, cheapest)
+👉 /clear → /s-continue — Reset, then restore previous context (recommended, cheapest)
 👉 Re-send — Continue as-is (full re-cache cost incurred)
 ```
 
@@ -130,15 +130,15 @@ SessionStart 钩子还会在**每个会话和每个模型**中注入响应风格
 
 ---
 
-## 🔄 功能 3：/cc-continue——上下文恢复
+## 🔄 功能 3：/s-continue——上下文恢复
 
 **替代 `/compact`。零 LLM 调用。零 token 成本。零信息损失。**
 
 `/compact` 将你的整个上下文（约 100 万 token）发送给 LLM，压缩成 3.3% 的摘要。如果缓存已过期，光这一步就会触发全量重缓存。信息损失不可避免。
 
-`/cc-continue` 采用完全不同的方式。它对上一个会话的 transcript 进行预处理并直接加载。无 LLM 调用，无成本。原始对话原样恢复。
+`/s-continue` 采用完全不同的方式。它对上一个会话的 transcript 进行预处理并直接加载。无 LLM 调用，无成本。原始对话原样恢复。
 
-|                         | /compact                          | /cc-continue                        |
+|                         | /compact                          | /s-continue                        |
 | ----------------------- | --------------------------------- | -------------------------------- |
 | 工作原理            | 将完整上下文发送给 LLM 生成摘要 | 预处理 transcript，直接读取 |
 | LLM 调用               | 需要（通常 10 万+ token） | 0                                |
@@ -148,41 +148,41 @@ SessionStart 钩子还会在**每个会话和每个模型**中注入响应风格
 | 缓存过期时   | 额外触发全量重缓存费用         | 无影响                        |
 | 多会话恢复   | 不支持                      | 支持                        |
 
-用法：`/clear` 然后 `/cc-continue`。会看到之前会话的列表，选择要恢复的那个。快速恢复：`/cc-continue last`。
+用法：`/clear` 然后 `/s-continue`。会看到之前会话的列表，选择要恢复的那个。快速恢复：`/s-continue last`。
 
 **结果：** 零成本恢复之前的工作。无信息损失。60MB+ 的 transcript 在 1 秒内处理完毕。
 
-### 🤝 它的搭档：`/cc-compact` —— 交接隐藏的那一层
+### 🤝 它的搭档：`/s-compact` —— 交接隐藏的那一层
 
-`/cc-continue` 恢复的是 **transcript**——你和 Claude 说过的话。但一个工作会话中最有用的知识，常常存在于这段对话之外：**子代理（subagent）** 发现的内容（它的 transcript 是单独的文件，恢复时不会加载）、工具输出中的关键**数字**（测试数量、基准值）、从过程中得到的**经验教训**（"headless 下无法复现——原来是构建问题，不是代码问题"）。
+`/s-continue` 恢复的是 **transcript**——你和 Claude 说过的话。但一个工作会话中最有用的知识，常常存在于这段对话之外：**子代理（subagent）** 发现的内容（它的 transcript 是单独的文件，恢复时不会加载）、工具输出中的关键**数字**（测试数量、基准值）、从过程中得到的**经验教训**（"headless 下无法复现——原来是构建问题，不是代码问题"）。
 
-在会话结束时运行 `/cc-compact`，它会把这层隐藏的知识提炼成交接记录，保存到 `~/.claude/claude-code-token-saver-data/<project>/handoff.md`。到下一个会话，`/cc-continue` 会在恢复 transcript 的同时**自动加载**它——无需手动粘贴。
+在会话结束时运行 `/s-compact`，它会把这层隐藏的知识提炼成交接记录，保存到 `~/.claude/super-token-saver-data/<project>/handoff.md`。到下一个会话，`/s-continue` 会在恢复 transcript 的同时**自动加载**它——无需手动粘贴。
 
-|                     | 仅 `/cc-continue`            | `/cc-compact` + `/cc-continue`（组合）          |
+|                     | 仅 `/s-continue`            | `/s-compact` + `/s-continue`（组合）          |
 | 恢复内容            | transcript（说过的话）  | transcript 加上隐藏的那一层             |
 | 子代理发现   | 丢失（单独文件）           | 提炼进交接记录                       |
 | 工具输出数字 | 仅当在对话中被引用    | 有意提取                            |
 | 过程经验     | 无                               | 记录下来，避免重复走弯路              |
 
-**工作流程：** 用 `/cc-compact` 结束一个会话 → 用 `/cc-continue` 开始下一个会话。
+**工作流程：** 用 `/s-compact` 结束一个会话 → 用 `/s-continue` 开始下一个会话。
 
 ### 🔀 两个工具，一份历史——Codex 会话也能在这里恢复
 
 Codex 把会话写到 `~/.codex/sessions/`，Claude Code 写到 `~/.claude/projects/`。两边互不读取对方的文件，所以以前在 Codex 里预算耗尽的任务，在 Claude Code 里根本碰不到，反过来也一样。
 
-现在 `/cc-continue` 会把两份历史一起列出并恢复。Codex 的 rollout 不会交给另一个解析器处理，而是按 **输入一行、输出一行** 的方式改写成 Claude Code 写入的格式——这样同一条流水线能同时服务两者，`L{n}` 标记依然精确指向原始 Codex 文件的那一行。实测：一份 12 MB、1,540 行的 rollout，预处理只需 **0.13 s**。
+现在 `/s-continue` 会把两份历史一起列出并恢复。Codex 的 rollout 不会交给另一个解析器处理，而是按 **输入一行、输出一行** 的方式改写成 Claude Code 写入的格式——这样同一条流水线能同时服务两者，`L{n}` 标记依然精确指向原始 Codex 文件的那一行。实测：一份 12 MB、1,540 行的 rollout，预处理只需 **0.13 s**。
 
 |                        | Claude Code 会话 | Codex 会话 |
 | ---------------------- | ------------------- | ------------- |
-| 被 `/cc-continue` 列出 | 是 | 是，限定在当前项目内 |
+| 被 `/s-continue` 列出 | 是 | 是，限定在当前项目内 |
 | 零 LLM 成本恢复 | 是 | 是 |
 | 用 `L{n}` 跳回原文 | 是 | 是——行号就是 rollout 自身的行号 |
 | 上下文丢失（`#0`）恢复 | `/compact`、自动 compact | Codex 自己的 compaction 和线程回退 |
-| `/cc-compact` 交接记录 | 按项目共享——在一个工具里写，在另一个工具里加载 |
+| `/s-compact` 交接记录 | 按项目共享——在一个工具里写，在另一个工具里加载 |
 
 ```
-/cc-continue codex                    only Codex sessions
-/cc-continue codex : rust migration   the turns matching a topic, restored in full
+/s-continue codex                    only Codex sessions
+/s-continue codex : rust migration   the turns matching a topic, restored in full
 ```
 
 能不能列对，靠的就是这两个细节。Codex 的 `session_id` 其实是子代理也会继承的 **线程** id，所以恢复靠 `payload.id` 来区分会话，子代理的 rollout 会被过滤掉——用的是 Claude Code 过滤子任务 transcript 的同一套方法。而 `<codex_internal_context source="goal">` 是系统自动注入的，恢复时会保留在上下文里，但不会被算作你输入的一轮对话。
@@ -331,7 +331,7 @@ Anthropic 没有公布 5 小时窗口的精确计算公式。让我们一起搞�
 
 在典型的交互式会话中，commit/PR 指令（1.7K token）通过 `cache_read` 在**每次 API 调用**中累积。以 Opus 4.7 定价计算，100 次调用的会话中，仅这些 Claude 训练已基本涵盖的指令就要花费约 **$0.08/会话**。
 
-### claude-code-token-saver 如何处理
+### super-token-saver 如何处理
 
 `/setup-git-lite` 禁用原生路径，通过 SessionStart 钩子注入一个**精心筛选的 280 token 替代品**。我们只保留了覆盖 Claude 默认行为的内容（安全规则），删除了 Claude 从训练中已经知道的一切（逐步工作流、PR 模板、gh 使用模式）。
 
@@ -383,7 +383,7 @@ Anthropic 没有公布 5 小时窗口的精确计算公式。让我们一起搞�
 
 如果你因其他原因需要该环境变量，请在运行 `revert` 前记下来，之后再重新添加。
 
-### 卸载 claude-code-token-saver 之前
+### 卸载 super-token-saver 之前
 
 **先运行 `/setup-git-lite revert`**，否则你的 settings.json 中会留有 `includeGitInstructions: false` 但没有替代钩子（Claude 完全得不到 git 指导）。Claude Code 目前没有插件卸载生命周期钩子，我们无法自动化这一步。
 
@@ -396,7 +396,7 @@ Anthropic 没有公布 5 小时窗口的精确计算公式。让我们一起搞�
 
 ### 推荐横幅
 
-当 CC 原生 git 指令在你机器上仍处于活跃状态时，claude-code-token-saver 会在会话开始时**约 20% 的概率**显示一段建议提示（在 `/usage-view` 和 `/report-limit` 输出中也会显示）。使用 `/setup-git-lite dismiss-banner` 永久关闭。
+当 CC 原生 git 指令在你机器上仍处于活跃状态时，super-token-saver 会在会话开始时**约 20% 的概率**显示一段建议提示（在 `/usage-view` 和 `/report-limit` 输出中也会显示）。使用 `/setup-git-lite dismiss-banner` 永久关闭。
 
 ---
 
@@ -419,7 +419,7 @@ Claude Code 在每次 API 调用时将整个对话历史发送给模型。"API �
 
 条件：Opus 4 定价，每分钟一个提示，每个提示约 5 次 API 调用（约 300 次/小时）。
 
-#### ❌ 没有 claude-code-token-saver
+#### ❌ 没有 super-token-saver
 
 大多数工作在 Main session 中完成。上下文快速增长。
 
@@ -434,7 +434,7 @@ Claude Code 在每次 API 调用时将整个对话历史发送给模型。"API �
 
 > 在这个使用量级别下，你很可能会触发 5 小时窗口速率限制。**成本固然糟糕，但真正的问题是你的工作完全停止。这就是 Claude Code 变成黑屏的那一刻。**
 
-#### ✅ 有 claude-code-token-saver
+#### ✅ 有 super-token-saver
 
 繁重工作委托给 SubTask，Main 只处理设计/决策。
 
@@ -442,7 +442,7 @@ Claude Code 在每次 API 调用时将整个对话历史发送给模型。"API �
 | ----------- | -------------------------------------------- | --------------------------- | ---------------------------------- |
 | 上午 3 小时  | 写代码（Main：设计，SubTask：实现） | Main 100K → 300K (avg 200K) | 900 calls × 200K × ＄0.50/M = ＄90 |
 | 午饭/会议   | 离开 2 小时                             | —                           | —                                  |
-| 返回      | ⚡ Token Guardian 拦截 → /clear + /cc-continue | —                           | ＄0 (no LLM calls)                 |
+| 返回      | ⚡ Token Guardian 拦截 → /clear + /s-continue | —                           | ＄0 (no LLM calls)                 |
 | 下午 3 小时 | 继续写代码                             | Main 100K → 300K (avg 200K) | 900 calls × 200K × ＄0.50/M = ＄90 |
 |             | 合计                                        |                             | ~＄180                              |
 
@@ -454,7 +454,7 @@ Claude Code 在每次 API 调用时将整个对话历史发送给模型。"API �
 >
 > **API 按量付费：** ＄146/天 × 22 个工作日 = **每月账单直接减少 ＄3,200。** 没有这个插件的繁重月份超过 ＄7,000。有了它，不到 ＄4,000。同样的产出。
 
-### claude-code-token-saver 的介入点
+### super-token-saver 的介入点
 
 ```
 [Session Start]
@@ -473,7 +473,7 @@ Claude Code 在每次 API 调用时将整个对话历史发送给模型。"API �
     │
 [Session restart]
     │
-    └─ /cc-continue → Restores previous context at zero cost (no LLM calls)
+    └─ /s-continue → Restores previous context at zero cost (no LLM calls)
 ```
 
 ---
@@ -481,16 +481,16 @@ Claude Code 在每次 API 调用时将整个对话历史发送给模型。"API �
 ## 🔧 源码安装与定制
 
 ```bash
-git clone https://github.com/ww-w-ai/claude-code-token-saver.git
-/plugin marketplace add /path/to/claude-code-token-saver
-/plugin install claude-code-token-saver@ww-w-ai
+git clone https://github.com/ww-w-ai/super-token-saver.git
+/plugin marketplace add /path/to/super-token-saver
+/plugin install super-token-saver@ww-w-ai
 ```
 
-claude-code-token-saver 完全开源（Apache-2.0）。纯 JavaScript + Bash——无编译二进制文件，无外部 API 调用，无遥测。每一行都可审计。README 中的每项声明都对应一个你可以直接查看的具体文件。
+super-token-saver 完全开源（Apache-2.0）。纯 JavaScript + Bash——无编译二进制文件，无外部 API 调用，无遥测。每一行都可审计。README 中的每项声明都对应一个你可以直接查看的具体文件。
 
 - **hooks/** — 修改缓存过期阈值，自定义警告消息，修改会话架构规则
 - **scripts/** — 分析逻辑、报告构建器、状态栏格式化
-- **skills/** — /cc-continue 和 /usage-view 的工作原理，提示模板
+- **skills/** — /s-continue 和 /usage-view 的工作原理，提示模板
 - **locales/** — 添加/编辑翻译，添加新语言
 - **skills/usage-view/** — 仪表盘 UI/UX 设计改动
 
@@ -548,7 +548,7 @@ claude-code-token-saver 完全开源（Apache-2.0）。纯 JavaScript + Bash—�
 
 - **保持 CLAUDE.md 精简。** 它在每次 API 调用时加载到系统提示。每一行都有成本。
 - **将繁重工作委托给 SubTask。** 代码生成、多文件编辑、测试运行不属于 Main session。SubTask 上下文更小，缓存层更便宜。
-- **离开超过 1 小时？** `/clear` → 回来 → `/cc-continue`。上下文以 $0 恢复。
+- **离开超过 1 小时？** `/clear` → 回来 → `/s-continue`。上下文以 $0 恢复。
 - **[5H] 超过 70%（🟡）？** 放慢节奏。切换到轻量级审查任务，或增加 SubTask 委托以减少 Main session 的 API 调用次数。
 - **用 `/btw` 处理旁枝问题。** 它不进入对话历史，你的上下文保持精简。
 
@@ -556,7 +556,7 @@ claude-code-token-saver 完全开源（Apache-2.0）。纯 JavaScript + Bash—�
 
 以上所有规则都适用，另加这些 API 专属优先项：
 
-- **像盯速度表一样盯 [CTX]。** 没有速率限制会阻止你——但上下文超过 50 万 token 意味着每次 API 调用的成本是应有水平的 2-3 倍。`/clear` → `/cc-continue` 免费将你的成本乘数重置到基准。
+- **像盯速度表一样盯 [CTX]。** 没有速率限制会阻止你——但上下文超过 50 万 token 意味着每次 API 调用的成本是应有水平的 2-3 倍。`/clear` → `/s-continue` 免费将你的成本乘数重置到基准。
 - **每周运行 `/usage-view`。** Max Plan 用户在触发速率限制时会有自然的"心痛"时刻。你没有——成本悄悄攀升。仪表盘是你的早期预警系统。
 - **设定心理日预算。** 没有上限的话，$200 的一天可以在不知不觉中发生。状态栏的 RUN 指标让每轮的成本可见。如果一轮超过 $1（🔴），你的上下文太大了。
 

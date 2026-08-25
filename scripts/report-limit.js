@@ -10,7 +10,7 @@
  * 6. Uploads to GitHub gist + opens pre-filled Discussion URL
  * 7. Prints JSON summary to stdout
  *
- * Cache structure: ~/.claude/claude-code-token-saver-data/{projectName}/{sessionId}/
+ * Cache structure: ~/.claude/super-token-saver-data/{projectName}/{sessionId}/
  *   timeline.csv, ratelimit.csv, summary.json, subagents/{agentId}/...
  *
  * Usage: node report-limit.js [--plan <plan>] [--date <YYYY-MM-DD>]
@@ -28,7 +28,7 @@ const { PLAN_INFO, VALID_PLANS } = require('./lib/plan-info');
 const { fmtTokens, fmtDate, fmtTime } = require('./lib/format');
 
 const SCRIPTS_DIR = __dirname;
-const REPO = 'ww-w-ai/claude-code-token-saver';
+const REPO = 'ww-w-ai/super-token-saver';
 const WINDOW_SECS = FIVE_HOURS_S;
 
 function log(msg) {

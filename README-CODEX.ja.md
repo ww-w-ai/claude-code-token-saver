@@ -1,4 +1,4 @@
-# Codex 版 claude-code-token-saver
+# Codex 版 super-token-saver
 
 [English](./README-CODEX.md) · [한국어](./README-CODEX.ko.md) · [日本語](./README-CODEX.ja.md) · [简体中文](./README-CODEX.zh-Hans.md)
 
@@ -6,14 +6,14 @@
 
 Codex はすべてのセッションを `~/.codex/sessions/` に書き出す。Claude Code は `~/.claude/projects/` に書き出す。どちらも相手のファイルを読まない。元に戻る通常の手段——モデルに何が起きたか要約させること——は、指示を一行打つ前にコンテキストウィンドウを丸ごと使い切る。
 
-**このプラグインは代わりに転写(transcript)そのものを読む。** `/cc-continue` は JSONL を直接パースして、どちらのツールのセッションでも復元する。要約呼び出しもトークン消費もない。復元された各ターンには元の rollout の該当行を指す `L{n}` マーカーが付き、省略された部分の全文をそこから取り出せる。
+**このプラグインは代わりに転写(transcript)そのものを読む。** `/s-continue` は JSONL を直接パースして、どちらのツールのセッションでも復元する。要約呼び出しもトークン消費もない。復元された各ターンには元の rollout の該当行を指す `L{n}` マーカーが付き、省略された部分の全文をそこから取り出せる。
 
 ## できること
 
 | スキル | 使う場面 |
 |---|---|
-| `cc-continue` | 以前の Claude Code **または** Codex セッションを復元する——一覧から選ぶか、直近のものへ直接飛ぶ。 |
-| `cc-compact` | クリアする前に引き継ぎを書く——転写には残らないもの:サブエージェントの発見、ツール出力の数値、捨てたアプローチ。 |
+| `s-continue` | 以前の Claude Code **または** Codex セッションを復元する——一覧から選ぶか、直近のものへ直接飛ぶ。 |
+| `s-compact` | クリアする前に引き継ぎを書く——転写には残らないもの:サブエージェントの発見、ツール出力の数値、捨てたアプローチ。 |
 
 引き継ぎファイルはツール単位ではなくプロジェクト単位で保存される。Codex でスプリントを終え、Claude Code で続きをやっても、そのファイルはすでにそこにある。
 
@@ -31,7 +31,7 @@ Codex はすべてのセッションを `~/.codex/sessions/` に書き出す。C
 
 ```
 codex plugin marketplace add ww-w-ai/marketplace
-codex plugin add claude-code-token-saver@ww-w-ai
+codex plugin add super-token-saver@ww-w-ai
 ```
 
 確認とアップグレード:
@@ -44,11 +44,11 @@ codex plugin marketplace upgrade ww-w-ai
 ## 使い方
 
 ```
-/cc-continue           このプロジェクトの両ツールのセッションを一覧し、復元するものを選ぶ
-/cc-continue last      直近のセッションを復元する
-/cc-continue codex     一覧を Codex セッションに絞る
-/cc-continue codex : rust migration      トピックに一致するターンを全文復元する
-/cc-compact            次の人のための引き継ぎを書く
+/s-continue           このプロジェクトの両ツールのセッションを一覧し、復元するものを選ぶ
+/s-continue last      直近のセッションを復元する
+/s-continue codex     一覧を Codex セッションに絞る
+/s-continue codex : rust migration      トピックに一致するターンを全文復元する
+/s-compact            次の人のための引き継ぎを書く
 ```
 
 `~/.codex` 以外の場所に Codex の状態を置いている場合は `CODEX_HOME` が尊重される。

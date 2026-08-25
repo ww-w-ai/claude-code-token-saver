@@ -7,7 +7,7 @@ host: claude-code
 
 > Claude Code only. Codex has its OWN status line, configured through `status_line` in `config.toml` from a fixed set of named segments rather than a command — see `docs/CODEX-PORT-BACKLOG.md`.
 
-Manage the claude-code-token-saver statusline in Claude Code's `~/.claude/settings.json`.
+Manage the super-token-saver statusline in Claude Code's `~/.claude/settings.json`.
 
 ## Help
 
@@ -50,7 +50,7 @@ Do not modify any settings. Just display the help text and stop.
    **Case B: Already our script** — check if path matches current `${CLAUDE_PLUGIN_ROOT}`.
    If version differs, update path silently, then print "Updated to current version." and stop.
    If same version, print "Already installed." and stop.
-   Check by matching the command path containing `claude-code-token-saver/scripts/statusline-logger.sh`.
+   Check by matching the command path containing `super-token-saver/scripts/statusline-logger.sh`.
 
    **Case C: Different statusLine exists** — warn and ask the user:
    ```
@@ -120,7 +120,7 @@ Do not modify any settings. Just display the help text and stop.
 1. Read `~/.claude/settings.json`
 2. Check current `statusLine`:
 
-   **Not our script** — print "claude-code-token-saver statusline is not installed." and stop.
+   **Not our script** — print "super-token-saver statusline is not installed." and stop.
 
    **Our script** — remove `statusLine` field. If `_statusLineBackup` exists, restore it to `statusLine` and delete `_statusLineBackup`.
 

@@ -10,10 +10,10 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_SKILLS = {"cc-continue", "cc-compact", "usage-view", "report-limit", "setup-statusline", "setup-git-lite"}
+EXPECTED_SKILLS = {"s-continue", "s-compact", "usage-view", "report-limit", "setup-statusline", "setup-git-lite"}
 # Skills that read or write transcripts on BOTH hosts. The rest are Claude Code
 # specific (statusline, dashboards, rate-limit reporting) and stay single-host.
-DUAL_HOST_SKILLS = {"cc-continue", "cc-compact"}
+DUAL_HOST_SKILLS = {"s-continue", "s-compact"}
 
 skills = {path.parent.name for path in (ROOT / "skills").glob("*/SKILL.md")}
 assert skills == EXPECTED_SKILLS, f"skill parity drift: {skills ^ EXPECTED_SKILLS}"

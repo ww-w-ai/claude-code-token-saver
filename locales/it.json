@@ -60,7 +60,7 @@
     "dowNoteActive": "* Giorni attivi: media solo sulle settimane in cui hai lavorato quel giorno.",
     "dowNoteAll": "* Tutti i giorni: diviso per il numero totale di occorrenze di quel giorno della settimana nel periodo (ogni giorno può avere un conteggio diverso).",
     "dowNotePartial": "* I giorni parziali all'inizio/fine sono normalizzati a 1 giorno (es: 6 ore di dati vengono scalate ×4).",
-    "ctxNote": "* Meno contesto = meno caro per chiamata. Mantenere il contesto ridotto con /clear o /cc-continue fa risparmiare.",
+    "ctxNote": "* Meno contesto = meno caro per chiamata. Mantenere il contesto ridotto con /clear o /s-continue fa risparmiare.",
     "ctxDistTitle": "Distribuzione della dimensione del contesto",
     "ctxCostYApi": "Costo per chiamata API ($)",
     "ctxCostYTurn": "Costo per interazione utente ($)",
@@ -114,7 +114,7 @@
     "windowDetailTitle": "📋 {date} {start}~{end} Dettagli sessione (${cost})",
     "programmaticExec": "📦 Esecuzione programmatica ({count})",
     "batchExec": "🔄 Esecuzione batch ({count})",
-    "continueRestore": "💚 /cc-continue ha ripristinato {n} sessioni (0 chiamate LLM)",
+    "continueRestore": "💚 /s-continue ha ripristinato {n} sessioni (0 chiamate LLM)",
     "continueContext": "   Contesto ripristinato: {tokens} token",
     "continueCompactCost": "   /compact costo stimato: ${min} ~ ${max}",
     "continueSaved": "   → ${min} ~ ${max} risparmiati!",
@@ -134,11 +134,11 @@
     "ctxDanger": "🔴 Context window ha superato il 70% — il costo di cache write/read è molto alto.",
     "compactManual": "📦 /compact manuale — cache rigenerata, costo sostenuto",
     "compactAuto": "📦 /compact attivato automaticamente (pressione del context).",
-    "continue1": "💚 /cc-continue skill ha ripristinato 1 sessione",
-    "continueN": "💚 /cc-continue skill ha ripristinato 2+ sessioni",
-    "continueSkillTip": " 💡 Raccomandiamo /cc-continue skill dopo una nuova sessione.\n",
+    "continue1": "💚 /s-continue skill ha ripristinato 1 sessione",
+    "continueN": "💚 /s-continue skill ha ripristinato 2+ sessioni",
+    "continueSkillTip": " 💡 Raccomandiamo /s-continue skill dopo una nuova sessione.\n",
     "cacheWritePrefix": "{icon} In questa chiamata, cache write {tokens} token sono stati memorizzati — ",
-    "compactManualReason": "/compact è stato invocato manualmente, cache rigenerata — costo elevato! Considera /cc-continue skill per un ripristino del context più leggero.",
+    "compactManualReason": "/compact è stato invocato manualmente, cache rigenerata — costo elevato! Considera /s-continue skill per un ripristino del context più leggero.",
     "compactAutoReason": "/compact è stato attivato automaticamente a causa della pressione del context. La cache è stata rigenerata.",
     "clearReason": "{reason} ha causato la creazione della cache (${cost})",
     "clearReasonClear": "/clear riavvio",
@@ -146,7 +146,7 @@
     "pluginOverload": " — potrebbero esserci troppi plugin, MCP o skill caricati. Mantieni solo il necessario.",
     "reloadReason": "/reload-plugins ha causato un cambio del prompt di sistema, cache rigenerata (${cost})",
     "modelReason": "/model cambio ha invalidato la cache precedente, rigenerata (${cost})",
-    "resumeHeuristicReason": "Riprendere una sessione con claude --continue o /resume usa molti token. Se non necessario, raccomandiamo /cc-continue skill dopo una nuova sessione.",
+    "resumeHeuristicReason": "Riprendere una sessione con claude --continue o /resume usa molti token. Se non necessario, raccomandiamo /s-continue skill dopo una nuova sessione.",
     "cacheExpiredReason": "Quando il contesto è grande e è passata più di 1 ora, viene generata una nuova cache — costo elevato!",
     "costTopLabel": "{icon} Token {type} significativi generati. ({tokens}, ${cost})",
     "costCacheReadLabel": "{icon} Il costo di lettura cache è alto. Un contesto grande ({ctx}) con molte chiamate consecutive ({calls}) moltiplica il costo. (${cost})",
@@ -159,7 +159,7 @@
   },
   "ai": {
     "analysis": "✨ Analisi IA",
-    "tips": "💡 Suggerimenti — Guida all'uso di claude-code-token-saver"
+    "tips": "💡 Suggerimenti — Guida all'uso di super-token-saver"
   },
   "gitLite": {
     "tip": "Suggerimento: Le istruzioni git integrate di CC consumano ~2.200 tok/sessione + ~1.700 tok/chiamata. `/setup-git-lite install` le sostituisce con un minimo curato di 280 tok. `/setup-git-lite dismiss-banner` nasconde questo suggerimento."

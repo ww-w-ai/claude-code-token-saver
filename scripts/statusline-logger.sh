@@ -34,7 +34,7 @@
 #   Hints: 5H🔴 → /report-limit, other warnings → /usage-view current
 #
 # Cache (side-effects):
-#   ~/.claude/claude-code-token-saver-data/{projectName}/{SESSION_ID}/ratelimit.csv
+#   ~/.claude/super-token-saver-data/{projectName}/{SESSION_ID}/ratelimit.csv
 #     Header: ts,5h,5h_reset,7d,7d_reset,alert
 #     - ts: unix timestamp
 #     - 5h/7d: usage percentage (0-100, two decimals)
@@ -43,10 +43,10 @@
 #     - Rows appended only when 5h or 7d percentage changes (delta dedup)
 #     - projectName derived from CWD: sed 's/[^a-zA-Z0-9]/-/g'
 #
-#   $TMPDIR/claude-code-token-saver-state-{SESSION_ID}.csv
+#   $TMPDIR/super-token-saver-state-{SESSION_ID}.csv
 #     Per-session cost delta state (cost,lastDelta). Used to calculate per-call cost.
 
-LOG_DIR="$HOME/.claude/claude-code-token-saver-data"
+LOG_DIR="$HOME/.claude/super-token-saver-data"
 
 # Pipe stdin to node (avoids ARG_MAX limit)
 cat | node -e "
@@ -67,7 +67,7 @@ const session = d.session_id || null;
 // New turn detected when idle gap since last call > TURN_IDLE_SEC (default 60s).
 // RUN indicator shows cost accumulated within the current user turn, not per call.
 const dir = '$LOG_DIR';
-const stateFile = session ? require('path').join(require('os').tmpdir(), 'claude-code-token-saver-state-' + session + '.csv') : null;
+const stateFile = session ? require('path').join(require('os').tmpdir(), 'super-token-saver-state-' + session + '.csv') : null;
 const TURN_IDLE_SEC = Number(process.env.CC_UPGRADER_TURN_IDLE_SEC || process.env.CC_TOKEN_SAVER_TURN_IDLE_SEC) || 60;
 let lastCost = null;
 let lastValidDelta = null;

@@ -36,8 +36,8 @@
  *
  * Input:
  *   - analyze-usage.js JSON output (--data)
- *   - ~/.claude/claude-code-token-saver-data/{projectName}/{sessionId}/timeline.csv   (per-API-call data)
- *   - ~/.claude/claude-code-token-saver-data/{projectName}/{sessionId}/ratelimit.csv  (statusline rate limit logs)
+ *   - ~/.claude/super-token-saver-data/{projectName}/{sessionId}/timeline.csv   (per-API-call data)
+ *   - ~/.claude/super-token-saver-data/{projectName}/{sessionId}/ratelimit.csv  (statusline rate limit logs)
  *   - skills/usage-view/template.html                              (dashboard template)
  *   - locales/{code}.json                                          (i18n strings)
  *
@@ -115,7 +115,7 @@ if (resolvedLocale !== 'en') {
 const isRTL = localeData.meta && localeData.meta.direction === 'rtl';
 function addBidiMarks(text) {
   if (!isRTL || typeof text !== 'string') return text;
-  // Match: /commands, English words (incl. hyphenated/dotted like claude-code-token-saver, c0d.run)
+  // Match: /commands, English words (incl. hyphenated/dotted like super-token-saver, c0d.run)
   return text.replace(/(\/[\w-]+|[A-Za-z][\w.-]*(?:\s+[A-Za-z][\w.-]*)*)/g, '\u200E$1\u200F');
 }
 function addBidiToAI(aiAnalysis) {
@@ -1981,7 +1981,7 @@ try {
   const installedJsonPath = path.join(os.homedir(), '.claude', 'plugins', 'installed_plugins.json');
   if (fs.existsSync(installedJsonPath)) {
     const installed = JSON.parse(fs.readFileSync(installedJsonPath, 'utf8'));
-    const entries = installed && installed.plugins && installed.plugins['claude-code-token-saver@ww-w-ai'];
+    const entries = installed && installed.plugins && installed.plugins['super-token-saver@ww-w-ai'];
     if (Array.isArray(entries) && entries.length > 0) {
       // Pick the earliest installedAt across scopes (user/project)
       for (const e of entries) {
@@ -2208,7 +2208,7 @@ if (exportPromptPath) {
     + '| Enterprise | $20/seat + API | usage-based pooled | usage |\n'
     + '| Bedrock/Foundry/Vertex | API pricing | no rate limit ceiling | usage |';
 
-  // Continue events: from marker counts (preprocess detects <command-message>claude-code-token-saver:continue)
+  // Continue events: from marker counts (preprocess detects <command-message>super-token-saver:continue)
   // markerCounts.continue is populated from alertMessages which come from compact caches
 
   // Alert marker summary (from all windows)
@@ -2286,7 +2286,7 @@ ${weeks.join('\n')}
 - 5H window alerts: ${rlCount}
 
 ## /continue Skill Usage
-(claude-code-token-saver plugin feature — restores previous sessions with ZERO API cost)
+(super-token-saver plugin feature — restores previous sessions with ZERO API cost)
 - Times used: ${markerCounts.continue}
 
 ## Session Activity Summary
@@ -2351,8 +2351,8 @@ ${(() => {
 ## Top Cost Sessions
 ${top10}
 
-## Plugin: claude-code-token-saver
-claude-code-token-saver is a Claude Code plugin that:
+## Plugin: super-token-saver
+super-token-saver is a Claude Code plugin that:
 - Shows real-time token usage in the CLI statusline (input/output/cache tokens per message)
 - Tracks 5-hour rate-limit window consumption with visual alerts at 80%/95%
 - Provides /continue skill to restore previous sessions WITHOUT any LLM API calls (zero cost)
@@ -2367,7 +2367,7 @@ Unlike Claude Code's built-in /compact which:
 - Next session: input + output + cache_write tokens again
 - Loses original conversation nuance in summarization
 
-claude-code-token-saver's /continue skill:
+super-token-saver's /continue skill:
 - Uses only the Read tool to restore previous session transcripts — ZERO LLM API calls
 - Preserves the ORIGINAL user+assistant conversation text verbatim (not a summary)
 - For long conversations, uses (...) to abbreviate middle sections but includes line numbers pointing to the original transcript, so full context is always recoverable

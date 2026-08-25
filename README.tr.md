@@ -1,4 +1,4 @@
-# claude-code-token-saver
+# super-token-saver
 
 **Token'larınızın nereye gittiğini bulmak için CC'nin kaynak kodunu gerçekten okuyan ve bunu otomatik olarak düzelten tek Claude Code eklentisi. Daha az harcayın, daha uzun süre kodlayın.**
 
@@ -15,8 +15,8 @@
 | 🛡️ Token Guardian | Cache süresinin dolmasını algılar, gerçekleşmeden önce $9'lık yeniden gönderimi engeller | Birinci sessiz maliyet artışını önler |
 | 🧠 Session Architect | Ağır işleri SubTask'lara otomatik devreder (%37,5 daha ucuz cache) | Context küçük kalır, maliyetler düşer |
 | 🪶 Concise Mode | Yanıt dolgusunu keser, özü korur | Yanıt başına daha az output token |
-| 🔄 /cc-continue | /compact'ın yerini alır — sıfır LLM çağrısı, sıfır maliyet, sıfır bilgi kaybı, üstelik artık **Codex** oturumlarını da geri yüklüyor | İki araçta birden ücretsiz context geri yükleme |
-| 🤝 /cc-compact | /cc-continue'nun otomatik yüklediği bir oturum devir notu yazar — transcript'in kaybettiği sub-agent bulgularını ve araç çıktılarını yakalar | Bir sonraki oturum gizli context ile de devam eder |
+| 🔄 /s-continue | /compact'ın yerini alır — sıfır LLM çağrısı, sıfır maliyet, sıfır bilgi kaybı, üstelik artık **Codex** oturumlarını da geri yüklüyor | İki araçta birden ücretsiz context geri yükleme |
+| 🤝 /s-compact | /s-continue'nun otomatik yüklediği bir oturum devir notu yazar — transcript'in kaybettiği sub-agent bulgularını ve araç çıktılarını yakalar | Bir sonraki oturum gizli context ile de devam eder |
 | 📊 Status Line | Gerçek zamanlı maliyet, context boyutu, hız sınırı — 50ms altında | Sorunları size mal olmadan önce görün |
 | 📈 /usage-view | Yapay zeka destekli analizle etkileşimli HTML panosu | Tek tıklamayla eksiksiz maliyet analizi |
 | ✂️ /setup-git-lite | CC'nin her oturuma eklediği 2.200 gizli token'ı kaldırır | Yalnızca git talimatlarından ayda ~$48 tasarruf |
@@ -37,7 +37,7 @@
 
 **API kullandıkça öde?** Tüm bunlar, ancak bir tavan yok. Bir cache ıskalama = $9 gerçek para. Haftada on kez = $360/ay yalnızca kazalar. Şişirilmiş context'li kötü bir Salı, Max Plan abonelerinin bir ayda ödediğinden daha fazlasına mal olabilir.
 
-claude-code-token-saver tümünü otomatik olarak halleder. **Bir kez kurun. Bitti.**
+super-token-saver tümünü otomatik olarak halleder. **Bir kez kurun. Bitti.**
 
 ---
 
@@ -45,7 +45,7 @@ claude-code-token-saver tümünü otomatik olarak halleder. **Bir kez kurun. Bit
 
 ```
 /plugin marketplace add ww-w-ai/marketplace
-/plugin install claude-code-token-saver@ww-w-ai
+/plugin install super-token-saver@ww-w-ai
 ```
 
 Kurulumdan sonra otomatik olarak çalışır. Sıfır yapılandırma. [Claude Code](https://claude.ai/claude-code) v2.1.71+ gerektirir.
@@ -79,7 +79,7 @@ The prompt cache has expired. Continuing will resend the full context.
 Cost may increase significantly.
 
 👉 /context — Check current context usage before deciding
-👉 /clear → /cc-continue — Reset, then restore previous context (recommended, cheapest)
+👉 /clear → /s-continue — Reset, then restore previous context (recommended, cheapest)
 👉 Re-send — Continue as-is (full re-cache cost incurred)
 ```
 
@@ -130,15 +130,15 @@ Bir kez kurun, her yerde uygulanır.
 
 ---
 
-## 🔄 Özellik 3: /cc-continue — Context Geri Yükleme
+## 🔄 Özellik 3: /s-continue — Context Geri Yükleme
 
 **`/compact`'ın yerini alır. Sıfır LLM çağrısı. Sıfır token maliyeti. Sıfır bilgi kaybı.**
 
 `/compact`, tüm context'inizi (~1M token) LLM'ye göndererek %3,3'lük bir özette sıkıştırır. Cache sona ermişse, bu tek başına tam bir yeniden önbelleklemeyi tetikler. Bilgi kaybı kaçınılmazdır.
 
-`/cc-continue` tamamen farklı bir yaklaşım benimsemektedir. Önceki oturum transkriptini ön işler ve doğrudan yükler. LLM çağrısı yok. Maliyet yok. Orijinal konuşma olduğu gibi geri yüklenir.
+`/s-continue` tamamen farklı bir yaklaşım benimsemektedir. Önceki oturum transkriptini ön işler ve doğrudan yükler. LLM çağrısı yok. Maliyet yok. Orijinal konuşma olduğu gibi geri yüklenir.
 
-|                         | /compact                          | /cc-continue                        |
+|                         | /compact                          | /s-continue                        |
 | ----------------------- | --------------------------------- | -------------------------------- |
 | Nasıl çalışır           | Özet için tüm context'i LLM'ye gönderir | Transkripti ön işler, doğrudan okur |
 | LLM çağrıları           | Gerekli (genellikle 100K+ token)  | 0                                |
@@ -148,43 +148,43 @@ Bir kez kurun, her yerde uygulanır.
 | Cache sona erdiğinde    | Üstüne tam yeniden önbellekleme maliyeti | Etki yok                    |
 | Çok oturumlu geri yükleme | Mümkün değil                    | Desteklenir                      |
 
-Kullanım: `/clear` ardından `/cc-continue`. Önceki oturumların listesini göreceksiniz. Geri yüklemek için birini seçin. Hızlı kurtarma için: `/cc-continue last`.
+Kullanım: `/clear` ardından `/s-continue`. Önceki oturumların listesini göreceksiniz. Geri yüklemek için birini seçin. Hızlı kurtarma için: `/s-continue last`.
 
 **Sonuç:** Önceki çalışmaya sıfır maliyetle devam edin. Bilgi kaybı yok. 60MB+ transkriptleri 1 saniyenin altında işler.
 
 ---
-### 🤝 Eşi: `/cc-compact` — gizli katmanı devret
+### 🤝 Eşi: `/s-compact` — gizli katmanı devret
 
-`/cc-continue` transkripti geri yükler — siz ve Claude'un söylediklerini. Ama bir çalışma oturumunun en yararlı bilgisi genellikle o diyaloğun DIŞINDA yaşar: bir sub-agent'ın bulduğu bir şey (transkripti geri yüklemenin asla yüklemediği ayrı bir dosyadır), araç çıktısındaki belirleyici bir sayı (bir test sayısı, bir benchmark), ya da süreçten çıkarılan bir ders ("headless'ta tekrar üretilemedi ← sorun koddan değil build'den kaynaklanıyordu").
+`/s-continue` transkripti geri yükler — siz ve Claude'un söylediklerini. Ama bir çalışma oturumunun en yararlı bilgisi genellikle o diyaloğun DIŞINDA yaşar: bir sub-agent'ın bulduğu bir şey (transkripti geri yüklemenin asla yüklemediği ayrı bir dosyadır), araç çıktısındaki belirleyici bir sayı (bir test sayısı, bir benchmark), ya da süreçten çıkarılan bir ders ("headless'ta tekrar üretilemedi ← sorun koddan değil build'den kaynaklanıyordu").
 
-Bir oturumun sonunda `/cc-compact` çalıştırın; tam olarak bu gizli katmanı damıtıp `~/.claude/claude-code-token-saver-data/<project>/handoff.md` içine kaydedilen bir devir notuna dönüştürür. Bir sonraki oturumda, `/cc-continue` bunu geri yüklenen transkriptin üzerine otomatik olarak yükler — yapıştırmaya gerek yok.
+Bir oturumun sonunda `/s-compact` çalıştırın; tam olarak bu gizli katmanı damıtıp `~/.claude/super-token-saver-data/<project>/handoff.md` içine kaydedilen bir devir notuna dönüştürür. Bir sonraki oturumda, `/s-continue` bunu geri yüklenen transkriptin üzerine otomatik olarak yükler — yapıştırmaya gerek yok.
 
-|                     | Tek başına `/cc-continue`        | `/cc-compact` + `/cc-continue` (ikili)            |
+|                     | Tek başına `/s-continue`        | `/s-compact` + `/s-continue` (ikili)            |
 | Kurtardığı          | Transkript (söylenenler)         | Transkript artı gizli katman                     |
 | Sub-agent bulguları | Kaybolur (ayrı dosyalar)         | Devir notuna damıtılır                            |
 | Araç çıktısı sayılar | Sadece sohbete aktarıldıysa      | Bilinçli olarak çıkarılır                         |
 | Süreç dersleri       | —                                | Çıkmaz sokaklar tekrarlanmasın diye yakalanır     |
 
-İş akışı: Bir oturumu `/cc-compact` ile bitirin → bir sonrakini `/cc-continue` ile başlatın.
+İş akışı: Bir oturumu `/s-compact` ile bitirin → bir sonrakini `/s-continue` ile başlatın.
 
 
 ### 🔀 İki araç, tek geçmiş — Codex oturumları da burada geri yüklenir
 
 Codex oturumlarını `~/.codex/sessions/` içine yazar; Claude Code kendi oturumlarını `~/.claude/projects/` içine yazar. İkisi de diğerinin dosyalarını okumaz. Bu yüzden Codex'te bütçesi biten bir sprint Claude Code'dan erişilemez oluyordu — tersi de geçerliydi.
 
-`/cc-continue` artık ikisini de listeliyor ve geri yüklüyor. Bir Codex rollout'u ikinci bir parser'a teslim edilmiyor — Claude Code'un yazdığı biçime, **girdi satırı başına bir çıktı satırı** olacak şekilde yeniden yazılıyor; böylece aynı pipeline her ikisine de hizmet veriyor ve her `L{n}` işareti hâlâ orijinal Codex dosyasındaki tam olarak aynı satırı gösteriyor. Ölçüldü: 12 MB, 1,540-line bir rollout **0.13 s**'de ön işlemden geçiyor.
+`/s-continue` artık ikisini de listeliyor ve geri yüklüyor. Bir Codex rollout'u ikinci bir parser'a teslim edilmiyor — Claude Code'un yazdığı biçime, **girdi satırı başına bir çıktı satırı** olacak şekilde yeniden yazılıyor; böylece aynı pipeline her ikisine de hizmet veriyor ve her `L{n}` işareti hâlâ orijinal Codex dosyasındaki tam olarak aynı satırı gösteriyor. Ölçüldü: 12 MB, 1,540-line bir rollout **0.13 s**'de ön işlemden geçiyor.
 
 |                             | Claude Code oturumu | Codex oturumu |
 | --------------------------- | ---------------------- | --------------- |
-| `/cc-continue` tarafından listelenir | Evet | Evet, geçerli projeyle sınırlı |
+| `/s-continue` tarafından listelenir | Evet | Evet, geçerli projeyle sınırlı |
 | Sıfır LLM maliyetiyle geri yüklenir | Evet | Evet |
 | Orijinale `L{n}` ile atlama | Evet | Evet — satır numaraları rollout'un kendisine ait |
 | Context kaybı (`#0`) sonrası geri yükleme | `/compact`, otomatik compact | Codex sıkıştırması ve thread geri alma |
-| `/cc-compact` devir notu | Proje başına paylaşılır — birinde yazın, diğerinde yükleyin |
+| `/s-compact` devir notu | Proje başına paylaşılır — birinde yazın, diğerinde yükleyin |
 
 ```
-/cc-continue codex                    only Codex sessions
-/cc-continue codex : rust migration   the turns matching a topic, restored in full
+/s-continue codex                    only Codex sessions
+/s-continue codex : rust migration   the turns matching a topic, restored in full
 ```
 
 Doğru bir listeyle inandırıcı görünen yanlış bir liste arasındaki farkı yaratan iki ayrıntı var: Codex'te `session_id`, tetiklenen bir sub-agent'ın devraldığı **thread** id'sidir; bu yüzden oturumlar `payload.id` üzerinden anahtarlanır ve sub-agent rollout'ları, Claude Code'un kendi alt görev transkriptlerini zaten filtrelediği yöntemle elenir. `<codex_internal_context source="goal">` ise sistem tarafından eklenir; bu yüzden geri yüklenen context'te kalır ama sizin yazdığınız bir tur olarak asla sayılmaz.
@@ -334,7 +334,7 @@ Cache yapısı (`utils/api.ts:321` `splitSysPromptPrefix`), aktif MCP araçları
 
 Tipik etkileşimli oturumlarda, commit/PR talimatları (1,7K tok) `cache_read` aracılığıyla **her API çağrısında** birikir. Opus 4.7 fiyatlandırmasında 100 çağrılık bir oturumda, bu yalnızca Claude'un eğitiminin büyük ölçüde zaten kapsadığı talimatlar için oturum başına yaklaşık **$0,08**'dir.
 
-### claude-code-token-saver nasıl halleder
+### super-token-saver nasıl halleder
 
 `/setup-git-lite`, yerel yolu devre dışı bırakır ve SessionStart hook'u aracılığıyla **özenle seçilmiş 280 token'lık bir yedek** ekler. Claude'un varsayılan davranışını geçersiz kılan şeyleri tam olarak koruduk (güvenlik kuralları) ve Claude'un eğitimden zaten bildiği her şeyi bıraktık (adım adım iş akışları, PR şablonları, gh kullanım kalıpları).
 
@@ -386,7 +386,7 @@ Tipik etkileşimli oturumlarda, commit/PR talimatları (1,7K tok) `cache_read` a
 
 Env değişkenine ilgisiz nedenlerle ihtiyacınız varsa, `revert`'i çalıştırmadan önce not alın ve sonra tekrar ekleyin.
 
-### claude-code-token-saver'ı kaldırmadan önce
+### super-token-saver'ı kaldırmadan önce
 
 **Önce `/setup-git-lite revert`'i çalıştırın**, aksi takdirde settings.json'da `includeGitInstructions: false` ile bırakılırsınız ama yedek hook olmadan (Claude hiç git kılavuzu almaz). Claude Code'un şu anda eklenti kaldırma yaşam döngüsü hook'u yok, bu yüzden bunu otomatikleştiremeyiz.
 
@@ -399,7 +399,7 @@ Kaybettikleriniz (ve neden genellikle sorun olmadığı):
 
 ### Öneri başlığı
 
-Makinenizde CC yerel git talimatları hâlâ etkinken, claude-code-token-saver oturum başlangıcında **~%20 oranında** bir paragraf ipucu gösterir (ayrıca `/usage-view` ve `/report-limit` çıktılarında). `/setup-git-lite dismiss-banner` ile kalıcı olarak kapatın.
+Makinenizde CC yerel git talimatları hâlâ etkinken, super-token-saver oturum başlangıcında **~%20 oranında** bir paragraf ipucu gösterir (ayrıca `/usage-view` ve `/report-limit` çıktılarında). `/setup-git-lite dismiss-banner` ile kalıcı olarak kapatın.
 
 ---
 
@@ -422,7 +422,7 @@ Cache canlı olsa bile maliyetler birikir. Farkı göstermek için aşırı bir 
 
 Koşullar: Opus 4 fiyatlandırması, dakikada 1 prompt, prompt başına ~5 API çağrısı (~300 çağrı/saat).
 
-#### ❌ claude-code-token-saver olmadan
+#### ❌ super-token-saver olmadan
 
 Çoğu çalışma Main oturumda gerçekleşir. Context hızla büyür.
 
@@ -437,7 +437,7 @@ Koşullar: Opus 4 fiyatlandırması, dakikada 1 prompt, prompt başına ~5 API �
 
 > Bu kullanım düzeyinde, büyük olasılıkla 5 saatlik pencere hız sınırına ulaşacaksınız. **Maliyet kötü, ama asıl sorun çalışmanızın tamamen durmasıdır. Claude Code'un tam olarak karardığı an budur.**
 
-#### ✅ claude-code-token-saver ile
+#### ✅ super-token-saver ile
 
 Ağır çalışma SubTask'lara devredilir. Main yalnızca tasarım/kararları yönetir.
 
@@ -445,7 +445,7 @@ Ağır çalışma SubTask'lara devredilir. Main yalnızca tasarım/kararları y�
 | ----------- | -------------------------------------------- | --------------------------- | ---------------------------------- |
 | Sabah 3s    | Kodlama (Main: tasarım, SubTask: uygulama)   | Main 100K → 300K (ort 200K) | 900 çağrı × 200K × ＄0.50/M = ＄90 |
 | Öğle/top.   | 2 saat uzakta                                | —                           | —                                  |
-| Dönüş       | ⚡ Token Guardian engeller → /clear + /cc-continue | —                        | ＄0 (LLM çağrısı yok)              |
+| Dönüş       | ⚡ Token Guardian engeller → /clear + /s-continue | —                        | ＄0 (LLM çağrısı yok)              |
 | Öğleden sonra 3s | Kodlama devam eder                      | Main 100K → 300K (ort 200K) | 900 çağrı × 200K × ＄0.50/M = ＄90 |
 |             | Toplam                                       |                             | ~＄180                              |
 
@@ -457,7 +457,7 @@ Ağır çalışma SubTask'lara devredilir. Main yalnızca tasarım/kararları y�
 >
 > **API kullandıkça öde:** ＄146/gün × 22 iş günü = **faturanızdan doğrudan ＄3.200/ay.** Bu eklenti olmadan yoğun bir ay ＄7.000'i aşar. Onunla ＄4.000'in altında. Aynı çıktı.
 
-### claude-code-token-saver nerede devreye girer
+### super-token-saver nerede devreye girer
 
 ```
 [Session Start]
@@ -476,7 +476,7 @@ Ağır çalışma SubTask'lara devredilir. Main yalnızca tasarım/kararları y�
     │
 [Oturum yeniden başlatma]
     │
-    └─ /cc-continue → Önceki context'i sıfır maliyetle geri yükler (LLM çağrısı yok)
+    └─ /s-continue → Önceki context'i sıfır maliyetle geri yükler (LLM çağrısı yok)
 ```
 
 ---
@@ -484,16 +484,16 @@ Ağır çalışma SubTask'lara devredilir. Main yalnızca tasarım/kararları y�
 ## 🔧 Kaynaktan Kurulum ve Özelleştirme
 
 ```bash
-git clone https://github.com/ww-w-ai/claude-code-token-saver.git
-/plugin marketplace add /path/to/claude-code-token-saver
-/plugin install claude-code-token-saver@ww-w-ai
+git clone https://github.com/ww-w-ai/super-token-saver.git
+/plugin marketplace add /path/to/super-token-saver
+/plugin install super-token-saver@ww-w-ai
 ```
 
-claude-code-token-saver tamamen açık kaynaklıdır (Apache-2.0). Düz JavaScript + Bash — derlenmiş ikili yok, harici API çağrısı yok, telemetri yok. Her satır denetlenebilir. Bu README'deki her iddia, okuyabileceğiniz belirli bir dosyayla eşleşir.
+super-token-saver tamamen açık kaynaklıdır (Apache-2.0). Düz JavaScript + Bash — derlenmiş ikili yok, harici API çağrısı yok, telemetri yok. Her satır denetlenebilir. Bu README'deki her iddia, okuyabileceğiniz belirli bir dosyayla eşleşir.
 
 - **hooks/** — Cache süre sonu eşiğini değiştirin, uyarı mesajlarını özelleştirin, oturum mimarisi kurallarını değiştirin
 - **scripts/** — Analiz mantığı, rapor oluşturucu, durum çubuğu biçimlendirme
-- **skills/** — /cc-continue ve /usage-view'ın nasıl çalıştığı, prompt şablonları
+- **skills/** — /s-continue ve /usage-view'ın nasıl çalıştığı, prompt şablonları
 - **locales/** — Çevirileri ekleyin/düzenleyin, yeni diller ekleyin
 - **skills/usage-view/** — Pano UI/UX tasarım değişiklikleri
 
@@ -551,7 +551,7 @@ git-lite etkinse, eklenti oturum başına ~1.920 token **tasarruf eder** (2.200'
 
 - **CLAUDE.md'yi kısa tutun.** Her API çağrısında system prompt'a yüklenir. Her satır para harcar.
 - **Ağır işleri SubTask'lara devredin.** Kod üretimi, çoklu dosya düzenlemeleri, test çalıştırmaları Main'e ait değil. SubTask'ların daha küçük context ve daha ucuz cache katmanı vardır.
-- **1+ saat uzaktaysanız?** `/clear` → dönün → `/cc-continue`. Context $0 ile geri yüklendi.
+- **1+ saat uzaktaysanız?** `/clear` → dönün → `/s-continue`. Context $0 ile geri yüklendi.
 - **[5H] %70'in üzerinde (🟡)?** Yavaşlayın. Hafif inceleme görevlerine geçin veya Main'in API çağrısı sayısını azaltmak için SubTask devrini artırın.
 - **Yan sorular için `/btw` kullanın.** Konuşma geçmişine girmez, bu yüzden context'iniz kısa kalır.
 
@@ -559,7 +559,7 @@ git-lite etkinse, eklenti oturum başına ~1.920 token **tasarruf eder** (2.200'
 
 Yukarıdakilerin hepsi geçerlidir, artı bu API'ye özgü öncelikler:
 
-- **[CTX]'i hız göstergesi gibi izleyin.** Hiçbir hız sınırı sizi durdurmaz — ancak 500K+'da context, her API çağrısının olması gerekenden 2-3 kat daha fazlaya mal olduğu anlamına gelir. `/clear` → `/cc-continue` ücretsizdir ve maliyet çarpanınızı taban çizgisine sıfırlar.
+- **[CTX]'i hız göstergesi gibi izleyin.** Hiçbir hız sınırı sizi durdurmaz — ancak 500K+'da context, her API çağrısının olması gerekenden 2-3 kat daha fazlaya mal olduğu anlamına gelir. `/clear` → `/s-continue` ücretsizdir ve maliyet çarpanınızı taban çizgisine sıfırlar.
 - **Haftalık `/usage-view` çalıştırın.** Max Plan kullanıcıları hız sınırına çarptıklarında doğal bir "ah" anına sahiptir. Siz değil — maliyetler sessizce tırmanır. Pano erken uyarı sisteminizdir.
 - **Zihinsel bir günlük bütçe belirleyin.** Bir tavan olmadan, $200'lük günler fark edilmeden gerçekleşir. Durum çubuğunun RUN göstergesi tur başına maliyeti görünür kılar. Tek bir tur $1'ı (🔴) aşarsa, context'iniz çok büyüktür.
 
