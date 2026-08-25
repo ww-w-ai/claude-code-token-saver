@@ -1,0 +1,64 @@
+# Codex 版 claude-code-token-saver
+
+[English](./README-CODEX.md) · [한국어](./README-CODEX.ko.md) · [日本語](./README-CODEX.ja.md) · [简体中文](./README-CODEX.zh-Hans.md)
+
+> 前回のセッションはスプリントの途中で予算が尽きた。そこで学んだことはすべてディスクに残っている——どのツールも代わりに読んではくれないファイルの中に。
+
+Codex はすべてのセッションを `~/.codex/sessions/` に書き出す。Claude Code は `~/.claude/projects/` に書き出す。どちらも相手のファイルを読まない。元に戻る通常の手段——モデルに何が起きたか要約させること——は、指示を一行打つ前にコンテキストウィンドウを丸ごと使い切る。
+
+**このプラグインは代わりに転写(transcript)そのものを読む。** `/cc-continue` は JSONL を直接パースして、どちらのツールのセッションでも復元する。要約呼び出しもトークン消費もない。復元された各ターンには元の rollout の該当行を指す `L{n}` マーカーが付き、省略された部分の全文をそこから取り出せる。
+
+## できること
+
+| スキル | 使う場面 |
+|---|---|
+| `cc-continue` | 以前の Claude Code **または** Codex セッションを復元する——一覧から選ぶか、直近のものへ直接飛ぶ。 |
+| `cc-compact` | クリアする前に引き継ぎを書く——転写には残らないもの:サブエージェントの発見、ツール出力の数値、捨てたアプローチ。 |
+
+引き継ぎファイルはツール単位ではなくプロジェクト単位で保存される。Codex でスプリントを終え、Claude Code で続きをやっても、そのファイルはすでにそこにある。
+
+## Codex に合っている理由
+
+- **Codex の圧縮を無視せず理解する。** auto-compact がかかった rollout は、圧縮前の内容——モデルの頭の中にもう残っていない部分——から復元され、すでに知っていることを読み直したりしない。
+- **サブエージェントの rollout は除外される。** Codex では生成されたサブエージェントが親の `session_id` をそのまま引き継ぐため、3つのファイルが同じ id を名乗ることがある。セッションは `payload.id` で識別し、一覧には実際に自分で入力したセッションだけが表示される。
+- **ゴール制御プロンプトが自分の指示になりすまさない。** `<codex_internal_context source="goal">` は機械が注入するものだ。復元されたコンテキストには残るが、自分が書いたターンとしてはカウントされない。
+- **パーサーは一つ、対応するツールは二つ。** Codex の rollout は Claude Code が書く形式に書き換えられ、入力の一行が出力の一行になるので、同じコードパスが両方を処理しても行番号は元のファイルを正確に指し続ける。
+- **インストール手順がない。** Node だけで動く——npm の依存もビルドもない。
+
+実測:12MB、1,540行の実際の Codex セッションを 0.13 秒で前処理する。
+
+## インストール
+
+```
+codex plugin marketplace add ww-w-ai/marketplace
+codex plugin add claude-code-token-saver@ww-w-ai
+```
+
+確認とアップグレード:
+
+```
+codex plugin list
+codex plugin marketplace upgrade ww-w-ai
+```
+
+## 使い方
+
+```
+/cc-continue           このプロジェクトの両ツールのセッションを一覧し、復元するものを選ぶ
+/cc-continue last      直近のセッションを復元する
+/cc-continue codex     一覧を Codex セッションに絞る
+/cc-continue codex : rust migration      トピックに一致するターンを全文復元する
+/cc-compact            次の人のための引き継ぎを書く
+```
+
+`~/.codex` 以外の場所に Codex の状態を置いている場合は `CODEX_HOME` が尊重される。
+
+スキル名はどちらのホストでも同じなので、片方で覚えたコマンドはもう片方でもそのまま使える。
+
+## 対応しないこと
+
+`usage-view` と `report-limit` は今のところ Claude Code 専用である。Codex もロールアウトにターンごとのトークン数とレート制限をそのまま記録しているため、これは移植がまだ済んでいないだけで、できないわけではない。`setup-statusline` は事情が異なる。Codex には独自のステータスラインがあり、`config.toml` の `status_line` で設定する。
+
+## ライセンス
+
+Apache-2.0。[LICENSE](./LICENSE) を参照。

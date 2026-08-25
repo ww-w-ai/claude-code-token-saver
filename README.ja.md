@@ -15,7 +15,7 @@
 | 🛡️ Token Guardian | キャッシュ期限切れを検知し、$9 の再送信を事前にブロック | サイレントコストスパイクの第1位を防止 |
 | 🧠 Session Architect | 重い作業を SubTask に自動委譲（37.5% 安いキャッシュ） | コンテキストをコンパクトに保ちコストを削減 |
 | 🪶 Concise Mode | レスポンスの冗長な表現を削減し、内容を維持 | 1回のレスポンスあたりの出力トークンを削減 |
-| 🔄 /cc-continue | /compact の代替 — LLM呼び出しゼロ、コストゼロ、情報損失ゼロ | 無料でコンテキストを復元 |
+| 🔄 /cc-continue | /compact の代替 — LLM呼び出しゼロ、コストゼロ、情報損失ゼロ、**Codex** セッションも復元 | 両ツールにまたがって無料でコンテキストを復元 |
 | 🤝 /cc-compact | /cc-continue が自動で読み込むセッション引き継ぎ記録を作成 — トランスクリプトが失うサブエージェントの発見やツール結果を保存 | 次のセッションで見えないコンテキストも引き継げる |
 | 📊 Status Line | リアルタイムのコスト、コンテキストサイズ、レート制限 — 50ms以内 | コストが発生する前に問題を把握 |
 | 📈 /usage-view | AI分析付きのインタラクティブなHTMLダッシュボード | ワンクリックでコストを完全分析 |
@@ -165,6 +165,29 @@ SessionStartフックは **すべてのセッションとすべてのモデル**
 | 作業過程の教訓     | なし                               | 同じ失敗を繰り返さないよう記録              |
 
 **作業の流れ：** セッションを `/cc-compact` で終え → 次のセッションを `/cc-continue` で始める。
+
+### 🔀 二つのツール、一つの履歴 — Codexのセッションもここで復元できる
+
+Codexはセッションを `~/.codex/sessions/` に、Claude Codeは `~/.claude/projects/` に書き込む。互いに相手のファイルを読まないため、Codexで予算切れになったタスクはClaude Codeから手が届かなかった。逆方向も同じだった。
+
+`/cc-continue` は今、両方の履歴を一覧表示し、復元する。Codexのrolloutを別のパーサーに渡すのではなく、Claude Codeが書く形式へと **入力1行につき出力1行** でそのまま書き換える。だから同じパイプラインが両方に対応し、`L{n}` マーカーは元のCodexファイルの正確な行を指し続ける。実測:12 MB、1,540行のrolloutの前処理は **0.13 s**。
+
+|                        | Claude Codeセッション | Codexセッション |
+| ---------------------- | ------------------- | ------------- |
+| `/cc-continue` に表示 | ○ | ○、現在のプロジェクトに限定 |
+| LLMコスト0で復元 | ○ | ○ |
+| `L{n}` で元の位置へ | ○ | ○ — 行番号はrollout自身のもの |
+| コンテキスト消失（`#0`）からの復元 | `/compact`、自動compact | Codexのcompactionとスレッドロールバック |
+| `/cc-compact` の引き継ぎ | プロジェクト単位で共有 — 片方で書いて、もう片方で読み込む |
+
+```
+/cc-continue codex                    only Codex sessions
+/cc-continue codex : rust migration   the turns matching a topic, restored in full
+```
+
+正しい一覧と、もっともらしいが間違った一覧を分けるのはこの二点だ。Codexの `session_id` はサブエージェントがそのまま引き継ぐ **スレッド** idなので、セッションは `payload.id` で識別し、サブエージェントのrolloutはClaude Codeがsubtaskのトランスクリプトを除外するのと同じ方法で取り除く。そして `<codex_internal_context source="goal">` はシステムが自動で挿入するものなので、復元後のコンテキストには残るが、ユーザーが打ったターンとしては数えない。
+
+このプラグインはCodexにもインストールされる — **[README-CODEX.md](./README-CODEX.md)**（[한국어](./README-CODEX.ko.md)・[日本語](./README-CODEX.ja.md)・[简体中文](./README-CODEX.zh-Hans.md)）を参照。`usage-view`、`report-limit`、`setup-statusline` は今のところClaude Code専用のまま。
 
 ---
 

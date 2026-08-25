@@ -2,7 +2,10 @@
 name: report-limit
 description: 'Max plan hit the wall? Report your 5h window data — we''re mapping the rate limit formula Anthropic won''t publish'
 when_to_use: Use when user hits a rate limit and wants to contribute data. Triggers on "report limit", "limit report", "rate limit report".
+host: claude-code
 ---
+
+> Claude Code only **today**. Codex reports its rate limits directly (`rate_limits.primary.used_percent`, `resets_at`), so this is a port that has not been done yet, not a limitation — see `docs/CODEX-PORT-BACKLOG.md`.
 
 Report rate-limited 5-hour windows to GitHub Discussions. Pure rule-based — no LLM reasoning needed.
 

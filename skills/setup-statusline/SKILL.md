@@ -2,7 +2,10 @@
 name: setup-statusline
 description: 'Live token counter in your CLI. Shows real-time input/output/cache token counts in the Claude Code status bar'
 when_to_use: Use when user wants to install, uninstall, or configure the token-saver statusline. Triggers on "setup statusline", "install statusline", "statusline install".
+host: claude-code
 ---
+
+> Claude Code only. Codex has its OWN status line, configured through `status_line` in `config.toml` from a fixed set of named segments rather than a command — see `docs/CODEX-PORT-BACKLOG.md`.
 
 Manage the claude-code-token-saver statusline in Claude Code's `~/.claude/settings.json`.
 

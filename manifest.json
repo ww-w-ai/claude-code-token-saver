@@ -1,0 +1,15 @@
+{
+  "name": "claude-code-token-saver",
+  "version": "2.5.0",
+  "description": "Cut agent-session cost on Claude Code and Codex: cache-expiry prevention, zero-LLM context restore across both tools, cross-tool session handoff, and a real cost dashboard.",
+  "author": "taekim34",
+  "skills": [
+    "skills/"
+  ],
+  "hooks": [
+    "hooks/"
+  ],
+  "scripts": [
+    "scripts/"
+  ]
+}

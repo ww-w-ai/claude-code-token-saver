@@ -4,13 +4,21 @@
  * A main session has at least 1 genuine user message (not subtask/meta).
  *
  * Usage: node list-sessions.js <transcripts-dir> [--limit N] [--offset N] [--exclude SESSION_ID]
+ *                                [--source claude|codex|all] [--cwd PATH]
+ *                                [--current-source claude|codex]
  *
  * Default: latest 10 main sessions, sorted by mtime descending.
+ *
+ * Sources. `claude` reads ~/.claude/projects/{projectHash}/. `codex` reads
+ * ~/.codex/sessions/ and hands each rollout to the normalizer first, so every
+ * session below — whichever tool produced it — is analyzed by the SAME code.
+ * Each result carries `source` plus, for Codex, `originalPath`.
  */
 
 const fs = require("fs");
 const path = require("path");
 const readline = require("readline");
+const codex = require("./lib/codex-transcript");
 
 // Tags to strip before checking user message content.
 // NOTE: <command-name> and <command-args> are intentionally NOT stripped —
@@ -24,6 +32,10 @@ const STRIP_PATTERNS = [
   /<command-message>[\s\S]*?<\/command-message>/g,
   /<local-command-stdout>[\s\S]*?<\/local-command-stdout>/g,
   /<local-command-caveat>[\s\S]*?<\/local-command-caveat>/g,
+  // Codex injects this to drive a goal forward. Like CC's <task-notification>,
+  // the user never typed it — a turn that is only this strips to empty and so
+  // is not counted as genuine, while preprocess still keeps the content.
+  /<codex_internal_context[\s\S]*?<\/codex_internal_context>/g,
 ];
 
 // Subtask message prefixes to exclude
@@ -226,6 +238,9 @@ function parseArgs(argv) {
   let offset = 0;
   let exclude = null;
   let all = false;
+  let source = "claude";
+  let cwd = process.cwd();
+  let currentSource = null;
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--limit" && i + 1 < args.length) {
@@ -237,6 +252,15 @@ function parseArgs(argv) {
     } else if (args[i] === "--exclude" && i + 1 < args.length) {
       exclude = args[i + 1];
       i++;
+    } else if (args[i] === "--source" && i + 1 < args.length) {
+      source = args[i + 1];
+      i++;
+    } else if (args[i] === "--cwd" && i + 1 < args.length) {
+      cwd = args[i + 1];
+      i++;
+    } else if (args[i] === "--current-source" && i + 1 < args.length) {
+      currentSource = args[i + 1];
+      i++;
     } else if (args[i] === "--all") {
       all = true;
     } else if (!args[i].startsWith("--")) {
@@ -244,34 +268,61 @@ function parseArgs(argv) {
     }
   }
 
-  return { dir, limit, offset, exclude, all };
+  return { dir, limit, offset, exclude, all, source, cwd, currentSource };
 }
 
 async function main() {
-  const { dir, limit, offset, exclude, all } = parseArgs(process.argv);
+  const { dir, limit, offset, exclude, all, source, cwd, currentSource } = parseArgs(process.argv);
 
-  if (!dir) {
+  const wantClaude = source === "claude" || source === "all";
+  const wantCodex = source === "codex" || source === "all";
+
+  if (wantClaude && !dir) {
     process.stderr.write(
-      "Usage: node list-sessions.js <transcripts-dir> [--limit N] [--offset N] [--exclude SESSION_ID] [--all]\n",
+      "Usage: node list-sessions.js <transcripts-dir> [--limit N] [--offset N] [--exclude SESSION_ID] [--all] [--source claude|codex|all] [--cwd PATH]\n",
     );
     process.exit(1);
   }
 
-  if (!fs.existsSync(dir)) {
-    process.stderr.write(`Error: directory not found: ${dir}\n`);
-    process.exit(1);
-  }
+  const entries = [];
 
-  // List .jsonl files with stat info
-  const entries = fs
-    .readdirSync(dir)
-    .filter((f) => f.endsWith(".jsonl"))
-    .map((f) => {
+  if (wantClaude && fs.existsSync(dir)) {
+    for (const f of fs.readdirSync(dir)) {
+      if (!f.endsWith(".jsonl")) continue;
       const fullPath = path.join(dir, f);
       const stat = fs.statSync(fullPath);
-      return { name: f, path: fullPath, mtime: stat.mtime, size: stat.size };
-    })
-    .sort((a, b) => b.mtime - a.mtime);
+      entries.push({ name: f, path: fullPath, mtime: stat.mtime, size: stat.size, source: "claude" });
+    }
+  } else if (wantClaude && !fs.existsSync(dir)) {
+    if (!wantCodex) {
+      process.stderr.write(`Error: directory not found: ${dir}\n`);
+      process.exit(1);
+    }
+  }
+
+  if (wantCodex) {
+    for (const session of codex.listCodexSessions(cwd)) {
+      let normalized;
+      try {
+        normalized = codex.normalizeCodexTranscript(session.path, session);
+      } catch {
+        continue;
+      }
+      entries.push({
+        name: `${session.sessionId}.jsonl`,
+        path: normalized,
+        // Report the ORIGINAL's mtime and size. The normalized copy is an
+        // artifact of this tool; the user is choosing between real sessions.
+        mtime: session.mtime,
+        size: session.size,
+        source: "codex",
+        originalPath: session.path,
+        startedIso: session.started,
+      });
+    }
+  }
+
+  entries.sort((a, b) => b.mtime - a.mtime);
 
   // Collect all main sessions first
   const mainSessions = [];
@@ -306,7 +357,9 @@ async function main() {
 
     mainSessions.push({
       id,
+      source: entry.source,
       path: entry.path,
+      ...(entry.originalPath ? { originalPath: entry.originalPath } : {}),
       firstActive,
       lastActive: formatLocalTime(entry.mtime),
       size: entry.size,
@@ -327,16 +380,24 @@ async function main() {
   // This works because STRIP_PATTERNS now preserves <command-name> tags,
   // so a freshly-started session containing only a /continue invocation
   // still counts as genuine and appears in mainSessions.
+  //
+  // With both tools listed, "most recent overall" is the wrong test: the
+  // session being written right now belongs to the tool this skill is running
+  // in, and the other tool's transcript can easily be newer. --current-source
+  // names that tool, so the running session is identified rather than guessed.
+  const currentPool = currentSource
+    ? mainSessions.filter((s) => s.source === currentSource)
+    : mainSessions;
   let currentId = null;
   let minAge = Infinity;
-  for (const s of mainSessions) {
+  for (const s of currentPool) {
     if (s.lastMsgAgeSeconds != null && s.lastMsgAgeSeconds < minAge) {
       minAge = s.lastMsgAgeSeconds;
       currentId = s.id;
     }
   }
   for (const s of mainSessions) {
-    s.isCurrent = s.id === currentId;
+    s.isCurrent = s.id === currentId && (!currentSource || s.source === currentSource);
   }
 
   // Apply offset, then limit

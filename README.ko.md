@@ -15,7 +15,7 @@
 | 🛡️ Token Guardian | 캐시 만료 감지, $9짜리 재전송 사전 차단 | 가장 큰 무음 비용 급등 방지 |
 | 🧠 Session Architect | 무거운 작업을 SubTask에 자동 위임 (37.5% 저렴한 캐시) | 컨텍스트 축소, 비용 절감 |
 | 🪶 Concise Mode | 응답 패딩 제거, 내용은 그대로 | 응답당 출력 토큰 감소 |
-| 🔄 /cc-continue | /compact 대체 — LLM 호출 0, 비용 0, 정보 손실 0 | 무료 컨텍스트 복원 |
+| 🔄 /cc-continue | /compact 대체 — LLM 호출 0, 비용 0, 정보 손실 0, **Codex** 세션도 복원 | 두 도구 모두 무료로 컨텍스트 복원 |
 | 🤝 /cc-compact | /cc-continue가 자동으로 불러오는 세션 인계 기록을 작성 — transcript가 놓치는 서브에이전트 발견·도구 결과를 포착 | 다음 세션이 숨겨진 컨텍스트까지 이어받음 |
 | 📊 Status Line | 실시간 비용·컨텍스트·요금 한도 — 50ms 이하 | 비용 터지기 전에 먼저 확인 |
 | 📈 /usage-view | AI 분석이 포함된 인터랙티브 HTML 대시보드 | 클릭 한 번으로 비용 전체 추적 |
@@ -165,6 +165,29 @@ SessionStart 훅이 응답 스타일 규칙을 **모든 세션과 모든 모델*
 | 작업 과정의 교훈     | 없음                               | 막다른 길을 반복하지 않도록 기록              |
 
 **작업 흐름:** 세션을 `/cc-compact`로 마치고 → 다음 세션을 `/cc-continue`로 시작하세요.
+
+### 🔀 두 도구, 하나의 히스토리 — Codex 세션도 여기서 복원됩니다
+
+Codex는 세션을 `~/.codex/sessions/`에 쓰고, Claude Code는 `~/.claude/projects/`에 씁니다. 서로 상대방의 파일을 읽지 못해서, Codex에서 예산을 다 쓰고 중단된 작업을 Claude Code에서 이어받을 방법이 없었습니다. 반대 방향도 마찬가지였습니다.
+
+이제 `/cc-continue`는 두 히스토리를 함께 목록에 띄우고 복원합니다. Codex의 rollout 파일을 별도 파서로 처리하는 게 아니라, Claude Code가 쓰는 형식으로 **입력 한 줄당 출력 한 줄**씩 그대로 재작성합니다 — 그래서 파이프라인이 하나로 통일되고, `L{n}` 마커는 여전히 원본 Codex 파일의 정확한 줄을 가리킵니다. 실측: 12 MB, 1,540줄짜리 rollout을 전처리하는 데 **0.13 s**가 걸렸습니다.
+
+|                        | Claude Code 세션 | Codex 세션 |
+| ---------------------- | ------------------- | ------------- |
+| `/cc-continue`에 표시됨 | O | O, 현재 프로젝트로 범위 제한 |
+| LLM 비용 0으로 복원 | O | O |
+| `L{n}`으로 원본 위치 이동 | O | O — 줄 번호는 rollout 자체의 것 |
+| 컨텍스트 손실(`#0`) 복원 | `/compact`, 자동 compact | Codex의 compaction과 스레드 롤백 |
+| `/cc-compact` 인계 기록 | 프로젝트 단위로 공유 — 한 도구에서 쓰고 다른 도구에서 불러옵니다 |
+
+```
+/cc-continue codex                    only Codex sessions
+/cc-continue codex : rust migration   the turns matching a topic, restored in full
+```
+
+정확한 목록과 그럴듯해 보이지만 틀린 목록을 가르는 것은 이 두 가지입니다. Codex의 `session_id`는 서브에이전트가 그대로 물려받는 **스레드** id라서, 세션은 `payload.id`로 구분하고 서브에이전트의 rollout은 Claude Code가 subtask 트랜스크립트를 걸러내는 것과 같은 방식으로 제외합니다. 그리고 `<codex_internal_context source="goal">`는 시스템이 주입한 것이라 복원된 컨텍스트에는 남지만 사용자가 입력한 턴으로는 세지 않습니다.
+
+이 플러그인은 Codex에도 설치됩니다 — **[README-CODEX.md](./README-CODEX.md)** ([한국어](./README-CODEX.ko.md) · [日本語](./README-CODEX.ja.md) · [简体中文](./README-CODEX.zh-Hans.md))를 참고하세요. `usage-view`, `report-limit`, `setup-statusline`은 아직 Claude Code 전용입니다.
 
 ---
 

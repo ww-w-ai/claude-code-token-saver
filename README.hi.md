@@ -15,7 +15,7 @@
 | 🛡️ Token Guardian | कैश एक्सपायरी का पता लगाता है, होने से पहले $9 री-सेंड को ब्लॉक करता है | नंबर 1 छुपे हुए लागत spike को रोकता है |
 | 🧠 Session Architect | भारी काम को SubTasks को ऑटो-डेलिगेट करता है (37.5% सस्ता कैश) | कॉन्टेक्स्ट छोटा रहता है, लागत कम होती है |
 | 🪶 Concise Mode | रिस्पॉन्स की padding काटता है, सामग्री रखता है | प्रति रिस्पॉन्स कम output टोकन |
-| 🔄 /cc-continue | /compact की जगह लेता है — शून्य LLM calls, शून्य लागत, शून्य जानकारी का नुकसान | मुफ्त कॉन्टेक्स्ट रिस्टोरेशन |
+| 🔄 /cc-continue | /compact की जगह लेता है — शून्य LLM calls, शून्य लागत, शून्य जानकारी का नुकसान, और अब **Codex** sessions भी restore करता है | दोनों tools में मुफ्त कॉन्टेक्स्ट रिस्टोरेशन |
 | 🤝 /cc-compact | एक session handoff लिखता है जिसे /cc-continue अपने आप लोड करता है — sub-agent findings और tool results को कैप्चर करता है जो transcript खो देता है | अगला session hidden context के साथ भी resume होता है |
 | 📊 Status Line | रियल-टाइम लागत, कॉन्टेक्स्ट साइज़, रेट लिमिट — 50ms से कम | समस्याओं को खर्च होने से पहले देखें |
 | 📈 /usage-view | AI-powered analysis के साथ इंटरएक्टिव HTML डैशबोर्ड | एक क्लिक में पूरी लागत forensics |
@@ -166,6 +166,30 @@ session के अंत में `/cc-compact` चलाएं और यह �
 | Process के सबक       | —                                | Capture होते हैं ताकि dead ends दोबारा न चलें     |
 
 Workflow: session को `/cc-compact` से खत्म करें → अगला session `/cc-continue` से शुरू करें।
+
+### 🔀 दो tools, एक history — Codex sessions भी यहीं से restore होते हैं
+
+Codex अपने sessions `~/.codex/sessions/` में लिखता है; Claude Code `~/.claude/projects/` में। कोई भी tool दूसरे की files नहीं पढ़ता। इसलिए Codex में budget खत्म होने पर रुका हुआ sprint पहले Claude Code से पहुंच से बाहर होता था, और उल्टा भी।
+
+`/cc-continue` अब दोनों को list और restore करता है। Codex के rollout को किसी दूसरे parser को नहीं सौंपा जाता — बल्कि उसे उसी shape में फिर से लिखा जाता है जिसमें Claude Code लिखता है, **हर input line के बदले एक output line**, ताकि वही pipeline दोनों को serve करे और हर `L{n}` marker अब भी original Codex file की exact line की ओर इशारा करे। मापा गया: 12 MB का, 1,540-line rollout **0.13 s** में preprocess होता है।
+
+|                        | Claude Code session | Codex session |
+| ---------------------- | -------------------- | ------------- |
+| `/cc-continue` में listed | हां | हां, current project तक सीमित |
+| zero LLM cost पर restore | हां | हां |
+| original में `L{n}` seek | हां | हां — line numbers rollout के अपने हैं |
+| Context-loss (`#0`) restore | `/compact`, auto-compact | Codex की अपनी compaction और thread rollback |
+| `/cc-compact` handoff | हर project के लिए shared — एक tool में लिखें, दूसरे में लोड करें |
+
+```
+/cc-continue codex                    सिर्फ Codex sessions
+/cc-continue codex : rust migration   किसी topic से मेल खाते turns, पूरे तरीके से restored
+```
+
+दो details ही सही list और सही-दिखने-वाली-पर-गलत list के बीच फर्क बनाते हैं: Codex का `session_id` असल में **thread** id है, जिसे spawn किया गया कोई sub-agent inherit करता है, इसलिए sessions को `payload.id` पर key किया जाता है और sub-agent rollouts को उसी तरह filter किया जाता है जैसे Claude Code के subtask transcripts पहले से किए जाते हैं। और `<codex_internal_context source="goal">` machine-injected होता है, इसलिए यह restored context में तो रहता है पर कभी भी आपके टाइप किए turn के रूप में count नहीं होता।
+
+यह plugin Codex में भी install होता है — देखें **[README-CODEX.md](./README-CODEX.md)** ([한국어](./README-CODEX.ko.md) · [日本語](./README-CODEX.ja.md) · [简体中文](./README-CODEX.zh-Hans.md))। `usage-view`, `report-limit` और `setup-statusline` फिलहाल सिर्फ Claude Code तक सीमित हैं।
+
 ---
 
 ## 📊 Feature 4: Live Status Line

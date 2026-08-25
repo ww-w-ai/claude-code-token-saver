@@ -15,7 +15,7 @@
 | 🛡️ Token Guardian | 检测缓存过期，在 $9 重发前提前拦截 | 防止头号隐性成本飙升 |
 | 🧠 Session Architect | 自动将繁重工作委托给 SubTask（缓存便宜 37.5%） | 上下文保持精简，成本下降 |
 | 🪶 Concise Mode | 削减冗余填充，保留核心内容 | 每次响应的输出 token 减少 |
-| 🔄 /cc-continue | 替代 /compact——零 LLM 调用，零成本，零信息损失 | 免费恢复上下文 |
+| 🔄 /cc-continue | 替代 /compact——零 LLM 调用，零成本，零信息损失，还能恢复 **Codex** 会话 | 两个工具的上下文都能免费恢复 |
 | 🤝 /cc-compact | 编写 /cc-continue 自动加载的会话交接记录——捕获 transcript 会丢失的子代理发现和工具结果 | 下一个会话也能恢复隐藏的上下文 |
 | 📊 Status Line | 实时成本、上下文大小、速率限制——延迟低于 50ms | 在问题产生费用之前发现它 |
 | 📈 /usage-view | 带 AI 分析的交互式 HTML 仪表盘 | 一键完成成本全面溯源 |
@@ -165,6 +165,29 @@ SessionStart 钩子还会在**每个会话和每个模型**中注入响应风格
 | 过程经验     | 无                               | 记录下来，避免重复走弯路              |
 
 **工作流程：** 用 `/cc-compact` 结束一个会话 → 用 `/cc-continue` 开始下一个会话。
+
+### 🔀 两个工具，一份历史——Codex 会话也能在这里恢复
+
+Codex 把会话写到 `~/.codex/sessions/`，Claude Code 写到 `~/.claude/projects/`。两边互不读取对方的文件，所以以前在 Codex 里预算耗尽的任务，在 Claude Code 里根本碰不到，反过来也一样。
+
+现在 `/cc-continue` 会把两份历史一起列出并恢复。Codex 的 rollout 不会交给另一个解析器处理，而是按 **输入一行、输出一行** 的方式改写成 Claude Code 写入的格式——这样同一条流水线能同时服务两者，`L{n}` 标记依然精确指向原始 Codex 文件的那一行。实测：一份 12 MB、1,540 行的 rollout，预处理只需 **0.13 s**。
+
+|                        | Claude Code 会话 | Codex 会话 |
+| ---------------------- | ------------------- | ------------- |
+| 被 `/cc-continue` 列出 | 是 | 是，限定在当前项目内 |
+| 零 LLM 成本恢复 | 是 | 是 |
+| 用 `L{n}` 跳回原文 | 是 | 是——行号就是 rollout 自身的行号 |
+| 上下文丢失（`#0`）恢复 | `/compact`、自动 compact | Codex 自己的 compaction 和线程回退 |
+| `/cc-compact` 交接记录 | 按项目共享——在一个工具里写，在另一个工具里加载 |
+
+```
+/cc-continue codex                    only Codex sessions
+/cc-continue codex : rust migration   the turns matching a topic, restored in full
+```
+
+能不能列对，靠的就是这两个细节。Codex 的 `session_id` 其实是子代理也会继承的 **线程** id，所以恢复靠 `payload.id` 来区分会话，子代理的 rollout 会被过滤掉——用的是 Claude Code 过滤子任务 transcript 的同一套方法。而 `<codex_internal_context source="goal">` 是系统自动注入的，恢复时会保留在上下文里，但不会被算作你输入的一轮对话。
+
+这个插件也会安装进 Codex——参见 **[README-CODEX.md](./README-CODEX.md)**（[한국어](./README-CODEX.ko.md) · [日本語](./README-CODEX.ja.md) · [简体中文](./README-CODEX.zh-Hans.md)）。`usage-view`、`report-limit` 和 `setup-statusline` 目前仍然只支持 Claude Code。
 
 ---
 

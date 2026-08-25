@@ -18,9 +18,57 @@ scripts/lib/vendor/ → Vendored pure-JS third-party (pngjs MIT, jpeg-js BSD) fo
 locales/        → 23 language JSON files for dashboard UI strings
 ```
 
-**Data flow**: CC transcripts (JSONL) → `preprocess.js` / `analyze-usage.js` → cached artifacts → skills consume them.
+**Data flow**: transcripts (JSONL) → `preprocess.js` / `analyze-usage.js` → cached artifacts → skills consume them.
 
-**Cache location**: `~/.claude/claude-code-token-saver-data/{projectHash}/{sessionId}/` — stores `compact.txt`, `timeline.csv`, `summary.json`.
+### Two transcript sources, one pipeline
+
+`/cc-continue` and `/cc-compact` read Claude Code AND Codex sessions. A Codex rollout is not parsed
+by a second parser — `scripts/lib/codex-transcript.js` rewrites it into the shape CC writes, **one
+output line per input line**, and everything downstream runs unchanged.
+
+- **Why line parity matters**: every `L{n}` marker must still address the Codex original's line. A
+  normalizer that dropped non-message rows would silently shift them.
+- **Key on `payload.id`, never `session_id`.** In Codex `session_id` is the THREAD id and a spawned
+  subagent inherits its parent's, so three files can carry the same one and overwrite each other's
+  cache. Subagent rollouts are excluded from the list, as CC subtask transcripts already are.
+- **Codex compaction is translated into `system/compact_boundary`**, so a compacted Codex session
+  gets the same `#0` pre-loss restore a compacted CC session gets.
+- `CODEX_HOME` is honoured. Normalized copies live in `…-data/.codex-normalized/{projectHash}/`
+  (dot-prefixed so `listProjects()` skips it); the compact cache path is unchanged.
+- Gate: `node scripts/test-codex-adapter.js` — synthetic fixture, no real transcript needed.
+- **The Claude path is byte-identical** and must stay so; `preprocess.js` only changes its footer
+  when `--original` is passed. Verify by diffing against `git show main:scripts/preprocess.js`.
+
+### One repo, two hosts
+
+This plugin ships to Claude Code AND Codex from this single tree — the pattern `ai-native-cowork`
+established (read that repo before changing anything here). There is no separate Codex build and no
+second copy of the scripts; a forked copy is exactly how the earlier Codex port froze at 1.7.0 while
+this repo moved to 2.4.x.
+
+Three manifests, **one version between them**:
+
+| File | Read by |
+|---|---|
+| `.claude-plugin/plugin.json` | Claude Code |
+| `.codex-plugin/plugin.json` | Codex |
+| `manifest.json` | Codex marketplace listing |
+
+- **Only `cc-continue` and `cc-compact` are dual-host.** `usage-view`, `report-limit` and
+  `setup-statusline` read Claude Code's own billing/rate-limit records and stay single-host.
+- **A dual-host skill must not hardcode one host's plugin root.** Claude Code exports
+  `CLAUDE_PLUGIN_ROOT`; Codex does not reliably export `CODEX_PLUGIN_ROOT`. Use
+  `PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT}}"`, falling back to the skill's own
+  directory. A bare `${CLAUDE_PLUGIN_ROOT}` resolves to nothing under Codex and the command silently
+  runs against `/scripts/...`.
+- **Gate**: `python3 scripts/test_product_parity.py` — skills set, manifest name/version agreement,
+  the plugin-root rule, and the four exact install commands in every `README-CODEX.*`.
+- **The other three skills are a backlog item, not a boundary** — `docs/CODEX-PORT-BACKLOG.md`
+  records what Codex actually writes (`event_msg/token_count`, `rate_limits`) and the one
+  assumption that has to break first: the 5-hour window is Claude Code's, and Codex reported a
+  10080-minute one.
+- **Codex publication needs the marketplace repo too**: `.agents/plugins/marketplace.json` plus a
+  vendored copy under `plugins/<name>/` (Codex installs `source: local`, unlike Claude Code's git URL).
 
 ## No Build System
 
@@ -65,7 +113,7 @@ Skills have no runtime code — `SKILL.md` files contain the full execution plan
 `/usage-view` launches a background Agent (SubTask) so the user can keep working. The agent runs `analyze-usage.js` → `build-report.js` → opens browser. Agent prompt is in `skills/usage-view/agent-prompt-template.txt`.
 
 ### /cc-continue restores sessions at zero LLM cost
-Reads preprocessed `compact.txt` directly — no summarization, no token expenditure. Topic matching (`/cc-continue : topic`) loads only relevant sessions to save context size.
+Reads preprocessed `compact.txt` directly — no summarization, no token expenditure. Topic matching (`/cc-continue : topic`) loads only relevant sessions to save context size. `--current-source` names the host tool so `isCurrent` marks the running session rather than whichever transcript is newest.
 
 ## Key Constants
 
@@ -83,8 +131,12 @@ skills/usage-view/SKILL.md
     → calls scripts/build-report.js  (timeline CSVs → HTML via template.html)
 
 skills/cc-continue/SKILL.md
-  → calls scripts/list-sessions.js   (enumerate sessions)
+  → calls scripts/list-sessions.js   (enumerate sessions, both sources)
+    → calls scripts/lib/codex-transcript.js (Codex rollout → CC-shaped JSONL)
   → calls scripts/preprocess.js      (JSONL → compact.txt)
+
+scripts/test_product_parity.py
+  → gates the three manifests + Codex READMEs + the dual-host skill rules
 
 hooks/cache-expiry-check.sh
   → reads CC transcript JSONL directly (last assistant timestamp)

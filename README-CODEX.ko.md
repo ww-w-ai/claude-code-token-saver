@@ -1,0 +1,64 @@
+# Codex용 claude-code-token-saver
+
+[English](./README-CODEX.md) · [한국어](./README-CODEX.ko.md) · [日本語](./README-CODEX.ja.md) · [简体中文](./README-CODEX.zh-Hans.md)
+
+> 지난 세션이 스프린트 도중 예산이 바닥났다. 그 세션이 배운 모든 것은 여전히 디스크에 남아 있다 — 어떤 도구도 대신 읽어주지 않는 파일 안에.
+
+Codex 는 모든 세션을 `~/.codex/sessions/` 에 기록한다. Claude Code 는 `~/.claude/projects/` 에 기록한다. 어느 쪽도 상대방의 기록을 읽지 않는다. 되돌아가는 보통의 방법 — 모델에게 무슨 일이 있었는지 요약해 달라고 하는 것 — 은 지시 한 줄 입력하기도 전에 컨텍스트 윈도우 전체를 써버린다.
+
+**이 플러그인은 그 대신 전사(transcript)를 직접 읽는다.** `/cc-continue` 는 두 도구 중 어느 쪽 세션이든 JSONL 을 직접 파싱해 복원한다 — 요약 호출도, 토큰 소모도 없다. 복원된 모든 턴에는 원본 rollout 의 정확한 줄을 가리키는 `L{n}` 마커가 붙어, 잘린 내용의 전체 텍스트를 그 자리에서 꺼내올 수 있다.
+
+## 제공 스킬
+
+| 스킬 | 이럴 때 쓴다 |
+|---|---|
+| `cc-continue` | 이전 Claude Code **또는** Codex 세션을 복원한다 — 목록에서 고르거나, 바로 마지막 세션으로 간다. |
+| `cc-compact` | 클리어하기 전에 인계 기록을 남긴다 — 전사에는 남지 않는 것들: 서브에이전트가 찾아낸 것, 도구 출력의 수치, 폐기한 접근법. |
+
+인계 기록은 도구별이 아니라 프로젝트별로 저장된다. Codex 에서 스프린트를 마치고 Claude Code 에서 이어받아도, 그 파일은 이미 거기 있다.
+
+## Codex 에 적합한 이유
+
+- **Codex 압축은 무시하지 않고 이해한다.** auto-compact 가 걸린 rollout 은 압축 이전 내용 — 모델의 머릿속에 더 이상 없는 부분 — 에서 복원되고, 이미 아는 내용을 다시 읽지 않는다.
+- **서브에이전트 rollout 은 걸러진다.** Codex에서는 생성된 서브에이전트가 부모의 `session_id` 를 그대로 물려받아, 파일 세 개가 같은 id 를 주장할 수 있다. 세션은 `payload.id` 로 식별되며, 목록에는 실제로 직접 입력한 세션만 뜬다.
+- **목표 제어 프롬프트가 사용자 지시로 둔갑하지 않는다.** `<codex_internal_context source="goal">` 은 기계가 주입한 것이다. 복원된 컨텍스트에는 남지만, 사용자가 작성한 턴으로는 세지 않는다.
+- **파서 하나로 두 도구를 모두 처리한다.** Codex rollout 은 Claude Code 가 쓰는 형태로 다시 써지고, 입력 한 줄이 출력 한 줄이 되므로 같은 코드 경로가 양쪽을 서비스하면서도 줄 번호는 여전히 원본 파일을 정확히 가리킨다.
+- **설치 단계가 없다.** Node 만 있으면 된다 — npm 의존성도, 빌드도 없다.
+
+실측: 12MB, 1,540줄짜리 실제 Codex 세션의 전처리에 0.13초가 걸린다.
+
+## 설치
+
+```
+codex plugin marketplace add ww-w-ai/marketplace
+codex plugin add claude-code-token-saver@ww-w-ai
+```
+
+확인 및 업그레이드:
+
+```
+codex plugin list
+codex plugin marketplace upgrade ww-w-ai
+```
+
+## 사용
+
+```
+/cc-continue           이 프로젝트의 두 도구 세션을 모두 나열하고, 복원할 것을 고른다
+/cc-continue last      가장 최근 세션을 복원한다
+/cc-continue codex     목록을 Codex 세션으로 제한한다
+/cc-continue codex : rust migration      주제와 일치하는 턴을 전체 복원한다
+/cc-compact            다음 사람을 위한 인계 기록을 남긴다
+```
+
+`~/.codex` 가 아닌 다른 곳에 Codex 상태를 두었다면 `CODEX_HOME` 이 반영된다.
+
+스킬 이름은 두 호스트에서 동일하므로, 한쪽에서 익힌 명령이 다른 쪽에서도 그대로 통한다.
+
+## 이 플러그인이 하지 않는 것
+
+`usage-view` 와 `report-limit` 은 아직 Claude Code 전용이다. Codex 도 롤아웃에 턴별 토큰 수와 요율 한도를 그대로 남기므로, 못 하는 것이 아니라 아직 포팅하지 않은 것이다. `setup-statusline` 은 사정이 다르다. Codex 에는 이미 자체 상태줄이 있고 `config.toml` 의 `status_line` 으로 설정한다.
+
+## 라이선스
+
+Apache-2.0. [LICENSE](./LICENSE)를 참고.
