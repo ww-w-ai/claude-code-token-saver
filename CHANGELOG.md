@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2026-08-28
+
+### Added: auto-compact now restores itself, on both hosts
+
+`SessionStart` fires with `source: "compact"` after an auto-compact, on Claude Code and on Codex
+alike — same event, same field name, same enum. The plugin now ships a hook on that matcher that
+tells the model to run `/s-continue` before it does anything else, naming the session id from the
+payload. Auto-compact keeps the id and keeps writing the same transcript, so the pre-compact turns
+are still on disk; only the model's view of them is gone.
+
+`PostCompact` cannot do this on either host — it is absent from the hook-specific-output union, and
+the Codex binary spells it out: `*: this event cannot emit additionalContext`.
+
+### Added: `/s-continue --level 1|2|3`
+
+How deeply each selected session is read. Default 3, unchanged from before.
+
+| Level | User turns | Replies at each end | Replies in the middle | Measured |
+|---|---|---|---|---|
+| 1 | last 30, cut to 150 + 100 | first 6 + last 6, at 100 chars | 50 chars | 6.2 K tok |
+| 2 | last 30, as stored | first 12 + last 12, as stored | 50 chars | 9.4 K tok |
+| 3 | all | first 24 + last 24, as stored | 50 chars | 44.3 K tok |
+
+Measured on a 170-turn Claude Code session; a real Codex session came out 4.3 / 7.5 / 7.5 K.
+
+No turn and no reply is dropped at any level — the middle of a long turn is shortened, not removed,
+and the `-> N AI responses at lines X-Y` pointer above it still addresses the originals. The caps
+are per turn as well as per session: one user turn is otherwise unbounded, and an autonomous run
+puts hundreds of replies under a single message. Without a per-turn cap, level 1 measured *larger*
+than level 2.
+
+After an auto-compact the hook asks for level 1 — a summary is already in context, so what is
+missing is the thread, not the bulk.
+
 ## [3.0.1] - 2026-08-25
 
 ### Fixed: the 3.0.0 rename could strand the entire existing cache
