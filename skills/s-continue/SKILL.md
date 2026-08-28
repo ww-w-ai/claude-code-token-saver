@@ -28,16 +28,89 @@ Options:
                   - Current session if it had /compact or auto-compact
                   - Otherwise, most recent other session
   claude|codex  Restrict the list to one tool
+  --level N     How much to restore (1-3). Default 3.
+                  1  headline  — user turns only, no assistant text
+                  2  recent    — full detail, last 15 turns
+                  3  full      — everything (+ topic restoration)
   help          Show this help
 
 Examples:
   /s-continue
-  /s-continue last
+  /s-continue last --level 1
   /s-continue codex
   /s-continue codex : rust migration
 ```
 
 Do not run any analysis or restoration. Just display the help text and stop.
+
+## Restore Levels
+
+Restoring costs context. How much you need depends on how much you still have.
+
+| Level | Name | User turns | Replies at each end | Replies in the middle | Measured | Use when |
+|---|---|---|---|---|---|---|
+| **1** | headline | last 30, cut to 150 + 100 | first 6 + last 6, at 100 chars | 50 chars | **6.2 K tok** | **After auto-compact.** A summary is already in context; you need the thread of what was asked and roughly what you answered. |
+| **2** | recent | last 30, as stored | first 12 + last 12, as stored | 50 chars | **9.3 K tok** | Resuming mid-task and the recent replies matter in more detail. |
+| **3** | full | all of them | first 24 + last 24, as stored | 50 chars | **44.3 K tok** | After `/clear`, restoring a DIFFERENT session, or when early-session decisions matter. |
+
+**No reply is ever dropped.** Every one of them appears at every level — the middle of a long turn
+is shortened to 50 chars, not removed. That is enough to read the run as a history and decide
+whether to go get the rest.
+
+Measured on one 170-turn session. **Levels change how much of each turn you read and how far back
+you go — they do NOT get you closer to the original text.**
+
+## What is already gone before you pick a level
+
+`compact.txt` is a preview, not a transcript. The preprocessor truncated it when it was built:
+
+| | Threshold | Kept |
+|---|---|---|
+| User message | 500 chars | first **300** + `..[N lines omitted]..` + last **200** |
+| Assistant reply | 200 chars | first **100** + `[...truncated...]` + last **100** |
+
+So no level returns a full assistant answer. **The only path back to real original text is
+`--level 3` WITH a topic** (Step 5), which re-reads the matched turns from the JSONL at up to
+3,000 chars each — and only for the top 20 turns that match the topic.
+
+## Autonomous runs invert the levels
+
+Everything above is anchored on USER turns. During an autonomous run (cowork-sprint, pdca-wf, a
+Workflow) the user says almost nothing while the assistant answers many times per turn — measured
+on one session: median 1 reply per user turn, but 23 / 20 / 15 in the autonomous stretch.
+
+This is why **every** level caps replies per turn, level 3 included. Without it one user turn is
+unbounded — 60 replies under a single message measured 27 KB on its own, and level 1 could come out
+larger than level 3. With the cap that same turn is 4.0 / 12.9 / 22.3 KB.
+
+The `# compact-format:` preamble and the trailing `# Session references:` footer survive every
+level. On a Codex session that footer names the original rollout — it is the only line saying which
+file an `L{n}` marker addresses, so dropping it breaks recovery. Measured end to end on a real
+Codex session: 4.3 / 7.5 / 7.5 K tokens, footer intact at all three.
+
+The middle is shortened, never discarded, so nothing goes silently missing. To pull a shortened
+reply back in full: the `-> N AI responses at lines X-Y` line directly above the turn gives the
+JSONL range, and the reply's own number is its position within it — read that range from the
+original transcript and count to it.
+
+- **Level 1 holds up.** Bounded on both axes — 30 turns, and a per-turn cap regardless of reply count.
+  Sparse user turns are an advantage: 30 of them can span the whole run.
+- **Level 2 partly collapses into level 3.** If the session has fewer than 30 user turns its slice
+  starts at block 0, so it reads every turn — only the reply-width caps still separate them.
+
+**After an autonomous run, level 1 is the level that actually saves anything.**
+
+**Default is 3** when no `--level` is given — the caller asked to restore, so restore everything.
+
+**Every bound on level 1 is load-bearing.** Turn count, user head/tail, and the assistant cap. Drop
+any one and a session with long pasted turns makes level 1 bigger than level 2 — measured, 31 KB vs
+14 KB before the caps went in.
+
+**Level 1 is not a lossy restore.** Every line keeps its `L{n}` marker, so a truncated turn is read
+back in full from the original transcript on demand. Nothing is discarded — it is left on disk with
+a pointer to it. Start low and go deeper only if something is actually missing.
+
+Levels never change which SESSIONS are selected — only how deeply each one is read.
 
 ## Language
 
@@ -45,7 +118,8 @@ Detect the user's language from their message accompanying the /s-continue invoc
 
 ## Quick Restore: `/s-continue last`
 
-If the user invoked `/s-continue last`, skip the session list entirely. Run list-sessions with `--limit 3` (same flags as Step 1). Then pick automatically based on the `isCurrent` and `hasContextLoss` fields:
+If the user invoked `/s-continue last`, skip the session list entirely. A `--level N` given
+alongside `last` still applies — it is read in Step 2 and used in Step 4. Run list-sessions with `--limit 3` (same flags as Step 1). Then pick automatically based on the `isCurrent` and `hasContextLoss` fields:
 
 - **If the current session has context-loss** (`isCurrent: true` AND `hasContextLoss: true`) → auto-pick the CURRENT session. Its pre-context-loss content is what needs restoration.
 - **Otherwise** → auto-pick the most recent session where `isCurrent: false` (the previous session).
@@ -126,11 +200,14 @@ Wait for user selection before proceeding. This avoids preprocessing sessions th
 
 ## Step 2: Parse Input
 
-First, if the ARGUMENT to `/s-continue` is `claude` or `codex` (alone or before a `:` topic), that
+First, strip any `--level N` (or `-lN`) token from anywhere in the argument and record it. If none
+is present, level = 3. It is orthogonal to everything else below.
+
+Next, if the remaining ARGUMENT is `claude` or `codex` (alone or before a `:` topic), that
 is a source filter, not a selection — re-run Step 1 with `--source claude` or `--source codex` and
 show the narrowed list.
 
-Then split user input on the first `:`:
+Then split the rest on the first `:`:
 
 - Left side → numbers part. Parse using existing Case A/B/C/D logic (additive with #0, ranges, comma lists).
 - Right side (optional) → topic string (trim whitespace). May be absent.
@@ -140,6 +217,8 @@ Examples:
 - `1-4 : PDCA implementation` → sessions [1, 2, 3, 4], topic = "PDCA implementation"
 - `: error handling` → only #0 (default), topic = "error handling"
 - `` (empty) → default selection, no topic
+- `last --level 1` → quick restore, headline only
+- `1,3 --level 2 : auth bug` → sessions [1, 3], level 2, topic = "auth bug"
 
 ## Step 3: Ensure Cache & Preprocess
 
@@ -178,11 +257,106 @@ Preprocessing is instant (< 1 second even for 60MB+ transcripts).
 
 ## Step 4: Load Compact
 
-No size threshold. Always load all selected compact.txt files.
+What you read depends on the level from Step 2 (default 3). Slice mechanically first — no LLM cost —
+then read only the slice.
 
-- **No topic** → Read all compact.txt files directly using the Read tool. Content is loaded into conversation context as-is. For files exceeding ~10K tokens, read in chunks using offset/limit parameters. Always read the ENTIRE file — never skip sections. Proceed to Step 6.
+Compact text is a sequence of blocks, each starting with a `[Session:...]` header line. Cut on that
+boundary, never on raw line counts, or a turn gets split in half.
 
-- **Topic provided** → Do NOT Read compact.txt yet. Proceed to Step 5 (topic-based restoration).
+```bash
+# IN  = the file from Step 3 (the pre-boundary slice for a compacted current session,
+#       or the whole compact.txt for a past session)
+# OUT = what you actually read
+python3 - "$LEVEL" "$IN" "$OUT" <<'PYEOF'
+import re, sys
+level, src, dst = int(sys.argv[1]), sys.argv[2], sys.argv[3]
+text = open(src).read()
+
+# Replies kept at FULL width at each end of one user turn. Everything between them is kept
+# too, at 50 chars — enough to read the run as a history without carrying its bulk. A turn is
+# unbounded on this axis: the preprocessor caps each reply's LENGTH but never their COUNT, and
+# an autonomous run puts hundreds under a single user message.
+EDGE = {1: 6, 2: 12}.get(level, 24)
+MID = 50
+
+blocks, cur = [], []
+for line in text.splitlines(keepends=True):
+    if line.startswith("[Session:") and cur:
+        blocks.append("".join(cur)); cur = []
+    cur.append(line)
+if cur:
+    blocks.append("".join(cur))
+
+def is_user(b):
+    return bool(b) and 'User: "' in b.splitlines()[0]
+
+def cut(s, head, tail):
+    s = s.strip()
+    return s if len(s) <= head + tail else s[:head].rstrip() + " … " + s[-tail:].lstrip()
+
+def body_of(ln):
+    m = re.match(r'^(\d+)\. "(.*)$', ln)
+    rest = m.group(2).split("[...truncated...]")[0]
+    rest = re.sub(r'(\s*\[[^\]]*\])+\s*$', "", rest).rstrip().rstrip('"')
+    return m.group(1), rest.strip()
+
+# Anything before the first turn (the "# compact-format:" line) is not a block. Keep it.
+preamble = "" if not blocks or is_user(blocks[0]) else blocks.pop(0)
+
+ui = [i for i, b in enumerate(blocks) if is_user(b)]
+if level == 3:
+    keep = blocks
+elif level == 1:
+    keep = [b for b in blocks if is_user(b)][-30:]
+else:
+    keep = blocks[ui[-30]:] if len(ui) > 30 else blocks
+
+chunks = []
+for b in keep:
+    lines = b.splitlines()
+    if level == 1:
+        pre, _, msg = lines[0].partition('User: "')
+        chunks.append(f'{pre}User: "{cut(msg.rstrip(chr(34)), 150, 100)}"')
+    else:
+        chunks.append(lines[0])
+    replies, ptr, others = [], None, []
+    for ln in lines[1:]:
+        if re.match(r'^\d+\. "', ln):
+            replies.append(ln)
+        elif ln.startswith("->"):
+            ptr = ln
+        elif ln.strip():
+            # The trailing "# Session references:" footer lives here. On a Codex session it names
+            # the original rollout — the only line that says which file L{n} addresses. Never drop it.
+            others.append(ln)
+    if ptr:
+        chunks.append(ptr)
+    for i, ln in enumerate(replies):
+        edge = i < EDGE or i >= len(replies) - EDGE
+        if edge and level > 1:
+            chunks.append(ln)                       # as compact.txt has it
+        else:
+            num, body = body_of(ln)
+            chunks.append(f'{num}. "{body[:100 if edge else MID]}"')
+    chunks += others
+
+out = (preamble.rstrip("\n") + "\n" if preamble.strip() else "") + "\n".join(chunks) + "\n"
+open(dst, "w").write(out)
+print(f"level {level}: {len(text)} -> {len(out)} bytes")
+PYEOF
+```
+
+Then:
+Then:
+
+- **Level 1 or 2** → Read the sliced file with the Read tool (chunk with offset/limit if needed).
+  Read it in full — the slice already did the trimming. Skip Step 5 entirely: topic restoration
+  reopens original JSONL turns, which contradicts a deliberately shallow restore. If the user passed
+  BOTH a topic and level 1 or 2, honour the topic and treat the level as 3 — an explicit topic means
+  they want depth on that subject.
+- **Level 3, no topic** → Read the whole file. For files over ~10K tokens read in chunks using
+  offset/limit. Always read the ENTIRE file — never skip sections. Proceed to Step 6.
+- **Level 3, topic provided** → Do NOT Read compact.txt yet. Proceed to Step 5.
 
 ## Step 5: Topic-Based Original Restoration
 
@@ -382,6 +556,7 @@ You MUST review the last 5 messages from the restored context and provide a "Las
 ---
 [Context restored by /s-continue]
 - {N} session(s) loaded ({date range}) — {n} Claude Code, {m} Codex
+- Level {1|2|3} ({headline|recent|full}) — {what that meant here, e.g. "user turns only, 38 of them"}. Say this even at level 3, so the reader knows depth was a choice.
 - [Session:{sid} {ISO} L{n}] headers link to the original transcript — Claude Code at ~/.claude/projects/{PROJECT_HASH}/{SESSION_ID}.jsonl, Codex at the `originalPath` from list-sessions. Use L{n} to read the exact line; the numbering is the original's in both cases.
 - Preprocessed caches: ~/.claude/super-token-saver-data/{PROJECT_HASH}/{SESSION_ID}/compact.txt
 - 💡 Next session: run `/clear` first, then `/s-continue` to restore context cheaply

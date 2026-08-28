@@ -48,8 +48,26 @@ codex plugin marketplace upgrade ww-w-ai
 /s-continue last      restore the most recent one
 /s-continue codex     restrict the list to Codex sessions
 /s-continue codex : rust migration      restore the turns that match a topic, in full
+/s-continue last --level 1              restore shallowly — the thread, not the bulk
 /s-compact            write the handoff for whoever comes next
 ```
+
+## How much to restore
+
+`--level 1|2|3` (default 3) sets how deeply each selected session is read.
+
+| Level | Turns | Replies at each end | Replies in the middle | Measured on a 170-turn session |
+|---|---|---|---|---|
+| 1 | last 30, cut to 150 + 100 chars | first 6 + last 6, at 100 chars | 50 chars | 6.1 K tokens |
+| 2 | last 30, as stored | first 12 + last 12, as stored | 50 chars | 9.3 K tokens |
+| 3 | all | first 24 + last 24, as stored | 50 chars | 44.3 K tokens |
+
+No turn and no reply is ever dropped — the middle of a long turn is shortened, not removed. Each
+turn keeps the `L{n}` marker and the reply-line range that address the original rollout, so anything
+shortened is read back in full when it turns out to matter.
+
+Level 1 is the one that holds up after an autonomous run, where one user turn can carry hundreds of
+replies.
 
 `CODEX_HOME` is honoured if you keep Codex state somewhere other than `~/.codex`.
 
