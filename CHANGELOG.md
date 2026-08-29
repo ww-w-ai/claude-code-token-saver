@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.1] - 2026-08-30
+
+### Fixed: Codex loads the hook configuration file instead of its directory
+
+The Codex plugin manifest now points `hooks` at `hooks/hooks.json`. Codex 0.151.0 reads this field
+as a file path; the previous `hooks/` directory path failed at startup with OS error 21 (`Is a
+directory`) and skipped this plugin's hooks.
+
 ## [3.1.0] - 2026-08-28
 
 ### Added: auto-compact now restores itself, on both hosts
