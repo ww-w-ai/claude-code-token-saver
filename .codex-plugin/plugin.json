@@ -1,6 +1,6 @@
 {
   "name": "super-token-saver",
-  "version": "3.1.1",
+  "version": "3.1.3",
   "description": "Cut agent-session cost on Claude Code and Codex: cache-expiry prevention, zero-LLM context restore across both tools, cross-tool session handoff, and a real cost dashboard.",
   "author": {
     "name": "taekim34"
@@ -15,11 +15,11 @@
     "prompt-cache"
   ],
   "skills": "./skills/",
-  "hooks": "./hooks/hooks.json",
+  "hooks": "./hooks/hooks-codex.json",
   "interface": {
     "displayName": "Token Saver",
     "shortDescription": "Restore context and cut session cost.",
-    "longDescription": "Restore prior Claude Code or Codex sessions by reading their transcripts directly — no summarization call — write a cross-tool handoff before clearing, and see where the money actually went.",
+    "longDescription": "Restore prior Claude Code or Codex sessions by reading their transcripts directly \u2014 no summarization call \u2014 write a cross-tool handoff before clearing, and see where the money actually went.",
     "developerName": "taekim34",
     "category": "Productivity",
     "capabilities": [

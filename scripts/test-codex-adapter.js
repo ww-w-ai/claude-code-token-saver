@@ -127,6 +127,23 @@ check("listing sees the Codex compaction", () => sessions[0].hasContextLoss, tru
 check("listing counts only typed turns", () => sessions[0].userMsgCount, 2);
 check("listing points at the rollout", () => sessions[0].originalPath, mainPath);
 
+// A fresh Codex session may need a new normalized copy. If the host sandbox
+// blocks that write, listing must fail instead of silently omitting the newest
+// session and returning an older one as `last`.
+const blockedHome = path.join(tmp, "home-is-a-file");
+fs.writeFileSync(blockedHome, "not a directory");
+let blockedListing = null;
+try {
+  execFileSync(
+    "node",
+    [path.join(__dirname, "list-sessions.js"), "--source", "codex", "--cwd", workCwd, "--limit", "10"],
+    { encoding: "utf8", env: { ...process.env, CODEX_HOME: codexHome, HOME: blockedHome }, stdio: "pipe" },
+  );
+} catch (err) {
+  blockedListing = String(err.stderr || err.message);
+}
+check("listing fails closed when normalization cache is unwritable", () => blockedListing.includes("failed to normalize Codex session"), true);
+
 if (sessions[0]) execFileSync("node", [path.join(__dirname, "preprocess.js"), sessions[0].path, "--original", mainPath], { encoding: "utf8" });
 const cachePath = path.join(os.homedir(), ".claude", "super-token-saver-data", workCwd.replace(/[^a-zA-Z0-9]/g, "-"), mainMeta.id, "compact.txt");
 const compact = fs.existsSync(cachePath) ? fs.readFileSync(cachePath, "utf8") : "";

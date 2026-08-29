@@ -305,8 +305,9 @@ async function main() {
       let normalized;
       try {
         normalized = codex.normalizeCodexTranscript(session.path, session);
-      } catch {
-        continue;
+      } catch (err) {
+        const reason = err && err.message ? err.message : String(err);
+        throw new Error(`failed to normalize Codex session ${session.sessionId}: ${reason}`);
       }
       entries.push({
         name: `${session.sessionId}.jsonl`,
