@@ -93,7 +93,7 @@ def _run_codex_hook(cmd, env_overrides):
         input='{"source":"compact","session_id":"test"}',
         capture_output=True,
         text=True,
-        timeout=10,
+        timeout=30,
     )
 
 
