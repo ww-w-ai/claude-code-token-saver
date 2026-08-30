@@ -16,17 +16,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/statusline-version-check.sh",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/statusline-version-check.sh 2>/dev/null || true",
             "timeout": 3
           },
           {
             "type": "command",
-            "command": "sed \"s|__PLUGIN_ROOT__|${CLAUDE_PLUGIN_ROOT}|g\" ${CLAUDE_PLUGIN_ROOT}/hooks/session-architecture.md",
+            "command": "sed \"s|__PLUGIN_ROOT__|${CLAUDE_PLUGIN_ROOT}|g\" ${CLAUDE_PLUGIN_ROOT}/hooks/session-architecture.md 2>/dev/null || true",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/git-context-lite.sh",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/git-context-lite.sh 2>/dev/null || true",
             "timeout": 3
           }
         ]
@@ -36,7 +36,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/s-continue-after-compact.sh",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/s-continue-after-compact.sh 2>/dev/null || true",
             "timeout": 10
           }
         ]
