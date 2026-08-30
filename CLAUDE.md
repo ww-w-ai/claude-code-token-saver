@@ -9,7 +9,7 @@ Claude Code plugin (super-token-saver) that automates token/cache management, co
 ## Architecture
 
 ```
-hooks/          → Lifecycle hooks (Bash). Run on UserPromptSubmit & SessionStart.
+hooks/          → Host-specific lifecycle registries plus their Bash commands and injected guidance.
 skills/         → 5 SKILL.md-based skills invoked via /s-continue, /s-compact, /usage-view, /setup-statusline, /report-limit
 scripts/        → Node.js processing pipeline (no npm, no build step)
                   + shrink-img.js — image downscaler for cheaper file attachments
@@ -53,6 +53,11 @@ Three manifests, **one version between them**:
 | `.claude-plugin/plugin.json` | Claude Code |
 | `.codex-plugin/plugin.json` | Codex |
 | `manifest.json` | Codex marketplace listing |
+
+The hook registries are host-specific. Claude Code auto-discovers `hooks/hooks.json`, which keeps
+the prompt-cache, statusline, git-context, architecture, and compact-restoration hooks. Codex's
+manifest points to `hooks/hooks-codex.json`, which injects `session-architecture-codex.md` and keeps
+compact restoration without loading the three Claude Code-only hook contracts.
 
 - **Only `s-continue` and `s-compact` are dual-host.** `usage-view`, `report-limit` and
   `setup-statusline` read Claude Code's own billing/rate-limit records and stay single-host.

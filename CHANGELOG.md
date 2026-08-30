@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.5] - 2026-08-30
+
+### Fixed: the source release now contains its declared Codex hook registry
+
+The Codex manifest had pointed to `hooks/hooks-codex.json`, while the host-specific registry and
+its architecture prompt existed only in the marketplace's vendored snapshot. Both files and their
+parity gates now live in the source of truth. Codex SessionStart commands also use the same
+fail-open boundary as Claude Code, including after compaction.
+
 ## [3.1.4] - 2026-08-30
 
 ### Fixed: compact recovery hooks no longer surface missing-runtime warnings

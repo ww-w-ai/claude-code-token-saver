@@ -23,6 +23,7 @@ The handoff is stored per project, not per tool. End a sprint in Codex, pick it 
 - **Subagent rollouts are filtered out.** In Codex a spawned subagent inherits its parent's `session_id`, so three files can claim one id. Sessions are keyed on `payload.id` and only the ones you actually typed in appear in the list.
 - **Goal-control prompts do not masquerade as your instructions.** `<codex_internal_context source="goal">` is machine-injected; it is kept in the restored context but never counted as a turn you wrote.
 - **One parser, both tools.** A Codex rollout is rewritten into the shape Claude Code writes, one output line per input line, so the same code path serves both and line numbers still point at your original file.
+- **Host-specific hooks.** Codex receives Codex-native session guidance and compact restoration without running Claude Code's prompt-cache, statusline, or git-context hooks.
 - **No install step.** Node only — no npm dependencies, no build.
 
 Measured on a real rollout: a 12 MB, 1,540-line Codex session preprocesses in 0.13 s.
