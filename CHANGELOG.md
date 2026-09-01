@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0] - 2026-09-01
+
+### Added: `/usage-view` reads Codex sessions, priced in purchased credits
+
+A Codex subscription bills in credits bought up front, not per token, so a dollar figure computed
+from Anthropic rates would be a fabrication. The dashboard now reports what a Codex session used as
+a **credit equivalent**: model-weighted fresh/cached/output rates per million tokens from a pinned
+rate card, divided by 25 credits per dollar. Cache creation is excluded — it is known to carry no
+charge on a subscription, so it is not counted as an unpriced gap.
+
+Coverage is stated rather than assumed. A model whose exact id is not on the rate card makes the
+figure a lower bound and is named; zero coverage reports N/A instead of a number. The rate card
+carries its own provenance (retrieved 2026-08-31, promotional pricing through 2026-11-21) and a
+malformed one fails closed rather than pricing anything at zero.
+
+Discovery, normalization and rendering are the paths Claude Code already uses — the same
+`codex-transcript.js`, the same `build-report.js`, the same template. Only cost math, the
+rate-limit window length and plan resolution branch by host, so there is no second dashboard to
+keep in step. Claude Code output is unchanged.
+
+This work was written and reviewed against the marketplace's vendored copy and had never reached
+this repository; it is committed here in the state its gates left it.
+
 ## [3.2.0] - 2026-09-01
 
 ### Changed: after a compaction the restore runs itself, instead of being requested

@@ -56,7 +56,7 @@ const args = process.argv.slice(2);
 let mode = null;
 let days = null, current = false, locale = null, plan = null;
 let reportDataPath = null, aiDataPath = null, outputPath = null;
-let projectArg = null, allProjects = false, noAi = false, forceAi = false, privateMode = false;
+let projectArg = null, allProjects = false, noAi = false, forceAi = false, privateMode = false, host = 'claude';
 
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--prepare') mode = 'prepare';
@@ -74,11 +74,11 @@ for (let i = 0; i < args.length; i++) {
   else if (args[i] === '--no-ai') noAi = true;
   else if (args[i] === '--ai') forceAi = true;
   else if (args[i] === '--private') privateMode = true;
+  else if (args[i] === '--host' && args[i + 1]) host = args[++i];
 }
 
 // --current defaults to --no-ai for fast rendering. Opt in with --ai.
 if (current && !forceAi) noAi = true;
-
 // Resolve project: --project > default (all projects)
 const resolvedProject = projectArg || null;
 
@@ -96,14 +96,19 @@ if (mode === 'gen-agent-prompt') {
     const analyzeArgs = [path.join(SCRIPTS_DIR, 'analyze-usage.js')];
     if (days) analyzeArgs.push('--days', days);
     if (resolvedProject) analyzeArgs.push('--project', resolvedProject);
+    if (host === 'codex') analyzeArgs.push('--host', 'codex');
     const analyzeOutput = execFileSync('node', analyzeArgs, {
       stdio: ['pipe', 'pipe', 'inherit'],
       maxBuffer: 100 * 1024 * 1024,
     });
     fs.writeFileSync(resultsFile, analyzeOutput);
 
-    const reportDataFile = path.join(tmpDir, `cc-report-data-${pid}.json`);
     const outputFile = path.join(tmpDir, `cc-usage-report-${Math.floor(Date.now() / 1000)}.html`);
+
+    // Same build-report.js invocation for both hosts — --host is the only
+    // extra flag Codex needs; --export-data / --output / template.html /
+    // i18n resolution are the standard path, not a second builder.
+    const reportDataFile = path.join(tmpDir, `cc-report-data-${pid}.json`);
     const buildArgs = [
       path.join(SCRIPTS_DIR, 'build-report.js'),
       '--data', resultsFile,
@@ -115,6 +120,7 @@ if (mode === 'gen-agent-prompt') {
     if (plan) buildArgs.push('--plan', plan);
     if (resolvedProject) buildArgs.push('--project', resolvedProject);
     if (privateMode) buildArgs.push('--private');
+    if (host === 'codex') buildArgs.push('--host', 'codex');
     execFileSync('node', buildArgs, {
       stdio: ['pipe', 'pipe', 'pipe'],
       maxBuffer: 100 * 1024 * 1024,
@@ -123,14 +129,16 @@ if (mode === 'gen-agent-prompt') {
     // 2. Open browser
     try { execFileSync('open', [outputFile]); } catch (_) {}
 
-    // 3. Output summary (same as finalize)
+    // 3. Output summary (same as finalize) — build-report.js's assembled
+    // `summary` (dateFrom/dateTo/sessionCount/subtaskCount) has the same
+    // shape for both hosts; only the cost figure differs (hasCostData).
     const data = JSON.parse(fs.readFileSync(reportDataFile, 'utf8'));
     const s = data.summary;
     console.log(JSON.stringify({
       outputFile,
-      sessions: `${s.sessionCount} main + ${s.subtaskCount || 0} subtasks`,
+      sessions: `${s.sessionCount} total (${Math.max(0, s.sessionCount - (s.subtaskCount || 0))} main + ${s.subtaskCount || 0} subtasks)`,
       dateRange: `${s.dateFrom} ~ ${s.dateTo}`,
-      totalCost: `$${s.totalCost}`,
+      totalCost: s.hasCostData === false ? 'N/A (Codex does not publish per-token pricing)' : `$${s.totalCost}`,
     }));
     process.exit(0);
   }
@@ -147,6 +155,7 @@ if (mode === 'gen-agent-prompt') {
   if (resolvedProject) flags.push('--project', resolvedProject);
   else if (allProjects) flags.push('--all');
   if (privateMode) flags.push('--private');
+  if (host === 'codex') flags.push('--host', 'codex');
 
   // Resolve locale
   const resolvedLocale = resolveLocale(locale);
@@ -155,6 +164,17 @@ if (mode === 'gen-agent-prompt') {
   template = template.replace(/\{\{FLAGS\}\}/g, flags.join(' '));
   template = template.replace(/\{\{LOCALE\}\}/g, resolvedLocale);
   template = template.replace(/\{\{TMPDIR\}\}/g, tmpDir);
+  template = template.replace(/\{\{HOST_INSTRUCTIONS\}\}/g, host === 'codex' ? `## Codex host rules (override Claude-specific guidance below)
+- Keep the same section lengths, paragraph rhythm, warm advisor tone, exact-number rule, and cross-section deduplication as the Claude report.
+- Analyze token usage, purchased-credit equivalents, subscription allowance, context size, blocked moments, sessions, and subtasks. Do not invent dollar cost or a hidden subscription-credit allocation.
+- Cache creation for included Codex subscription usage is Not charged. API-key usage may be billed under its applicable API pricing. Do not apply Claude cache-write pricing.
+- Cached input still consumes the subscription allowance. Explain it as reused context, not as a dollar bill.
+- The context chart has API Calls and User Conversations only. Do not mention CW/Non-CW modes.
+- Use the actual Codex model IDs and actual rate-limit lanes in the prompt data. Do not substitute Claude models or a fixed 5-hour window.
+- section1: 8-9 sentences on summary, token composition, allowance, and subscription/API distinction.
+- section2: 14-16 sentences on hourly/day patterns, context-size distribution, model/call patterns, and practical workflow interpretation.
+- section3: 10 sentences on total sessions including subtasks, observed calendar buckets, blocked moments, reset timing, and actionable navigation.
+` : '');
 
   const promptFile = path.join(tmpDir, `cc-agent-prompt-${pid}.txt`);
   fs.writeFileSync(promptFile, template);
@@ -169,6 +189,7 @@ if (mode === 'prepare') {
   const analyzeArgs = [path.join(SCRIPTS_DIR, 'analyze-usage.js')];
   if (days) analyzeArgs.push('--days', days);
   if (resolvedProject) analyzeArgs.push('--project', resolvedProject);
+  if (host === 'codex') analyzeArgs.push('--host', 'codex');
 
   const analyzeOutput = execFileSync('node', analyzeArgs, {
     stdio: ['pipe', 'pipe', 'inherit'],
@@ -191,6 +212,7 @@ if (mode === 'prepare') {
   if (plan) buildArgs.push('--plan', plan);
   if (resolvedProject) buildArgs.push('--project', resolvedProject);
   if (privateMode) buildArgs.push('--private');
+  if (host === 'codex') buildArgs.push('--host', 'codex');
 
   execFileSync('node', buildArgs, {
     stdio: ['pipe', 'pipe', 'pipe'],
@@ -254,9 +276,11 @@ if (mode === 'finalize') {
 
   const result = {
     outputFile: outputPath,
-    sessions: `${summary.sessionCount || '?'} main + ${summary.subtaskCount || '?'} subtasks`,
+    sessions: `${summary.sessionCount || '?'} total (${Math.max(0, (summary.sessionCount || 0) - (summary.subtaskCount || 0))} main + ${summary.subtaskCount || 0} subtasks)`,
     dateRange: `${summary.dateFrom || '?'} ~ ${summary.dateTo || '?'}`,
-    totalCost: summary.totalCost ? `$${summary.totalCost.toLocaleString()}` : '?',
+    totalCost: summary.hasCostData === false
+      ? `${(summary.totalUsageTokens || 0).toLocaleString()} tokens (subscription cost not published)`
+      : (summary.totalCost ? `$${summary.totalCost.toLocaleString()}` : '?'),
   };
   console.log(JSON.stringify(result));
   process.exit(0);

@@ -207,7 +207,7 @@ kept in the restored context but never counted as a turn you typed.
 
 The plugin also installs into Codex — see **[README-CODEX.md](./README-CODEX.md)**
 ([한국어](./README-CODEX.ko.md) · [日本語](./README-CODEX.ja.md) · [简体中文](./README-CODEX.zh-Hans.md)).
-`usage-view`, `report-limit` and `setup-statusline` remain Claude Code only for now.
+`usage-view` reads Codex sessions too — it reports their cost as a purchased-credit equivalent. `report-limit` and `setup-statusline` remain Claude Code only.
 
 ---
 

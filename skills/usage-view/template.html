@@ -408,6 +408,11 @@
     color: var(--text-muted);
   }
 
+  /* Codex host: cost-denominated widgets have nothing honest to plot (no
+     per-token pricing) and are hidden here, not fed zeros — see
+     applyCodexHostAdaptations() below, which adds this class to <body>. */
+  body.cost-unknown .cost-only-control { display: none; }
+
   /* Window Detail Panel */
   .window-detail-panel {
     background: var(--bg-tertiary);
@@ -663,9 +668,9 @@
       <div class="sub" id="summaryDateSub"></div>
     </div>
     <div class="summary-card">
-      <div class="label">Total Cost</div>
+      <div class="label" id="summaryCostLabel">Total Cost</div>
       <div class="value cost" id="summaryTotalCost">$498.75</div>
-      <div class="sub">Period Total</div>
+      <div class="sub" id="summaryCostSub">Period Total</div>
     </div>
     <div class="summary-card">
       <div class="label">Sessions</div>
@@ -673,6 +678,7 @@
       <div class="sub" id="summarySessionSub"></div>
     </div>
   </div>
+  <div id="codexCreditEquivalentNote" style="display:none;margin:-12px 0 24px 0;font-size:11px;line-height:1.5;color:var(--text-muted)"></div>
 
   <!-- Section 2: Token Breakdown + Cost Composition -->
   <div class="breakdown-grid">
@@ -689,6 +695,7 @@
         <tbody id="tokenTableBody"></tbody>
         <tfoot id="tokenTableFoot"></tfoot>
       </table>
+      <div id="codexCacheWriteNote" style="display:none;margin-top:8px;font-size:11px;line-height:1.5;color:var(--text-muted)"></div>
     </div>
     <div class="breakdown-donut-wrap">
       <h3>Cost Breakdown</h3>
@@ -1079,6 +1086,126 @@ const REPORT_DATA = {
 };
 /*<!-- REPORT_DATA_END -->*/
 
+// ─── Codex host adaptations ────────────────────────────────────
+// The only structural differences from the Claude Code report: no per-token
+// pricing, and a rate-limit window that Codex reports itself instead of a
+// fixed 5 hours. Everything else below — charts, calendar, session detail,
+// i18n, privacy mode — is the same code running for both hosts. Runs before
+// applyI18N() so the I18N.calendar overrides below take effect on first render.
+(function applyCodexHostAdaptations() {
+  if (!REPORT_DATA || REPORT_DATA.host !== 'codex') return;
+  document.body.classList.add('cost-unknown');
+  if (I18N.header) I18N.header.title = 'Codex Usage Report';
+  if (I18N.ai) I18N.ai.analysis = I18N.meta && I18N.meta.locale === 'ko' ? '사용량 인사이트' : 'Usage Insight';
+  if (I18N.header) I18N.header.totalCost = I18N.meta && I18N.meta.locale === 'ko' ? '구매 크레딧 환산 비용' : 'Purchased-Credit-Equivalent Cost';
+  if (I18N.token) I18N.token.costRatio = 'Token Mix · snapshot';
+  if (I18N.token) {
+    I18N.token.costGuideTitle = 'Token mix: ';
+    I18N.token.costGuideText = I18N.meta && I18N.meta.locale === 'ko'
+      ? '새 입력, 출력, 캐시 읽기의 비중입니다. 구독 사용량의 캐시 생성은 별도 과금되지 않습니다.'
+      : 'Fresh input, output, and cache reads. Cache creation is not separately charged for subscription usage.';
+    I18N.token.costGuideLink = '';
+  }
+  if (I18N.chart) {
+    I18N.chart.dailyCost = 'Daily Token Trend';
+    I18N.chart.hourlyCost = 'Hourly Token Pattern';
+    I18N.chart.dowCost = 'Day-of-Week Token Pattern';
+    I18N.chart.ctxCostTitle = 'Token Usage by Context Size';
+    I18N.chart.ctxCostNonCW = I18N.meta && I18N.meta.locale === 'ko' ? 'API 호출' : 'API Calls';
+    I18N.chart.hourlyNoteActive = 'Average token usage for hours that had activity.';
+    I18N.chart.hourlyNoteAll = 'Calendar average includes hours with no activity.';
+    I18N.chart.hourlyNoteMax = 'Maximum token usage observed in each hour.';
+    I18N.chart.hourlyNotePartial = 'Boundary hours may contain only part of an hour.';
+    I18N.chart.dowNoteActive = 'Average token usage for active occurrences of each day.';
+    I18N.chart.dowNoteAll = 'Calendar average includes days with no activity.';
+    I18N.chart.dowNoteMax = 'Maximum token usage observed for each day of the week.';
+    I18N.chart.dowNotePartial = 'Partial first and last days are normalized by the report range.';
+    I18N.chart.effNote = 'Compares total and cached context tokens with output tokens.';
+    I18N.chart.ctxNote = 'Shows how often each recorded context-size range occurred.';
+    I18N.chart.effGuideLine1 = 'Lower tokens per output token means a more efficient session.';
+    I18N.chart.effGuideLine2 = 'Use focused context and avoid rereading material that the task does not need.';
+    I18N.chart.effGuideLine3 = 'Large cache reads still consume the account usage allowance.';
+    I18N.chart.ctxGuideLine1 = 'Context size and total token usage are shown directly.';
+    I18N.chart.ctxGuideLine2 = 'Model colors use the exact Codex model IDs recorded in each turn.';
+  }
+  if (I18N.session) {
+    I18N.session.windowDetailTitle = '{date} {start}~{end} Session Details';
+    I18N.session.continueCompactCost = '   Pricing estimate unavailable for Codex subscriptions.';
+    I18N.session.continueSaved = '';
+  }
+  if (I18N.alert) {
+    I18N.alert.ctxWarn = 'Context exceeded 35% — each turn carries a larger token context.';
+    I18N.alert.ctxDanger = 'Context exceeded 70% — consider starting a focused session.';
+    I18N.alert.compactManualReason = 'Manual compact regenerated the working context.';
+    I18N.alert.compactAutoReason = 'Automatic compact regenerated the working context.';
+    I18N.alert.clearReason = '{reason} started a new context.';
+    I18N.alert.reloadReason = 'Plugin reload changed the working context.';
+    I18N.alert.modelReason = 'Model change started a new model context.';
+    I18N.alert.cacheExpiredReason = 'The cached context expired and was regenerated.';
+    I18N.alert.costTopLabel = '{icon} {label}';
+    I18N.alert.costOutputReason = '{icon} Output used {tokens} tokens.';
+    I18N.alert.costInputReason = '{icon} Input used {tokens} tokens.';
+  }
+  var priceControls = document.getElementById('ctxCostModelSelect');
+  if (priceControls) priceControls.style.display = 'none';
+  var cwButton = document.getElementById('btnCtxCW');
+  if (cwButton) cwButton.remove();
+  var apiButton = document.getElementById('btnCtxNonCW');
+  if (apiButton) {
+    apiButton.textContent = I18N.meta && I18N.meta.locale === 'ko' ? 'API 호출' : 'API Calls';
+    if (apiButton.classList) apiButton.classList.add('active');
+    apiButton.style.borderLeft = '1px solid var(--border)';
+    apiButton.style.borderRadius = '4px 0 0 4px';
+    apiButton.style.background = 'var(--accent)';
+    apiButton.style.color = '#fff';
+  }
+  var cacheNote = document.getElementById('codexCacheWriteNote');
+  if (cacheNote) {
+    cacheNote.style.display = 'block';
+    cacheNote.textContent = I18N.meta && I18N.meta.locale === 'ko'
+      ? '주: Codex 구독 포함 사용량에서는 캐시 생성이 별도 과금되지 않습니다. API 키 사용은 해당 API 가격 정책에 따라 과금될 수 있습니다.'
+      : 'Note: Cache creation is not separately charged for included Codex subscription usage. API-key usage may be billed under the applicable API pricing.';
+  }
+  var chartTitles = {
+    barChart: 'Daily Token Trend', hourlyChart: 'Hourly Token Pattern',
+    dowChart: 'Day-of-Week Token Pattern', ctxCostAsstChart: 'Token Usage by Context Size'
+  };
+  Object.keys(chartTitles).forEach(function(id) {
+    var canvas = document.getElementById(id);
+    var heading = canvas && canvas.closest('.chart-container') && canvas.closest('.chart-container').querySelector('h3');
+    if (heading && id !== 'ctxCostAsstChart') heading.firstChild.textContent = chartTitles[id] + ' ';
+  });
+  var donutHeading = document.querySelector('.breakdown-donut-wrap h3');
+  if (donutHeading) donutHeading.textContent = 'Token Mix · snapshot';
+  if (I18N.calendar) {
+    I18N.calendar.legendLow = 'Low token usage';
+    I18N.calendar.legendMid = 'Medium token usage';
+    I18N.calendar.legendHigh = 'High token usage';
+    I18N.calendar.costFilterLabel = 'Token usage ≥';
+    I18N.calendar.note = 'Click any cell to see that hour\'s session and token details.';
+  }
+  var clickModeToggle = document.getElementById('calendarClickMode');
+  if (clickModeToggle) clickModeToggle.remove();
+  // Dynamic rate-limit window label, replacing the fixed "5-Hour Window"
+  // text — sourced from REPORT_DATA.windowMinutes (Codex's own reported
+  // window), with an i18n-shaped fallback rather than a hardcoded duration.
+  if (REPORT_DATA.windowMinutes && I18N.calendar) {
+    var mins = REPORT_DATA.windowMinutes;
+    var label = mins % 1440 === 0 ? (mins / 1440) + '-Day Window'
+      : mins % 60 === 0 ? (mins / 60) + '-Hour Window'
+      : mins + '-Min Window';
+    I18N.calendar.fiveHourWindow = label;
+    if (I18N.calendar.note) {
+      I18N.calendar.note = I18N.calendar.note.replace(/5-hour window/i, label.toLowerCase());
+    }
+  } else if (I18N.calendar) {
+    I18N.calendar.fiveHourWindow = 'Usage Window';
+    if (I18N.calendar.note) {
+      I18N.calendar.note = I18N.calendar.note.replace(/5-hour window/i, 'usage window');
+    }
+  }
+})();
+
 // ─── i18n helper ─────────────────────────────────────────────
 function i18nT(template, vars) {
   if (!template) return '';
@@ -1097,7 +1224,7 @@ function i18nT(template, vars) {
     h1Logo.textContent = '';
     var logoSpan = document.createElement('span');
     logoSpan.className = 'logo';
-    logoSpan.textContent = 'CC';
+    logoSpan.textContent = REPORT_DATA.host === 'codex' ? 'CX' : 'CC';
     h1Logo.appendChild(logoSpan);
     h1Logo.appendChild(document.createTextNode(' ' + (I18N.header.title || 'Claude Code Usage Report')));
     if (REPORT_DATA.plan && REPORT_DATA.plan.name) {
@@ -1108,12 +1235,17 @@ function i18nT(template, vars) {
       var name = document.createElement('span');
       name.className = 'plan-name';
       name.textContent = ' ' + REPORT_DATA.plan.name;
-      var price = document.createElement('span');
-      price.style.color = 'var(--text-muted)';
-      price.textContent = ' (' + REPORT_DATA.plan.price + ')';
       badge.appendChild(lbl);
       badge.appendChild(name);
-      badge.appendChild(price);
+      // Codex plans aren't flat-priced like Claude's — REPORT_DATA.plan.price
+      // is null there, and the parenthetical is simply omitted rather than
+      // showing "(null)" or a fabricated number.
+      if (REPORT_DATA.plan.price) {
+        var price = document.createElement('span');
+        price.style.color = 'var(--text-muted)';
+        price.textContent = ' (' + REPORT_DATA.plan.price + ')';
+        badge.appendChild(price);
+      }
       badge.style.display = '';
     }
   }
@@ -1338,6 +1470,14 @@ function formatTokens(n) {
 
 // ─── Render: Token Breakdown Table ──────────────────────────
 
+// Codex has no per-token pricing (REPORT_DATA.summary.hasCostData === false),
+// so every per-row dollar figure in the token-detail table reads "N/A" —
+// never "$0.00", which the underlying numbers would otherwise produce since
+// analyze-usage.js writes a safe, arithmetic-neutral 0 for Codex cost.
+function fmtCost(n) {
+  return (REPORT_DATA.summary && REPORT_DATA.summary.hasCostData === false) ? 'N/A' : ('$' + n.toFixed(2));
+}
+
 function renderTokenBreakdown() {
   var tbody = document.getElementById('tokenTableBody');
   var tfoot = document.getElementById('tokenTableFoot');
@@ -1345,13 +1485,14 @@ function renderTokenBreakdown() {
   tfoot.textContent = '';
 
   var b = REPORT_DATA.tokenBreakdown;
+  var codexSubscription = REPORT_DATA.host === 'codex' && REPORT_DATA.canonicalRateLimits && (REPORT_DATA.canonicalRateLimits.primary || REPORT_DATA.canonicalRateLimits.secondary);
   var cacheCreateTokens = b.cacheCreate1h.tokens + b.cacheCreate5m.tokens;
   var cacheCreateCost = b.cacheCreate1h.cost + b.cacheCreate5m.cost;
 
   var rows = [
     { label: I18N.token.input, tokens: b.input.tokens, cost: b.input.cost, cls: 'type-input' },
     { label: I18N.token.output, tokens: b.output.tokens, cost: b.output.cost, cls: 'type-output' },
-    { label: I18N.token.cacheWrite, tokens: cacheCreateTokens, cost: cacheCreateCost, cls: 'type-cache1h' },
+    { label: I18N.token.cacheWrite, tokens: cacheCreateTokens, cost: cacheCreateCost, cls: 'type-cache1h', tokenText: codexSubscription ? 'N/A' : null, costText: codexSubscription ? 'Not charged' : null },
     { label: I18N.token.cacheRead, tokens: b.cacheRead.tokens, cost: b.cacheRead.cost, cls: 'type-cacheread' },
   ];
 
@@ -1370,8 +1511,8 @@ function renderTokenBreakdown() {
 
     var tr = createEl('tr');
     tr.appendChild(createEl('td', { className: r.cls, textContent: r.label }));
-    tr.appendChild(createEl('td', { className: 'num', textContent: formatTokens(r.tokens) }));
-    tr.appendChild(createEl('td', { className: 'num', textContent: '$' + r.cost.toFixed(2) }));
+    tr.appendChild(createEl('td', { className: 'num', textContent: r.tokenText || formatTokens(r.tokens) }));
+    tr.appendChild(createEl('td', { className: 'num', textContent: r.costText || fmtCost(r.cost) }));
     tbody.appendChild(tr);
 
     // Insert sub-rows after Cache Create
@@ -1384,11 +1525,11 @@ function renderTokenBreakdown() {
         labelTd.style.color = 'var(--text-muted)';
         labelTd.style.fontSize = '11px';
         subTr.appendChild(labelTd);
-        var tokenTd = createEl('td', { className: 'num', textContent: formatTokens(sr.tokens) });
+        var tokenTd = createEl('td', { className: 'num', textContent: codexSubscription ? 'N/A' : formatTokens(sr.tokens) });
         tokenTd.style.color = 'var(--text-muted)';
         tokenTd.style.fontSize = '11px';
         subTr.appendChild(tokenTd);
-        var costTd = createEl('td', { className: 'num', textContent: '$' + sr.cost.toFixed(2) });
+        var costTd = createEl('td', { className: 'num', textContent: codexSubscription ? 'Not charged' : fmtCost(sr.cost) });
         costTd.style.color = 'var(--text-muted)';
         costTd.style.fontSize = '11px';
         subTr.appendChild(costTd);
@@ -1400,7 +1541,7 @@ function renderTokenBreakdown() {
   var footTr = createEl('tr');
   footTr.appendChild(createEl('td', { textContent: I18N.token.total }));
   footTr.appendChild(createEl('td', { className: 'num', textContent: formatTokens(totalTokens) }));
-  footTr.appendChild(createEl('td', { className: 'num', textContent: '$' + totalCost.toFixed(2) }));
+  footTr.appendChild(createEl('td', { className: 'num', textContent: fmtCost(totalCost) }));
   tfoot.appendChild(footTr);
 }
 
@@ -1408,7 +1549,10 @@ function renderTokenBreakdown() {
 
 function renderDonutChart() {
   var b = REPORT_DATA.tokenBreakdown;
-  var rawData = [b.input.cost, b.output.cost, b.cacheCreate1h.cost + b.cacheCreate5m.cost, b.cacheRead.cost];
+  var tokenMode = REPORT_DATA.host === 'codex';
+  var rawData = tokenMode
+    ? [b.input.tokens, b.output.tokens, b.cacheCreate1h.tokens + b.cacheCreate5m.tokens, b.cacheRead.tokens]
+    : [b.input.cost, b.output.cost, b.cacheCreate1h.cost + b.cacheCreate5m.cost, b.cacheRead.cost];
   var total = rawData.reduce(function(a, b) { return a + b; }, 0);
   // Ensure minimum 2% visibility for tiny slices
   var minSlice = total * 0.02;
@@ -1444,7 +1588,7 @@ function renderDonutChart() {
               var realVal = rawData[ctx.dataIndex];
               var realTotal = total;
               var pct = realTotal > 0 ? ((realVal / realTotal) * 100).toFixed(1) : '0.0';
-              return ' ' + ctx.label + ': $' + realVal.toFixed(1) + ' (' + pct + '%)';
+              return ' ' + ctx.label + ': ' + (tokenMode ? formatTokens(realVal) : ('$' + realVal.toFixed(1))) + ' (' + pct + '%)';
             }
           }
         }
@@ -1485,7 +1629,9 @@ var TICK_COLOR = _cs.getPropertyValue('--text-secondary').trim() || '#8b949e';
 // ─── Render: Daily Cost Bar Chart ───────────────────────────
 
 function renderBarChart() {
-  var labels = REPORT_DATA.dailyCosts.map(function(d) { return d.date; });
+  var tokenMode = REPORT_DATA.host === 'codex';
+  var barRows = tokenMode ? (REPORT_DATA.dailyTokens || []).map(function(d) { return { date:d.date, input:d.input, output:d.out, cacheCreate:d.cc, cacheRead:d.cr || 0 }; }) : REPORT_DATA.dailyCosts;
+  var labels = barRows.map(function(d) { return d.date; });
 
   // Find plugin install date label
   var piLabel = null;
@@ -1499,8 +1645,8 @@ function renderBarChart() {
   var barBeforeAvg = null, barAfterAvg = null;
   if (piIdx > 0) {
     var bSum = 0, bCnt = 0, aSum = 0, aCnt = 0;
-    for (var di = 0; di < REPORT_DATA.dailyCosts.length; di++) {
-      var dc = REPORT_DATA.dailyCosts[di];
+    for (var di = 0; di < barRows.length; di++) {
+      var dc = barRows[di];
       var dayTotal = dc.input + dc.cacheCreate + dc.cacheRead + dc.output;
       if (dayTotal <= 0) continue;
       if (di <= piIdx) { bSum += dayTotal; bCnt++; }
@@ -1516,10 +1662,10 @@ function renderBarChart() {
     data: {
       labels: labels,
       datasets: [
-        { label: I18N.token.input, data: REPORT_DATA.dailyCosts.map(function(d) { return d.input; }), backgroundColor: '#58a6ff', borderRadius: 3 },
-        { label: I18N.token.output, data: REPORT_DATA.dailyCosts.map(function(d) { return d.output; }), backgroundColor: '#f778ba', borderRadius: 3 },
-        { label: I18N.token.cacheWrite, data: REPORT_DATA.dailyCosts.map(function(d) { return d.cacheCreate; }), backgroundColor: '#d29922', borderRadius: 3 },
-        { label: I18N.token.cacheRead, data: REPORT_DATA.dailyCosts.map(function(d) { return d.cacheRead; }), backgroundColor: '#3fb950', borderRadius: 3 },
+        { label: I18N.token.input, data: barRows.map(function(d) { return d.input; }), backgroundColor: '#58a6ff', borderRadius: 3 },
+        { label: I18N.token.output, data: barRows.map(function(d) { return d.output; }), backgroundColor: '#f778ba', borderRadius: 3 },
+        { label: I18N.token.cacheWrite, data: barRows.map(function(d) { return d.cacheCreate; }), backgroundColor: '#d29922', borderRadius: 3 },
+        { label: I18N.token.cacheRead, data: barRows.map(function(d) { return d.cacheRead; }), backgroundColor: '#3fb950', borderRadius: 3 },
       ]
     },
     options: {
@@ -1536,7 +1682,7 @@ function renderBarChart() {
         y: {
           stacked: true,
           grid: { color: GRID_COLOR },
-          ticks: { color: TICK_COLOR, font: { size: 12 }, callback: function(v) { return '$' + v; } }
+          ticks: { color: TICK_COLOR, font: { size: 12 }, callback: function(v) { return tokenMode ? formatTokens(v) : ('$' + v); } }
         }
       },
       plugins: {
@@ -1562,7 +1708,7 @@ function renderBarChart() {
           }
         },
         tooltip: {
-          callbacks: { label: function(ctx) { return ' ' + ctx.dataset.label + ': $' + ctx.parsed.y.toFixed(1); } }
+          callbacks: { label: function(ctx) { return ' ' + ctx.dataset.label + ': ' + (tokenMode ? formatTokens(ctx.parsed.y) : ('$' + ctx.parsed.y.toFixed(1))); } }
         }
       },
       layout: { padding: { top: 20 } }
@@ -1643,18 +1789,20 @@ function renderHourlyChart() {
   if (hourlyChart) { hourlyChart.destroy(); hourlyChart = null; }
 
   var dataKey = hourlyMode;
-  var label = hourlyMode === 'avg' ? I18N.chart.avgCost : hourlyMode === 'calAvg' ? 'Cal Avg' : I18N.chart.maxCost;
-  var sorted = REPORT_DATA.hourlyStats.filter(function(d) { return d[dataKey] > 0; }).sort(function(a, b) { return b[dataKey] - a[dataKey]; });
+  var tokenMode = REPORT_DATA.host === 'codex';
+  var stats = tokenMode ? REPORT_DATA.hourlyUsageStats : REPORT_DATA.hourlyStats;
+  var label = tokenMode ? (hourlyMode === 'avg' ? 'Average Tokens' : hourlyMode === 'calAvg' ? 'Calendar Avg Tokens' : 'Max Tokens') : (hourlyMode === 'avg' ? I18N.chart.avgCost : hourlyMode === 'calAvg' ? 'Cal Avg' : I18N.chart.maxCost);
+  var sorted = stats.filter(function(d) { return d[dataKey] > 0; }).sort(function(a, b) { return b[dataKey] - a[dataKey]; });
   var topN = REPORT_DATA.currentMode ? 1 : 3;
   var top3Hours = new Set(sorted.slice(0, topN).map(function(d) { return d.hour; }));
 
   hourlyChart = new Chart(document.getElementById('hourlyChart'), {
     type: 'bar',
     data: {
-      labels: REPORT_DATA.hourlyStats.map(function(d) { return d.hour + I18N.chart.hourSuffix; }),
+      labels: stats.map(function(d) { return d.hour + I18N.chart.hourSuffix; }),
       datasets: [{
         label: label,
-        data: REPORT_DATA.hourlyStats.map(function(d) { return d[dataKey]; }),
+        data: stats.map(function(d) { return d[dataKey]; }),
         backgroundColor: '#58a6ff',
         borderRadius: 3,
       }]
@@ -1668,13 +1816,13 @@ function renderHourlyChart() {
         },
         y: {
           grid: { color: GRID_COLOR },
-          ticks: { color: TICK_COLOR, font: { size: 12 }, callback: function(v) { return '$' + v; } }
+          ticks: { color: TICK_COLOR, font: { size: 12 }, callback: function(v) { return tokenMode ? formatTokens(v) : ('$' + v); } }
         }
       },
       plugins: {
         legend: { display: false },
         tooltip: {
-          callbacks: { label: function(ctx) { return ' ' + label + ': $' + ctx.parsed.y.toFixed(1); } }
+          callbacks: { label: function(ctx) { return ' ' + label + ': ' + (tokenMode ? formatTokens(ctx.parsed.y) : ('$' + ctx.parsed.y.toFixed(1))); } }
         }
       },
       animation: {
@@ -1685,7 +1833,7 @@ function renderHourlyChart() {
           ctx2.font = '14px sans-serif';
           ctx2.textAlign = 'center';
           for (var i = 0; i < meta.data.length; i++) {
-            if (top3Hours.has(REPORT_DATA.hourlyStats[i].hour)) {
+            if (top3Hours.has(stats[i].hour)) {
               ctx2.fillText('\uD83D\uDD25', meta.data[i].x, meta.data[i].y - 8);
             }
           }
@@ -1718,18 +1866,20 @@ var dowMode = 'avg';
 function renderDowChart() {
   if (dowChart) { dowChart.destroy(); dowChart = null; }
   var dataKey = dowMode;
-  var label = dowMode === 'avg' ? I18N.chart.avgCost : dowMode === 'calAvg' ? 'Cal Avg' : I18N.chart.maxCost;
-  var sorted = REPORT_DATA.dowStats.filter(function(d) { return d[dataKey] > 0; }).sort(function(a, b) { return b[dataKey] - a[dataKey]; });
+  var tokenMode = REPORT_DATA.host === 'codex';
+  var stats = tokenMode ? REPORT_DATA.dowUsageStats : REPORT_DATA.dowStats;
+  var label = tokenMode ? (dowMode === 'avg' ? 'Average Tokens' : dowMode === 'calAvg' ? 'Calendar Avg Tokens' : 'Max Tokens') : (dowMode === 'avg' ? I18N.chart.avgCost : dowMode === 'calAvg' ? 'Cal Avg' : I18N.chart.maxCost);
+  var sorted = stats.filter(function(d) { return d[dataKey] > 0; }).sort(function(a, b) { return b[dataKey] - a[dataKey]; });
   var top1Dow = sorted.length > 0 ? sorted[0].dow : -1;
 
   dowChart = new Chart(document.getElementById('dowChart'), {
     type: 'bar',
     data: {
-      labels: REPORT_DATA.dowStats.map(function(d) { return I18N.chart.days[d.dow]; }),
+      labels: stats.map(function(d) { return I18N.chart.days[d.dow]; }),
       datasets: [{
         label: label,
-        data: REPORT_DATA.dowStats.map(function(d) { return d[dataKey]; }),
-        backgroundColor: REPORT_DATA.dowStats.map(function(d) { return d.dow === 0 || d.dow === 6 ? '#f778ba' : '#58a6ff'; }),
+        data: stats.map(function(d) { return d[dataKey]; }),
+        backgroundColor: stats.map(function(d) { return d.dow === 0 || d.dow === 6 ? '#f778ba' : '#58a6ff'; }),
         borderRadius: 3,
       }]
     },
@@ -1737,11 +1887,11 @@ function renderDowChart() {
       responsive: true,
       scales: {
         x: { grid: { color: GRID_COLOR }, ticks: { color: TICK_COLOR, font: { size: 12 } } },
-        y: { grid: { color: GRID_COLOR }, ticks: { color: TICK_COLOR, font: { size: 12 }, callback: function(v) { return '$' + v; } } }
+        y: { grid: { color: GRID_COLOR }, ticks: { color: TICK_COLOR, font: { size: 12 }, callback: function(v) { return tokenMode ? formatTokens(v) : ('$' + v); } } }
       },
       plugins: {
         legend: { display: false },
-        tooltip: { callbacks: { label: function(ctx) { return ' ' + label + ': $' + ctx.parsed.y.toFixed(1); } } }
+        tooltip: { callbacks: { label: function(ctx) { return ' ' + label + ': ' + (tokenMode ? formatTokens(ctx.parsed.y) : ('$' + ctx.parsed.y.toFixed(1))); } } }
       },
       animation: {
         onComplete: function() {
@@ -1751,7 +1901,7 @@ function renderDowChart() {
           ctx2.font = '14px sans-serif';
           ctx2.textAlign = 'center';
           for (var i = 0; i < meta.data.length; i++) {
-            if (REPORT_DATA.dowStats[i].dow === top1Dow) {
+            if (stats[i].dow === top1Dow) {
               ctx2.fillText('\uD83D\uDD25', meta.data[i].x, meta.data[i].y - 8);
             }
           }
@@ -2310,8 +2460,87 @@ function computeTrend(pts) {
   var slope=(n*sxy-sx*sy)/d, intercept=(sy-slope*sx)/n;
   return {slope:slope,intercept:intercept,x0:x0,x1:x1};
 }
-var ctxCostMode = 'cw'; // 'cw' | 'nonCW' | 'turn'
+var ctxCostMode = REPORT_DATA.host === 'codex' ? 'nonCW' : 'cw'; // 'cw' | 'nonCW' | 'turn'
+var codexContextChart = null;
+function renderCodexContextSelection(point) {
+  var foot = document.getElementById('ctxCostFootnote');
+  if (!foot || !point) return;
+  while (foot.firstChild) foot.removeChild(foot.firstChild);
+  var ko = I18N.meta && I18N.meta.locale === 'ko';
+  var heading = document.createElement('div');
+  heading.style.fontWeight = '600';
+  heading.style.color = 'var(--text-primary)';
+  heading.textContent = ko
+    ? ((point.n || 1) + '개 API 호출 묶음 · 평균 Context ' + formatTokens(point.x) + ' · 평균 사용량 ' + formatTokens(point.y))
+    : ((point.n || 1) + ' API calls · avg context ' + formatTokens(point.x) + ' · avg usage ' + formatTokens(point.y));
+  if (ctxCostMode === 'turn') {
+    heading.textContent = ko
+      ? '사용자 대화 · Context ' + formatTokens(point.x) + ' · 사용량 ' + formatTokens(point.y)
+      : 'User conversation · context ' + formatTokens(point.x) + ' · usage ' + formatTokens(point.y);
+  }
+  foot.appendChild(heading);
+  if (ctxCostMode === 'turn' && point.text) {
+    var prompt = document.createElement('div');
+    prompt.style.marginTop = '5px';
+    prompt.textContent = point.text;
+    foot.appendChild(prompt);
+    return;
+  }
+  (point.samples || []).forEach(function(sample) {
+    var row = document.createElement('div');
+    row.style.marginTop = '4px';
+    var when = sample.time ? new Date(sample.time * 1000).toLocaleString() : '';
+    row.textContent = (when ? when + ' · ' : '') + (sample.sid ? sample.sid + ' · ' : '')
+      + 'context ' + formatTokens(sample.x) + ' · usage ' + formatTokens(sample.y)
+      + ' (input ' + formatTokens(sample.input) + ', cached ' + formatTokens(sample.cr) + ', output ' + formatTokens(sample.out) + ')';
+    foot.appendChild(row);
+  });
+  if ((point.n || 1) > (point.samples || []).length) {
+    var more = document.createElement('div');
+    more.style.marginTop = '4px';
+    more.textContent = ko ? '사용량이 큰 호출 12개까지 표시합니다.' : 'Showing up to the 12 highest-usage calls.';
+    foot.appendChild(more);
+  }
+}
+function renderCodexContextUsageChart() {
+  var ccs = REPORT_DATA.contextUsageScatter;
+  if (!ccs) return;
+  var source = ctxCostMode === 'turn' ? ccs.perUserTurn : ccs.perAssistant[ctxCostMode];
+  if ((!source || !source.bubbles || source.bubbles.length === 0) && ctxCostMode === 'cw' && ccs.perAssistant.nonCW && ccs.perAssistant.nonCW.bubbles.length) {
+    ctxCostMode = 'nonCW'; source = ccs.perAssistant.nonCW;
+  }
+  var points = source && source.bubbles || [];
+  var container = document.getElementById('ctxCostAsstContainer');
+  if (container) container.style.display = '';
+  var title = document.querySelector('.ctx-cost-section-title');
+  if (title) title.textContent = 'Token Usage by Context Size';
+  var priceControls = document.getElementById('ctxCostModelSelect');
+  if (priceControls) priceControls.style.display = 'none';
+  var foot = document.getElementById('ctxCostFootnote');
+  if (foot) foot.textContent = points.length
+    ? ((I18N.meta && I18N.meta.locale === 'ko') ? '버블을 클릭하면 묶인 실제 호출을 확인할 수 있습니다. 색상은 기록된 Codex 모델 ID입니다.' : 'Click a bubble to inspect its underlying calls. Colors are recorded Codex model IDs.')
+    : 'No token usage data for this mode.';
+  if (codexContextChart) { codexContextChart.destroy(); codexContextChart = null; }
+  if (!points.length) return;
+  var palette = ['#ff7b72','#58a6ff','#3fb950','#d29922','#bc8cff','#39c5cf'];
+  var models = Array.from(new Set(points.map(function(p) { return p.model || 'unknown'; }))).sort();
+  var datasets = models.map(function(model, i) {
+    return { label:model, data:points.filter(function(p){return (p.model || 'unknown')===model;}), parsing:false, backgroundColor:palette[i % palette.length], pointRadius:4 };
+  });
+  codexContextChart = new Chart(document.getElementById('ctxCostAsstChart'), {
+    type:'scatter', data:{datasets:datasets}, options:{responsive:true,
+      onClick:function(event, elements) {
+        if (!elements || !elements.length) return;
+        var hit = elements[0];
+        renderCodexContextSelection(codexContextChart.data.datasets[hit.datasetIndex].data[hit.index]);
+      },
+      scales:{x:{title:{display:true,text:'Context Tokens',color:TICK_COLOR},ticks:{color:TICK_COLOR,callback:formatTokens},grid:{color:GRID_COLOR}},y:{title:{display:true,text:'Usage Tokens',color:TICK_COLOR},ticks:{color:TICK_COLOR,callback:formatTokens},grid:{color:GRID_COLOR}}},
+      plugins:{legend:{labels:{color:TICK_COLOR}},tooltip:{callbacks:{label:function(ctx){var p=ctx.raw;return (p.model || 'unknown') + ': context ' + formatTokens(p.x) + ' · usage ' + formatTokens(p.y) + ' · ' + (p.n || 1) + ' calls';}}}}
+    }
+  });
+}
 function renderContextCostCharts() {
+  if (REPORT_DATA.host === 'codex') { renderCodexContextUsageChart(); return; }
   var ccs = REPORT_DATA.contextCostScatter;
   if (!ccs) return;
   var pa = ccs.perAssistant;
@@ -2427,6 +2656,7 @@ function renderCtxDistChart() {
           callbacks: {
             label: function(ctx) {
               var b = dist[ctx.dataIndex];
+              if (REPORT_DATA.host === 'codex') return b.count + ' calls (' + b.pct + '%)';
               return b.count + ' calls (' + b.pct + '%) · Total $' + b.cost + ' · Avg $' + b.avgCost + '/call';
             }
           }
@@ -2480,14 +2710,31 @@ var defaultCostThreshold = (REPORT_DATA.costThresholds && REPORT_DATA.costThresh
 var currentCostThreshold = 0.80;
 var lastDetailRender = null; // thunk to re-render the currently-open detail panel
 function alertPassesCostFilter(a) {
+  if (REPORT_DATA.host === 'codex') {
+    var t = a && a.tokens || {};
+    return ((t.input || 0) + (t.output || 0) + (t.cc || 0) + (t.cr || 0)) >= currentCostThreshold;
+  }
   if (a && a.tokens && typeof a.tokens.cost === 'number' && a.tokens.cost < currentCostThreshold) return false;
   return true;
 }
-var calendarClickMode = 'window'; // 'window' = 5h window, 'block' = 1h block
+var calendarClickMode = REPORT_DATA.host === 'codex' ? 'block' : 'window';
+
+var calendarTokenValues = [];
+(REPORT_DATA.windows || []).forEach(function(w) { Object.values(w.hourlyUsageTokens || {}).forEach(function(v) { if (v > 0) calendarTokenValues.push(v); }); });
+calendarTokenValues.sort(function(a,b){return a-b;});
+function tokenQuantile(q) { return calendarTokenValues.length ? calendarTokenValues[Math.min(calendarTokenValues.length - 1, Math.floor((calendarTokenValues.length - 1) * q))] : 0; }
+var calendarTokenLow = tokenQuantile(0.33), calendarTokenHigh = tokenQuantile(0.67);
 
 function getCellColor(cost, isRateLimit, isActive, hasSkull) {
   if (!isActive) return '#161b22';
   if (hasSkull || isRateLimit) return '#ff0000';
+  if (REPORT_DATA.host === 'codex') {
+    if (cost < currentCostThreshold) return '#161b22';
+    if (cost >= calendarTokenHigh && calendarTokenHigh > 0) return '#ff0000';
+    if (cost >= calendarTokenLow && calendarTokenLow > 0) return '#fb923c';
+    if (cost > 0) return '#006d32';
+    return '#161b22';
+  }
   if (cost >= 30) return '#ff0000';
   if (cost >= 15) return '#fb923c';
   if (cost > 0) return '#006d32';
@@ -2517,17 +2764,13 @@ function dateToKey(d) {
 }
 
 function getWindowKey(slot) {
-  if (!slot.windowDate || !slot.windowStart) return null;
-  return slot.windowDate + '|' + slot.windowStart;
+  return slot.windowStartTs == null ? null : String(slot.windowStartTs);
 }
 
 function findWindowByKey(key) {
   if (!key) return null;
-  var parts = key.split('|');
-  var wDate = parts[0];
-  var wStart = parts[1];
   for (var i = 0; i < REPORT_DATA.windows.length; i++) {
-    if (REPORT_DATA.windows[i].date === wDate && REPORT_DATA.windows[i].start === wStart) return REPORT_DATA.windows[i];
+    if (String(REPORT_DATA.windows[i].startTs) === String(key)) return REPORT_DATA.windows[i];
   }
   return null;
 }
@@ -2552,6 +2795,29 @@ function fmtTokens(n) {
   return String(n);
 }
 
+// Subtask/role/model/thread visibility (gap-remediation item 3): the "Type"
+// column gets a short "sub · role · model" label for subtasks, and a
+// tooltip spelling out the task thread and parent-verification state.
+// Never phrases an unverified taskThreadId as "parent" — Codex subagents
+// share a threadId with their main session without a verified parent-child
+// edge, so an orphaned subtask says so explicitly instead of guessing.
+function formatSubtaskTypeCell(d) {
+  if (!d.isSubtask) return d.type;
+  var role = d.agentRole || 'unknown';
+  var model = d.model || 'unknown';
+  return 'sub · ' + role + ' · ' + model;
+}
+function formatSubtaskTitle(d) {
+  if (!d.isSubtask) return '';
+  var isKo = I18N.meta && I18N.meta.locale === 'ko';
+  var parts = [];
+  if (d.taskThreadId) parts.push((isKo ? '작업 스레드: ' : 'Task thread: ') + String(d.taskThreadId).slice(0, 8));
+  if (d.parentSessionId) parts.push((isKo ? '상위 세션(확인됨): ' : 'Parent (verified): ') + String(d.parentSessionId).slice(0, 8));
+  else parts.push(isKo ? '상위 세션: 확인되지 않음' + (d.orphan ? ' (미연결)' : '') : 'Parent: not verified' + (d.orphan ? ' (orphan)' : ''));
+  if (d.agentNickname && d.agentNickname !== 'unknown') parts.push((isKo ? '별칭: ' : 'Nickname: ') + d.agentNickname);
+  return parts.join(' — ');
+}
+
 function buildDetailTable(details) {
   var tbl = createEl('table', { className: 'detail-table', style: { width: '100%', borderCollapse: 'collapse', fontSize: '11px', marginTop: '6px' } });
   var thead = createEl('thead');
@@ -2569,16 +2835,18 @@ function buildDetailTable(details) {
     var idLabel = d.id.slice(0, 8) + formatTimeRange(d.startTime, d.endTime);
     var cells = [
       { text: idLabel, align: 'left' },
-      { text: d.type, align: 'left' },
+      { text: formatSubtaskTypeCell(d), align: 'left', title: formatSubtaskTitle(d) },
       { text: String(d.messages), align: 'right' },
       { text: fmtTokens(d.input), align: 'right' },
       { text: fmtTokens(d.output), align: 'right' },
       { text: fmtTokens((d.cache1h||0)+(d.cache5m||0)), align: 'right' },
       { text: fmtTokens(d.cacheRead||0), align: 'right' },
-      { text: '$' + d.cost.toFixed(2), align: 'right' }
+      { text: fmtCost(d.cost), align: 'right' }
     ];
     for (var c = 0; c < cells.length; c++) {
-      var td = createEl('td', { textContent: cells[c].text, style: { padding: '3px 6px', textAlign: cells[c].align, color: 'var(--text-secondary)', fontFamily: 'monospace' } });
+      var tdAttrs = { textContent: cells[c].text, style: { padding: '3px 6px', textAlign: cells[c].align, color: 'var(--text-secondary)', fontFamily: 'monospace' } };
+      if (cells[c].title) tdAttrs.title = cells[c].title;
+      var td = createEl('td', tdAttrs);
       tr.appendChild(td);
     }
     tbody.appendChild(tr);
@@ -2657,7 +2925,7 @@ function renderAlertItems(alerts, container, sessionType) {
     if (a.tokens) {
       var t = a.tokens;
       var parts = [];
-      parts.push('$' + (t.cost || 0).toFixed(2));
+      parts.push(fmtCost(t.cost || 0));
       if (a.turnCount && a.turnCount > 0) parts.push(a.turnCount + ' calls');
       if (t.input) parts.push('Input ' + fmtTokens(t.input));
       if (t.out) parts.push('Output ' + fmtTokens(t.out));
@@ -2839,7 +3107,7 @@ function showWindowDetail(win, opts) {
   var title = document.getElementById('detailTitle');
   var container = document.getElementById('detailCardContainer');
 
-  title.textContent = I18N.session.windowDetailTitle.replace('{date}', win.date).replace('{start}', win.start).replace('{end}', win.end).replace('{cost}', win.cost.toFixed(2));
+  title.textContent = I18N.session.windowDetailTitle.replace('{date}', win.date).replace('{start}', win.start).replace('{end}', win.end).replace('{cost}', fmtCost(win.cost).replace('$', ''));
 
   container.textContent = '';
 
@@ -2876,7 +3144,7 @@ function showWindowDetail(win, opts) {
       var header = createEl('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } });
       var progText = I18N.session.programmaticExec.replace('{count}', detailCount) + formatTimeRange(s.startTime, s.endTime);
       header.appendChild(createEl('span', { style: { fontWeight: '600' }, textContent: progText }));
-      header.appendChild(createEl('span', { style: { fontWeight: '600', color: 'var(--accent-green)' }, textContent: '$' + s.cost.toFixed(2) }));
+      header.appendChild(createEl('span', { style: { fontWeight: '600', color: 'var(--accent-green)' }, textContent: fmtCost(s.cost) }));
       card.appendChild(header);
 
       // Stats
@@ -2910,7 +3178,7 @@ function showWindowDetail(win, opts) {
       var header = createEl('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } });
       var batchText = I18N.session.batchExec.replace('{count}', detailCount) + formatTimeRange(s.startTime, s.endTime);
       header.appendChild(createEl('span', { style: { fontWeight: '600' }, textContent: batchText }));
-      header.appendChild(createEl('span', { style: { fontWeight: '600', color: 'var(--accent-green)' }, textContent: '$' + s.cost.toFixed(2) }));
+      header.appendChild(createEl('span', { style: { fontWeight: '600', color: 'var(--accent-green)' }, textContent: fmtCost(s.cost) }));
       card.appendChild(header);
       if (s.firstMsg) card.appendChild(createEl('div', { className: 'session-msg', textContent: '"' + s.firstMsg + '"' }));
       var statsText = s.messages + ' msgs \u00B7 Input ' + fmtTokens(s.input) + ' \u00B7 Output ' + fmtTokens(s.output) + ' \u00B7 Cache ' + fmtTokens(s.cache1h + (s.cache5m || 0)) + ' \u00B7 Read ' + fmtTokens(s.cacheRead);
@@ -2941,7 +3209,7 @@ function showWindowDetail(win, opts) {
       var idText = s.id + formatTimeRange(s.startTime, s.endTime);
       var idSpan = createEl('span', { className: 'session-id', style: { fontWeight: '600' }, textContent: idText });
       header.appendChild(idSpan);
-      header.appendChild(createEl('span', { style: { fontWeight: '600', color: 'var(--accent-green)' }, textContent: '$' + s.cost.toFixed(2) }));
+      header.appendChild(createEl('span', { style: { fontWeight: '600', color: 'var(--accent-green)' }, textContent: fmtCost(s.cost) }));
       card.appendChild(header);
 
       // Message preview
@@ -3008,7 +3276,8 @@ function updateWindowHighlights() {
 
 document.getElementById('closeDetailBtn').addEventListener('click', hideWindowDetail);
 
-document.getElementById('calendarClickMode').addEventListener('click', function(e) {
+var calendarClickModeEl = document.getElementById('calendarClickMode');
+if (calendarClickModeEl) calendarClickModeEl.addEventListener('click', function(e) {
   var btn = e.target.closest('.click-mode-btn');
   if (!btn) return;
   var mode = btn.dataset.mode;
@@ -3149,7 +3418,7 @@ function renderCalendar() {
     if (!dateMap[key]) {
       dateMap[key] = [];
       for (var i = 0; i < 24; i++) {
-        dateMap[key].push({ cost: 0, isRateLimit: false, isActive: false, hasSkull: false, hasAlert: false, windowStart: null, windowEnd: null, windowDate: null, inWindow: false, windowKeys: [] });
+        dateMap[key].push({ cost: 0, usageTokens: 0, isRateLimit: false, isActive: false, hasSkull: false, hasAlert: false, windowStart: null, windowEnd: null, windowDate: null, inWindow: false, windowKeys: [] });
       }
     }
   }
@@ -3163,26 +3432,34 @@ function renderCalendar() {
     var isRateLimit = w.usage === 100;
     var rlHours = w.rlHours || [];
     var hourlyCosts = w.hourlyCosts || {};
+    var hourlyUsageTokens = w.hourlyUsageTokens || {};
+    var hourlyCostBuckets = w.hourlyCostBuckets || {};
+    var hourlyUsageBuckets = w.hourlyUsageBuckets || {};
     var activeHours = w.activeHours || null;
 
     var wDate = dateKeyToDate(w.date);
 
     // WARNING: setSlot is defined inside the loop and closes over loop variables.
     // Do NOT call this asynchronously — it relies on synchronous execution within the current iteration.
-    function setSlot(dateKey, h, hourInWindow) {
+    function setSlot(dateKey, h, hourInWindow, epochHour) {
       ensureDate(dateKey);
       var isActive = activeHours ? activeHours.indexOf(hourInWindow) !== -1 : true;
-      var hourCost = isActive && hourlyCosts[String(hourInWindow)] != null ? hourlyCosts[String(hourInWindow)] : 0;
+      var bucketKey = epochHour == null ? null : String(epochHour);
+      var hourCost = bucketKey && hourlyCostBuckets[bucketKey] != null ? hourlyCostBuckets[bucketKey] : (isActive && hourlyCosts[String(hourInWindow)] != null ? hourlyCosts[String(hourInWindow)] : 0);
+      var hourUsage = bucketKey && hourlyUsageBuckets[bucketKey] != null ? hourlyUsageBuckets[bucketKey] : (isActive && hourlyUsageTokens[String(hourInWindow)] != null ? hourlyUsageTokens[String(hourInWindow)] : 0);
+      if (bucketKey) isActive = hourCost > 0 || hourUsage > 0;
       var prev = dateMap[dateKey][h];
       var prevKeys = prev && prev.windowKeys ? prev.windowKeys.slice() : [];
-      var thisKey = w.date + '|' + w.start;
+      var thisKey = String(w.startTs);
       if (prevKeys.indexOf(thisKey) === -1) prevKeys.push(thisKey);
       // Boundary-shared cell: cost is summed across windows; primary window
       // (used for click/tooltip default) is the latest assignment.
       var combinedCost = (prev && prev.inWindow ? prev.cost : 0) + (isActive ? hourCost : 0);
+      var combinedUsage = (prev && prev.inWindow ? prev.usageTokens : 0) + (isActive ? hourUsage : 0);
       var combinedActive = (prev && prev.isActive) || isActive;
       dateMap[dateKey][h] = {
         cost: combinedCost,
+        usageTokens: combinedUsage,
         isRateLimit: isActive ? isRateLimit : (prev && prev.isRateLimit) || false,
         isActive: combinedActive,
         hasSkull: prev && prev.hasSkull || false,
@@ -3190,13 +3467,21 @@ function renderCalendar() {
         windowStart: w.start,
         windowEnd: w.end,
         windowDate: w.date,
+        windowStartTs: w.startTs,
         inWindow: true,
         windowIsRateLimit: isRateLimit,
         windowKeys: prevKeys
       };
     }
 
-    if (endHour > startHour) {
+    if (REPORT_DATA.host === 'codex' && w.startTs && w.endTs) {
+      var firstBucket = Math.floor(w.startTs / 3600) * 3600;
+      var renderEnd = REPORT_DATA.calendarDataEndExclusiveTs == null ? w.endTs : Math.min(w.endTs, REPORT_DATA.calendarDataEndExclusiveTs);
+      for (var bucket = firstBucket; bucket < renderEnd; bucket += 3600) {
+        var bucketDate = new Date(bucket * 1000);
+        setSlot(dateToKey(bucketDate), bucketDate.getHours(), bucketDate.getHours(), bucket);
+      }
+    } else if (endHour > startHour) {
       for (var h = startHour; h < endHour; h++) {
         setSlot(w.date, h, h);
       }
@@ -3321,7 +3606,8 @@ function renderCalendar() {
     var slots = dateMap[entry.key];
     for (var h = 0; h < 24; h++) {
       var slot = slots[h];
-      var color = getCellColor(slot.cost, slot.isRateLimit, slot.isActive, slot.hasSkull);
+      var cellMetric = REPORT_DATA.host === 'codex' ? slot.usageTokens : slot.cost;
+      var color = getCellColor(cellMetric, slot.isRateLimit, slot.isActive, slot.hasSkull);
       var showSkull = slot.hasSkull || (slot.inWindow && !slot.isActive && slot.windowIsRateLimit);
       var isInstallCell = isPluginInstall && h === pluginInstallHour;
       var cell = createEl('div', {
@@ -3343,7 +3629,7 @@ function renderCalendar() {
       if (showSkull) {
         cell.appendChild(createEl('span', { className: 'skull', textContent: '\uD83D\uDC80' }));
       } else if (slot.hasAlert) {
-        var isRedBg = slot.cost >= 30 || slot.isRateLimit;
+        var isRedBg = (REPORT_DATA.host === 'codex' ? slot.usageTokens >= calendarTokenHigh : slot.cost >= 30) || slot.isRateLimit;
         cell.appendChild(createEl('span', { className: 'alert-icon' + (isRedBg ? ' on-red' : ''), textContent: '\u00B7' }));
       }
 
@@ -3389,9 +3675,9 @@ function renderCalendar() {
             }
             if (calendarClickMode === 'window' && slot.inWindow) {
               var win = findWindowByKey(getWindowKey(slot));
-              lines.push('Cost: $' + (win ? win.cost.toFixed(2) : slot.cost.toFixed(2)) + ' (window)');
+              lines.push(REPORT_DATA.host === 'codex' ? ('Tokens: ' + formatTokens(win ? win.usageTokens : slot.usageTokens) + ' (window)') : ('Cost: ' + fmtCost(win ? win.cost : slot.cost) + ' (window)'));
             } else {
-              lines.push('Cost: $' + slot.cost.toFixed(2));
+              lines.push(REPORT_DATA.host === 'codex' ? ('Tokens: ' + formatTokens(slot.usageTokens)) : ('Cost: ' + fmtCost(slot.cost)));
             }
             if (!slot.isActive && slot.inWindow) {
               lines.push('(no activity this hour)');
@@ -3427,10 +3713,77 @@ function renderCalendar() {
   }
 }
 
+// ─── Codex purchased-credit-equivalent headline cost ───────────
+// Reuses the FIRST (cost) summary card — never adds a card, never derived
+// from and never feeding summary.totalCost/hasCostData/costKnownUSD. Claude
+// reports never call this (guarded by hasCostData===false at the call site
+// below); REPORT_DATA.codexCreditEquivalent is additionally absent whenever
+// the pricing config failed to load, so this stays a no-op there too.
+function renderCodexCreditEquivalent() {
+  var ce = REPORT_DATA.codexCreditEquivalent;
+  var costLabelEl = document.getElementById('summaryCostLabel');
+  var costSubEl = document.getElementById('summaryCostSub');
+  var isKo = I18N.meta && I18N.meta.locale === 'ko';
+  if (costLabelEl) costLabelEl.textContent = isKo ? '구매 크레딧 환산 비용' : 'Purchased-Credit-Equivalent Cost';
+  var valueEl = document.getElementById('summaryTotalCost');
+  if (valueEl) {
+    if (!ce || ce.status === 'unavailable') valueEl.textContent = 'N/A';
+    else valueEl.textContent = (ce.status === 'lower_bound' ? '≥' : '') + '$' + ce.usd.toFixed(2);
+  }
+  if (costSubEl) {
+    var subParts = [];
+    // unavailableReason-specific wording: an invalid rate-card config or a
+    // total absence of eligible tokens is NOT "no recorded model has a
+    // rate-card entry" — each reason gets its own, accurate subline text.
+    var unavailableReasonText = {
+      invalid_config: isKo ? '요율표 설정 오류' : 'rate-card configuration is invalid',
+      no_eligible_tokens: isKo ? '가격 산정 대상 토큰 없음' : 'no eligible tokens recorded',
+      no_priced_models: isKo ? '요율표에 있는 모델 없음' : 'no recorded model has a rate-card entry',
+    };
+    if (ce && ce.status === 'unavailable') {
+      subParts.push(unavailableReasonText[ce.unavailableReason] || (isKo ? '계산 불가' : 'unavailable'));
+    } else if (ce) {
+      subParts.push((isKo ? '적용 범위 ' : 'Coverage ') + ce.coveragePctEligible.toFixed(1) + '%');
+    }
+    if (ce && ce.unavailableReason !== 'invalid_config' && ce.unpricedModels && ce.unpricedModels.length > 0) {
+      subParts.push((isKo ? '미가격 모델: ' : 'Unpriced models: ') + ce.unpricedModels.join(', '));
+    }
+    costSubEl.textContent = subParts.join(' · ');
+  }
+  var noteEl = document.getElementById('codexCreditEquivalentNote');
+  if (noteEl && ce) {
+    noteEl.style.display = 'block';
+    var meta = ce.meta || {};
+    var retrievedAt = meta.retrievedAt || (isKo ? '알 수 없음' : 'unknown');
+    var source = meta.source || (isKo ? '출처 미상' : 'unspecified source');
+    // creditsPerUsd is config-driven, never hardcoded — the rate card is
+    // user-supplied and its conversion rate can change independently of
+    // this template.
+    var creditsPerUsd = ce.creditsPerUsd;
+    var conversionKo = creditsPerUsd ? '크레딧 ' + creditsPerUsd + ' = $1' : '환산 비율 알 수 없음';
+    var conversionEn = creditsPerUsd ? creditsPerUsd + ' credits = $1' : 'conversion rate unavailable';
+    // promotionThrough applies ONLY to meta.promotionModel — never phrase
+    // this as if the whole rate card (all 12 models) were promotional.
+    var promoLineKo = (meta.promotionModel && meta.promotionThrough)
+      ? ' ' + meta.promotionModel + ' 요율만 ' + meta.promotionThrough + '까지 프로모션이며, 다른 모델에는 적용되지 않습니다.'
+      : '';
+    var promoLineEn = (meta.promotionModel && meta.promotionThrough)
+      ? ' Only ' + meta.promotionModel + ' is promotional, through ' + meta.promotionThrough + ' — this does not apply to any other model on the rate card.'
+      : '';
+    noteEl.textContent = isKo
+      ? '주: 이 값은 기록된 신선/캐시/출력 토큰에 모델별 1백만 토큰당 구매 크레딧 요율을 곱한 뒤 ' + (creditsPerUsd || '알 수 없는 값') + '로 나눈(' + conversionKo + ') 요율표 기준 환산 비용입니다. 캐시 생성(Cache Write)은 별도로 과금되지 않아 제외되며, 이는 알 수 없는 공백이 아닙니다. 이 값은 요율표 기준 환산치일 뿐, 포함된 구독 사용량의 실제 청구액이나 내부 allowance 평가액이 아니며 청구서·절감액·월간 예측도 아닙니다.' + promoLineKo + ' 요율표 출처: ' + source + '. 가격 기준일: ' + retrievedAt + '.'
+      : 'Note: this is a model-weighted, rate-card equivalent — recorded fresh/cached/output tokens multiplied by each model\'s purchased-credit rate per 1M tokens, then divided by ' + (creditsPerUsd || 'an unknown conversion rate') + ' (' + conversionEn + '). Cache creation is excluded because it is not separately charged, not an unknown gap. This is a rate-card equivalent only, not the included-subscription bill or an internal allowance valuation, and not a savings figure or monthly projection.' + promoLineEn + ' Rate card source: ' + source + '. Pricing basis retrieved ' + retrievedAt + '.';
+  }
+}
+
 // ─── Init ──────────────────────────────────────────────────────
 
 // Render summary
-document.getElementById('summaryTotalCost').textContent = '$' + REPORT_DATA.summary.totalCost.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+if (REPORT_DATA.summary.hasCostData === false) {
+  renderCodexCreditEquivalent();
+} else {
+  document.getElementById('summaryTotalCost').textContent = '$' + REPORT_DATA.summary.totalCost.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
 document.getElementById('summarySessionCount').textContent = REPORT_DATA.summary.sessionCount.toLocaleString();
 document.getElementById('summarySessionSub').textContent = REPORT_DATA.summary.subtaskCount ? i18nT(I18N.header.subtaskCount, { count: REPORT_DATA.summary.subtaskCount.toLocaleString() }) : '';
 document.getElementById('summaryDateRange').textContent = REPORT_DATA.summary.dateFrom + ' ~ ' + REPORT_DATA.summary.dateTo;
@@ -3441,6 +3794,16 @@ renderDonutChart();
 
 // ─── Cost-threshold slider: compute default + wire up ──────────
 (function initCostThresholdSlider() {
+  var tokenMode = REPORT_DATA.host === 'codex';
+  var calendarUsageMetrics = [];
+  if (tokenMode) (REPORT_DATA.windows || []).forEach(function(w) {
+    Object.values(w.hourlyUsageBuckets || {}).forEach(function(value) { if (value > 0) calendarUsageMetrics.push(value); });
+  });
+  calendarUsageMetrics.sort(function(a, b) { return b - a; });
+  function alertMetric(a) {
+    var t = a.tokens || {};
+    return tokenMode ? ((t.input || 0) + (t.output || 0) + (t.cc || 0) + (t.cr || 0)) : (t.cost || 0);
+  }
   // Collect all alerts that would appear on the calendar at threshold=0
   var calendarAlerts = [];
   var wins = REPORT_DATA.windows || [];
@@ -3453,18 +3816,16 @@ renderDonutChart();
       if (types.indexOf('continue-1') >= 0 || types.indexOf('continue-n') >= 0) continue;
       var isRateLimitOnly = types.every(function(t) { return t.startsWith('rate-limit-') || t === 'info'; });
       if (isRateLimitOnly) continue;
-      if (!a.tokens || typeof a.tokens.cost !== 'number') continue;
+      if (!a.tokens || (!tokenMode && typeof a.tokens.cost !== 'number')) continue;
       calendarAlerts.push(a);
     }
   }
-  calendarAlerts.sort(function(a, b) { return b.tokens.cost - a.tokens.cost; });
+  calendarAlerts.sort(function(a, b) { return alertMetric(b) - alertMetric(a); });
 
-  var def = 0.80;
-  if (calendarAlerts.length >= 100) {
-    def = Math.round(calendarAlerts[99].tokens.cost * 10) / 10;
-  }
-  if (def < 0.80) def = 0.80;
-  if (def > 10.00) def = 10.00;
+  var def = tokenMode ? 0 : 0.80;
+  if (!tokenMode && calendarAlerts.length >= 100) def = Math.round(alertMetric(calendarAlerts[99]) * 10) / 10;
+  if (!tokenMode && def < 0.80) def = 0.80;
+  if (!tokenMode && def > 10.00) def = 10.00;
   defaultCostThreshold = def;
   currentCostThreshold = def;
 
@@ -3474,14 +3835,23 @@ renderDonutChart();
   var valueEl = document.getElementById('costThresholdValue');
   var countEl = document.getElementById('costThresholdCount');
   if (slider) {
+    if (tokenMode) {
+      var maxMetric = calendarUsageMetrics.length ? calendarUsageMetrics[0] : 0;
+      slider.min = '0'; slider.max = String(maxMetric); slider.step = String(maxMetric > 0 ? maxMetric / 100 : 1);
+    }
     slider.value = String(def);
   }
-  if (valueEl) valueEl.textContent = '$' + def.toFixed(2);
+  if (valueEl) valueEl.textContent = tokenMode ? formatTokens(def) : ('$' + def.toFixed(2));
 
   function updateCostCount() {
+    if (tokenMode) {
+      var visibleCells = calendarUsageMetrics.filter(function(value) { return value >= currentCostThreshold; }).length;
+      if (countEl) countEl.textContent = '(' + visibleCells + (visibleCells === 1 ? ' hour)' : ' hours)');
+      return;
+    }
     var n = 0;
     for (var i = 0; i < calendarAlerts.length; i++) {
-      if (calendarAlerts[i].tokens.cost >= currentCostThreshold) n++;
+      if (alertMetric(calendarAlerts[i]) >= currentCostThreshold) n++;
     }
     if (countEl) {
       var tpl = (I18N.calendar && I18N.calendar.costFilterCount) || '{n} shown';
@@ -3494,7 +3864,7 @@ renderDonutChart();
   if (slider) {
     slider.addEventListener('input', function() {
       currentCostThreshold = Number(slider.value);
-      if (valueEl) valueEl.textContent = '$' + currentCostThreshold.toFixed(2);
+      if (valueEl) valueEl.textContent = tokenMode ? formatTokens(currentCostThreshold) : ('$' + currentCostThreshold.toFixed(2));
       updateCostCount();
       renderCalendar();
       if (typeof updateWindowHighlights === 'function' && selectedWindowKey) updateWindowHighlights();

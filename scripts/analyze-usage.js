@@ -48,8 +48,18 @@ const {
   getSubagentTimelinePath,
   getSubagentSummaryPath,
   migrateFromYYMM,
+  projectNameFromCwd,
 } = require("./lib/cache-paths");
 const { MODEL_PRICING, DEFAULT_PRICING, calcCost, UnknownModelError } = require("./lib/pricing");
+const { listCodexSessions, normalizeCodexTranscript } = require("./lib/codex-transcript");
+const {
+  createSessionUsageTracker,
+  deltaToUsageRow,
+  extractRateLimitSamples,
+  mergeRateLimitSamples,
+  selectLongestRateLimitLane,
+} = require("./lib/codex-usage");
+const { normalizeCodexPlan } = require("./lib/plan-info");
 
 const PRICING_JSON_PATH = path.join(__dirname, "model-pricing.json");
 const PRICING_SOURCE_URL = "https://platform.claude.com/docs/en/about-claude/pricing#model-pricing";
@@ -83,6 +93,7 @@ function parseArgs(argv) {
   let days = -1; // -1 = 1 month (default)
   let project = null; // null = all projects
   let force = false;
+  let host = "claude";
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--days" && i + 1 < args.length) {
@@ -94,10 +105,37 @@ function parseArgs(argv) {
       i++;
     } else if (args[i] === "--force") {
       force = true;
+    } else if (args[i] === "--host" && i + 1 < args.length) {
+      host = args[i + 1];
+      i++;
     }
   }
 
-  return { days, project, force };
+  return { days, project, force, host };
+}
+
+/**
+ * Shared cutoff-date math for both hosts: explicit --days N, the default
+ * "last ~1 month", or --days all (0 = no cutoff).
+ */
+function computeCutoff(opts) {
+  if (opts.days > 0) {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - opts.days);
+    return cutoff;
+  }
+  if (opts.days === -1) {
+    // Default: 1 month ago from now (exact time)
+    // Handle month boundary: 3/31 → setMonth(2) → JS makes 3/3, fix to 2/28
+    const cutoff = new Date();
+    const origDate = cutoff.getDate();
+    cutoff.setMonth(cutoff.getMonth() - 1);
+    if (cutoff.getDate() !== origDate) {
+      cutoff.setDate(0); // day 0 = last day of previous month
+    }
+    return cutoff;
+  }
+  return new Date(0); // --days 0 = all
 }
 
 function findTranscriptDirs(opts) {
@@ -760,25 +798,9 @@ function hourFloor(ts) {
 
 async function main() {
   const opts = parseArgs(process.argv);
-  let cutoff;
-  if (opts.days > 0) {
-    // Explicit --days N
-    cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - opts.days);
-  } else if (opts.days === -1) {
-    // Default: 1 month ago from now (exact time)
-    // Handle month boundary: 3/31 → setMonth(2) → JS makes 3/3, fix to 2/28
-    cutoff = new Date();
-    const origDate = cutoff.getDate();
-    cutoff.setMonth(cutoff.getMonth() - 1);
-    if (cutoff.getDate() !== origDate) {
-      // Month overflow: go to last day of previous month
-      cutoff.setDate(0); // day 0 = last day of previous month
-    }
-  } else {
-    // --days 0 = all
-    cutoff = new Date(0);
-  }
+  if (opts.host === "codex") return mainCodex(opts);
+
+  const cutoff = computeCutoff(opts);
 
   const dirs = findTranscriptDirs(opts);
   if (dirs.length === 0) {
@@ -790,6 +812,8 @@ async function main() {
           totalTokens: 0,
           sessionCount: 0,
           dateRange: { from: null, to: null },
+          host: "claude",
+          hasCostData: true,
         },
       }) + "\n",
     );
@@ -980,12 +1004,297 @@ async function main() {
       totalTokens,
       sessionCount: valid.length,
       dateRange,
+      host: "claude",
+      hasCostData: true,
     },
   };
 
   process.stdout.write(JSON.stringify(output) + "\n");
 }
 
+// ── Codex host ──────────────────────────────────────────────────────────
+//
+// Codex has no per-model pricing table in this plugin and its rollout has a
+// completely different row shape, so discovery/parsing is a parallel path
+// (reusing codex-transcript.js for normalization — never a second scanner of
+// ~/.codex/sessions — and codex-usage.js for the delta/rate-limit math).
+// But the *output* of this path is deliberately shaped to match what a
+// Claude session already looks like — same cache tree (getSessionDir/
+// getSummaryPath/getTimelinePath), same 14-column timeline.csv — so
+// build-report.js's existing discovery, CSV reader and REPORT_DATA pipeline
+// pick these sessions up with no new code on that side. A separate cache
+// namespace or CSV shape would just be a second thing for build-report.js to
+// know about; this plugin does not fork the rendering path per host.
+//
+// Field mapping (no double counting): Codex's `cached_input_tokens` is what
+// Claude calls cache READ (context reused, not paid to write); Codex's
+// `cache_write_input_tokens` is what Claude calls cache creation. Codex's
+// `input_tokens` already includes the cached portion, so the CSV's `input`
+// column carries `noncachedInput` (input minus cached), matching Claude's
+// own `input` column, which is also "fresh" input excluding cache columns.
+// `reasoning_output_tokens` is a detail of `output_tokens` and is not added
+// to any column separately — it would double it.
+//
+// Cost is written as 0, never as an empty/NaN field — a numeric column that
+// silently parses as 0 is safe arithmetic, but it must never be *displayed*
+// as a real $0.00. That distinction is enforced downstream in
+// build-report.js via `summary.hasCostData`/`REPORT_DATA.host`, not here.
+
+const CODEX_CACHE_VERSION = 3;
+
+function selectCanonicalRateLimits(samples) {
+  const ranked = (samples || []).filter((s) => s.limitId === "codex").slice().sort((a, b) => {
+    const at = Date.parse(a.ts); const bt = Date.parse(b.ts);
+    const av = Number.isFinite(at); const bv = Number.isFinite(bt);
+    if (av !== bv) return av ? -1 : 1;
+    if (av && at !== bt) return bt - at;
+    const lineDiff = (Number(b.line) || -1) - (Number(a.line) || -1);
+    if (lineDiff) return lineDiff;
+    return String(a.sessionId || "").localeCompare(String(b.sessionId || ""));
+  });
+  const pick = (lane) => {
+    const s = ranked.find((sample) => sample.lane === lane);
+    return s ? { limitId: "codex", lane, usedPercent: s.usedPercent ?? null, windowMinutes: s.windowMinutes ?? null, resetsAt: s.resetsAt ?? null, ts: s.ts ?? null } : null;
+  };
+  return { limitId: "codex", primary: pick("primary"), secondary: pick("secondary") };
+}
+
+function isCodexCacheValid(cachePath, transcriptMtime) {
+  try {
+    const cacheStat = fs.statSync(cachePath);
+    if (cacheStat.mtime < transcriptMtime) return false;
+    const data = JSON.parse(fs.readFileSync(cachePath, "utf8"));
+    // The `host` check matters even though Codex/Claude session ids are
+    // drawn from unrelated UUID spaces: without it, a stale Claude cache
+    // entry that happened to share a path would be misread as a valid
+    // (empty-looking) Codex summary instead of triggering re-analysis.
+    return data.host === "codex" && data.cacheVersion === CODEX_CACHE_VERSION;
+  } catch {
+    return false;
+  }
+}
+
+function writeCodexCache(summaryPath, timelinePath, data) {
+  try {
+    fs.mkdirSync(path.dirname(summaryPath), { recursive: true });
+    fs.mkdirSync(path.dirname(timelinePath), { recursive: true });
+    const { timeline, ...metadata } = data;
+    metadata.cacheVersion = CODEX_CACHE_VERSION;
+    writeFileAtomic(summaryPath, JSON.stringify(metadata));
+
+    // Same 14 columns analyze-usage.js writes for Claude sessions (see
+    // writeCache above) so build-report.js's readTimelineCsv() needs no
+    // Codex-specific branch. cc5m has no Codex equivalent (one cache tier,
+    // not two) and stays 0; the whole write goes into cc/cc1h.
+    const header = "ts,model,input,cc,cc5m,cc1h,cr,out,cost,win,rl,evt,line,req";
+    const lines = [header];
+    let prevModel = null;
+    for (const e of timeline) {
+      const ts = Math.floor(new Date(e.ts).getTime() / 1000) || "";
+      const model = e.model !== prevModel ? (e.model || "") : "";
+      if (e.model) prevModel = e.model;
+      lines.push([
+        ts, model,
+        e.noncachedInput, e.cacheWrite, 0, e.cacheWrite, e.cachedInput, e.output,
+        0, // cost: always a safe 0, never NaN — "unknown" is a host-level fact, not a per-row one
+        "", "", "",
+        e.line, "",
+      ].join(","));
+    }
+    writeFileAtomic(timelinePath, lines.join("\n") + "\n");
+  } catch (err) {
+    process.stderr.write(`Warning: failed to write Codex cache: ${err.message}\n`);
+  }
+}
+
+/**
+ * Read one normalized Codex session and derive its usage timeline.
+ * `meta` is the entry from listCodexSessions() (sessionId, cwd, path, mtime, ...).
+ */
+async function analyzeCodexSession(meta) {
+  const normalizedPath = normalizeCodexTranscript(meta.path, meta);
+  const stream = fs.createReadStream(normalizedPath, { encoding: "utf-8" });
+  const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
+
+  const tracker = createSessionUsageTracker();
+  const timeline = [];
+  const rateLimitSamples = [];
+  let firstTs = null;
+  let lastTs = null;
+  let firstUserMsg = null;
+  let lastUserMsg = null;
+  let userMsgs = 0;
+  let asstMsgs = 0;
+  let curModel = null; // set prospectively by codex_turn_context, applied to rows that follow
+  let curPlan = null; // { key, raw } — plan_type is expected constant per session but tracked prospectively like model
+  const modelCounts = {};
+  let lineNum = 0;
+
+  for await (const line of rl) {
+    lineNum++;
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    let obj;
+    try {
+      obj = JSON.parse(trimmed);
+    } catch {
+      continue;
+    }
+    if (obj.timestamp) {
+      if (!firstTs) firstTs = obj.timestamp;
+      lastTs = obj.timestamp;
+    }
+
+    if (obj.type === "user" && !obj.isMeta) {
+      userMsgs++;
+      const text = obj.message && obj.message.content && obj.message.content[0] && obj.message.content[0].text;
+      if (text) {
+        if (!firstUserMsg) firstUserMsg = text.slice(0, 80);
+        lastUserMsg = text.slice(0, 80);
+      }
+      continue;
+    }
+    if (obj.type === "assistant") { asstMsgs++; continue; }
+
+    if (obj.type === "codex_turn_context") {
+      if (obj.model) curModel = obj.model;
+      continue;
+    }
+
+    if (obj.type !== "codex_token_count") continue;
+
+    const { delta, diagnostic } = tracker.ingest(obj.totalTokenUsage, obj.lastTokenUsage);
+    const { row, diagnostics } = deltaToUsageRow(delta);
+    if (diagnostic) diagnostics.push(diagnostic);
+
+    if (curModel) modelCounts[curModel] = (modelCounts[curModel] || 0) + 1;
+    timeline.push({ ts: obj.timestamp, line: lineNum, model: curModel, ...row, diagnostics });
+
+    if (obj.rateLimits) {
+      if (obj.rateLimits.plan_type) curPlan = normalizeCodexPlan(obj.rateLimits.plan_type);
+      const samples = extractRateLimitSamples(obj.rateLimits, meta.sessionId, lineNum, obj.timestamp, curPlan ? curPlan.key : null);
+      rateLimitSamples.push(...samples);
+    }
+  }
+
+  const totals = timeline.reduce((acc, e) => {
+    acc.input += e.input; acc.cachedInput += e.cachedInput; acc.noncachedInput += e.noncachedInput;
+    acc.cacheWrite += e.cacheWrite; acc.output += e.output; acc.reasoningOutput += e.reasoningOutput; acc.total += e.total;
+    return acc;
+  }, { input: 0, cachedInput: 0, noncachedInput: 0, cacheWrite: 0, output: 0, reasoningOutput: 0, total: 0 });
+
+  const primaryModel = Object.entries(modelCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+
+  return {
+    sessionId: meta.sessionId,
+    isSubagent: meta.isSubagent === true,
+    threadId: meta.threadId || meta.sessionId,
+    agent: meta.agent || null,
+    host: "codex",
+    filePath: meta.path,
+    cwd: meta.cwd,
+    firstTs,
+    lastTs,
+    firstUserMsg,
+    lastUserMsg,
+    userMsgs,
+    asstMsgs,
+    model: primaryModel,
+    plan: curPlan,
+    // Claude-shaped view — this is what build-report.js's existing pipeline
+    // (tokenBreakdown, windows, calendar) actually reads.
+    tokens: {
+      input: totals.noncachedInput,
+      cacheCreation: totals.cacheWrite,
+      cacheCreate5m: 0,
+      cacheCreate1h: totals.cacheWrite,
+      cacheRead: totals.cachedInput,
+      output: totals.output,
+    },
+    // Codex-native totals, kept for anything that wants the authoritative
+    // numbers (e.g. summary.totalTokens uses `total`, not a re-sum of the
+    // mapped columns above, to avoid double-counting cached/reasoning).
+    tokensCodex: totals,
+    costUSD: 0,
+    reqEntries: [],
+    timeline,
+    rateLimitSamples,
+  };
+}
+
+async function mainCodex(opts) {
+  const cutoff = computeCutoff(opts);
+  // Codex sessions are scoped by session_meta.cwd, not by a hashed projectName
+  // directory — --project (a hashed name, e.g. -Users-foo-bar) can't be
+  // inverted back into the literal cwd, so list everything and filter by the
+  // same projectNameFromCwd() hash both hosts already share.
+  const allSessions = listCodexSessions(null, { includeSubagents: true });
+  const sessions = opts.project
+    ? allSessions.filter((m) => projectNameFromCwd(m.cwd || "unknown") === opts.project)
+    : allSessions;
+
+  fs.mkdirSync(CACHE_DIR, { recursive: true });
+
+  const results = [];
+  let allRateLimitSamples = [];
+  for (const meta of sessions) {
+    if (meta.mtime < cutoff) continue;
+    const projectName = projectNameFromCwd(meta.cwd || "unknown");
+    const summaryPath = getSummaryPath(projectName, meta.sessionId);
+    const timelinePath = getTimelinePath(projectName, meta.sessionId);
+
+    if (!opts.force && isCodexCacheValid(summaryPath, meta.mtime)) {
+      try {
+        const cached = JSON.parse(fs.readFileSync(summaryPath, "utf8"));
+        results.push(cached);
+        allRateLimitSamples.push(...(cached.rateLimitSamples || []));
+        continue;
+      } catch {}
+    }
+
+    const result = await analyzeCodexSession(meta);
+    writeCodexCache(summaryPath, timelinePath, result);
+    const { timeline, ...metadata } = result;
+    results.push(metadata);
+    allRateLimitSamples.push(...result.rateLimitSamples);
+  }
+
+  const mergedSamples = mergeRateLimitSamples(allRateLimitSamples, "codex");
+  const canonicalRateLimits = selectCanonicalRateLimits(mergedSamples);
+
+  const valid = results
+    .filter((s) => s.firstTs && s.lastTs && new Date(s.firstTs) >= cutoff)
+    .sort((a, b) => new Date(b.firstTs) - new Date(a.firstTs));
+
+  const totalTokens = valid.reduce((s, x) => s + (x.tokensCodex ? x.tokensCodex.total : 0), 0);
+  const dates = valid.filter((s) => s.firstTs).flatMap((s) => [s.firstTs, s.lastTs]).sort();
+  const dateRange = dates.length > 0 ? { from: dates[0], to: dates[dates.length - 1] } : { from: null, to: null };
+
+  const canonicalWindow = selectLongestRateLimitLane(canonicalRateLimits);
+  const windowMinutes = canonicalWindow ? Number(canonicalWindow.windowMinutes) : 60;
+  const windowSource = canonicalWindow ? "canonical_rate_limit" : "analytics_fallback";
+
+  const subtaskCount = valid.filter((s) => s.isSubagent).length;
+  const mainSessionCount = valid.length - subtaskCount;
+  const output = {
+    sessions: valid,
+    rateLimitSamples: mergedSamples.map((s) => ({ ...s, mergedSessions: s.mergedSessions ? [...s.mergedSessions] : undefined })),
+    canonicalRateLimits,
+    windowSource,
+    summary: {
+      totalTokens,
+      sessionCount: mainSessionCount,
+      subtaskCount,
+      dateRange,
+      host: "codex",
+      costKnownUSD: null,
+      hasCostData: false,
+      windowMinutes,
+    },
+  };
+
+  process.stdout.write(JSON.stringify(output) + "\n");
+}
 
 main().catch((err) => {
   process.stderr.write(`Error: ${err.message}\n`);

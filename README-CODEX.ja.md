@@ -74,7 +74,7 @@ rollout を指す `L{n}` と応答行の範囲が残るため、短縮された�
 
 ## 対応しないこと
 
-`usage-view` と `report-limit` は今のところ Claude Code 専用である。Codex もロールアウトにターンごとのトークン数とレート制限をそのまま記録しているため、これは移植がまだ済んでいないだけで、できないわけではない。`setup-statusline` は事情が異なる。Codex には独自のステータスラインがあり、`config.toml` の `status_line` で設定する。
+`usage-view` は Codex のセッションも読む。Codex のサブスクリプションはトークン単位ではなく購入したクレジットで課金されるため、金額ではそのセッションが使ったクレジット換算値を示す。`report-limit` は今のところ Claude Code 専用である。Codex もロールアウトにレート制限をそのまま記録しているため、これは移植がまだ済んでいないだけで、できないわけではない。`setup-statusline` は事情が異なる。Codex には独自のステータスラインがあり、`config.toml` の `status_line` で設定する。
 
 ## ライセンス
 

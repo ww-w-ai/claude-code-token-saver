@@ -33,7 +33,12 @@ const CODEX_ROOTS = [
 ];
 const NORMALIZED_ROOT = path.join(CACHE_BASE, ".codex-normalized");
 const INDEX_PATH = path.join(NORMALIZED_ROOT, "index.json");
-const NORMALIZED_FORMAT_VERSION = 2;
+// v3: turn_context (model) and event_msg/token_count (usage + rate_limits)
+// rows are now translated into host-neutral `codex_turn_context` /
+// `codex_token_count` rows instead of being dropped as codex_skip, so the
+// usage-view port can consume them. Bumping this forces every previously
+// normalized file to be rewritten — a v2 file has neither row type.
+const NORMALIZED_FORMAT_VERSION = 3;
 
 // A Codex turn opens with injected context the user never typed. Marking these
 // `isMeta` is how CC's own reader already signals "not a genuine user turn",
@@ -200,6 +205,16 @@ function translateRow(row, meta) {
   if (row.type === "compacted") {
     return { type: "system", subtype: "compact_boundary", compactMetadata: { trigger: "auto" }, timestamp: ts };
   }
+  // The model id never rides on the usage row (see CODEX-PORT-BACKLOG.md) —
+  // it is only on `turn_context`. Emitted as its own host-neutral row so the
+  // usage-view analyzer can apply it prospectively to the token_count rows
+  // that follow, the same way it tracks curModel over a Claude timeline.
+  if (row.type === "turn_context") {
+    const p = row.payload || {};
+    if (!p.model) return null;
+    return { type: "codex_turn_context", timestamp: ts, model: p.model };
+  }
+
   if (row.type === "event_msg") {
     const p = row.payload || {};
     if (p.type === "context_compacted") {
@@ -207,6 +222,21 @@ function translateRow(row, meta) {
     }
     if (p.type === "thread_rolled_back") {
       return { type: "system", subtype: "compact_boundary", compactMetadata: { trigger: "manual" }, timestamp: ts };
+    }
+    // `total_token_usage` is a running total per turn and `last_token_usage`
+    // is this turn's own delta — both are carried through untouched. Deciding
+    // which one the analyzer trusts (and how it clamps/resets) lives in
+    // codex-usage.js, not here: this module only normalizes shape.
+    if (p.type === "token_count") {
+      return {
+        type: "codex_token_count",
+        timestamp: ts,
+        sessionId: meta.sessionId,
+        totalTokenUsage: (p.info && p.info.total_token_usage) || null,
+        lastTokenUsage: (p.info && p.info.last_token_usage) || null,
+        modelContextWindow: (p.info && p.info.model_context_window) || null,
+        rateLimits: p.rate_limits || null,
+      };
     }
     return null;
   }
@@ -236,15 +266,26 @@ function translateRow(row, meta) {
  * Returns the normalized path. Reuses an existing file when it is newer than
  * the source.
  */
+function normalizedMetaPathFor(dest) {
+  return dest + ".meta.json";
+}
+
 function normalizeCodexTranscript(srcPath, meta) {
   const resolved = meta || readSessionMeta(srcPath);
   if (!resolved) throw new Error(`Not a Codex transcript: ${srcPath}`);
   const dest = normalizedPathFor(resolved.cwd, resolved.sessionId);
+  const metaPath = normalizedMetaPathFor(dest);
 
   try {
     const srcStat = fs.statSync(srcPath);
     const destStat = fs.statSync(dest);
-    if (destStat.mtimeMs >= srcStat.mtimeMs) return dest;
+    // The per-session file carries its own format-version stamp (a sidecar,
+    // not a header line — a header would shift every line number by one and
+    // break the L{n}-points-at-the-original invariant). Without this check a
+    // stale v2 file (no codex_turn_context/codex_token_count rows) would be
+    // reused forever just because its mtime is newer than the source.
+    const stamp = JSON.parse(fs.readFileSync(metaPath, "utf8"));
+    if (stamp.version === NORMALIZED_FORMAT_VERSION && destStat.mtimeMs >= srcStat.mtimeMs) return dest;
   } catch {}
 
   const raw = fs.readFileSync(srcPath, "utf8");
@@ -265,6 +306,7 @@ function normalizeCodexTranscript(srcPath, meta) {
 
   fs.mkdirSync(path.dirname(dest), { recursive: true });
   fs.writeFileSync(dest, out.join("\n") + "\n");
+  fs.writeFileSync(metaPath, JSON.stringify({ version: NORMALIZED_FORMAT_VERSION }));
   return dest;
 }
 

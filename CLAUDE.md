@@ -70,8 +70,17 @@ field, Claude Code's is absent from the union — so neither host may be moved t
 hook call it. It used to be an inline Python block inside `SKILL.md`, which the hook could only
 copy, and the copy drifted. Never reinstate a second copy in either caller.
 
-- **Only `s-continue` and `s-compact` are dual-host.** `usage-view`, `report-limit` and
-  `setup-statusline` read Claude Code's own billing/rate-limit records and stay single-host.
+- **`s-continue`, `s-compact` and `usage-view` are dual-host.** `usage-view --host codex` reuses
+  `scripts/lib/codex-transcript.js` for discovery/normalization and `scripts/lib/codex-usage.js` for
+  the token-delta/rate-limit math, then renders through the **same** `build-report.js` →
+  `skills/usage-view/template.html` pipeline Claude Code uses — Codex sessions land in the same cache
+  tree and CSV shape (tagged `host: "codex"` in `summary.json`), so no second discovery path or
+  template exists. `build-report.js` gates the handful of genuinely host-specific spots — cost math
+  (`ratesFor()`, all-zero for Codex so `model-pricing.json`'s Anthropic rates never touch a Codex
+  token count), the rate-limit window length (`WINDOW_SECONDS`, dynamic per Codex's own
+  `rate_limits.primary.window_minutes` instead of the fixed 5h `FIVE_HOURS_S`), and plan resolution
+  (`CODEX_PLAN_INFO`). `report-limit` and `setup-statusline` still read Claude Code's own
+  billing/rate-limit records and stay single-host.
 - **A dual-host skill must not hardcode one host's plugin root.** Claude Code exports
   `CLAUDE_PLUGIN_ROOT`; Codex does not reliably export `CODEX_PLUGIN_ROOT`. Use
   `PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT}}"`, falling back to the skill's own

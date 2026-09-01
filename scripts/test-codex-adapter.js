@@ -65,11 +65,12 @@ const body = [
   msg("developer", "<skills_instructions>internal</skills_instructions>", "2026-01-01T00:00:01Z"),
   msg("user", "# AGENTS.md instructions\nglobal rules", "2026-01-01T00:00:02Z"),
   msg("user", "port the reader to rust", "2026-01-01T00:00:03Z"),
-  row({ timestamp: "2026-01-01T00:00:04Z", type: "event_msg", payload: { type: "token_count", total: 10 } }),
+  row({ timestamp: "2026-01-01T00:00:04Z", type: "event_msg", payload: { type: "token_count", info: { total_token_usage: { input_tokens: 10, total_tokens: 10 } } } }),
   msg("assistant", "starting the port", "2026-01-01T00:00:05Z"),
   row({ timestamp: "2026-01-01T00:00:06Z", type: "compacted", payload: {} }),
   msg("user", "keep going", "2026-01-01T00:00:07Z"),
   row({ timestamp: "2026-01-01T00:00:08Z", type: "event_msg", payload: { type: "thread_rolled_back" } }),
+  row({ timestamp: "2026-01-01T00:00:09Z", type: "event_msg", payload: { type: "some_other_event" } }),
   "",                                   // blank line
   "{ not json",                          // malformed line
 ];
@@ -90,12 +91,13 @@ check("developer message dropped", parsed[1].type, "codex_skip");
 check("injected AGENTS.md marked meta", [parsed[2].type, parsed[2].isMeta], ["user", true]);
 check("typed user turn carried", () => parsed[3].message.content[0].text, "port the reader to rust");
 check("typed user turn is not meta", parsed[3].isMeta, undefined);
-check("non-message event dropped", parsed[4].type, "codex_skip");
+check("token_count is translated, not dropped (usage-view needs it)", () => [parsed[4].type, parsed[4].totalTokenUsage.total_tokens], ["codex_token_count", 10]);
 check("assistant turn carried", () => [parsed[5].type, parsed[5].message.role], ["assistant", "assistant"]);
 check("compaction becomes a compact_boundary", () => [parsed[6].type, parsed[6].subtype, parsed[6].compactMetadata.trigger], ["system", "compact_boundary", "auto"]);
 check("rollback becomes a manual boundary", () => [parsed[8].type, parsed[8].compactMetadata.trigger], ["system", "manual"]);
-check("blank line kept as placeholder", parsed[9].type, "codex_skip");
-check("malformed line kept as placeholder", parsed[10].type, "codex_skip");
+check("an unrecognized event_msg type is still dropped", parsed[9].type, "codex_skip");
+check("blank line kept as placeholder", parsed[10].type, "codex_skip");
+check("malformed line kept as placeholder", parsed[11].type, "codex_skip");
 
 // --- subagent rollout -----------------------------------------------------
 const subPath = writeRollout("rollout-sub.jsonl", {

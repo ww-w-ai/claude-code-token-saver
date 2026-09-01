@@ -187,7 +187,7 @@ Codex는 세션을 `~/.codex/sessions/`에 쓰고, Claude Code는 `~/.claude/pro
 
 정확한 목록과 그럴듯해 보이지만 틀린 목록을 가르는 것은 이 두 가지입니다. Codex의 `session_id`는 서브에이전트가 그대로 물려받는 **스레드** id라서, 세션은 `payload.id`로 구분하고 서브에이전트의 rollout은 Claude Code가 subtask 트랜스크립트를 걸러내는 것과 같은 방식으로 제외합니다. 그리고 `<codex_internal_context source="goal">`는 시스템이 주입한 것이라 복원된 컨텍스트에는 남지만 사용자가 입력한 턴으로는 세지 않습니다.
 
-이 플러그인은 Codex에도 설치됩니다 — **[README-CODEX.md](./README-CODEX.md)** ([한국어](./README-CODEX.ko.md) · [日本語](./README-CODEX.ja.md) · [简体中文](./README-CODEX.zh-Hans.md))를 참고하세요. `usage-view`, `report-limit`, `setup-statusline`은 아직 Claude Code 전용입니다.
+이 플러그인은 Codex에도 설치됩니다 — **[README-CODEX.md](./README-CODEX.md)** ([한국어](./README-CODEX.ko.md) · [日本語](./README-CODEX.ja.md) · [简体中文](./README-CODEX.zh-Hans.md))를 참고하세요. `usage-view`는 Codex 세션도 읽습니다 — 비용은 구매 크레딧으로 환산해 보여줍니다. `report-limit`과 `setup-statusline`은 아직 Claude Code 전용입니다.
 
 ---
 

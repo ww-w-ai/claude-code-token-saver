@@ -74,7 +74,7 @@ codex plugin marketplace upgrade ww-w-ai
 
 ## 이 플러그인이 하지 않는 것
 
-`usage-view` 와 `report-limit` 은 아직 Claude Code 전용이다. Codex 도 롤아웃에 턴별 토큰 수와 요율 한도를 그대로 남기므로, 못 하는 것이 아니라 아직 포팅하지 않은 것이다. `setup-statusline` 은 사정이 다르다. Codex 에는 이미 자체 상태줄이 있고 `config.toml` 의 `status_line` 으로 설정한다.
+`usage-view` 는 Codex 세션도 읽는다. Codex 구독은 토큰이 아니라 구매한 크레딧으로 청구되므로, 달러 청구액이 아니라 그 세션이 쓴 크레딧 환산값을 보여준다. `report-limit` 은 아직 Claude Code 전용이다 — Codex 도 롤아웃에 요율 한도를 그대로 남기므로, 못 하는 것이 아니라 아직 포팅하지 않은 것이다. `setup-statusline` 은 사정이 다르다. Codex 에는 이미 자체 상태줄이 있고 `config.toml` 의 `status_line` 으로 설정한다.
 
 ## 라이선스
 

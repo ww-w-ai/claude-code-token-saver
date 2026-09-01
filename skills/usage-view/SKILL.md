@@ -1,13 +1,17 @@
 ---
 name: usage-view
-description: 'Know exactly what you spent. Interactive HTML dashboard with cost breakdown, token usage, and 5-hour window timeline across all sessions'
-when_to_use: Use when user wants to see token usage, cost breakdown, or 5-hour window timeline. Triggers on "usage view", "usage dashboard", "show usage", "usage report".
-host: claude-code
+description: 'Know exactly what you spent (Claude Code) or how much of your Codex limit you have used (Codex). Interactive HTML dashboard with token usage and, on Claude Code, cost breakdown and 5-hour window timeline across all sessions'
+when_to_use: Use when user wants to see token usage, cost breakdown, or usage/rate-limit timeline. Triggers on "usage view", "usage dashboard", "show usage", "usage report".
+host: dual
 ---
 
-> Claude Code only **today**. Codex records the same facts in its rollouts (`event_msg/token_count`), so this is a port that has not been done yet, not a limitation — see `docs/CODEX-PORT-BACKLOG.md`.
+Dual-host: Claude Code and Codex both write the facts this dashboard needs, but not the same facts. Claude Code gives cost and a hardcoded 5-hour window; Codex gives `rate_limits.primary`/`secondary` — a used-percent and a reset instant with a **dynamic, host-reported window** (observed as 10080 minutes / 7 days, never assumed to be 5 hours) — and no per-token pricing at all. Detect the host you are running under and act accordingly:
 
-Parse user arguments, then launch a **single background Agent** that runs the entire pipeline (analyze → AI insights → build → open browser). The user can continue working while the dashboard is being generated.
+- **Claude Code**: run the full pipeline below unmodified (cost, 5-hour window, AI insights, 23-locale HTML).
+- **Codex**: run `node ${PLUGIN_ROOT}/scripts/run-usage-view.js --gen-agent-prompt --host codex [parsed flags]`. It uses the same default AI-analysis pipeline and the same explicit `ai` / `no ai` options as Claude Code. This renders the **same dashboard** (`skills/usage-view/template.html` via `build-report.js`) — token breakdown, calendar, session detail — not a separate report. Cost figures read **N/A**, not $0 or a Claude-derived estimate, and the calendar follows Codex's reported rate-limit lane instead of assuming a fixed 5 hours.
+- A dual-host skill must not hardcode one host's plugin root. Claude Code exports `CLAUDE_PLUGIN_ROOT`; Codex does not reliably export `CODEX_PLUGIN_ROOT`. Resolve `PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT}}"`, falling back to this skill's own directory if both are unset.
+
+Parse user arguments, then launch a **single background Agent** that runs the entire pipeline (analyze → AI insights unless `no ai` was selected → build → open browser). The user can continue working while the dashboard is being generated.
 
 ## Help
 
@@ -69,7 +73,7 @@ Users may provide these in natural language. Parse and map to script flags.
 
 ### Plan parameter
 
-If the user does NOT provide a plan, ask before launching:
+**On Claude Code**, if the user does NOT provide a plan, ask before launching:
 
 > What's your current Claude plan?
 >
@@ -91,13 +95,37 @@ Map user input to `--plan` values: 1=pro, 2=max100, 3=max200, 4=team, 5=team_pre
 
 If the user doesn't know or skips, run without `--plan`.
 
+**On Codex**, the plan is normally read straight off `rate_limits.plan_type` in the transcript — do not ask unless that field was absent. If asked, offer the order Codex itself uses (`codex-rs/protocol/src/account.rs`):
+
+> | # | Plan |
+> |---|------|
+> | 1 | Free |
+> | 2 | Go |
+> | 3 | Plus |
+> | 4 | Pro |
+> | 5 | Pro Lite |
+> | 6 | Team |
+> | 7 | Business (usage-based, self-serve) |
+> | 8 | Business |
+> | 9 | Enterprise (usage-based) |
+> | 10 | Enterprise |
+> | 11 | Edu |
+>
+> Enter number or name (e.g. "2" or "go"):
+
+Map to `--plan` values by the same order (1=free … 11=edu). A `plan_type` this list doesn't recognize is still shown as-is, never collapsed to the literal word "unknown".
+
 ## Launch: Background Agent
 
 Launch a **single background Agent** (run_in_background: true). Tell the user: "Usage dashboard is being generated in the background. You can continue working — the browser will open automatically when ready."
 
-The agent prompt should be exactly this (replace `[parsed flags]` with the actual flags parsed from user args):
+On Claude Code, the agent prompt should be exactly this (replace `[parsed flags]` with the actual flags parsed from user args):
 
-"Run `node ${CLAUDE_PLUGIN_ROOT}/scripts/run-usage-view.js --gen-agent-prompt [parsed flags] 2>/dev/null`, parse the JSON output to get `agentPromptFile`, then Read that file and follow the instructions exactly. Output ONLY the final summary at the very end: scope, file path, sessions analyzed, date range, total cost."
+"Resolve `PLUGIN_ROOT` as `\"${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT}}\"`, falling back to this skill's own directory if both are empty — never assume `CLAUDE_PLUGIN_ROOT` is set. Run `node "$PLUGIN_ROOT"/scripts/run-usage-view.js --gen-agent-prompt [parsed flags] 2>/dev/null`, parse the JSON output to get `agentPromptFile`, then Read that file and follow the instructions exactly. Output ONLY the final summary at the very end: scope, file path, sessions analyzed, date range, total cost."
+
+On Codex, use the same AI-analysis pipeline and user options as Claude Code. The agent prompt should be exactly this:
+
+"Resolve `PLUGIN_ROOT` from `CODEX_PLUGIN_ROOT`, falling back to this skill's own directory if empty. Run `node "$PLUGIN_ROOT"/scripts/run-usage-view.js --gen-agent-prompt --host codex [parsed flags] 2>/dev/null`, parse the JSON output to get `agentPromptFile`, then Read that file and follow the instructions exactly. Output ONLY the final summary at the very end: scope, file path, sessions analyzed, date range, total cost."
 
 ---
 
@@ -110,7 +138,7 @@ Usage dashboard is being generated in the background. Browser will open automati
 You can continue working.
 ```
 
-When the background agent completes, report:
+When the background agent completes, report the host-appropriate cost and window labels:
 
 ```
 Usage dashboard opened in browser.
@@ -119,11 +147,11 @@ Usage dashboard opened in browser.
 - File: {path}
 - Sessions analyzed: {N}
 - Date range: {from} ~ {to}
-- Total cost: ${total}
+- Total cost: ${total OR "N/A — Codex subscription usage is not per-token billing"}
 
 The HTML file is self-contained -- you can share it or re-open it anytime.
 💡 Tip: `/usage-view no ai` — skip AI analysis for a faster dashboard (no LLM cost).
-💡 Tip: `/usage-view current` — quick snapshot of your 5H window (no AI by default). Add "ai" to include analysis.
+💡 Tip: `/usage-view current` — quick snapshot (Claude: 5H window; Codex: latest host-reported windows).
 ```
 
 ## Important Notes
@@ -136,4 +164,5 @@ The HTML file is self-contained -- you can share it or re-open it anytime.
 6. **Self-contained HTML**: The output file works standalone -- inline CSS/JS, CDN for Chart.js, no external dependencies.
 7. **stderr**: The analyze script writes progress to stderr. Always use `2>/dev/null` when redirecting stdout to a file, never `2>&1`. Exception: Tool Call 1 in the background agent captures stderr to a logfile so `ERROR:UNKNOWN_MODEL` (exit code 2) can be inspected on failure.
 8. **Runner script**: `scripts/run-usage-view.js` consolidates all deterministic steps. The agent should NEVER run analyze-usage.js or build-report.js directly.
-9. **Unknown model handling**: When `scripts/analyze-usage.js` encounters a model missing from `scripts/model-pricing.json`, it fails fast with exit code 2 and emits `ERROR:UNKNOWN_MODEL` on stderr. The background agent handles this inline — WebFetch the Anthropic pricing page, Edit the JSON with exact values (no guessing), and re-run Tool Call 1. If the page lacks required fields, the agent guides the user to update the plugin instead of patching with derived values. Full procedure lives in `agent-prompt-template.txt` Tool Call 1.
+9. **Unknown model handling**: When `scripts/analyze-usage.js` encounters a model missing from `scripts/model-pricing.json`, it fails fast with exit code 2 and emits `ERROR:UNKNOWN_MODEL` on stderr. The background agent handles this inline — WebFetch the Anthropic pricing page, Edit the JSON with exact values (no guessing), and re-run Tool Call 1. If the page lacks required fields, the agent guides the user to update the plugin instead of patching with derived values. Full procedure lives in `agent-prompt-template.txt` Tool Call 1. **This entire step is Claude Code-only** — Codex has no pricing table to be missing from, so `--host codex` never hits `ERROR:UNKNOWN_MODEL`; its cost column is unconditionally N/A.
+10. **Codex path**: `--host codex` reuses `scripts/lib/codex-transcript.js` for discovery/normalization and renders through the **same** `build-report.js` → `skills/usage-view/template.html` and AI-analysis pipeline Claude Code uses. Codex sessions use the same cache tree and CSV shape. Host-specific prompt substitutions cover tokens, actual model IDs, subscription allowance, cache-creation billing notes, and observed rate-limit lanes. `no ai` is optional and is never forced merely because the host is Codex.

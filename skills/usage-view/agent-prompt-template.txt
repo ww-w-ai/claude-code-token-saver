@@ -34,6 +34,8 @@ Write to: AI_DATA_FILE = `{{TMPDIR}}/cc-ai-data-{{LOCALE}}-{timestamp}.json` (us
 
 AI analysis instructions (apply after reading the prompt data):
 
+{{HOST_INSTRUCTIONS}}
+
 ## CRITICAL RULES
 1. NEVER invent or modify numbers. Use ONLY the exact values from the data file. Copy-paste numbers directly.
 2. Every 3-4 sentences, insert a blank line (\n\n) to form a new paragraph for readability.

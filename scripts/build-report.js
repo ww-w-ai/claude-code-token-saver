@@ -58,15 +58,21 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const crypto = require('crypto');
 const { buildGlobalWindowMap, buildGlobalTsMapper, FIVE_HOURS_S } = require('./lib/window-utils');
 const { listProjects, listSessions, listSubagents, getTimelinePath, getSummaryPath, getRatelimitPath, getSubagentTimelinePath, getSubagentSummaryPath, getCompactPath, migrateFromYYMM, CACHE_BASE: CACHE_DIR } = require('./lib/cache-paths');
-const { PLAN_INFO: PLAN_INFO_ALL } = require('./lib/plan-info');
+const { PLAN_INFO: PLAN_INFO_ALL, CODEX_PLAN_INFO, resolveCodexPlanChoice } = require('./lib/plan-info');
 const { round2 } = require('./lib/format');
 const { SUPPORTED_LOCALES, resolveLocale } = require('./lib/locale');
 const { MODEL_PRICING, DEFAULT_PRICING, getRates } = require('./lib/pricing');
+const { selectLongestRateLimitLane, clusterUsagePointsByModel, computeCodexCreditEquivalent } = require('./lib/codex-usage');
 const _subagentSep = /[/\\]subagents[/\\]/;
+function isSubagentSession(session) {
+  return !!(session && (session.isSubagent === true || (session.filePath && _subagentSep.test(session.filePath))));
+}
 const TEMPLATE_PATH = path.join(__dirname, '..', 'skills', 'usage-view', 'template.html');
 const LOCALES_DIR = path.join(__dirname, '..', 'locales');
+const CODEX_CREDIT_PRICING_PATH = path.join(__dirname, 'codex-credit-pricing.json');
 
 // ── Cost thresholds (used in alerts + AI prompt) ────────────────
 const TURN_COST_WARN = 0.80;   // per-user-turn cost warning
@@ -75,7 +81,7 @@ const DEFAULT_COST_FILTER = 0.80; // calendar detail panel default filter
 
 // ── Args ────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
-let dataPath = null, outputPath = null, currentMode = false, aiDataPath = null, exportPromptPath = null, exportDataPath = null, importDataPath = null, localeArg = null, planArg = null, projectFilter = null, privateMode = false;
+let dataPath = null, outputPath = null, currentMode = false, aiDataPath = null, exportPromptPath = null, exportDataPath = null, importDataPath = null, localeArg = null, planArg = null, projectFilter = null, privateMode = false, hostArg = 'claude';
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--data' && args[i + 1]) { dataPath = args[++i]; }
   else if (args[i] === '--output' && args[i + 1]) { outputPath = args[++i]; }
@@ -88,7 +94,29 @@ for (let i = 0; i < args.length; i++) {
   else if (args[i] === '--plan' && args[i + 1]) { planArg = args[++i]; }
   else if (args[i] === '--project' && args[i + 1]) { projectFilter = args[++i]; }
   else if (args[i] === '--private') { privateMode = true; }
+  else if (args[i] === '--host' && args[i + 1]) { hostArg = args[++i]; }
 }
+
+// Codex has no pricing table and no fixed 5h window — everything else
+// (charts, calendar, session detail, i18n, privacy mode) is the same
+// pipeline and the same template.html as Claude Code. `isCodex` gates only
+// the handful of spots below that are genuinely host-specific: skip
+// Anthropic-pricing math, use a dynamic rate-limit window instead of
+// FIVE_HOURS_S, and mark cost as absent rather than zero in REPORT_DATA.
+const isCodex = hostArg === 'codex';
+
+// Every cost figure in this file is computed by multiplying raw token counts
+// by getRates(model) — Codex model ids (e.g. "gpt-5.6-sol") aren't in
+// MODEL_PRICING, so getRates() would silently fall back to DEFAULT_PRICING
+// (Anthropic rates) and multiply real Codex token counts by them, fabricating
+// a dollar figure the contract explicitly forbids. Routing every call site
+// through this one function means "isCodex → zero rates" is a single choke
+// point instead of an `if` at each of the ~6 places cost gets computed.
+const ZERO_RATES = { input: 0, output: 0, cacheCreate5m: 0, cacheCreate1h: 0, cacheRead: 0, contextWindow: DEFAULT_PRICING.contextWindow };
+function ratesFor(model) { return isCodex ? ZERO_RATES : getRates(model); }
+function usageTokens(row) { return (row.input || 0) + (row.cc5m || 0) + (row.cc1h || 0) + (row.cr || 0) + (row.out || 0); }
+function detailUsageTokens(row) { return (row.input || 0) + (row.cache5m || 0) + (row.cache1h || 0) + (row.cacheRead || 0) + (row.output || 0); }
+
 const resolvedLocale = resolveLocale(localeArg);
 let localeData;
 try {
@@ -160,7 +188,7 @@ function getParentId(filePath) {
 }
 
 function isProgrammatic(session) {
-  if (session.filePath && session.filePath.match(_subagentSep)) return false;
+  if (isSubagentSession(session)) return false;
   if (session.userMsgs !== 1) return false;
   if (!session.firstUserMsg) return true;
   const patterns = [/^You are generating/, /^Read the /, /^Run the /, /^CRITICAL:/, /^Write the word/, /^Compare the /, /^This session is being continued/];
@@ -216,6 +244,27 @@ if (importDataPath) {
 
 // ── Load data ───────────────────────────────────────────────────
 const raw = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+
+// Window length used for the same grouping/calendar/"current mode" code that
+// buckets Claude sessions into 5h windows. Claude's value never changes
+// (FIVE_HOURS_S, byte-identical to before this file knew Codex existed);
+// Codex's is carried as data (analyze-usage.js --host codex resolves it from
+// the session's own rate_limits.primary.window_minutes, see summary.windowMinutes)
+// rather than assumed — this is the one constant CODEX-PORT-BACKLOG.md calls
+// out as the assumption that has to break first.
+const canonicalScopeLane = isCodex ? selectLongestRateLimitLane(raw.canonicalRateLimits) : null;
+const canonicalPrimaryMinutes = canonicalScopeLane ? Number(canonicalScopeLane.windowMinutes) : null;
+const rateLimitWindowMinutes = Number(raw.rateLimitWindowMinutes) > 0
+  ? Number(raw.rateLimitWindowMinutes)
+  : (canonicalPrimaryMinutes > 0 ? canonicalPrimaryMinutes : null);
+const calendarWindowMinutes = isCodex
+  ? (Number(raw.calendarWindowMinutes) > 0 ? Number(raw.calendarWindowMinutes)
+    : (Number(raw.summary && raw.summary.windowMinutes) > 0 && Number(raw.summary.windowMinutes) <= 1440 ? Number(raw.summary.windowMinutes) : 60))
+  : FIVE_HOURS_S / 60;
+const calendarWindowSource = isCodex
+  ? (raw.calendarWindowSource || (rateLimitWindowMinutes && rateLimitWindowMinutes <= 1440 ? 'canonical_rate_limit' : 'analytics_fallback'))
+  : 'claude_rate_limit';
+const WINDOW_SECONDS = calendarWindowMinutes * 60;
 
 // ── Read all timeline CSVs ──────────────────────────────────────
 // CSV header: ts,model,input,cc,cc5m,cc1h,cr,out,cost,win,rl
@@ -561,7 +610,7 @@ function ensureCompactCaches(sessionIds) {
   for (const sid of sessionIds) {
     const sess = sessionMap.get(sid);
     if (!sess) continue;
-    if (sess.filePath && sess.filePath.match(_subagentSep)) continue;
+    if (isSubagentSession(sess)) continue;
     if (!sess.filePath || !fs.existsSync(sess.filePath)) continue;
     tasks.push(sess.filePath);
   }
@@ -908,7 +957,7 @@ function buildContextCostScatters(allTimelines, sessionMap) {
     // For per-assistant tooltips we want the enclosing user prompt's text
     // so the user can see "what prompt triggered this expensive call".
     // Subagents have no compact.txt → we'll fall back to the row's own data.
-    const isSubagent = sess.filePath && sess.filePath.match(_subagentSep);
+    const isSubagent = isSubagentSession(sess);
     let sortedUsers = [];
     let userAlerts = [];
     if (!isSubagent) {
@@ -941,7 +990,7 @@ function buildContextCostScatters(allTimelines, sessionMap) {
 
       // Compute cost breakdown per token type using model pricing to classify
       // the dominant contributor — used ONLY for the breakdown counts fed to AI.
-      const rates = getRates(row.model);
+      const rates = ratesFor(row.model);
       const inputCost = (row.input || 0) * rates.input / 1e6;
       const outputCost = (row.out || 0) * rates.output / 1e6;
       const ccWriteCost =
@@ -1137,6 +1186,170 @@ function buildContextCostScatters(allTimelines, sessionMap) {
   };
 }
 
+function buildContextUsageScatters(allTimelines, sessionMap) {
+  const assistant = [];
+  const turns = [];
+  let maxX = 0;
+  for (const [sessionId, rows] of allTimelines) {
+    const meta = sessionMap.get(sessionId);
+    if (!meta) continue;
+    for (const row of rows) {
+      const y = usageTokens(row);
+      const x = (row.input || 0) + (row.cc5m || 0) + (row.cc1h || 0) + (row.cr || 0);
+      if (y <= 0 || x <= 0 || row.mergedFromAcompact) continue;
+      maxX = Math.max(maxX, x);
+      const parts = { input: row.input || 0, output: row.out || 0, cacheCreate: (row.cc5m || 0) + (row.cc1h || 0), cacheRead: row.cr || 0 };
+      const dom = Object.entries(parts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0][0];
+      assistant.push({ x, y, r: 3, n: 1, model: row.model || 'unknown', dom, sid: sessionId.slice(0, 8), input: parts.input, out: parts.output, cc: parts.cacheCreate, cr: parts.cacheRead, time: row.ts });
+    }
+    if (isSubagentSession(meta)) continue;
+    const alerts = readCompactAlerts(sessionId) || [];
+    const aggregates = computeSessionUserTurns(sessionId, alerts, rows).aggregates;
+    for (const turn of aggregates.values()) {
+      const y = (turn.agg.input || 0) + (turn.agg.out || 0) + (turn.agg.cc || 0) + (turn.agg.cr || 0);
+      if (y <= 0 || !turn.firstCtx) continue;
+      const model = (turn.breakdown[0] && turn.breakdown[0].model) || 'unknown';
+      turns.push({ x: turn.firstCtx, y, r: 3, n: 1, model, sid: sessionId.slice(0, 8), text: turn.alert.text || '', input: turn.agg.input, out: turn.agg.out, cc: turn.agg.cc, cr: turn.agg.cr, calls: turn.breakdown.length });
+    }
+  }
+  const pack = (points, cluster) => ({ bubbles: cluster ? clusterUsagePointsByModel(points, 50) : points, trend: null, totalCount: points.length });
+  return {
+    perAssistant: { cw: pack(assistant.filter((p) => p.dom === 'cacheCreate'), true), nonCW: pack(assistant.filter((p) => p.dom !== 'cacheCreate'), true), totalCount: assistant.length },
+    perUserTurn: { ...pack(turns, false), costFloor: 0 },
+    models: [...new Set(assistant.concat(turns).map((p) => p.model))].sort(),
+    maxX: Math.ceil(maxX * 1.1),
+  };
+}
+
+// ── Scoped session summary (shared by full mode and current mode) ──────
+//
+// A session is "visible" here only if it has at least one row with positive
+// usage (isCodex: token-bearing; Claude: cost>0 — the same host split
+// `usageTokens`/`row.cost` already use everywhere else in this file) AND
+// that row is present in the CURRENT SCOPE, identified by `allRows`.
+//
+// Scope propagation is by OBJECT IDENTITY, not by re-filtering timestamps:
+// `allTimelines` (per-session) is never truncated for current mode — only
+// the flat `allRows` array is (see the current-mode block below, which
+// does `allRows.length = 0; allRows.push(...filtered)` in place). Building
+// a `Set(allRows)` and checking `inScope.has(row)` on each session's own
+// row objects is what lets "full" and "current" share this ONE function:
+// pass the full allRows for full-report scope, the filtered allRows for
+// current-mode scope, same helper either way.
+//
+// This is a hard coupling: allTimelines and allRows MUST hold the exact
+// same row objects by reference (never a clone/spread of a row), or the
+// Set lookup silently drops every row as "out of scope" even though its
+// values are identical — see the "cloned-row invariant" test in
+// test-codex-usage.js, which deliberately breaks this and documents the
+// resulting (correct, fail-closed) miscount rather than a crash.
+//
+// acompact subagents are excluded outright — their cost/tokens are folded
+// into the parent session's compact:auto marker row (readTimelineCsv), so
+// counting the acompact session itself as a second "visible session" would
+// double it into the total.
+//
+// Also builds `attribution` (gap-remediation item 2, REPORT_DATA.sessionAttribution):
+// main vs subtask token components (input/output/cacheWrite/cacheRead/total),
+// with subtasks further split by agentRole and by model. Built in the SAME
+// single pass as the session counts above (one Set, one walk of
+// timelines/rows) rather than a second O(n) pass — not because a second
+// linear pass would be quadratic, but because the classification (main vs
+// subtask, role, model) is already known at that point in the loop and
+// re-deriving it in a separate function would duplicate that logic.
+// `integrity` cross-checks that main+subtasks reconstruct total, and that
+// the byRole/byModel partitions reconstruct the subtasks total, component by
+// component — a regression guard against a future edit that double-adds a
+// row into more than one bucket, not merely a restatement of the arithmetic.
+function computeScopedSessionSummary(scopedAllRows, timelines, sessionMapArg) {
+  const inScope = new Set(scopedAllRows);
+  let sessionCount = 0, mainSessionCount = 0, subtaskCount = 0;
+
+  const zeroComponents = () => ({ input: 0, output: 0, cacheWrite: 0, cacheRead: 0, total: 0 });
+  const totalAcc = zeroComponents(), mainAcc = zeroComponents(), subAcc = zeroComponents();
+  const byRole = new Map(), byModel = new Map();
+  const COMPONENT_KEYS = ['input', 'output', 'cacheWrite', 'cacheRead', 'total'];
+
+  function addRow(acc, row) {
+    const input = row.input || 0;
+    const output = row.out || 0;
+    const cacheWrite = (row.cc1h || 0) + (row.cc5m || 0);
+    const cacheRead = row.cr || 0;
+    acc.input += input; acc.output += output; acc.cacheWrite += cacheWrite; acc.cacheRead += cacheRead;
+    acc.total += input + output + cacheWrite + cacheRead;
+  }
+  function bucketFor(map, key) {
+    if (!map.has(key)) map.set(key, Object.assign(zeroComponents(), { sessions: 0 }));
+    return map.get(key);
+  }
+
+  for (const [sessionId, rows] of timelines) {
+    if (isAcompactSessionId(sessionId)) continue;
+    const visibleRows = rows.filter((row) => inScope.has(row) && (isCodex ? usageTokens(row) > 0 : row.cost > 0));
+    if (visibleRows.length === 0) continue;
+
+    const meta = sessionMapArg.get(sessionId);
+    const isSub = isSubagentSession(meta);
+    sessionCount++;
+    if (isSub) subtaskCount++;
+    else mainSessionCount++;
+
+    let roleBucket = null, modelBucket = null;
+    if (isSub) {
+      // "unknown" fallback: Codex subagents carry meta.agent.role; Claude
+      // subagents carry meta.agentType (from the Task tool's subagent_type,
+      // read off the CC meta.json — see analyze-usage.js). Neither is
+      // guaranteed present.
+      const role = (meta && ((meta.agent && meta.agent.role) || meta.agentType)) || 'unknown';
+      const model = (meta && meta.model) || 'unknown';
+      roleBucket = bucketFor(byRole, role);
+      modelBucket = bucketFor(byModel, model);
+      roleBucket.sessions++;
+      modelBucket.sessions++;
+    }
+
+    for (const row of visibleRows) {
+      addRow(totalAcc, row);
+      if (isSub) { addRow(subAcc, row); addRow(roleBucket, row); addRow(modelBucket, row); }
+      else addRow(mainAcc, row);
+    }
+  }
+
+  function toSortedPlainObject(map) {
+    const out = {};
+    for (const key of [...map.keys()].sort()) out[key] = map.get(key);
+    return out;
+  }
+  const byRoleObj = toSortedPlainObject(byRole);
+  const byModelObj = toSortedPlainObject(byModel);
+  const pctOf = (part, whole) => (whole > 0 ? round2((part / whole) * 100) : 0);
+
+  const integrityErrors = [];
+  for (const key of COMPONENT_KEYS) {
+    if (mainAcc[key] + subAcc[key] !== totalAcc[key]) {
+      integrityErrors.push(`component conservation failed for "${key}": main(${mainAcc[key]}) + subtasks(${subAcc[key]}) !== total(${totalAcc[key]})`);
+    }
+    const roleSum = Object.values(byRoleObj).reduce((s, b) => s + b[key], 0);
+    if (roleSum !== subAcc[key]) integrityErrors.push(`byRole partition failed for "${key}": sum(${roleSum}) !== subtasks(${subAcc[key]})`);
+    const modelSum = Object.values(byModelObj).reduce((s, b) => s + b[key], 0);
+    if (modelSum !== subAcc[key]) integrityErrors.push(`byModel partition failed for "${key}": sum(${modelSum}) !== subtasks(${subAcc[key]})`);
+  }
+  if (mainSessionCount + subtaskCount !== sessionCount) integrityErrors.push('session count conservation failed: main + subtasks !== total');
+  const roleSessionSum = Object.values(byRoleObj).reduce((s, b) => s + b.sessions, 0);
+  if (roleSessionSum !== subtaskCount) integrityErrors.push('byRole session-count partition failed: sum !== subtasks');
+  const modelSessionSum = Object.values(byModelObj).reduce((s, b) => s + b.sessions, 0);
+  if (modelSessionSum !== subtaskCount) integrityErrors.push('byModel session-count partition failed: sum !== subtasks');
+
+  const attribution = {
+    total: { ...totalAcc, sessions: sessionCount },
+    main: { ...mainAcc, sessions: mainSessionCount, pct: pctOf(mainAcc.total, totalAcc.total) },
+    subtasks: { ...subAcc, sessions: subtaskCount, pct: pctOf(subAcc.total, totalAcc.total), byRole: byRoleObj, byModel: byModelObj },
+    integrity: { ok: integrityErrors.length === 0, errors: integrityErrors },
+  };
+
+  return { sessionCount, mainSessionCount, subtaskCount, attribution };
+}
+
 // ── Build REPORT_DATA ───────────────────────────────────────────
 (async () => {
 
@@ -1147,16 +1360,27 @@ const toD = new Date(sm.dateRange.to);
 const fromDate = new Date(fromD.getFullYear(), fromD.getMonth(), fromD.getDate());
 const toDate = new Date(toD.getFullYear(), toD.getMonth(), toD.getDate());
 const days = Math.round((toDate - fromDate) / 86400000) + 1;
-// Exclude acompact subagents from subCount — they're attributed to parent's compact marker.
-const subCount = raw.sessions.filter(s => s.filePath && s.filePath.match(_subagentSep) && !isAcompactSessionId(s.sessionId)).length;
+// Full-report scope: pass the (not yet current-mode-filtered) allRows.
+// sessionCount/subtaskCount here are "visible token-bearing sessions" —
+// acompact-excluded, positive-usage-only — never raw.sessions.length or
+// analyze-usage.js's own counts, which don't apply either exclusion
+// consistently (Codex's summary.subtaskCount there still includes acompact).
+const scopedSessionSummary = computeScopedSessionSummary(allRows, allTimelines, sessionMap);
 const summary = {
   totalCost: 0,
-  sessionCount: sm.sessionCount,
-  subtaskCount: subCount,
+  totalUsageTokens: 0,
+  sessionCount: scopedSessionSummary.sessionCount,
+  mainSessionCount: scopedSessionSummary.mainSessionCount,
+  subtaskCount: scopedSessionSummary.subtaskCount,
   dateFrom: fsd(fromD),
   dateTo: fsd(toD),
   days
 };
+// REPORT_DATA.sessionAttribution — additive, both hosts. Reassigned in the
+// current-mode block below (same helper, narrower allRows scope) so full
+// and current mode never disagree about how main/subtask/role/model are
+// computed.
+let sessionAttribution = scopedSessionSummary.attribution;
 
 // 2. tokenBreakdown
 const tb = {
@@ -1167,7 +1391,7 @@ const tb = {
   cacheRead: { tokens: 0, cost: 0 }
 };
 for (const row of allRows) {
-  const rates = getRates(row.model);
+  const rates = ratesFor(row.model);
   tb.input.tokens += row.input;
   tb.input.cost += row.input * rates.input / 1e6;
   tb.output.tokens += row.out;
@@ -1183,12 +1407,13 @@ for (const row of allRows) {
 for (const key of Object.keys(tb)) {
   tb[key].cost = round2(tb[key].cost);
 }
+summary.totalUsageTokens = Object.values(tb).reduce((sum, part) => sum + part.tokens, 0);
 // Align summary.totalCost with tokenBreakdown (dedup-corrected source of truth)
 summary.totalCost = round2(tb.input.cost + tb.output.cost + tb.cacheCreate1h.cost + tb.cacheCreate5m.cost + tb.cacheRead.cost);
 
 // 2b. 5H alerts from ratelimit CSVs (optional, statusline users only)
 const fiveHAlerts = [];
-try {
+if (!isCodex) try {
   const rlProjects = projectFilter ? [projectFilter] : listProjects();
   for (const proj of rlProjects) {
     const rlSessions = listSessions(proj);
@@ -1226,20 +1451,31 @@ await ensureCompactCaches(allSessionIds);
 // Pre-4/23 hour-aligned data is handled by the same algorithm naturally
 // because :00 boundaries are still valid ts values.
 
-const { tsToWindow } = buildGlobalTsMapper();
-
-// First pass: assign covered rows directly via ts-precision mapping.
-// Collect uncovered rows for fallback grouping.
 const uncoveredRows = [];
-for (const [, rows] of allTimelines) {
-  for (const row of rows) {
-    const ts = typeof row.ts === 'number' ? row.ts : Math.floor(new Date(row.ts).getTime() / 1000);
-    row.ts = ts;
-    const win = tsToWindow(ts);
-    if (win !== null) {
-      row.win = win;
-    } else {
-      uncoveredRows.push({ row, ts });
+if (isCodex) {
+  const canonical = raw.canonicalRateLimits || {};
+  const lane = calendarWindowSource === 'canonical_rate_limit'
+    ? [canonical.primary, canonical.secondary].find((item) => item && Number(item.windowMinutes) === calendarWindowMinutes && Number(item.resetsAt) > 0)
+    : null;
+  const duration = lane ? Number(lane.windowMinutes) * 60 : WINDOW_SECONDS;
+  const anchor = lane ? Number(lane.resetsAt) - duration : null;
+  for (const [, rows] of allTimelines) {
+    for (const row of rows) {
+      const ts = typeof row.ts === 'number' ? row.ts : Math.floor(new Date(row.ts).getTime() / 1000);
+      row.ts = ts;
+      if (anchor !== null) row.win = anchor + Math.floor((ts - anchor) / duration) * duration;
+      else row.win = Math.floor(ts / WINDOW_SECONDS) * WINDOW_SECONDS;
+    }
+  }
+} else {
+  const { tsToWindow } = buildGlobalTsMapper();
+  for (const [, rows] of allTimelines) {
+    for (const row of rows) {
+      const ts = typeof row.ts === 'number' ? row.ts : Math.floor(new Date(row.ts).getTime() / 1000);
+      row.ts = ts;
+      const win = tsToWindow(ts);
+      if (win !== null) row.win = win;
+      else uncoveredRows.push({ row, ts });
     }
   }
 }
@@ -1249,7 +1485,7 @@ for (const [, rows] of allTimelines) {
 uncoveredRows.sort((a, b) => a.ts - b.ts);
 let groupStart = null;
 for (const { row, ts } of uncoveredRows) {
-  if (groupStart === null || ts >= groupStart + FIVE_HOURS_S) {
+  if (groupStart === null || ts >= groupStart + WINDOW_SECONDS) {
     groupStart = ts;
   }
   row.win = groupStart;
@@ -1269,21 +1505,40 @@ const winStarts = [...winRowsMap.keys()].sort((a, b) => a - b);
 
 const windows = [];
 const compactAlertCache = new Map();
+const codexWeeklyBlockedSamples = isCodex && canonicalScopeLane
+  ? (raw.rateLimitSamples || []).filter(sample => sample.limitId === 'codex'
+      && sample.lane === canonicalScopeLane.lane
+      && Number(sample.windowMinutes) === Number(canonicalScopeLane.windowMinutes)
+      && Number(sample.usedPercent) >= 100
+      && Number.isFinite(Date.parse(sample.ts)))
+  : [];
 for (const winStart of winStarts) {
   const entries = winRowsMap.get(winStart);
-  const winEnd = winStart + 5 * 3600;
+  const winEnd = winStart + WINDOW_SECONDS;
   const winDate = new Date(winStart * 1000);
   const winEndDate = new Date(winEnd * 1000);
 
-  // Hourly costs within this window
+  // Hourly costs and host-neutral token usage within this window
   const hourlyCosts = {};
+  const hourlyUsageTokens = {};
+  const hourlyUsageBuckets = {};
+  const hourlyCostBuckets = {};
   const activeHoursSet = new Set();
   const rlHoursSet = new Set();
 
   for (const { row } of entries) {
     const h = new Date(row.ts * 1000).getHours();
     hourlyCosts[h] = (hourlyCosts[h] || 0) + row.cost;
-    if (row.cost > 0) activeHoursSet.add(h);
+    hourlyUsageTokens[h] = (hourlyUsageTokens[h] || 0) + usageTokens(row);
+    const hourBucket = Math.floor(row.ts / 3600) * 3600;
+    hourlyUsageBuckets[hourBucket] = (hourlyUsageBuckets[hourBucket] || 0) + usageTokens(row);
+    hourlyCostBuckets[hourBucket] = (hourlyCostBuckets[hourBucket] || 0) + row.cost;
+    // Codex rows carry cost=0 by design (see analyze-usage.js's Codex path),
+    // so "was there activity" has to fall back to token volume — otherwise
+    // the calendar would show zero active hours everywhere real usage
+    // happened, which is worse than not knowing the dollar amount.
+    const hadActivity = isCodex ? (row.input + row.cc + row.cr + row.out) > 0 : row.cost > 0;
+    if (hadActivity) activeHoursSet.add(h);
     if (row.rl && (row.rl.startsWith('limit_hit') || row.rl.startsWith('limit_warning'))) {
       rlHoursSet.add(h);
     }
@@ -1295,12 +1550,20 @@ for (const winStart of winStarts) {
   }
 
   const activeHours = [...activeHoursSet].sort((a, b) => a - b);
+  const blockedSamples = codexWeeklyBlockedSamples.filter(sample => {
+    const ts = Date.parse(sample.ts) / 1000;
+    return ts >= winStart && ts < winEnd;
+  });
+  for (const sample of blockedSamples) rlHoursSet.add(new Date(sample.ts).getHours());
   const rlHours = [...rlHoursSet].sort((a, b) => a - b);
+  const blockedAtTs = blockedSamples.length ? Math.min(...blockedSamples.map(sample => Date.parse(sample.ts) / 1000)) : null;
 
   // Total cost for window
   let winCost = 0;
+  let winUsageTokens = 0;
   for (const { row } of entries) {
     winCost += row.cost;
+    winUsageTokens += usageTokens(row);
   }
 
   // Group by session
@@ -1342,6 +1605,17 @@ for (const winStart of winStarts) {
     // Round costs
     for (const h of Object.keys(hourly)) hourly[h].cost = round2(hourly[h].cost);
 
+    // isSubtask/taskThreadId/parentSessionId/agentRole/agentNickname/orphan
+    // (gap-remediation item 3): parentSessionId is the immediate parent and
+    // is set ONLY when it comes from a verified source — for Claude that's
+    // the subagent's own file path under the parent's subagents/ directory
+    // (getParentId, unchanged from before); Codex has no such verified
+    // linkage, only a threadId SHARED by every session in the task (main and
+    // every subagent alike), so it is never treated as a parent pointer.
+    // A subtask with no verified parent is explicitly `orphan: true` rather
+    // than silently defaulting taskThreadId or a guessed id into the parent
+    // slot.
+    const verifiedParentId = getParentId(meta.filePath); // Claude-only; null for Codex
     const detail = {
       id: sessionId,
       type: 'main',
@@ -1355,20 +1629,37 @@ for (const winStart of winStarts) {
       startTime: meta.firstTs ? fsd(new Date(meta.firstTs)) + ' ' + ft(new Date(meta.firstTs)) : '',
       endTime: meta.lastTs ? fsd(new Date(meta.lastTs)) + ' ' + ft(new Date(meta.lastTs)) : '',
       activeHours: Object.keys(hourly).map(Number).sort((a, b) => a - b),
-      hourly: hourly
+      hourly: hourly,
+      model: meta.model || 'unknown',
+      isSubtask: false,
+      taskThreadId: meta.threadId || sessionId,
+      parentSessionId: null,
+      orphan: false,
+      agentRole: null,
+      agentNickname: null,
     };
 
     if (isProgrammatic(meta)) {
       detail.type = 'claude-p';
       programmaticDetails.push(detail);
-    } else if (meta.filePath && meta.filePath.match(_subagentSep)) {
+    } else if (isSubagentSession(meta)) {
       detail.type = 'sub';
-      const parentId = getParentId(meta.filePath);
-      if (parentId) {
-        if (!mainGroups.has(parentId)) {
-          mainGroups.set(parentId, { main: null, subs: [] });
+      detail.isSubtask = true;
+      detail.taskThreadId = meta.threadId || verifiedParentId || sessionId;
+      detail.parentSessionId = verifiedParentId;
+      detail.orphan = !verifiedParentId;
+      detail.agentRole = (meta.agent && meta.agent.role) || meta.agentType || 'unknown';
+      detail.agentNickname = (meta.agent && meta.agent.nickname) || 'unknown';
+      // Grouping under the calendar's session-detail panel is a display
+      // heuristic (fold a subagent under its main session), independent of
+      // the verified-parent contract above — it may use the shared threadId
+      // as a best-effort grouping key even when parentSessionId stays null.
+      const groupingId = verifiedParentId || meta.threadId;
+      if (groupingId) {
+        if (!mainGroups.has(groupingId)) {
+          mainGroups.set(groupingId, { main: null, subs: [] });
         }
-        mainGroups.get(parentId).subs.push(detail);
+        mainGroups.get(groupingId).subs.push(detail);
       }
     } else {
       // Main session
@@ -1393,7 +1684,7 @@ for (const winStart of winStarts) {
       cacheRead: programmaticDetails.reduce((s, d) => s + d.cacheRead, 0),
       cost: round2(programmaticDetails.reduce((s, d) => s + d.cost, 0))
     };
-    if (pSum.cost > 0) {
+    if (isCodex ? detailUsageTokens(pSum) > 0 : pSum.cost > 0) {
       const earliestProg = programmaticDetails.reduce((earliest, d) => (!earliest || d.startTime < earliest) ? d.startTime : earliest, '');
       const progHourly = {};
       for (const d of programmaticDetails) {
@@ -1446,7 +1737,8 @@ for (const winStart of winStarts) {
 
     totalCost = round2(totalCost);
 
-    if (totalCost <= 0) continue; // Filter out $0 sessions
+    const totalUsage = totalInput + totalOutput + totalCache1h + totalCache5m + totalCacheRead;
+    if (isCodex ? totalUsage <= 0 : totalCost <= 0) continue;
 
     const mainMeta = group.main ? group.main.meta : null;
     // Window-scoped first/last user message
@@ -1500,9 +1792,11 @@ for (const winStart of winStarts) {
     });
   }
 
-  // Remove zero-cost sessions (e.g. /continue restoration with no real work)
+  // Remove sessions with no real work. Codex has no dollar cost, so token
+  // activity is the authoritative inclusion predicate for that host.
   for (let i = windowSessions.length - 1; i >= 0; i--) {
-    if (windowSessions[i].cost === 0 && windowSessions[i].type === 'main') {
+    const empty = isCodex ? detailUsageTokens(windowSessions[i]) === 0 : windowSessions[i].cost === 0;
+    if (empty && windowSessions[i].type === 'main') {
       windowSessions.splice(i, 1);
     }
   }
@@ -1685,7 +1979,7 @@ for (const winStart of winStarts) {
       // Determine model for pricing (use the session's first timeline row model)
       const sessRows = allTimelines.get(sessionId) || [];
       const model = sessRows.length > 0 ? sessRows[0].model : '';
-      const rates = getRates(model);
+      const rates = ratesFor(model);
 
       // Estimated compact output = ~10% of input
       const estimatedOutput = Math.round(restoredContextTokens * 0.1);
@@ -1719,7 +2013,7 @@ for (const winStart of winStarts) {
   }
 
   // Skip windows with no sessions AND no alerts (pure $0 windows with no user activity)
-  if (finalSessions.length === 0 && alertMessages.length === 0 && continueEvents.length === 0) continue;
+  if (finalSessions.length === 0 && alertMessages.length === 0 && continueEvents.length === 0 && (!isCodex || winUsageTokens === 0)) continue;
 
   windows.push({
     date: fsd(winDate),
@@ -1729,11 +2023,16 @@ for (const winStart of winStarts) {
     // re-parsing start/end strings in the renderer.
     startTs: winStart,
     endTs: winEnd,
-    usage: 0, // Cannot compute usage % without rate limit data
+    usage: blockedAtTs == null ? 0 : 100,
+    blockedAtTs,
     cost: round2(winCost),
+    usageTokens: winUsageTokens,
     eventCount: entries.length,
     rlHours,
     hourlyCosts,
+    hourlyUsageTokens,
+    hourlyUsageBuckets,
+    hourlyCostBuckets,
     activeHours,
     windowSessions: finalSessions,
     alertMessages,
@@ -1741,14 +2040,28 @@ for (const winStart of winStarts) {
   });
 }
 
-// 3b. current mode: keep only the latest window and filter allRows to match
+// 3b. current mode. Claude keeps its latest 5h window. Codex keeps the
+// current canonical rate period as the data scope, but preserves every
+// bounded analytics bucket inside it so calendar clicks stay responsive.
 if (currentMode && windows.length > 0) {
-  const latest = windows[windows.length - 1];
-  windows.length = 0;
-  windows.push(latest);
-  // Filter allRows to only the latest 5H window so sections 4-6 match
-  const latestWinStart = winStarts[winStarts.length - 1];
-  const latestWinEnd = latestWinStart + 5 * 3600;
+  let latestWinStart, latestWinEnd;
+  if (isCodex) {
+    const canonical = raw.canonicalRateLimits || {};
+    const laneCandidate = selectLongestRateLimitLane(canonical);
+    const lane = laneCandidate && Number(laneCandidate.resetsAt) > 0 ? laneCandidate : null;
+    if (lane) {
+      latestWinEnd = Number(lane.resetsAt);
+      latestWinStart = latestWinEnd - Number(lane.windowMinutes) * 60;
+      const scoped = windows.filter(w => w.endTs > latestWinStart && w.startTs < latestWinEnd);
+      windows.length = 0; windows.push(...scoped);
+    } else {
+      latestWinStart = winStarts[winStarts.length - 1]; latestWinEnd = latestWinStart + WINDOW_SECONDS;
+      const latest = windows[windows.length - 1]; windows.length = 0; windows.push(latest);
+    }
+  } else {
+    const latest = windows[windows.length - 1]; windows.length = 0; windows.push(latest);
+    latestWinStart = winStarts[winStarts.length - 1]; latestWinEnd = latestWinStart + WINDOW_SECONDS;
+  }
   const filtered = allRows.filter(r => r.ts >= latestWinStart && r.ts < latestWinEnd);
   allRows.length = 0;
   for (const r of filtered) allRows.push(r);
@@ -1767,35 +2080,30 @@ if (currentMode && windows.length > 0) {
     // Recalculate totalCost from filtered rows
     let filteredCost = 0;
     for (const row of allRows) {
-      const rates = getRates(row.model);
+      const rates = ratesFor(row.model);
       filteredCost += row.input * rates.input / 1e6
         + (row.cc1h * rates.cacheCreate1h + row.cc5m * rates.cacheCreate5m) / 1e6
         + row.cr * rates.cacheRead / 1e6
         + row.out * rates.output / 1e6;
     }
     summary.totalCost = round2(filteredCost);
-    // Recalculate session counts: find sessions with activity in the window
-    const windowSessionIds = new Set();
-    for (const [sid, rows] of allTimelines) {
-      if (rows.some(r => r.ts >= latestWinStart && r.ts < latestWinEnd)) {
-        windowSessionIds.add(sid);
-      }
-    }
-    let mainCount = 0, subCount2 = 0;
-    for (const sid of windowSessionIds) {
-      if (isAcompactSessionId(sid)) continue;
-      const sess = sessionMap.get(sid);
-      if (sess && sess.filePath && sess.filePath.match(_subagentSep)) subCount2++;
-      else mainCount++;
-    }
-    summary.sessionCount = mainCount;
-    summary.subtaskCount = subCount2;
+    // Recalculate session counts via the SAME helper the full-report summary
+    // uses above — allRows has already been truncated to this window (the
+    // `filtered` splice a few lines up), so the Set-identity scope check
+    // inside computeScopedSessionSummary naturally restricts each session's
+    // rows to this window without a second timestamp filter, and applies
+    // the same acompact-exclusion/positive-usage-only rules as full mode.
+    const currentScopedSessionSummary = computeScopedSessionSummary(allRows, allTimelines, sessionMap);
+    summary.sessionCount = currentScopedSessionSummary.sessionCount;
+    summary.mainSessionCount = currentScopedSessionSummary.mainSessionCount;
+    summary.subtaskCount = currentScopedSessionSummary.subtaskCount;
+    sessionAttribution = currentScopedSessionSummary.attribution;
   }
 
   // Recalculate tokenBreakdown from filtered allRows
   for (const key of Object.keys(tb)) { tb[key].tokens = 0; tb[key].cost = 0; }
   for (const row of allRows) {
-    const rates = getRates(row.model);
+    const rates = ratesFor(row.model);
     tb.input.tokens += row.input;
     tb.input.cost += row.input * rates.input / 1e6;
     tb.output.tokens += row.out;
@@ -1810,6 +2118,24 @@ if (currentMode && windows.length > 0) {
   for (const key of Object.keys(tb)) { tb[key].cost = round2(tb[key].cost); }
 }
 
+// ── Codex purchased-credit-equivalent headline cost ─────────────
+// Additive-only: computed from the FINAL scoped allRows (post current-mode
+// filtering above, so it matches whatever window the rest of the report is
+// showing) and never touches summary.totalCost/hasCostData/costKnownUSD or
+// any Claude-path math. Uses the SAME row shape as the rest of this file's
+// cost math (row.input/cr/out/cc/cc1h/cc5m) but a completely separate rate
+// table (codex-credit-pricing.json) — never Anthropic pricing.
+let codexCreditEquivalent = null;
+if (isCodex) {
+  let codexCreditPricingConfig = null;
+  try {
+    codexCreditPricingConfig = JSON.parse(fs.readFileSync(CODEX_CREDIT_PRICING_PATH, 'utf8'));
+  } catch (e) {
+    codexCreditPricingConfig = null; // computeCodexCreditEquivalent fails closed to 'unavailable'
+  }
+  codexCreditEquivalent = computeCodexCreditEquivalent(allRows, codexCreditPricingConfig);
+}
+
 // 4. dailyCosts
 const dailyCostMap = new Map(); // dateKey -> { date (display), input, cacheCreate, cacheRead, output }
 for (const row of allRows) {
@@ -1819,7 +2145,7 @@ for (const row of allRows) {
     dailyCostMap.set(key, { date: fsd(d), input: 0, cacheCreate: 0, cacheRead: 0, output: 0 });
   }
   const entry = dailyCostMap.get(key);
-  const rates = getRates(row.model);
+  const rates = ratesFor(row.model);
   entry.input += row.input * rates.input / 1e6;
   entry.cacheCreate += (row.cc1h * rates.cacheCreate1h + row.cc5m * rates.cacheCreate5m) / 1e6;
   entry.cacheRead += row.cr * rates.cacheRead / 1e6;
@@ -1839,12 +2165,13 @@ for (const row of allRows) {
   const d = new Date(row.ts * 1000);
   const key = fsdKey(d);
   if (!dailyTokenMap.has(key)) {
-    dailyTokenMap.set(key, { date: fsd(d), total: 0, input: 0, cc: 0, out: 0 });
+    dailyTokenMap.set(key, { date: fsd(d), total: 0, input: 0, cc: 0, cr: 0, out: 0 });
   }
   const entry = dailyTokenMap.get(key);
   entry.total += row.input + row.cc + row.cr + row.out;
   entry.input += row.input;
   entry.cc += row.cc;
+  entry.cr += row.cr;
   entry.out += row.out;
 }
 const dailyTokens = [...dailyTokenMap.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(e => e[1]);
@@ -1972,6 +2299,43 @@ for (let dow = 0; dow < 7; dow++) {
   dowStats.push({ dow, label: dowLabels[dow], avg, max, calAvg });
 }
 
+// Token analogues of the cost patterns above. They deliberately use the same
+// avg/max/calendar-average shapes so the original chart controls and layout
+// can be reused without a second dashboard implementation.
+function buildHourlyUsageStats(rows) {
+  const values = {}, activeDays = {};
+  for (const row of rows) {
+    const d = new Date(row.ts * 1000), h = d.getHours(), key = fsdKey(d);
+    if (!values[h]) { values[h] = {}; activeDays[h] = new Set(); }
+    values[h][key] = (values[h][key] || 0) + usageTokens(row);
+    activeDays[h].add(key);
+  }
+  return Array.from({ length: 24 }, (_, h) => {
+    const dayValues = Object.values(values[h] || {});
+    if (!dayValues.length) return { hour: h, avg: 0, max: 0, calAvg: 0 };
+    const total = dayValues.reduce((sum, value) => sum + value, 0);
+    return { hour: h, avg: Math.round(total / activeDays[h].size), max: Math.max(...dayValues), calAvg: Math.round(total / calendarDaysForHour(h)) };
+  });
+}
+
+function buildDowUsageStats(rows) {
+  const byDowWeek = {}, totals = {};
+  for (const row of rows) {
+    const d = new Date(row.ts * 1000), dow = d.getDay(), week = Math.floor(row.ts / (7 * 86400));
+    if (!byDowWeek[dow]) { byDowWeek[dow] = {}; totals[dow] = 0; }
+    const value = usageTokens(row);
+    byDowWeek[dow][week] = (byDowWeek[dow][week] || 0) + value;
+    totals[dow] += value;
+  }
+  return dowLabels.map((label, dow) => {
+    const values = Object.values(byDowWeek[dow] || {});
+    if (!values.length) return { dow, label, avg: 0, max: 0, calAvg: 0 };
+    return { dow, label, avg: Math.round(values.reduce((s, v) => s + v, 0) / values.length), max: Math.max(...values), calAvg: Math.round(totals[dow] / calendarDowCount(dow)) };
+  });
+}
+const hourlyUsageStats = buildHourlyUsageStats(allRows);
+const dowUsageStats = buildDowUsageStats(allRows);
+
 // 7. Plugin installed date — read CC's authoritative tracking from
 // ~/.claude/plugins/installed_plugins.json (`installedAt` field).
 // CC writes this on first install and preserves it across version updates.
@@ -2032,10 +2396,34 @@ if (!pluginInstalledAt) {
 
 // ── Plan info for REPORT_DATA and AI prompt ────────────────────
 const PLAN_INFO = PLAN_INFO_ALL;
-const planData = planArg && PLAN_INFO[planArg] ? PLAN_INFO[planArg] : null;
+let planData = null;
+if (isCodex) {
+  // planArg may be a UI number ("2") or a plan key typed directly ("go") —
+  // resolveCodexPlanChoice handles both, same as the SKILL.md plan prompt.
+  // Falling back to whatever plan_type a session actually reported keeps
+  // this correct even when the user was never asked (SKILL.md: "read
+  // straight off rate_limits.plan_type ... do not ask unless absent").
+  const resolvedKey = (planArg && resolveCodexPlanChoice(planArg))
+    || (raw.sessions.find((s) => s.plan && s.plan.key) || {}).plan?.key
+    || null;
+  if (resolvedKey) {
+    const info = CODEX_PLAN_INFO[resolvedKey];
+    // price is intentionally absent (null), not fabricated — Codex plans
+    // aren't flat-priced the way Claude's are, and the template only shows
+    // a price parenthetical when one is present.
+    planData = { key: resolvedKey, name: info ? info.name : resolvedKey, price: null };
+  }
+} else {
+  planData = planArg && PLAN_INFO[planArg] ? PLAN_INFO[planArg] : null;
+}
 
-// Context-vs-cost scatter data (two charts: per-assistant, per-user-turn)
-const contextCostScatter = buildContextCostScatters(allTimelines, sessionMap);
+// Context-vs-cost scatter data (two charts: per-assistant, per-user-turn).
+// Codex rows carry cost=0 (see ratesFor above), so this chart — inherently a
+// cost visualization — has nothing honest to plot; an empty-but-valid shape
+// keeps renderContextCostCharts() in template.html from touching undefined
+// fields, and the container itself is hidden client-side (host === 'codex').
+const contextCostScatter = isCodex ? null : buildContextCostScatters(allTimelines, sessionMap);
+const contextUsageScatter = isCodex ? buildContextUsageScatters(allTimelines, sessionMap) : null;
 
 // Context size distribution — how efficiently is the user managing context?
 const ctxBuckets = [
@@ -2056,8 +2444,16 @@ const ctxDistribution = ctxBuckets.map(b => ({
   avgCost: b.count > 0 ? round2(b.cost / b.count) : 0,
   pct: allRows.length > 0 ? round2(b.count / allRows.length * 100) : 0,
 }));
+const calendarDataEndExclusiveTs = allRows.length > 0 ? Math.max(...allRows.map(row => row.ts)) + 1 : null;
 
 // ── Assemble REPORT_DATA ────────────────────────────────────────
+// host/hasCostData/costKnownUSD/rateLimitSamples/windowMinutes are additive —
+// a Claude report simply carries hasCostData:true and no rateLimitSamples,
+// so a diff against the pre-Codex REPORT_DATA shape is a pure addition.
+summary.host = isCodex ? 'codex' : 'claude';
+summary.hasCostData = !isCodex;
+summary.costKnownUSD = isCodex ? null : summary.totalCost;
+summary.totalUsageTokens = Object.values(tb).reduce((sum, part) => sum + part.tokens, 0);
 const reportData = {
   summary,
   tokenBreakdown: tb,
@@ -2072,8 +2468,97 @@ const reportData = {
   pluginInstalledAt,
   currentMode,
   plan: planData ? { key: planData.key, name: planData.name, price: planData.price } : null,
-  costThresholds: { turnWarn: TURN_COST_WARN, turnDanger: TURN_COST_DANGER, defaultFilter: DEFAULT_COST_FILTER }
+  costThresholds: { turnWarn: TURN_COST_WARN, turnDanger: TURN_COST_DANGER, defaultFilter: DEFAULT_COST_FILTER },
+  host: isCodex ? 'codex' : 'claude',
+  sessionAttribution,
 };
+if (isCodex) {
+  reportData.rateLimitSamples = raw.rateLimitSamples || [];
+  reportData.canonicalRateLimits = raw.canonicalRateLimits || { limitId: 'codex', primary: null, secondary: null };
+  reportData.rateLimitWindowMinutes = rateLimitWindowMinutes;
+  reportData.calendarWindowMinutes = calendarWindowMinutes;
+  reportData.calendarWindowSource = calendarWindowSource;
+  reportData.windowSource = calendarWindowSource;
+  reportData.windowMinutes = calendarWindowMinutes;
+  reportData.calendarDataEndExclusiveTs = calendarDataEndExclusiveTs;
+  reportData.hourlyUsageStats = hourlyUsageStats;
+  reportData.dowUsageStats = dowUsageStats;
+  reportData.contextUsageScatter = contextUsageScatter;
+  reportData.codexCreditEquivalent = codexCreditEquivalent;
+}
+
+function buildCodexInsights(data, locale) {
+  const total = data.summary.totalUsageTokens || 0;
+  const fresh = data.tokenBreakdown.input.tokens || 0;
+  const output = data.tokenBreakdown.output.tokens || 0;
+  const cached = data.tokenBreakdown.cacheRead.tokens || 0;
+  const cachedPct = total > 0 ? round2(cached / total * 100) : 0;
+  const freshPct = total > 0 ? round2(fresh / total * 100) : 0;
+  const outputPct = total > 0 ? round2(output / total * 100) : 0;
+  const lane = selectLongestRateLimitLane(data.canonicalRateLimits);
+  const blocked = (data.windows || []).filter(window => window.blockedAtTs != null);
+  const busiestHour = (data.hourlyUsageStats || []).slice().sort((a, b) => b.avg - a.avg)[0];
+  const busiestDow = (data.dowUsageStats || []).slice().sort((a, b) => b.avg - a.avg)[0];
+  const contextBucket = (data.ctxDistribution || []).slice().sort((a, b) => b.count - a.count)[0];
+  const contextCalls = (data.ctxDistribution || []).reduce((sum, bucket) => sum + bucket.count, 0);
+  const largeContextCalls = (data.ctxDistribution || []).filter(bucket => /^350|^500/.test(bucket.label)).reduce((sum, bucket) => sum + bucket.count, 0);
+  const apiCalls = data.contextUsageScatter && data.contextUsageScatter.perAssistant ? data.contextUsageScatter.perAssistant.totalCount : 0;
+  const userTurns = data.contextUsageScatter && data.contextUsageScatter.perUserTurn ? data.contextUsageScatter.perUserTurn.totalCount : 0;
+  const daily = (data.dailyTokens || []).slice();
+  const peakDay = daily.slice().sort((a, b) => b.total - a.total)[0];
+  const averageDay = daily.length ? Math.round(daily.reduce((sum, day) => sum + day.total, 0) / daily.length) : 0;
+  const remaining = lane ? Math.max(0, round2(100 - lane.usedPercent)) : null;
+  const resetText = lane && lane.resetsAt ? new Date(lane.resetsAt * 1000).toLocaleString(locale === 'ko' ? 'ko-KR' : 'en-US') : null;
+  const totalSessions = data.summary.sessionCount || 0;
+  const subtasks = data.summary.subtaskCount || 0;
+  const mainSessions = Math.max(0, totalSessions - subtasks);
+  const fmt = value => Number(value || 0).toLocaleString('en-US');
+  const localizedDow = busiestDow && localeData.chart && localeData.chart.days
+    ? (localeData.chart.days[busiestDow.dow] || busiestDow.label) : (busiestDow && busiestDow.label);
+  const ce = data.codexCreditEquivalent;
+  const ceUsdText = ce ? (ce.status === 'unavailable' ? 'N/A' : `${ce.status === 'lower_bound' ? '≥' : ''}$${ce.usd.toFixed(2)}`) : null;
+  // unavailableReason-specific wording: an invalid rate-card config or a
+  // total absence of eligible (fresh/cached/output) tokens is NOT the same
+  // fact as "no recorded model has a rate-card entry" — conflating them
+  // would misreport a config bug or an empty-usage period as a pricing gap.
+  const ceUnavailableReasonKo = {
+    invalid_config: '요율표 설정이 유효하지 않아',
+    no_eligible_tokens: '가격 산정 대상(신선/캐시/출력) 토큰이 기록되지 않아',
+    no_priced_models: '기록된 모델 중 요율표에 있는 모델이 없어',
+  };
+  const ceUnavailableReasonEn = {
+    invalid_config: 'the rate-card configuration is invalid',
+    no_eligible_tokens: 'no eligible (fresh/cached/output) tokens were recorded',
+    no_priced_models: 'no recorded model has a rate-card entry',
+  };
+  // The rate card's promotionThrough applies to exactly ONE model
+  // (meta.promotionModel) — never phrase this as if the whole 12-row card
+  // were promotional.
+  const promoModel = ce && ce.meta && ce.meta.promotionModel;
+  const promoThrough = ce && ce.meta && ce.meta.promotionThrough;
+  const promoLineKo = promoModel && promoThrough ? ` ${promoModel} 요율만 ${promoThrough}까지 프로모션이며, 다른 모델에는 적용되지 않습니다.` : '';
+  const promoLineEn = promoModel && promoThrough ? ` Only ${promoModel} is promotional, through ${promoThrough} — this does not apply to any other model on the rate card.` : '';
+  const creditLineKo = ce && ce.status !== 'unavailable'
+    ? ` 구매 크레딧 환산 비용(요율표 기준, 청구서·절감액·월간 예측 아님)은 ${ceUsdText}이며 적용 범위는 ${ce.coveragePctEligible.toFixed(1)}%입니다${ce.unpricedModels.length ? `(미가격 모델: ${ce.unpricedModels.join(', ')})` : ''}.${promoLineKo}`
+    : (ce ? ` 구매 크레딧 환산 비용은 ${ceUnavailableReasonKo[ce.unavailableReason] || '계산할 수 없어'} N/A입니다.` : '');
+  const creditLineEn = ce && ce.status !== 'unavailable'
+    ? ` The purchased-credit-equivalent cost (a rate-card equivalent, not a bill, savings figure, or monthly projection) is ${ceUsdText} at ${ce.coveragePctEligible.toFixed(1)}% coverage${ce.unpricedModels.length ? ` (unpriced models: ${ce.unpricedModels.join(', ')})` : ''}.${promoLineEn}`
+    : (ce ? ` The purchased-credit-equivalent cost is N/A because ${ceUnavailableReasonEn[ce.unavailableReason] || 'it could not be computed'}.` : '');
+  if (locale === 'ko') {
+    return {
+      section1: `이 기간에는 총 ${fmt(total)} 토큰을 사용했습니다. 새 입력은 ${fmt(fresh)} 토큰(${freshPct}%), 캐시 읽기는 ${fmt(cached)} 토큰(${cachedPct}%), 출력은 ${fmt(output)} 토큰(${outputPct}%)입니다. 캐시 읽기 비중이 높을수록 긴 작업 맥락을 반복 활용했다는 뜻이지만, 구독 한도에서는 이 토큰도 사용량에 포함됩니다. Codex 구독 포함 사용량에서는 캐시 생성이 별도로 과금되지 않아 Cache Write 비용을 Not charged로 표시합니다. 다만 API 키로 직접 호출한 사용량은 해당 API 가격 정책을 따르므로 이 주석을 API 비용 면제로 해석하면 안 됩니다.${lane ? ` 현재 ${Math.round(lane.windowMinutes / 1440)}일 제한은 ${lane.usedPercent}% 사용됐고 ${remaining}% 남았습니다.` : ' 현재 로그에는 신뢰할 수 있는 구독 한도 샘플이 없습니다.'}${resetText ? ` 다음 초기화 예정 시각은 ${resetText}입니다.` : ''}${creditLineKo}`,
+      section2: `${busiestHour ? `${busiestHour.hour}시가 활동일 평균 ${fmt(busiestHour.avg)} 토큰으로 가장 활발했습니다.` : '시간대 데이터가 아직 충분하지 않습니다.'}${busiestDow ? ` ${localizedDow}요일은 평균 ${fmt(busiestDow.avg)} 토큰으로 요일 중 가장 높았습니다.` : ''}${peakDay ? ` 일별 최고치는 ${peakDay.date}의 ${fmt(peakDay.total)} 토큰이며, 기록된 날의 일평균은 ${fmt(averageDay)} 토큰입니다.` : ''} Context 분석에는 ${fmt(contextCalls)}개 API 호출이 포함됐습니다.${contextBucket ? ` 가장 흔한 Context size는 ${contextBucket.label} 구간으로 ${fmt(contextBucket.count)}회입니다.` : ''} 350K 이상 장문 Context는 ${fmt(largeContextCalls)}회였습니다. 차트에는 성능을 위해 인접 호출을 모델별 버블로 묶었지만, 원시 호출 수 ${fmt(apiCalls)}개는 보존됩니다. 버블을 클릭하면 그 묶음에서 사용량이 큰 실제 호출과 세션·시간·토큰 구성을 확인할 수 있습니다. 사용자 대화 모드에는 ${fmt(userTurns)}개 대화 단위가 표시되어 한 프롬프트가 만든 전체 호출량을 비교할 수 있습니다.`,
+      section3: `분석 대상은 총 ${fmt(totalSessions)}개 세션이며, 메인 ${fmt(mainSessions)}개와 서브태스크 ${fmt(subtasks)}개를 모두 포함합니다. 큰 세션 숫자에도 서브태스크가 포함되고 아래 보조 문구가 그 수를 따로 밝힙니다. 캘린더는 ${data.calendarWindowMinutes}분 단위의 실제 관측 구간만 그리며 아직 도래하지 않은 미래 시간은 만들지 않습니다. Weekly 한도 도달은 ${blocked.length}회 관측됐고, 도달한 정확한 시간 버킷만 blocked로 표시합니다.${blocked.length ? ` 관측 시각은 ${blocked.map(item => new Date(item.blockedAtTs * 1000).toLocaleString('ko-KR')).join(', ')}입니다.` : ''} 캘린더 셀을 클릭하면 그 시간의 세션과 토큰 상세가 열립니다. Token usage 슬라이더는 시간별 사용량 임계값을 바꾸며 blocked 셀은 필터와 관계없이 유지됩니다. 구독에서는 신뢰할 수 있는 CW 호출 구분이 없고 캐시 생성이 별도 과금되지 않으므로 Context 차트는 API 호출과 사용자 대화 두 보기로 통합했습니다.`,
+    };
+  }
+  return {
+    section1: `This period used ${fmt(total)} tokens: ${fmt(fresh)} fresh input (${freshPct}%), ${fmt(cached)} cached input (${cachedPct}%), and ${fmt(output)} output (${outputPct}%). A high cached-input share means long working context was reused, but those tokens still count toward the subscription allowance. Cache creation is not separately charged for included Codex subscription usage, so Cache Write is marked Not charged. API-key usage follows its applicable API pricing and is not covered by that subscription note.${lane ? ` The ${Math.round(lane.windowMinutes / 1440)}-day allowance is ${lane.usedPercent}% used with ${remaining}% remaining.` : ' No reliable subscription-limit sample is present.'}${resetText ? ` The next reported reset is ${resetText}.` : ''}${creditLineEn}`,
+    section2: `${busiestHour ? `${busiestHour.hour}:00 was the busiest hour at ${fmt(busiestHour.avg)} average tokens on active days.` : 'There is not enough hourly data yet.'}${busiestDow ? ` ${busiestDow.label} had the highest weekday average at ${fmt(busiestDow.avg)} tokens.` : ''}${peakDay ? ` The peak day was ${peakDay.date} at ${fmt(peakDay.total)} tokens, versus ${fmt(averageDay)} tokens per recorded day.` : ''} Context analysis includes ${fmt(contextCalls)} API calls.${contextBucket ? ` The most common context band was ${contextBucket.label}, with ${fmt(contextBucket.count)} calls.` : ''} ${fmt(largeContextCalls)} calls used contexts of at least 350K. Nearby calls are clustered by model for rendering speed, while the raw total of ${fmt(apiCalls)} calls is preserved. Click a bubble to inspect its highest-usage calls, session IDs, times, and token composition. User Conversations contains ${fmt(userTurns)} prompt-level aggregates so one prompt can be compared with all calls it triggered.`,
+    section3: `The report covers ${fmt(totalSessions)} sessions in total: ${fmt(mainSessions)} main sessions and ${fmt(subtasks)} subtasks. The large session count includes subtasks, and the subtitle discloses their count separately. The calendar renders only observed ${data.calendarWindowMinutes}-minute buckets and does not create future hours. Weekly blocking was observed ${blocked.length} times, with only the exact affected hour marked blocked.${blocked.length ? ` The recorded times are ${blocked.map(item => new Date(item.blockedAtTs * 1000).toLocaleString('en-US')).join(', ')}.` : ''} Click a calendar cell to inspect its sessions and token details. The token-usage slider changes the hourly threshold while blocked cells remain visible. Because subscriptions expose no reliable CW-call split and cache creation is not separately charged, the context chart is consolidated into API Calls and User Conversations.`,
+  };
+}
+
+if (isCodex && !reportData.aiAnalysis) reportData.aiAnalysis = buildCodexInsights(reportData, resolvedLocale);
 
 // Compute before/after plugin install cost averages (must be before export)
 if (reportData.pluginInstalledAt && reportData.dailyTokens) {
@@ -2111,6 +2596,63 @@ if (reportData.pluginInstalledAt && reportData.dailyTokens) {
     if (afterOut > 0) reportData._effAfter = round2(afterTotal / afterOut);
     reportData._installIdx = installIdx;
   }
+}
+
+// ── Private mode: strip user prompt text from REPORT_DATA ──────
+// Must run BEFORE --export-data (and before the template injection further
+// below) — both consume the SAME `reportData` object, so redaction applied
+// after either of those would leave raw identifiers/text in the exported
+// JSON or the shipped HTML.
+//
+// Redaction of session/thread/nickname identifiers (gap-remediation item 3):
+// a pure hash of the raw value, so the SAME id always redacts to the SAME
+// token everywhere it appears (a subagent's parentSessionId and the parent's
+// own detail.id, for instance) — letting a private-mode reader still see
+// "these rows share a session/thread" without recovering the real id.
+// Falsy values (null/undefined/'') pass through unchanged; they already
+// carry no identity.
+function redactIdentifier(kind, value) {
+  if (!value) return value;
+  return kind + '_' + crypto.createHash('sha256').update(String(value)).digest('hex').slice(0, 8);
+}
+if (privateMode) {
+  for (const w of reportData.windows) {
+    w.firstMsg = '';
+    w.lastMsg = '';
+    for (const s of (w.windowSessions || [])) {
+      s.firstMsg = '';
+      s.lastMsg = '';
+      if (s.id) s.id = redactIdentifier('sess', s.id);
+      for (const d of (s.details || [])) {
+        if (d.id) d.id = redactIdentifier('sess', d.id);
+        if (d.taskThreadId) d.taskThreadId = redactIdentifier('thread', d.taskThreadId);
+        if (d.parentSessionId) d.parentSessionId = redactIdentifier('sess', d.parentSessionId);
+        if (d.agentNickname && d.agentNickname !== 'unknown') d.agentNickname = redactIdentifier('nick', d.agentNickname);
+      }
+    }
+    for (const a of (w.alertMessages || [])) {
+      a.text = '';
+    }
+  }
+  if (reportData.contextCostScatter) {
+    const stripBubbles = (dataset) => {
+      if (!dataset || !dataset.bubbles) return;
+      for (const b of dataset.bubbles) {
+        b.text = '';
+        if (b.topTexts) {
+          for (const t of b.topTexts) t.text = '';
+        }
+      }
+    };
+    const pa = reportData.contextCostScatter.perAssistant;
+    if (pa) { stripBubbles(pa.cw); stripBubbles(pa.nonCW); }
+    stripBubbles(reportData.contextCostScatter.perUserTurn);
+  }
+  if (reportData.fiveHAlerts) {
+    for (const a of reportData.fiveHAlerts) a.text = '';
+  }
+  reportData.privateMode = true;
+  console.error('Private mode: user prompt text stripped from report data');
 }
 
 if (exportDataPath) {
@@ -2247,7 +2789,64 @@ if (exportPromptPath) {
     .map(([k, v]) => `${k}: input=$${v.input}/MTok, cw5m=$${v.cacheCreate5m}, cw1h=$${v.cacheCreate1h}, cr=$${v.cacheRead}, output=$${v.output}`)
     .join('\n');
 
-  const prompt = `## Usage Data (THESE ARE THE ONLY NUMBERS YOU MAY USE)
+  const codexLane = isCodex ? selectLongestRateLimitLane(reportData.canonicalRateLimits) : null;
+  const codexBlocked = isCodex ? reportData.windows.filter(w => w.blockedAtTs != null) : [];
+  const codexCalls = isCodex && reportData.contextUsageScatter
+    ? reportData.contextUsageScatter.perAssistant.totalCount : 0;
+  const codexTurns = isCodex && reportData.contextUsageScatter
+    ? reportData.contextUsageScatter.perUserTurn.totalCount : 0;
+  const codexPrompt = isCodex ? `## Codex Usage Data (THESE ARE THE ONLY NUMBERS YOU MAY USE)
+- Period: ${s.dateFrom} ~ ${s.dateTo} (${s.days} days)
+- Total usage: ${s.totalUsageTokens.toLocaleString()} tokens
+- Sessions: ${s.sessionCount} total (${Math.max(0, s.sessionCount - (s.subtaskCount || 0))} main + ${s.subtaskCount || 0} subtasks)
+- Plan: ${reportData.plan ? reportData.plan.name : 'not reported'}
+- Billing fact: included subscription usage does not separately charge cache creation. API-key usage may be billed under its applicable API pricing.
+- Subscription allowance: ${codexLane ? codexLane.usedPercent + '% used, ' + Math.max(0, round2(100 - codexLane.usedPercent)) + '% remaining, ' + codexLane.windowMinutes + '-minute lane, reset ' + new Date(codexLane.resetsAt * 1000).toISOString() : 'not reported'}
+
+## Token Breakdown
+- Fresh input: ${tb.input.tokens.toLocaleString()} tokens
+- Output: ${tb.output.tokens.toLocaleString()} tokens
+- Cache creation: Not charged for included subscription usage; reliable write-token count is not exposed
+- Cached input: ${tb.cacheRead.tokens.toLocaleString()} tokens
+
+## Hourly Token Pattern
+${(reportData.hourlyUsageStats || []).map(h => h.hour + ':00 avg=' + h.avg.toLocaleString() + ', max=' + h.max.toLocaleString() + ', calendarAvg=' + h.calAvg.toLocaleString()).join('\n')}
+
+## Day-of-Week Token Pattern
+${(reportData.dowUsageStats || []).map(d => d.label + ': avg=' + d.avg.toLocaleString() + ', max=' + d.max.toLocaleString() + ', calendarAvg=' + d.calAvg.toLocaleString()).join('\n')}
+
+## Daily Token Usage
+${(reportData.dailyTokens || []).map(d => d.date + ': total=' + d.total.toLocaleString() + ', freshInput=' + d.input.toLocaleString() + ', cachedInput=' + d.cr.toLocaleString() + ', output=' + d.out.toLocaleString()).join('\n')}
+
+## Context Size Distribution
+${(reportData.ctxDistribution || []).map(b => b.label + ': ' + b.count.toLocaleString() + ' calls (' + b.pct + '%)').join('\n')}
+- API calls eligible for the context chart: ${codexCalls.toLocaleString()}
+- User-conversation aggregates: ${codexTurns.toLocaleString()}
+- Models: ${((reportData.contextUsageScatter && reportData.contextUsageScatter.models) || []).join(', ') || 'not reported'}
+- Chart behavior: nearby calls are clustered by model for speed; clicking a bubble reveals underlying calls.
+
+## Weekly Limit & Blocking
+- Blocked moments: ${codexBlocked.length}
+${codexBlocked.map(w => '- ' + new Date(w.blockedAtTs * 1000).toISOString()).join('\n') || '- none observed'}
+- Calendar bucket: ${reportData.calendarWindowMinutes} minutes
+- Calendar renders observed time only; future buckets are not created.
+
+## Purchased-Credit-Equivalent Cost (rate-card equivalent — read the caveat)
+${reportData.codexCreditEquivalent ? `- Value: ${reportData.codexCreditEquivalent.status === 'unavailable' ? 'N/A (' + ({ invalid_config: 'the rate-card configuration is invalid', no_eligible_tokens: 'no eligible fresh/cached/output tokens were recorded', no_priced_models: 'no recorded model has a rate-card entry' }[reportData.codexCreditEquivalent.unavailableReason] || 'it could not be computed') + ')' : (reportData.codexCreditEquivalent.status === 'lower_bound' ? '≥' : '') + '$' + reportData.codexCreditEquivalent.usd.toFixed(2)}
+- Coverage: ${reportData.codexCreditEquivalent.coveragePctEligible.toFixed(1)}% of eligible (fresh+cached+output) tokens
+- Unpriced models: ${reportData.codexCreditEquivalent.unpricedModels.length ? reportData.codexCreditEquivalent.unpricedModels.join(', ') : 'none'}
+- Cache-write tokens are excluded (known subscription zero-charge, not an unknown gap): ${reportData.codexCreditEquivalent.excludedKnownZeroChargeTokens.cacheWrite.toLocaleString()}
+- Pricing basis: retrieved ${(reportData.codexCreditEquivalent.meta && reportData.codexCreditEquivalent.meta.retrievedAt) || 'unknown'}.${(reportData.codexCreditEquivalent.meta && reportData.codexCreditEquivalent.meta.promotionThrough) ? ` ${(reportData.codexCreditEquivalent.meta.promotionModel || 'a specific model')} only is promotional through ${reportData.codexCreditEquivalent.meta.promotionThrough} — this does NOT apply to the rest of the rate card.` : ''}
+- STRICT RULE: this is a rate-card equivalent only. Never call it a bill, a savings figure, or a monthly projection, never extrapolate it, and never imply the promotion above covers any model other than the one named.` : '- Not computed for this report.'}
+
+## Interpretation Boundaries
+- Do not invent dollar cost, subscription credit allocation, or unpublished long-context weighting.
+- The purchased-credit-equivalent cost above is the ONLY dollar-shaped figure you may state for Codex usage, and only using the exact wording rule given for it.
+- Cached input is reused context and still counts toward the subscription allowance.
+- The large session count includes subtasks.
+- Use three sections with the same depth and tone as the Claude report: section1 8-9 sentences, section2 14-16 sentences, section3 10 sentences.` : '';
+
+  const claudePrompt = `## Usage Data (THESE ARE THE ONLY NUMBERS YOU MAY USE)
 (Summary stats shown at the top of the dashboard)
 - Period: ${s.dateFrom} ~ ${s.dateTo} (${s.days} days)
 - Total cost: $${s.totalCost}, Sessions: ${s.sessionCount} main + ${s.subtaskCount || 0} subtasks
@@ -2376,57 +2975,23 @@ super-token-saver's /continue skill:
 - Much faster than /compact (no LLM round-trip)
 - Only costs input + cache_write tokens when the restored context enters the next conversation turn — no output or summarization cost`;
 
+  const prompt = isCodex ? codexPrompt : claudePrompt;
+
   // Current mode: strip section2/3 data from AI prompt to save tokens
   let finalPrompt = prompt;
   if (currentMode) {
-    // Remove sections that feed section2 (work patterns) and section3 (window analysis)
-    finalPrompt = finalPrompt
-      .replace(/## Hourly Cost Pattern[\s\S]*?(?=## |$)/, '')
-      .replace(/## Day-of-Week Cost Pattern[\s\S]*?(?=## |$)/, '')
-      .replace(/## Weekly Costs[\s\S]*?(?=## |$)/, '')
-      .replace(/## Rate Limit & Blocking[\s\S]*?(?=## |$)/, '')
-      .replace(/## Session Activity Summary[\s\S]*?(?=## |$)/, '')
-      .replace(/## Plugin Before\/After Comparison[\s\S]*?(?=## |$)/, '')
-      .replace(/## \/continue Skill Usage[\s\S]*?(?=## |$)/, '');
+    // Remove sections that feed section2/3 while preserving the same fast
+    // current-mode behavior on both hosts.
+    const currentOnlySections = isCodex
+      ? [/## Hourly Token Pattern[\s\S]*?(?=## |$)/, /## Day-of-Week Token Pattern[\s\S]*?(?=## |$)/, /## Daily Token Usage[\s\S]*?(?=## |$)/, /## Context Size Distribution[\s\S]*?(?=## |$)/, /## Weekly Limit & Blocking[\s\S]*?(?=## |$)/]
+      : [/## Hourly Cost Pattern[\s\S]*?(?=## |$)/, /## Day-of-Week Cost Pattern[\s\S]*?(?=## |$)/, /## Weekly Costs[\s\S]*?(?=## |$)/, /## Rate Limit & Blocking[\s\S]*?(?=## |$)/, /## Session Activity Summary[\s\S]*?(?=## |$)/, /## Plugin Before\/After Comparison[\s\S]*?(?=## |$)/, /## \/continue Skill Usage[\s\S]*?(?=## |$)/];
+    for (const section of currentOnlySections) finalPrompt = finalPrompt.replace(section, '');
   }
 
   fs.writeFileSync(exportPromptPath, finalPrompt);
   console.error('AI prompt exported to ' + exportPromptPath);
 }
 
-// ── Private mode: strip user prompt text from REPORT_DATA ──────
-if (privateMode) {
-  for (const w of reportData.windows) {
-    w.firstMsg = '';
-    w.lastMsg = '';
-    for (const s of (w.windowSessions || [])) {
-      s.firstMsg = '';
-      s.lastMsg = '';
-    }
-    for (const a of (w.alertMessages || [])) {
-      a.text = '';
-    }
-  }
-  if (reportData.contextCostScatter) {
-    const stripBubbles = (dataset) => {
-      if (!dataset || !dataset.bubbles) return;
-      for (const b of dataset.bubbles) {
-        b.text = '';
-        if (b.topTexts) {
-          for (const t of b.topTexts) t.text = '';
-        }
-      }
-    };
-    const pa = reportData.contextCostScatter.perAssistant;
-    if (pa) { stripBubbles(pa.cw); stripBubbles(pa.nonCW); }
-    stripBubbles(reportData.contextCostScatter.perUserTurn);
-  }
-  if (reportData.fiveHAlerts) {
-    for (const a of reportData.fiveHAlerts) a.text = '';
-  }
-  reportData.privateMode = true;
-  console.error('Private mode: user prompt text stripped from report data');
-}
 
 // ── Template injection ──────────────────────────────────────────
 let template = fs.readFileSync(TEMPLATE_PATH, 'utf8');

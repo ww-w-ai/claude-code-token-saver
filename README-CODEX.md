@@ -76,7 +76,7 @@ The skill names are the same on both hosts, so a command you learn in one works 
 
 ## What it does not do
 
-`usage-view` and `report-limit` are Claude Code only for now. Codex records the same facts in its rollouts — per-turn token counts and its rate limit outright — so both are a port that has not happened yet, not a limitation. `setup-statusline` is a different case: Codex already has its own status line, configured through `status_line` in `config.toml`.
+`usage-view` reads Codex sessions. Because a Codex subscription bills in purchased credits rather than per token, it reports the credit equivalent of what a session used, not a dollar bill. `report-limit` is Claude Code only for now — Codex records its rate limit in the rollout outright, so that one is a port that has not happened yet, not a limitation. `setup-statusline` is a different case: Codex already has its own status line, configured through `status_line` in `config.toml`.
 
 ## License
 

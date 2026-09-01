@@ -1,0 +1,26 @@
+{
+  "_unit": "purchased credits per 1M tokens; usd = credits / meta.creditsPerUsd",
+  "_note": "Exact Codex model IDs only. No aliases, no default fallback — an ID missing here is priced as unknown, never assumed.",
+  "meta": {
+    "creditsPerUsd": 25,
+    "retrievedAt": "2026-08-31",
+    "promotionThrough": "2026-11-21",
+    "promotionModel": "gpt-5.6-sol",
+    "scope": "purchased-credit-equivalent",
+    "source": "User-supplied OpenAI Codex purchased-credit rate card, dated 2026-08-31 (no URL supplied)"
+  },
+  "models": [
+    { "id": "gpt-5.6-sol", "fresh": 100, "cached": 10, "output": 500 },
+    { "id": "gpt-5.6-terra", "fresh": 50, "cached": 5, "output": 300 },
+    { "id": "gpt-5.6-luna", "fresh": 5, "cached": 0.5, "output": 30 },
+    { "id": "gpt-5.5", "fresh": 125, "cached": 12.5, "output": 750 },
+    { "id": "daybreak-blue", "fresh": 100, "cached": 10, "output": 500 },
+    { "id": "daybreak-red", "fresh": 312.5, "cached": 31.25, "output": 1875 },
+    { "id": "gpt-5.4", "fresh": 62.5, "cached": 6.25, "output": 375 },
+    { "id": "gpt-5.4-mini", "fresh": 18.75, "cached": 1.875, "output": 113 },
+    { "id": "gpt-5.3-codex", "fresh": 43.75, "cached": 4.375, "output": 350 },
+    { "id": "gpt-5.2", "fresh": 43.75, "cached": 4.375, "output": 350 },
+    { "id": "gpt-image-2-image", "fresh": 200, "cached": 50, "output": 750 },
+    { "id": "gpt-image-2-text", "fresh": 125, "cached": 31.25, "output": 250 }
+  ]
+}

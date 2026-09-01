@@ -74,7 +74,7 @@ rollout 的 `L{n}` 标记和回复行范围，因此被缩短的内容一旦变�
 
 ## 这个插件不做什么
 
-`usage-view` 和 `report-limit` 目前仅支持 Claude Code。Codex 同样会在 rollout 中记录每轮的 token 数量,并直接给出速率限制,所以这只是尚未移植,而非做不到。`setup-statusline` 情况不同:Codex 本身已有状态栏,通过 `config.toml` 中的 `status_line` 配置。
+`usage-view` 也能读取 Codex 会话。由于 Codex 订阅按购买的额度计费而非按 token 计费,它显示的是该会话所用额度的换算值,而不是账单金额。`report-limit` 目前仅支持 Claude Code —— Codex 同样会在 rollout 中直接给出速率限制,所以这只是尚未移植,而非做不到。`setup-statusline` 情况不同:Codex 本身已有状态栏,通过 `config.toml` 中的 `status_line` 配置。
 
 ## 许可证
 
