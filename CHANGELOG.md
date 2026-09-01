@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.0] - 2026-09-01
+
+### Changed: after a compaction the restore runs itself, instead of being requested
+
+The compact hook used to inject an instruction telling the model to run the s-continue skill. An
+instruction can be declined, and was: on a real autonomous run the text landed in context saying
+there was no exception, and the restore was skipped anyway, leaving the run to proceed on a summary
+that had flattened the user's standing orders.
+
+The hook now performs the restore and injects the result. It renders the pre-compact turns at level
+1 and hands them over framed as restored history — explicitly not a new request — so there is
+nothing left for the model to comply with. Level 1 is forced because compaction happens when
+context runs short: the refill has to stay bounded, and the model can still ask the skill for level
+2 or 3. Every failure falls back to the previous instruction text, and any error at all prints
+nothing, so a broken hook can never block a session.
+
+Codex reaches the same script through its own `compact` matcher on `SessionStart`, which is the one
+event that carries injected context on both hosts — Codex's `PostCompact` returns an outcome with
+no context field, and Claude Code's is absent from the union entirely.
+
+### Added: `scripts/restore.js`, the single implementation of the level slicing
+
+The slicing lived as an inline Python block inside `SKILL.md`, which meant the hook could not call
+it — only copy it. It is now a script both callers run. The skill's Step 3 boundary cut is folded
+in: `--before-boundary` finds the last compaction from the compact file's own boundary block rather
+than from a line number, so no separate session scan is needed. Codex rollouts are normalized on the
+way in and keep their original line numbers. Output is byte-identical to the Python it replaces.
+
 ## [3.1.6] - 2026-08-30
 
 ### Fixed: release verification tolerates transient local process load

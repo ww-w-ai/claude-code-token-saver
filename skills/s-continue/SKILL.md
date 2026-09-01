@@ -242,10 +242,9 @@ CACHE_FILE="${HOME}/.claude/super-token-saver-data/${PROJECT_HASH}/${SESSION_ID}
 
 **Current session with context-loss**: The compact.txt contains the FULL session. When reading it, use `lastContextLossLine` from list-sessions.js to filter: only read entries where `L{n} < lastContextLossLine`. Content after the last context-loss event is already in live LLM memory.
 
-To extract just the pre-boundary portion without LLM parsing:
-```bash
-awk "/\[Session:.*L${LAST_LOSS_LINE}\]/{exit} 1" "${CACHE_FILE}"
-```
+`restore.js --before-boundary` (Step 4) already does this cut, and finds the boundary from the
+compact file's own `System: "[auto-compact boundary]"` block rather than from a line number — so
+Step 4 alone is enough and this step is only worth running on its own to inspect the cache.
 
 **Current session WITHOUT context-loss**: Skip — entire session is in live memory.
 
@@ -264,89 +263,18 @@ Compact text is a sequence of blocks, each starting with a `[Session:...]` heade
 boundary, never on raw line counts, or a turn gets split in half.
 
 ```bash
-# IN  = the file from Step 3 (the pre-boundary slice for a compacted current session,
-#       or the whole compact.txt for a past session)
-# OUT = what you actually read
-python3 - "$LEVEL" "$IN" "$OUT" <<'PYEOF'
-import re, sys
-level, src, dst = int(sys.argv[1]), sys.argv[2], sys.argv[3]
-text = open(src).read()
-
-# Replies kept at FULL width at each end of one user turn. Everything between them is kept
-# too, at 50 chars — enough to read the run as a history without carrying its bulk. A turn is
-# unbounded on this axis: the preprocessor caps each reply's LENGTH but never their COUNT, and
-# an autonomous run puts hundreds under a single user message.
-EDGE = {1: 6, 2: 12}.get(level, 24)
-MID = 50
-
-blocks, cur = [], []
-for line in text.splitlines(keepends=True):
-    if line.startswith("[Session:") and cur:
-        blocks.append("".join(cur)); cur = []
-    cur.append(line)
-if cur:
-    blocks.append("".join(cur))
-
-def is_user(b):
-    return bool(b) and 'User: "' in b.splitlines()[0]
-
-def cut(s, head, tail):
-    s = s.strip()
-    return s if len(s) <= head + tail else s[:head].rstrip() + " … " + s[-tail:].lstrip()
-
-def body_of(ln):
-    m = re.match(r'^(\d+)\. "(.*)$', ln)
-    rest = m.group(2).split("[...truncated...]")[0]
-    rest = re.sub(r'(\s*\[[^\]]*\])+\s*$', "", rest).rstrip().rstrip('"')
-    return m.group(1), rest.strip()
-
-# Anything before the first turn (the "# compact-format:" line) is not a block. Keep it.
-preamble = "" if not blocks or is_user(blocks[0]) else blocks.pop(0)
-
-ui = [i for i, b in enumerate(blocks) if is_user(b)]
-if level == 3:
-    keep = blocks
-elif level == 1:
-    keep = [b for b in blocks if is_user(b)][-30:]
-else:
-    keep = blocks[ui[-30]:] if len(ui) > 30 else blocks
-
-chunks = []
-for b in keep:
-    lines = b.splitlines()
-    if level == 1:
-        pre, _, msg = lines[0].partition('User: "')
-        chunks.append(f'{pre}User: "{cut(msg.rstrip(chr(34)), 150, 100)}"')
-    else:
-        chunks.append(lines[0])
-    replies, ptr, others = [], None, []
-    for ln in lines[1:]:
-        if re.match(r'^\d+\. "', ln):
-            replies.append(ln)
-        elif ln.startswith("->"):
-            ptr = ln
-        elif ln.strip():
-            # The trailing "# Session references:" footer lives here. On a Codex session it names
-            # the original rollout — the only line that says which file L{n} addresses. Never drop it.
-            others.append(ln)
-    if ptr:
-        chunks.append(ptr)
-    for i, ln in enumerate(replies):
-        edge = i < EDGE or i >= len(replies) - EDGE
-        if edge and level > 1:
-            chunks.append(ln)                       # as compact.txt has it
-        else:
-            num, body = body_of(ln)
-            chunks.append(f'{num}. "{body[:100 if edge else MID]}"')
-    chunks += others
-
-out = (preamble.rstrip("\n") + "\n" if preamble.strip() else "") + "\n".join(chunks) + "\n"
-open(dst, "w").write(out)
-print(f"level {level}: {len(text)} -> {len(out)} bytes")
-PYEOF
+# TRANSCRIPT = the `path` field from list-sessions (for Codex, that is the rollout —
+#              restore.js normalizes it and keeps the original's line numbers).
+# --before-boundary cuts everything from the LAST compaction onward, which is what a
+#   compacted current session needs; leave it off to render a whole past session.
+node "${PLUGIN_ROOT}/scripts/restore.js" "${TRANSCRIPT}" \
+  --level "${LEVEL}" [--before-boundary] --out "${OUT}"
 ```
 
-Then:
+`restore.js` owns the slicing, refreshes the compact cache first (so Step 3 is folded in), and is
+the same code the after-compact hook runs unattended. Do not reimplement the slicing here — one
+rule with two copies is how this skill and that hook drifted apart once already.
+
 Then:
 
 - **Level 1 or 2** → Read the sliced file with the Read tool (chunk with offset/limit if needed).

@@ -678,7 +678,14 @@ async function main() {
   fs.writeFileSync(cachePath, out.join("\n") + "\n");
 }
 
-main().catch((err) => {
-  process.stderr.write(`preprocess.js error: ${err.message}\n`);
-  process.exit(1);
-});
+// Exported so restore.js derives the cache path from this file rather than
+// from a copy of the rule. A second copy is how the after-compact hook once
+// looked at a path nothing wrote and failed silently for months.
+module.exports = { deriveCachePath };
+
+if (require.main === module) {
+  main().catch((err) => {
+    process.stderr.write(`preprocess.js error: ${err.message}\n`);
+    process.exit(1);
+  });
+}
