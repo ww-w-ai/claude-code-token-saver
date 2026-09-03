@@ -15,7 +15,7 @@ Codex writes every session to `~/.codex/sessions/`. Claude Code writes every ses
 | `s-continue` | Restore a previous Claude Code **or** Codex session — pick from a list, or jump straight to the last one. |
 | `s-compact` | Write a handoff before you clear, capturing what the transcript cannot hold: subagent findings, tool-output numbers, killed approaches. |
 
-The handoff is stored per project, not per tool. End a sprint in Codex, pick it up in Claude Code, and the file is already there.
+The handoff is stored per project, not per tool. End a sprint in Codex, pick it up in Claude Code, and the file is already there. Go back the other way and it still is. No other plugin restores both tools' history, so when one side runs out of budget the other picks up from the same line.
 
 ## Why it fits Codex
 

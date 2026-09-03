@@ -2,7 +2,7 @@
 
 **Satu-satunya plugin Claude Code yang benar-benar membaca kode sumber CC untuk menemukan ke mana token Anda pergi — dan memperbaikinya secara otomatis. Keluarkan lebih sedikit, bekerja lebih lama.**
 
-> Hasil terukur: **pengurangan biaya 45%** pada beban kerja nyata $326/hari → $180/hari. Pencegahan kedaluwarsa cache, delegasi SubTask otomatis, pemulihan konteks tanpa biaya, dan dasbor analitik lengkap — dalam satu instalasi, tanpa konfigurasi.
+> Hasil terukur: **pengurangan biaya 45%** pada beban kerja nyata $326/hari → $180/hari. Delegasi SubTask otomatis, pemulihan konteks tanpa biaya, dasbor analitik lengkap, dan guard untuk kedaluwarsa cache — dalam satu instalasi, tanpa konfigurasi.
 
 Bekerja dengan **Max Plan ($200/bln)** dan **API bayar-per-penggunaan**. Plugin yang sama, fitur yang sama. Lebih kuat untuk setiap pengguna — terutama saat setiap token adalah uang nyata.
 
@@ -12,7 +12,6 @@ Bekerja dengan **Max Plan ($200/bln)** dan **API bayar-per-penggunaan**. Plugin 
 
 | Fitur | Yang terjadi | Dampak |
 | ----- | ------------ | ------ |
-| 🛡️ Token Guardian | Mendeteksi kedaluwarsa cache, memblokir pengiriman ulang $9 sebelum terjadi | Mencegah lonjakan biaya tersembunyi #1 |
 | 🧠 Session Architect | Mendelegasikan pekerjaan berat ke SubTasks secara otomatis (cache 37,5% lebih murah) | Konteks tetap kecil, biaya turun |
 | 🪶 Concise Mode | Memangkas padding respons, mempertahankan substansi | Lebih sedikit token output per respons |
 | 🔄 /s-continue | Menggantikan /compact — nol panggilan LLM, nol biaya, nol kehilangan informasi, dan kini juga memulihkan sesi **Codex** | Pemulihan konteks gratis di kedua tool |
@@ -20,16 +19,17 @@ Bekerja dengan **Max Plan ($200/bln)** dan **API bayar-per-penggunaan**. Plugin 
 | 📊 Status Line | Biaya real-time, ukuran konteks, batas rate — di bawah 50ms | Lihat masalah sebelum menguras kantong |
 | 📈 /usage-view | Dasbor HTML interaktif dengan analisis bertenaga AI | Forensik biaya lengkap dalam satu klik |
 | ✂️ /setup-git-lite | Menghapus 2.200 token tersembunyi yang CC suntikkan setiap sesi | ~$48/bln hemat dari instruksi git saja |
+| 🛡️ Token Guardian | Memperingatkan Anda tepat saat kedaluwarsa cache mengirim ulang konteks Anda, atau memblokirnya dalam mode `block` | Tidak ada lagi kejutan $9 yang tersembunyi |
 
 ---
 
 ## 😤 Masalahnya
 
-**Kedaluwarsa cache.** Anda baru pulang dari makan siang. Cache hilang. Satu prompt mengirim ulang 900K token dengan harga penuh. $9 dalam sekali tembak.
-
 **Biaya tak terlihat.** Tidak ada visibilitas real-time. Tidak ada peringatan "konteks Anda di 800K". Tidak ada peringatan "cache kedaluwarsa 3 menit lalu". Anda mengetahuinya setelah kerusakan terjadi.
 
 **Pembengkakan konteks.** Prompt yang sama pada konteks 200K versus 800K biayanya 4x lebih mahal. Setiap Read, Grep, Edit mengirim ulang konteks penuh. Satu prompt kompleks memicu 15+ panggilan API, masing-masing dikalikan dengan ukuran konteks Anda.
+
+**Kedaluwarsa cache.** Anda baru pulang dari makan siang. Cache hilang. Satu prompt mengirim ulang 900K token dengan harga penuh. $9 dalam sekali tembak.
 
 **Semuanya manual.** Manajemen konteks, waktu kedaluwarsa cache, delegasi SubTask, pembersihan sesi. Tidak ada yang bisa melacak semua ini sambil benar-benar mengoding.
 
@@ -56,7 +56,7 @@ Untuk pemantauan langsung:
 /setup-statusline install
 ```
 
-Untuk memangkas 2.200 token tersembunyi dari instruksi git bawaan CC ([detail](#%EF%B8%8F-feature-5-setup-git-lite--trim-ccs-built-in-git-instructions)):
+Untuk memangkas 2.200 token tersembunyi dari instruksi git bawaan CC ([detail](#%EF%B8%8F-feature-4-setup-git-lite--trim-ccs-built-in-git-instructions)):
 
 ```
 /setup-git-lite install
@@ -64,36 +64,7 @@ Untuk memangkas 2.200 token tersembunyi dari instruksi git bawaan CC ([detail](#
 
 ---
 
-## 🛡️ Fitur 1: Token Guardian
-
-**Mendeteksi kedaluwarsa cache dan secara otomatis memblokir pengiriman ulang yang mahal.**
-
-TTL cache prompt Claude Code adalah 1 jam. Pergi lebih dari satu jam dan cache kedaluwarsa. Pesan berikutnya mengirim ulang seluruh konteks dengan harga penuh. Pada 900K token, itu $9 dalam sekali tembak.
-
-Token Guardian melacak kapan respons terakhir diterima. Jika lebih dari 3.590 detik telah berlalu (TTL dikurangi buffer 10 detik), ia memblokir prompt dan menampilkan peringatan.
-
-```
-🚨 Cache expired (68m 23s idle)
-
-The prompt cache has expired. Continuing will resend the full context.
-Cost may increase significantly.
-
-👉 /context — Check current context usage before deciding
-👉 /clear → /s-continue — Reset, then restore previous context (recommended, cheapest)
-👉 Re-send — Continue as-is (full re-cache cost incurred)
-```
-
-Cukup kirim ulang prompt yang sama setelah peringatan -- ia akan lewat. Peringatan hanya aktif sekali per periode tidak aktif, jadi tidak pernah mengganggu. Pesan peringatan ditampilkan dalam 23 bahasa berdasarkan lokal OS Anda.
-
-**Agen latar belakang tidak pernah diblokir.** Hanya yang diketik manusia yang mendapat peringatan. Laporan penyelesaian dari agen dan tugas latar belakang -- yang kini rutin tiba lebih dari satu jam setelah diluncurkan -- lewat begitu saja, sehingga hasil agen yang berjalan lama tidak pernah tertahan atau hilang.
-
-**Hasil:** Setiap kedaluwarsa cache yang tertangkap = $9 terhemat. Satu tangkapan per hari berarti $270/bln pemborosan murni yang dihilangkan.
-
-> **Jika Anda menggunakan API bayar-per-penggunaan, ini lebih terasa.** Pelanggan Max Plan kehilangan $9 dalam buffer $200. Anda kehilangan $9 uang nyata — diam-diam, berulang kali, setiap kali Anda pergi. Token Guardian menangkapnya setiap saat.
-
----
-
-## 🧠 Fitur 2: Smart Session Architecture
+## 🧠 Fitur 1: Smart Session Architecture
 
 **Instal dan pola kerja yang dioptimalkan biaya langsung berjalan otomatis.**
 
@@ -130,7 +101,7 @@ Instal sekali, berlaku di mana saja.
 
 ---
 
-## 🔄 Fitur 3: /s-continue — Pemulihan Konteks
+## 🔄 Fitur 2: /s-continue — Pemulihan Konteks
 
 **Menggantikan `/compact`. Nol panggilan LLM. Nol biaya token. Nol kehilangan informasi.**
 
@@ -192,7 +163,7 @@ Plugin ini juga terpasang di dalam Codex — lihat **[README-CODEX.md](./README-
 
 ---
 
-## 📊 Fitur 4: Status Line Langsung
+## 📊 Fitur 3: Status Line Langsung
 
 **Pemantauan token/biaya real-time. Overhead di bawah 50ms.**
 
@@ -301,7 +272,7 @@ Saat Anda mencapai batas rate, jalankan `/report-limit`. Data penggunaan Anda sa
 
 ---
 
-## ✂️ Fitur 5: /setup-git-lite — Pangkas Instruksi Git Bawaan CC
+## ✂️ Fitur 4: /setup-git-lite — Pangkas Instruksi Git Bawaan CC
 
 **Kami membaca kode sumber Claude Code. Kami menemukan 2.200 token tersembunyi yang disuntikkan setiap sesi yang Anda bayar diam-diam.**
 
@@ -401,6 +372,45 @@ Saat instruksi git native CC masih aktif di mesin Anda, super-token-saver menamp
 
 ---
 
+## 🛡️ Fitur 5: Token Guardian
+
+**Memberi tahu Anda tepat saat kedaluwarsa cache mulai memakan biaya. Bisa memblokir pengiriman ulang $9 itu jika Anda memintanya.**
+
+TTL cache prompt Claude Code adalah 1 jam. Pergi lebih lama dari itu dan cache kedaluwarsa. Pesan berikutnya mengirim ulang seluruh konteks dengan harga penuh. Pada 900K token, itu $9 dalam sekali tembak.
+
+Token Guardian mengingat kapan respons terakhir tiba. Jika lebih dari 3.590 detik telah berlalu (TTL dikurangi buffer 10 detik), ia turun tangan. Secara default ia **memperingatkan**: prompt tetap diteruskan, dan Claude membuka jawabannya dengan satu baris yang menyebutkan bahwa cache sudah kedaluwarsa, giliran ini ditagih sebagai pengiriman ulang penuh, dan setelah jeda satu jam atau lebih jalan yang lebih murah adalah `/clear` → `/s-continue`.
+
+**Mengapa warn menjadi default.** Versi sebelumnya memblokir prompt dan menampilkan peringatan di bawah. Itu berhasil di terminal. Di Remote Control tidak: pesan blokir dari hook dirender secara lokal sebagai pesan sistem yang tidak pernah diterima klien remote, sehingga prompt yang dikirim begitu saja menghilang tanpa penjelasan. Jawaban Claude *memang* diteruskan, jadi sekarang peringatan itu menumpang di sana. Kami mengubah default ini demi orang-orang yang menjalankan sesinya dari jarak jauh.
+
+Jika Anda kebanyakan bekerja di terminal lokal dan ingin penghentian tegas itu kembali:
+
+```
+export CC_TOKEN_SAVER_CACHE_GUARD=block
+```
+
+Dalam mode block, prompt ditolak satu kali dengan pesan di bawah. Kirim lagi dan ia akan lewat. `off` menonaktifkan pemeriksaan ini sepenuhnya.
+
+```
+🚨 Cache kedaluwarsa (68m 23s tidak aktif)
+
+Cache prompt telah kedaluwarsa. Melanjutkan akan mengirim ulang seluruh konteks.
+Biaya dapat meningkat signifikan.
+
+👉 /context — Periksa penggunaan konteks saat ini sebelum memutuskan
+👉 /clear → /s-continue — Reset, lalu pulihkan konteks sebelumnya (disarankan, termurah)
+👉 Kirim ulang — Lanjutkan apa adanya (biaya re-cache penuh dikenakan)
+```
+
+Pesan blokir ditampilkan dalam 23 bahasa, dipilih dari lokal OS Anda, dan muncul sekali per periode tidak aktif.
+
+**Agen latar belakang tidak pernah diblokir.** Hanya prompt yang diketik manusia yang mendapat pemeriksaan ini. Laporan penyelesaian dari agen dan tugas latar belakang -- yang belakangan ini sering tiba lebih dari satu jam setelah diluncurkan -- lewat begitu saja. Hasil agen yang berjalan lama tidak pernah tertahan atau hilang.
+
+**Hasil:** dalam mode warn Anda selalu tahu kapan dan mengapa pengiriman ulang $9 terjadi. Dalam mode block itu tidak pernah terjadi: setiap kedaluwarsa yang tertangkap menghemat $9, dan dengan satu tangkapan per hari itu $270/bln pemborosan murni yang hilang.
+
+> **Di skema bayar-per-penggunaan ini terasa lebih berat.** Pelanggan Max Plan kehilangan $9 dalam buffer $200. Anda kehilangan $9 uang nyata — diam-diam, setiap kali Anda pergi. Mode block menghentikannya setiap saat.
+
+---
+
 ## 💡 Cara Cache Sebenarnya Bekerja (Dan Mengapa Sebagian Besar Pengguna Membuang 40%+)
 
 Claude Code mengirimkan seluruh riwayat percakapan ke model pada setiap panggilan API. "Panggilan API" tidak berarti "satu pesan yang Anda ketik." Satu prompt memicu panggilan alat internal — Grep, Read, Edit, Write — dan masing-masing adalah panggilan API terpisah. Satu prompt bisa dengan mudah menyebabkan 10+ panggilan API.
@@ -443,7 +453,7 @@ Pekerjaan berat didelegasikan ke SubTasks. Main hanya menangani desain/keputusan
 | ----------- | --------------------------------------------- | --------------------------- | ----------------------------------- |
 | Pagi 3j     | Pengodean (Main: desain, SubTask: implementasi) | Main 100K → 300K (rata-rata 200K) | 900 panggilan × 200K × ＄0.50/M = ＄90 |
 | Makan siang/rapat | Pergi 2 jam                             | —                           | —                                   |
-| Kembali     | ⚡ Token Guardian memblokir → /clear + /s-continue | —                        | ＄0 (tanpa panggilan LLM)            |
+| Kembali     | ⚡ Token Guardian (mode block) → /clear + /s-continue | —                        | ＄0 (tanpa panggilan LLM)            |
 | Sore 3j     | Pengodean berlanjut                           | Main 100K → 300K (rata-rata 200K) | 900 panggilan × 200K × ＄0.50/M = ＄90 |
 |             | Total                                         |                             | ~＄180                               |
 
@@ -470,7 +480,7 @@ Pekerjaan berat didelegasikan ke SubTasks. Main hanya menangani desain/keputusan
     │
 [Tidak aktif 1+ jam]
     │
-    ├─ Token Guardian → Mendeteksi kedaluwarsa cache, memblokir sebelum kirim ulang
+    ├─ Token Guardian → Mendeteksi kedaluwarsa cache, memperingatkan (atau memblokir dalam mode block)
     │
 [Restart sesi]
     │
@@ -524,7 +534,7 @@ Plugin menyuntikkan konteks saat awal sesi. Berikut persis berapa banyak:
 | ------- | ----- | ----- | ------- |
 | Session Architect | SessionStart (sekali) | ~1.100 | Strategi delegasi SubTask + aturan Concise Mode |
 | Konteks Git (jika git-lite diaktifkan) | SessionStart (sekali) | ~280 | Menggantikan ~2.200 tok instruksi git native CC |
-| Peringatan kedaluwarsa cache | Saat tidak aktif > 59 menit (sekali) | ~200 | Memblokir kirim ulang mahal, menampilkan opsi pemulihan |
+| Peringatan kedaluwarsa cache | Saat tidak aktif > 59 menit (sekali) | ~200 | Menandai pengiriman ulang yang mahal, menampilkan jalan yang lebih murah |
 | Status line | Setiap panggilan API | 0 | Ditampilkan di bilah status terminal, bukan konteks percakapan |
 
 **Overhead bersih per sesi: ~1.400 token (sekali, di-cache setelah panggilan pertama).**
@@ -542,7 +552,7 @@ Jika git-lite diaktifkan, plugin **menghemat** ~1.920 token per sesi (menggantik
 ### Pahami cache dan Anda akan melihat ke mana uang pergi
 
 - **1 prompt ≠ 1 panggilan API.** Setiap kali Claude memanggil Grep, Read, atau Edit, seluruh konteks dikirim ulang. Satu prompt bisa dengan mudah memicu 10+ panggilan API. Tulis prompt yang jelas untuk mengurangi panggilan alat yang tidak perlu dan memangkas biaya.
-- **Timer cache direset dari panggilan API terakhir, bukan prompt terakhir Anda.** Terus bekerja dan cache tidak akan pernah kedaluwarsa. Bahayanya adalah pergi. Token Guardian memblokir sekali secara otomatis, sehingga saat Anda kembali Anda bisa memilih: reset konteks atau lanjutkan apa adanya.
+- **Timer cache direset dari panggilan API terakhir, bukan prompt terakhir Anda.** Terus bekerja dan cache tidak akan pernah kedaluwarsa. Bahayanya adalah pergi. Token Guardian memberi tahu Anda saat itu terjadi, dan dalam mode `block` menghentikan prompt sekali sehingga Anda bisa memilih: reset konteks, atau lanjutkan apa adanya.
 - **Ukuran konteks = pengganda biaya.** Panggilan API yang sama pada 200K versus 800K biayanya 4x lebih mahal. Ketika status line [CTX] melewati 35% (🟡), itu sinyal Anda untuk mendelegasikan lebih banyak ke SubTasks.
 
 ### Kebiasaan yang memangkas biaya

@@ -145,7 +145,8 @@ Reads preprocessed `compact.txt` directly — no summarization, no token expendi
 - Prompt cache TTL: 3600s (1 hour). Warning threshold: 3590s (10s buffer).
 - SubTask cache: 5 min, $6.25/MTok write. Main session: 1 hour, $10/MTok write.
 - Statusline turn idle timeout: 60s.
-- Gate flag: `$TMPDIR/claude-cache-warn-{SESSION_ID}` (one-time block per idle period). Machine-injected prompts never touch it — the exemption runs first.
+- Cache guard mode: `CC_TOKEN_SAVER_CACHE_GUARD` = `warn` (default) | `block` | `off`. Default is `warn` because a hook block is a local `system/informational` message that Remote Control never forwards (`bridge/bridgeMessaging.ts` `isEligibleBridgeMessage`); warn passes the prompt and attaches `additionalContext` so Claude's reply, which IS forwarded, announces the expiry.
+- Gate flag (block mode only): `$TMPDIR/claude-cache-warn-{SESSION_ID}` (one-time block per idle period). Machine-injected prompts never touch it — the exemption runs first.
 
 ## File Relationships
 

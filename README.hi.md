@@ -2,7 +2,7 @@
 
 **Claude Code का एकमात्र प्लगइन जो CC के सोर्स कोड को वास्तव में पढ़कर यह पता लगाता है कि आपके टोकन कहाँ जाते हैं — और इसे स्वचालित रूप से ठीक करता है। कम खर्च करें, लंबे समय तक काम करें।**
 
-> मापा गया परिणाम: एक वास्तविक $326/दिन के वर्कलोड पर **45% लागत में कमी** → $180/दिन। कैश एक्सपायरी की रोकथाम, स्वचालित SubTask डेलिगेशन, शून्य लागत पर कॉन्टेक्स्ट रिस्टोरेशन, और पूरी एनालिटिक्स डैशबोर्ड — एक इंस्टॉलेशन में, बिना कॉन्फिग के।
+> मापा गया परिणाम: एक वास्तविक $326/दिन के वर्कलोड पर **45% लागत में कमी** → $180/दिन। स्वचालित SubTask डेलिगेशन, शून्य लागत पर कॉन्टेक्स्ट रिस्टोरेशन, पूरी एनालिटिक्स डैशबोर्ड, और कैश एक्सपायरी के लिए एक guard — एक इंस्टॉलेशन में, बिना कॉन्फिग के।
 
 **Max Plan ($200/माह)** और **API pay-per-use** दोनों के साथ काम करता है। एक ही प्लगइन, समान फीचर। हर यूज़र के लिए बेहतर — खासकर जब हर टोकन असली पैसा हो।
 
@@ -12,7 +12,6 @@
 
 | फीचर | क्या होता है | प्रभाव |
 | ---- | ------------ | ------ |
-| 🛡️ Token Guardian | कैश एक्सपायरी का पता लगाता है, होने से पहले $9 री-सेंड को ब्लॉक करता है | नंबर 1 छुपे हुए लागत spike को रोकता है |
 | 🧠 Session Architect | भारी काम को SubTasks को ऑटो-डेलिगेट करता है (37.5% सस्ता कैश) | कॉन्टेक्स्ट छोटा रहता है, लागत कम होती है |
 | 🪶 Concise Mode | रिस्पॉन्स की padding काटता है, सामग्री रखता है | प्रति रिस्पॉन्स कम output टोकन |
 | 🔄 /s-continue | /compact की जगह लेता है — शून्य LLM calls, शून्य लागत, शून्य जानकारी का नुकसान, और अब **Codex** sessions भी restore करता है | दोनों tools में मुफ्त कॉन्टेक्स्ट रिस्टोरेशन |
@@ -20,16 +19,17 @@
 | 📊 Status Line | रियल-टाइम लागत, कॉन्टेक्स्ट साइज़, रेट लिमिट — 50ms से कम | समस्याओं को खर्च होने से पहले देखें |
 | 📈 /usage-view | AI-powered analysis के साथ इंटरएक्टिव HTML डैशबोर्ड | एक क्लिक में पूरी लागत forensics |
 | ✂️ /setup-git-lite | CC हर सेशन में जो 2,200 छुपे टोकन डालता है उन्हें हटाता है | केवल git instructions पर ~$48/माह की बचत |
+| 🛡️ Token Guardian | जिस पल कैश एक्सपायरी आपका कॉन्टेक्स्ट दोबारा भेजती है, आपको warn करता है, या `block` mode में उसे ब्लॉक करता है | अब चुपचाप $9 के surprise नहीं |
 
 ---
 
 ## 😤 समस्या
 
-**कैश एक्सपायरी।** आप लंच से वापस आए। कैश चला गया। एक prompt 900K टोकन पूरी कीमत पर री-सेंड करता है। एक बार में $9।
-
 **अदृश्य लागत।** रियल-टाइम visibility नहीं। "आपका कॉन्टेक्स्ट 800K पर है" कोई warning नहीं। "कैश 3 मिनट पहले expire हो गया" कोई alert नहीं। नुकसान हो जाने के बाद पता चलता है।
 
 **कॉन्टेक्स्ट bloat।** 200K बनाम 800K कॉन्टेक्स्ट पर एक ही prompt 4x महंगा होता है। हर Read, Grep, Edit पूरा कॉन्टेक्स्ट री-सेंड करता है। एक जटिल prompt 15+ API calls trigger करता है, हर एक आपके कॉन्टेक्स्ट साइज़ से गुणा।
+
+**कैश एक्सपायरी।** आप लंच से वापस आए। कैश चला गया। एक prompt 900K टोकन पूरी कीमत पर री-सेंड करता है। एक बार में $9।
 
 **सब कुछ manual।** कॉन्टेक्स्ट management, कैश expiry timing, SubTask delegation, session cleanup। कोई भी वास्तव में coding करते हुए यह सब track नहीं कर सकता।
 
@@ -56,7 +56,7 @@ live monitoring के लिए:
 /setup-statusline install
 ```
 
-CC के built-in git instructions से 2,200 hidden tokens trim करने के लिए ([विवरण](#%EF%B8%8F-feature-5-setup-git-lite--trim-ccs-built-in-git-instructions)):
+CC के built-in git instructions से 2,200 hidden tokens trim करने के लिए ([विवरण](#%EF%B8%8F-feature-4-setup-git-lite--trim-ccs-built-in-git-instructions)):
 
 ```
 /setup-git-lite install
@@ -64,36 +64,7 @@ CC के built-in git instructions से 2,200 hidden tokens trim करने
 
 ---
 
-## 🛡️ Feature 1: Token Guardian
-
-**कैश एक्सपायरी का पता लगाता है और महंगी री-सेंड को automatically ब्लॉक करता है।**
-
-Claude Code के prompt cache का TTL 1 घंटा है। एक घंटे से ज़्यादा दूर जाएं और कैश expire हो जाता है। आपका अगला message पूरा कॉन्टेक्स्ट पूरी कीमत पर री-सेंड करता है। 900K tokens पर, यह एक बार में $9 है।
-
-Token Guardian track करता है कि आखिरी response कब मिला। अगर 3,590 सेकंड से ज़्यादा बीत गए (TTL minus 10-second buffer), तो यह prompt ब्लॉक करता है और warning दिखाता है।
-
-```
-🚨 Cache expired (68m 23s idle)
-
-The prompt cache has expired. Continuing will resend the full context.
-Cost may increase significantly.
-
-👉 /context — Check current context usage before deciding
-👉 /clear → /s-continue — Reset, then restore previous context (recommended, cheapest)
-👉 Re-send — Continue as-is (full re-cache cost incurred)
-```
-
-warning के बाद बस वही prompt दोबारा भेजें -- वह through हो जाएगा। Warning हर idle period में सिर्फ एक बार fire होती है, इसलिए यह कभी नहीं नागती। Warning messages आपके OS locale के आधार पर 23 भाषाओं में display होते हैं।
-
-**Background agents कभी block नहीं होते।** सिर्फ वही जो इंसान खुद type करता है, warning पाता है। Background agents और tasks की completion reports -- जो अब अक्सर launch होने के एक घंटे से ज़्यादा बाद आती हैं -- सीधे pass हो जाती हैं, तो किसी long-running agent का result कभी रुकता या खोता नहीं है।
-
-**परिणाम:** हर cache expiry पकड़ी = $9 बचाए। दिन में एक बार पकड़ने पर, यह $270/माह शुद्ध बर्बादी खत्म।
-
-> **अगर आप API pay-per-use पर हैं, यह ज़्यादा असर करता है।** Max Plan subscribers $200 buffer के अंदर $9 खोते हैं। आप $9 असली पैसे खोते हैं — चुपचाप, बार-बार, हर बार जब आप दूर जाते हैं। Token Guardian हर बार पकड़ता है।
-
----
-
-## 🧠 Feature 2: Smart Session Architecture
+## 🧠 Feature 1: Smart Session Architecture
 
 **इसे install करें और cost-optimized work patterns automatically शुरू हो जाते हैं।**
 
@@ -130,7 +101,7 @@ Hard limit: कभी भी content drop नहीं करना, verificatio
 
 ---
 
-## 🔄 Feature 3: /s-continue — Context Restoration
+## 🔄 Feature 2: /s-continue — Context Restoration
 
 **`/compact` को replace करता है। Zero LLM calls। Zero token cost। Zero information loss।**
 
@@ -192,7 +163,7 @@ Codex अपने sessions `~/.codex/sessions/` में लिखता ह�
 
 ---
 
-## 📊 Feature 4: Live Status Line
+## 📊 Feature 3: Live Status Line
 
 **Real-time token/cost monitoring। 50ms से कम overhead।**
 
@@ -301,7 +272,7 @@ Anthropic 5-hour window का exact formula publish नहीं करता�
 
 ---
 
-## ✂️ Feature 5: /setup-git-lite — CC के Built-in Git Instructions Trim करें
+## ✂️ Feature 4: /setup-git-lite — CC के Built-in Git Instructions Trim करें
 
 **हमने Claude Code का source code पढ़ा। हमें 2,200 hidden tokens मिले जो हर session में inject होते हैं जिनके लिए आप चुपचाप pay कर रहे हैं।**
 
@@ -401,6 +372,45 @@ Typical interactive sessions में, commit/PR instructions (1.7K tok) **ह�
 
 ---
 
+## 🛡️ Feature 5: Token Guardian
+
+**जिस पल कैश एक्सपायरी आपको महंगी पड़ती है, आपको बता देता है। अगर आप कहें तो $9 री-सेंड को ब्लॉक भी कर सकता है।**
+
+Claude Code के prompt cache का TTL 1 घंटा है। एक घंटे से ज़्यादा दूर जाएं और कैश expire हो जाता है। आपका अगला message पूरा कॉन्टेक्स्ट पूरी कीमत पर री-सेंड करता है। 900K tokens पर, यह एक बार में $9 है।
+
+Token Guardian याद रखता है कि आखिरी reply कब आया। अगर 3,590 सेकंड से ज़्यादा बीत गए (TTL minus 10-second buffer), तो यह step in करता है। Default में यह **warn** करता है: prompt through हो जाता है, और Claude अपने reply की शुरुआत एक line से करता है जो बताती है कि कैश expire हो चुका था, यह turn पूरे re-send के रूप में bill हुआ, और एक घंटे या उससे ज़्यादा के break के बाद सस्ता रास्ता `/clear` → `/s-continue` है।
+
+**warn default क्यों है।** पहले के versions prompt को ब्लॉक करते थे और नीचे वाली warning दिखाते थे। Terminal में यह काम करता है। Remote Control के तहत नहीं: hook का block message locally एक system message के रूप में render होता है जो remote client को कभी नहीं मिलता, तो prompt बिना किसी explanation के बस गायब हो जाता था। Claude का reply *forward* होता है, इसलिए अब warning उसी पर सवार होकर आती है। हमने default उन लोगों के लिए बदला जो अपने sessions remotely चलाते हैं।
+
+अगर आप ज़्यादातर local terminal में काम करते हैं और hard stop वापस चाहते हैं:
+
+```
+export CC_TOKEN_SAVER_CACHE_GUARD=block
+```
+
+block mode में prompt एक बार नीचे वाले message के साथ refuse होता है। दोबारा भेजें और वह through हो जाएगा। `off` check को पूरी तरह disable करता है।
+
+```
+🚨 Cache expired (68m 23s idle)
+
+The prompt cache has expired. Continuing will resend the full context.
+Cost may increase significantly.
+
+👉 /context — Check current context usage before deciding
+👉 /clear → /s-continue — Reset, then restore previous context (recommended, cheapest)
+👉 Re-send — Continue as-is (full re-cache cost incurred)
+```
+
+Block message आपके OS locale के आधार पर 23 भाषाओं में दिखता है, और हर idle period में सिर्फ एक बार fire होता है।
+
+**Background agents कभी block नहीं होते।** सिर्फ वही prompts जो इंसान खुद type करता है, check पाते हैं। Background agents और tasks की completion reports -- जो अब अक्सर launch होने के एक घंटे से ज़्यादा बाद आती हैं -- सीधे pass हो जाती हैं। किसी long-running agent का result कभी रुकता या खोता नहीं है।
+
+**परिणाम:** warn mode में Token Guardian आपको हमेशा बताता है कि $9 री-सेंड कब हुआ, और क्यों। block mode में यह होता ही नहीं: हर cache expiry पकड़ी = $9 बचाए, और दिन में एक बार पकड़ने पर यह $270/माह शुद्ध बर्बादी खत्म।
+
+> **अगर आप API pay-per-use पर हैं, यह ज़्यादा असर करता है।** Max Plan subscribers $200 buffer के अंदर $9 खोते हैं। आप $9 असली पैसे खोते हैं — चुपचाप, बार-बार, हर बार जब आप दूर जाते हैं। Block mode इसे हर बार रोकता है।
+
+---
+
 ## 💡 Cache वास्तव में कैसे काम करता है (और क्यों अधिकांश users 40%+ waste करते हैं)
 
 Claude Code हर API call पर model को पूरा conversation history भेजता है। "API call" का मतलब "आपका टाइप किया हुआ एक message" नहीं है। एक single prompt internal tool calls trigger करता है — Grep, Read, Edit, Write — और हर एक एक separate API call है। एक prompt easily 10+ API calls cause कर सकता है।
@@ -443,7 +453,7 @@ Conditions: Opus 4 pricing, 1 prompt per minute, ~5 API calls per prompt (~300 c
 | ----------- | -------------------------------------------- | --------------------------- | ---------------------------------- |
 | सुबह 3h     | Coding (Main: design, SubTask: implementation) | Main 100K → 300K (avg 200K) | 900 calls × 200K × ＄0.50/M = ＄90 |
 | Lunch/mtg   | 2 घंटे दूर                                   | —                           | —                                  |
-| वापसी       | ⚡ Token Guardian blocks → /clear + /s-continue | —                           | ＄0 (no LLM calls)                 |
+| वापसी       | ⚡ Token Guardian (block mode) → /clear + /s-continue | —                           | ＄0 (no LLM calls)                 |
 | दोपहर 3h    | Coding continues                             | Main 100K → 300K (avg 200K) | 900 calls × 200K × ＄0.50/M = ＄90 |
 |             | Total                                        |                             | ~＄180                              |
 
@@ -470,7 +480,7 @@ Conditions: Opus 4 pricing, 1 prompt per minute, ~5 API calls per prompt (~300 c
     │
 [1+ hour idle]
     │
-    ├─ Token Guardian → Cache expiry detect करता है, re-send से पहले blocks
+    ├─ Token Guardian → Cache expiry detect करता है, warn करता है (या block mode में blocks)
     │
 [Session restart]
     │
@@ -524,7 +534,7 @@ Plugin session start पर context inject करता है। यहाँ e
 | --------- | ---- | ------ | ------- |
 | Session Architect | SessionStart (once) | ~1,100 | SubTask delegation strategy + concise mode rules |
 | Git context (if git-lite enabled) | SessionStart (once) | ~280 | CC के native ~2,200 tok git instructions replace करता है |
-| Cache expiry warning | Idle > 59m पर (once) | ~200 | महंगी re-send block करता है, recovery options दिखाता है |
+| Cache expiry warning | Idle > 59m पर (once) | ~200 | महंगी re-send को flag करता है, सस्ता रास्ता दिखाता है |
 | Status line | Every API call | 0 | Terminal status bar में render, conversation context नहीं |
 
 **Session per net overhead: ~1,400 tokens (one-time, first call के बाद cached)।**
@@ -542,7 +552,7 @@ Opus pricing ($0.50/MTok cache read) पर, यह **$0.0007 per API call** ह
 ### Cache समझें और आप देखेंगे पैसा कहाँ जाता है
 
 - **1 prompt ≠ 1 API call।** हर बार जब Claude Grep, Read, या Edit call करता है, पूरा context re-sent होता है। एक single prompt easily 10+ API calls trigger कर सकता है। Unnecessary tool calls कम करने और costs cut करने के लिए clear prompts लिखें।
-- **Cache timer आपके last prompt से नहीं, last API call से reset होता है।** काम करते रहें और cache कभी expire नहीं होगी। Danger दूर जाने में है। Token Guardian once auto-blocks करता है, तो जब आप वापस आएं तो choose कर सकते हैं: reset context या continue as-is।
+- **Cache timer आपके last prompt से नहीं, last API call से reset होता है।** काम करते रहें और cache कभी expire नहीं होगी। Danger दूर जाने में है। Token Guardian आपको बताता है कि यह कब हुआ, और `block` mode में prompt को एक बार रोकता है ताकि आप choose कर सकें: context reset करें, या as-is जारी रखें।
 - **Context size = cost multiplier।** 200K बनाम 800K पर same API call 4x ज़्यादा cost करती है। जब status line [CTX] 35% cross करे (🟡), यह SubTasks को ज़्यादा delegate करने का signal है।
 
 ### Habits जो costs कम करती हैं

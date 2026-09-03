@@ -2,7 +2,7 @@
 
 **Den eneste Claude Code-utvidelsen som faktisk leser CC-kildekoden for å finne ut hvor tokenene dine tar veien — og fikser det automatisk. Bruk mindre, kod lenger.**
 
-> Målt resultat: **45% kostnadsreduksjon** på en virkelig arbeidsmengde på $326/dag → $180/dag. Forebygging av cache-utløp, automatisk SubTask-delegering, konteksGjenoppretting uten kostnad og et fullstendig analystedashbord — i én installasjon, null konfigurasjon.
+> Målt resultat: **45% kostnadsreduksjon** på en virkelig arbeidsmengde på $326/dag → $180/dag. Automatisk SubTask-delegering, konteksGjenoppretting uten kostnad, et fullstendig analystedashbord og en vakt mot cache-utløp — i én installasjon, null konfigurasjon.
 
 Fungerer med **Max Plan ($200/mnd)** og **API betal-per-bruk**. Samme utvidelse, samme funksjoner. Sterkere for hver bruker — spesielt når hver token er ekte penger.
 
@@ -12,7 +12,6 @@ Fungerer med **Max Plan ($200/mnd)** og **API betal-per-bruk**. Samme utvidelse,
 
 | Funksjon | Hva skjer | Innvirkning |
 | ------- | ------------ | ------ |
-| 🛡️ Token Guardian | Oppdager cache-utløp, blokkerer $9-reserver innen de skjer | Forhindrer den vanligste stille kostnadsøkningen |
 | 🧠 Session Architect | Delegerer tungt arbeid automatisk til SubTasks (37,5% billigere cache) | Kontekst forblir liten, kostnader synker |
 | 🪶 Concise Mode | Kutter responsutfylling, beholder substansen | Færre output-tokens per respons |
 | 🔄 /s-continue | Erstatter /compact — null LLM-anrop, null kostnad, null informasjonstap, og gjenoppretter nå også **Codex**-økter | Gratis konteksGjenoppretting på tvers av begge verktøy |
@@ -20,16 +19,17 @@ Fungerer med **Max Plan ($200/mnd)** og **API betal-per-bruk**. Samme utvidelse,
 | 📊 Status Line | Sanntidskostnad, kontekststørrelse, hastighetsgrense — under 50ms | Se problemer før de koster deg penger |
 | 📈 /usage-view | Interaktivt HTML-dashbord med AI-analyse | Fullstendig kostnadsetterforskning med ett klikk |
 | ✂️ /setup-git-lite | Fjerner 2 200 skjulte tokens som CC injiserer hver økt | ~$48/mnd spart bare på git-instruksjoner |
+| 🛡️ Token Guardian | Advarer deg i det øyeblikket en cache-utløp sender konteksten på nytt, eller blokkerer den i `block`-modus | Ingen flere stille $9-overraskelser |
 
 ---
 
 ## 😤 Problemet
 
-**Cache utløper.** Du kommer tilbake fra lunsj. Cachen er borte. En forespørsel sender 900K tokens på nytt til full pris. $9 i ett skudd.
-
 **Usynlige kostnader.** Ingen synlighet i sanntid. Ingen advarsel om at "konteksten din er på 800K". Ingen varsel om at "cachen utløp for 3 minutter siden". Du finner ut om det etter at skaden er skjedd.
 
 **Konteksoppblåsing.** Samme forespørsel ved 200K kontra 800K kontekst koster 4x mer. Hvert Read, Grep, Edit sender hele konteksten på nytt. En kompleks forespørsel utløser 15+ API-anrop, hvert multiplisert med kontekststørrelsen din.
+
+**Cache utløper.** Du kommer tilbake fra lunsj. Cachen er borte. En forespørsel sender 900K tokens på nytt til full pris. $9 i ett skudd.
 
 **Alt manuelt.** Konteksthåndtering, tidspunkter for cache-utløp, SubTask-delegering, øktopprydding. Ingen kan holde styr på alt dette mens de faktisk koder.
 
@@ -56,7 +56,7 @@ For direkteovervåking:
 /setup-statusline install
 ```
 
-For å trimme 2 200 skjulte tokens fra CC-ens innebygde git-instruksjoner ([detaljer](#%EF%B8%8F-feature-5-setup-git-lite--trim-ccs-built-in-git-instructions)):
+For å trimme 2 200 skjulte tokens fra CC-ens innebygde git-instruksjoner ([detaljer](#%EF%B8%8F-feature-4-setup-git-lite--trim-ccs-built-in-git-instructions)):
 
 ```
 /setup-git-lite install
@@ -64,36 +64,7 @@ For å trimme 2 200 skjulte tokens fra CC-ens innebygde git-instruksjoner ([deta
 
 ---
 
-## 🛡️ Funksjon 1: Token Guardian
-
-**Oppdager cache-utløp og blokkerer automatisk dyre gjenoversendelser.**
-
-TTL-en til promptcachen i Claude Code er 1 time. Gå bort i mer enn en time og cachen utløper. Neste melding sender hele konteksten på nytt til full pris. Ved 900K tokens er det $9 i ett skudd.
-
-Token Guardian sporer når den siste responsen ble mottatt. Hvis det har gått mer enn 3 590 sekunder (TTL minus 10 sekunders buffer), blokkeres forespørselen og en advarsel vises.
-
-```
-🚨 Cache expired (68m 23s idle)
-
-The prompt cache has expired. Continuing will resend the full context.
-Cost may increase significantly.
-
-👉 /context — Check current context usage before deciding
-👉 /clear → /s-continue — Reset, then restore previous context (recommended, cheapest)
-👉 Re-send — Continue as-is (full re-cache cost incurred)
-```
-
-Send bare den samme forespørselen på nytt etter advarselen -- den går gjennom. Advarselen utløses bare én gang per inaktiv periode, så den maser aldri. Advarselsmeldingers vises på 23 språk basert på OS-locale.
-
-**Bakgrunnsagenter blokkeres aldri.** Kun det et menneske skriver, får advarselen. Fullføringsrapporter fra bakgrunnsagenter og oppgaver -- som nå rutinemessig kommer mer enn en time etter at de ble startet -- går rett gjennom, slik at resultatet fra en langvarig agent aldri holdes tilbake eller går tapt.
-
-**Resultat:** Hvert fanget cache-utløp = $9 spart. Med én fangst per dag er det $270/mnd i rent sløseri eliminert.
-
-> **Hvis du bruker API betal-per-bruk, treffer dette hardere.** Max Plan-abonnenter mister $9 innenfor en $200-buffer. Du mister $9 ekte penger — stille, gjentatte ganger, hver gang du går bort. Token Guardian fanger det hver gang.
-
----
-
-## 🧠 Funksjon 2: Smart øktarkitektur
+## 🧠 Funksjon 1: Smart øktarkitektur
 
 **Installer det og kostnadsoptimaliserte arbeidsmønstre trer i kraft automatisk.**
 
@@ -130,7 +101,7 @@ Installer én gang, gjelder overalt.
 
 ---
 
-## 🔄 Funksjon 3: /s-continue — KonteksGjenoppretting
+## 🔄 Funksjon 2: /s-continue — KonteksGjenoppretting
 
 **Erstatter `/compact`. Null LLM-anrop. Null tokenkostnad. Null informasjonstap.**
 
@@ -200,7 +171,7 @@ Pluginet installerer seg også i Codex — se **[README-CODEX.md](./README-CODEX
 
 ---
 
-## 📊 Funksjon 4: Live statuslinje
+## 📊 Funksjon 3: Live statuslinje
 
 **Sanntids token-/kostnadsovervåking. Under 50ms overhead.**
 
@@ -309,7 +280,7 @@ Når du treffer en hastighetsgrense, kjør `/report-limit`. Gjeldende bruksdata 
 
 ---
 
-## ✂️ Funksjon 5: /setup-git-lite — Trim CC-ens innebygde git-instruksjoner
+## ✂️ Funksjon 4: /setup-git-lite — Trim CC-ens innebygde git-instruksjoner
 
 **Vi leste Claude Code-kildekoden. Vi fant 2 200 skjulte tokens injisert i hver økt som du stille betaler for.**
 
@@ -409,6 +380,45 @@ Når CC:s innebygde git-instruksjoner fortsatt er aktive på maskinen din, viser
 
 ---
 
+## 🛡️ Funksjon 5: Token Guardian
+
+**Forteller deg i det øyeblikket en cache-utløp koster deg noe. Kan blokkere $9-gjenoversendelsen hvis du ber den om det.**
+
+Claude Codes promptcache lever i 1 time. Er du borte lenger enn det, utløper den. Neste melding sender hele konteksten på nytt til full pris. Ved 900K tokens er det $9 i ett skudd.
+
+Token Guardian husker når det siste svaret kom. Hvis det har gått mer enn 3 590 sekunder (TTL-en minus 10 sekunders buffer), griper den inn. Som standard **advarer** den (`warn`): forespørselen går gjennom, og Claude åpner svaret med én linje som sier at cachen hadde utløpt, at denne turen ble fakturert som en full gjenoversendelse, og at etter en pause på en time eller mer er den billigste veien `/clear` → `/s-continue`.
+
+**Hvorfor `warn` er standard.** Tidligere versjoner blokkerte forespørselen og viste advarselen under. Det fungerer i en terminal. Under fjernstyring (Remote Control) gjør det ikke det: en hooks blokkeringsmelding vises lokalt som en systemmelding som den eksterne klienten aldri mottar, så forespørselen bare forsvant uten forklaring. Claudes svar *blir* videresendt, så advarselen rir nå på det i stedet. Vi endret standarden for dem som styrer øktene sine eksternt.
+
+Hvis du hovedsakelig jobber i en lokal terminal og vil ha den harde stoppen tilbake:
+
+```
+export CC_TOKEN_SAVER_CACHE_GUARD=block
+```
+
+I `block`-modus avvises forespørselen én gang med meldingen under. Send den på nytt, og den går gjennom. `off` slår av sjekken helt.
+
+```
+🚨 Cache expired (68m 23s idle)
+
+Promptcachen har utløpt. Hvis du fortsetter, sendes hele konteksten på nytt.
+Kostnaden kan øke betydelig.
+
+👉 /context — Sjekk gjeldende kontekstbruk før du bestemmer deg
+👉 /clear → /s-continue — Tilbakestill, gjenopprett deretter forrige kontekst (anbefalt, billigst)
+👉 Send på nytt — Fortsett som normalt (full re-cache-kostnad påløper)
+```
+
+Blokkeringsmeldingen vises på 23 språk, valgt ut fra OS-locale, og utløses bare én gang per inaktiv periode.
+
+**Bakgrunnsagenter blokkeres aldri.** Kun det et menneske har skrevet, får sjekken. Fullføringsrapporter fra bakgrunnsagenter og oppgaver -- som nå rutinemessig kommer mer enn en time etter at de ble startet -- går rett gjennom, slik at resultatet fra en langvarig agent aldri holdes tilbake eller går tapt.
+
+**Resultat:** I `warn`-modus vet du alltid når en $9-gjenoversendelse skjedde, og hvorfor. I `block`-modus skjer det ikke: hver fanget utløp sparer $9, og med én i døgnet er det $270/mnd i rent sløseri eliminert.
+
+> **Hvis du bruker API betal-per-bruk, treffer dette hardere.** Max Plan-abonnenter mister $9 innenfor en $200-buffer. Du mister $9 ekte penger — stille, gjentatte ganger, hver gang du går bort. `block`-modus stopper det hver gang.
+
+---
+
 ## 💡 Hvordan cache faktisk fungerer (og hvorfor de fleste brukere kaster bort 40%+ på det)
 
 Claude Code sender hele samtalehistorikken til modellen ved hvert API-anrop. "API-anrop" betyr ikke "én melding du skrev". En enkelt forespørsel utløser interne verktøyanrop — Grep, Read, Edit, Write — og hvert er et separat API-anrop. Én forespørsel kan lett forårsake 10+ API-anrop.
@@ -451,7 +461,7 @@ Tungt arbeid delegeres til SubTasks. Main håndterer bare design/beslutninger.
 | ----------- | -------------------------------------------- | --------------------------- | ---------------------------------- |
 | Morgen 3t   | Koding (Main: design, SubTask: implementering) | Main 100K → 300K (snitt 200K) | 900 anrop × 200K × ＄0.50/M = ＄90 |
 | Lunsj/møte  | Borte i 2 timer                              | —                           | —                                  |
-| Retur        | ⚡ Token Guardian blokkerer → /clear + /s-continue | —                        | ＄0 (ingen LLM-anrop)               |
+| Retur        | ⚡ Token Guardian (block-modus) → /clear + /s-continue | —                        | ＄0 (ingen LLM-anrop)               |
 | Ettermiddag 3t | Koding fortsetter                         | Main 100K → 300K (snitt 200K) | 900 anrop × 200K × ＄0.50/M = ＄90 |
 |             | Totalt                                       |                             | ~＄180                              |
 
@@ -478,7 +488,7 @@ Tungt arbeid delegeres til SubTasks. Main håndterer bare design/beslutninger.
     │
 [1+ time inaktiv]
     │
-    ├─ Token Guardian → Oppdager cache-utløp, blokkerer før gjenoversendelse
+    ├─ Token Guardian → Oppdager cache-utløp, advarer (eller blokkerer i block-modus)
     │
 [Økt-omstart]
     │
@@ -532,7 +542,7 @@ Utvidelsen injiserer kontekst ved øktstart. Her er nøyaktig hvor mye:
 | --------- | ---- | ------ | ------- |
 | Session Architect | SessionStart (én gang) | ~1 100 | SubTask-delegeringsstrategi + concise mode-regler |
 | Git-kontekst (hvis git-lite aktivert) | SessionStart (én gang) | ~280 | Erstatter CC:s native ~2 200 tok git-instruksjoner |
-| Cache-utløpsadvarsel | Ved inaktivitet > 59m (én gang) | ~200 | Blokkerer dyr gjenoversendelse, viser gjenopprettingsalternativer |
+| Cache-utløpsadvarsel | Ved inaktivitet > 59m (én gang) | ~200 | Flagger den dyre gjenoversendelsen, viser den billigere veien |
 | Status line | Hvert API-anrop | 0 | Gjengis til terminal-statuslinjen, ikke til samtalekontext |
 
 **Netto overhead per økt: ~1 400 tokens (én gang, bufret etter første anrop).**
@@ -550,7 +560,7 @@ Hvis git-lite er aktivert, **sparer** utvidelsen ~1 920 tokens per økt (erstatt
 ### Forstå cache og du ser hvor pengene tar veien
 
 - **1 forespørsel ≠ 1 API-anrop.** Hver gang Claude kaller Grep, Read eller Edit, sendes hele konteksten på nytt. En enkelt forespørsel utløser lett 10+ API-anrop. Skriv tydelige forespørsler for å redusere unødvendige verktøyanrop og kutte kostnader.
-- **Cache-timeren tilbakestilles fra det siste API-anropet, ikke din siste forespørsel.** Fortsett å jobbe og cachen utløper aldri. Faren er å gå bort. Token Guardian blokkerer automatisk én gang, slik at du ved retur kan velge: tilbakestill kontekst eller fortsett som den er.
+- **Cache-timeren tilbakestilles fra det siste API-anropet, ikke din siste forespørsel.** Fortsett å jobbe og cachen utløper aldri. Faren er å gå bort. Token Guardian forteller deg når det skjedde, og i `block`-modus stopper den forespørselen én gang, slik at du kan velge: tilbakestill konteksten, eller fortsett som normalt.
 - **Kontekststørrelse = kostnadsmultiplikator.** Samme API-anrop ved 200K kontra 800K koster 4x mer. Når statuslinjen [CTX] krysser 35% (🟡), er det signalet ditt om å delegere mer til SubTasks.
 
 ### Vaner som reduserer kostnader

@@ -2,7 +2,7 @@
 
 **Token'larınızın nereye gittiğini bulmak için CC'nin kaynak kodunu gerçekten okuyan ve bunu otomatik olarak düzelten tek Claude Code eklentisi. Daha az harcayın, daha uzun süre kodlayın.**
 
-> Ölçülen sonuç: Gerçek bir $326/gün iş yükünde **%45 maliyet azalması** → $180/gün. Tek bir kurulumda, sıfır yapılandırmayla cache süre sonu önleme, otomatik SubTask devri, sıfır maliyetli context geri yükleme ve eksiksiz bir analitik panosu.
+> Ölçülen sonuç: Gerçek bir $326/gün iş yükünde **%45 maliyet azalması** → $180/gün. Tek bir kurulumda, sıfır yapılandırmayla otomatik SubTask devri, sıfır maliyetli context geri yükleme, eksiksiz bir analitik panosu ve cache süre sonuna karşı bir koruma.
 
 **Max Plan ($200/ay)** ve **API kullandıkça öde** ile çalışır. Aynı eklenti, aynı özellikler. Her kullanıcı için daha güçlü — özellikle her token gerçek para olduğunda.
 
@@ -12,7 +12,6 @@
 
 | Özellik | Ne olur | Etki |
 | ------- | ------------ | ------ |
-| 🛡️ Token Guardian | Cache süresinin dolmasını algılar, gerçekleşmeden önce $9'lık yeniden gönderimi engeller | Birinci sessiz maliyet artışını önler |
 | 🧠 Session Architect | Ağır işleri SubTask'lara otomatik devreder (%37,5 daha ucuz cache) | Context küçük kalır, maliyetler düşer |
 | 🪶 Concise Mode | Yanıt dolgusunu keser, özü korur | Yanıt başına daha az output token |
 | 🔄 /s-continue | /compact'ın yerini alır — sıfır LLM çağrısı, sıfır maliyet, sıfır bilgi kaybı, üstelik artık **Codex** oturumlarını da geri yüklüyor | İki araçta birden ücretsiz context geri yükleme |
@@ -20,16 +19,17 @@
 | 📊 Status Line | Gerçek zamanlı maliyet, context boyutu, hız sınırı — 50ms altında | Sorunları size mal olmadan önce görün |
 | 📈 /usage-view | Yapay zeka destekli analizle etkileşimli HTML panosu | Tek tıklamayla eksiksiz maliyet analizi |
 | ✂️ /setup-git-lite | CC'nin her oturuma eklediği 2.200 gizli token'ı kaldırır | Yalnızca git talimatlarından ayda ~$48 tasarruf |
+| 🛡️ Token Guardian | Cache süresinin dolması context'inizi yeniden gönderdiği anda sizi uyarır veya `block` modunda bunu engeller | Artık sessiz $9 sürprizleri yok |
 
 ---
 
 ## 😤 Sorun
 
-**Cache süresinin dolması.** Öğle yemeğinden dönüyorsunuz. Cache gitmiş. Bir istek 900K token'ı tam fiyatıyla yeniden gönderir. Tek seferde $9.
-
 **Görünmez maliyetler.** Gerçek zamanlı görünürlük yok. "Context'iniz 800K'da" uyarısı yok. "Cache 3 dakika önce sona erdi" bildirimi yok. Hasardan sonra öğreniyorsunuz.
 
 **Context şişmesi.** 200K'lık context'te aynı prompt, 800K'daki kadar 4 kat daha fazla maliyete yol açar. Her Read, Grep, Edit tüm context'i yeniden gönderir. Karmaşık bir prompt 15'ten fazla API çağrısını tetikler ve her biri context boyutunuzla çarpılır.
+
+**Cache süresinin dolması.** Öğle yemeğinden dönüyorsunuz. Cache gitmiş. Bir istek 900K token'ı tam fiyatıyla yeniden gönderir. Tek seferde $9.
 
 **Her şey manuel.** Context yönetimi, cache süre sonu zamanlaması, SubTask devri, oturum temizliği. Gerçekten kodlarken tüm bunları kimse takip edemez.
 
@@ -56,7 +56,7 @@ Canlı izleme için:
 /setup-statusline install
 ```
 
-CC'nin yerleşik git talimatlarından 2.200 gizli token kırpmak için ([ayrıntılar](#%EF%B8%8F-feature-5-setup-git-lite--trim-ccs-built-in-git-instructions)):
+CC'nin yerleşik git talimatlarından 2.200 gizli token kırpmak için ([ayrıntılar](#%EF%B8%8F-feature-4-setup-git-lite--trim-ccs-built-in-git-instructions)):
 
 ```
 /setup-git-lite install
@@ -64,36 +64,7 @@ CC'nin yerleşik git talimatlarından 2.200 gizli token kırpmak için ([ayrınt
 
 ---
 
-## 🛡️ Özellik 1: Token Guardian
-
-**Cache süresinin dolmasını algılar ve pahalı yeniden gönderimleri otomatik olarak engeller.**
-
-Claude Code'un prompt cache TTL'si 1 saattir. Bir saatten fazla uzaklaşırsanız cache sona erer. Bir sonraki mesajınız tüm context'i tam fiyatıyla yeniden gönderir. 900K token'da bu tek seferde $9 demektir.
-
-Token Guardian, son yanıtın alındığı zamanı takip eder. 3.590 saniyeden fazla (TTL eksi 10 saniyelik tampon) geçmişse, prompt'u engeller ve bir uyarı gösterir.
-
-```
-🚨 Cache expired (68m 23s idle)
-
-The prompt cache has expired. Continuing will resend the full context.
-Cost may increase significantly.
-
-👉 /context — Check current context usage before deciding
-👉 /clear → /s-continue — Reset, then restore previous context (recommended, cheapest)
-👉 Re-send — Continue as-is (full re-cache cost incurred)
-```
-
-Uyarıdan sonra aynı prompt'u yeniden gönderin -- geçecektir. Uyarı her boşta kalma süresi için yalnızca bir kez tetiklenir, bu nedenle asla sıkıştırmaz. Uyarı mesajları OS yerel ayarınıza göre 23 dilde görüntülenir.
-
-**Arka plan ajanları asla engellenmez.** Yalnızca bir insanın yazdığı şey uyarıyı tetikler. Arka plan ajanlarından ve görevlerinden gelen tamamlanma raporları -- ki bunlar artık genellikle başlatılmalarından bir saatten fazla süre sonra gelir -- doğrudan geçer, böylece uzun süre çalışan bir ajanın sonucu asla beklemede kalmaz veya kaybolmaz.
-
-**Sonuç:** Her yakalanan cache süre sonu = $9 tasarruf. Günde bir yakalamada bu $270/ay saf israf önlenmesidir.
-
-> **API kullandıkça ödedeyseniz, bu daha sert çarpar.** Max Plan aboneleri $200'lük bir tampon içinde $9 kaybeder. Siz $9 gerçek para kaybedersiniz — sessizce, tekrar tekrar, her uzaklaştığınızda. Token Guardian her seferinde yakalar.
-
----
-
-## 🧠 Özellik 2: Akıllı Oturum Mimarisi
+## 🧠 Özellik 1: Akıllı Oturum Mimarisi
 
 **Kurun ve maliyet optimize edilmiş çalışma kalıpları otomatik olarak devreye girer.**
 
@@ -130,7 +101,7 @@ Bir kez kurun, her yerde uygulanır.
 
 ---
 
-## 🔄 Özellik 3: /s-continue — Context Geri Yükleme
+## 🔄 Özellik 2: /s-continue — Context Geri Yükleme
 
 **`/compact`'ın yerini alır. Sıfır LLM çağrısı. Sıfır token maliyeti. Sıfır bilgi kaybı.**
 
@@ -194,7 +165,7 @@ Eklenti Codex'e de kuruluyor — bkz. **[README-CODEX.md](./README-CODEX.md)**
 `usage-view`, `report-limit` ve `setup-statusline` şimdilik yalnızca Claude Code'da.
 ---
 
-## 📊 Özellik 4: Canlı Durum Çubuğu
+## 📊 Özellik 3: Canlı Durum Çubuğu
 
 **Gerçek zamanlı token/maliyet izleme. 50ms altında ek yük.**
 
@@ -303,7 +274,7 @@ Hız sınırına ulaştığınızda `/report-limit`'i çalıştırın. Mevcut ku
 
 ---
 
-## ✂️ Özellik 5: /setup-git-lite — CC'nin Yerleşik Git Talimatlarını Kırpın
+## ✂️ Özellik 4: /setup-git-lite — CC'nin Yerleşik Git Talimatlarını Kırpın
 
 **Claude Code'un kaynak kodunu okuduk. Her oturum için sessizce ödediğiniz 2.200 gizli token bulduk.**
 
@@ -403,6 +374,45 @@ Makinenizde CC yerel git talimatları hâlâ etkinken, super-token-saver oturum 
 
 ---
 
+## 🛡️ Özellik 5: Token Guardian
+
+**Cache süresinin dolması size paraya mal olduğu anda haber verir. İsterseniz $9'lık yeniden gönderimi engelleyebilir.**
+
+Claude Code'un prompt cache'i 1 saat yaşar. Bundan daha uzun süre uzaklaşırsanız sona erer. Bir sonraki mesajınız tüm context'i tam fiyatıyla yeniden gönderir. 900K token'da bu tek seferde $9 demektir.
+
+Token Guardian, son yanıtın ne zaman geldiğini hatırlar. 3.590 saniyeden fazla (TTL eksi 10 saniyelik tampon) geçmişse devreye girer. Varsayılan olarak **uyarır**: prompt geçer ve Claude yanıtına tek bir satırla başlar — cache'in sona erdiğini, bu turun tam bir yeniden gönderim olarak faturalandırıldığını ve bir saat veya daha uzun bir aradan sonra daha ucuz yolun `/clear` → `/s-continue` olduğunu söyler.
+
+**Neden varsayılan uyarı.** Önceki sürümler prompt'u engelliyor ve aşağıdaki uyarıyı gösteriyordu. Bu bir terminalde işe yarar. Remote Control altında yaramaz: bir hook'un engelleme mesajı yerel olarak, uzak istemcinin asla almadığı bir sistem mesajı biçiminde render edilir; bu yüzden prompt hiçbir açıklama olmadan yok oluyordu. Claude'un yanıtı *ise* iletilir, bu nedenle uyarı artık onun üzerinden gidiyor. Varsayılanı, oturumlarını uzaktan yönetenler için değiştirdik.
+
+Çoğunlukla yerel bir terminalde çalışıyor ve sert durdurmayı geri istiyorsanız:
+
+```
+export CC_TOKEN_SAVER_CACHE_GUARD=block
+```
+
+Block modunda prompt, aşağıdaki mesajla bir kez reddedilir. Yeniden gönderin, geçecektir. `off` denetimi tamamen devre dışı bırakır.
+
+```
+🚨 Cache expired (68m 23s idle)
+
+The prompt cache has expired. Continuing will resend the full context.
+Cost may increase significantly.
+
+👉 /context — Check current context usage before deciding
+👉 /clear → /s-continue — Reset, then restore previous context (recommended, cheapest)
+👉 Re-send — Continue as-is (full re-cache cost incurred)
+```
+
+Engelleme mesajı OS yerel ayarınıza göre seçilen 23 dilde gösterilir ve her boşta kalma süresi için yalnızca bir kez tetiklenir.
+
+**Arka plan ajanları asla engellenmez.** Yalnızca bir insanın yazdığı prompt'lar denetlenir. Arka plan ajanlarından ve görevlerinden gelen tamamlanma raporları -- ki bunlar artık genellikle başlatılmalarından bir saatten fazla süre sonra gelir -- doğrudan geçer. Uzun süre çalışan bir ajanın sonucu asla beklemede kalmaz veya kaybolmaz.
+
+**Sonuç:** uyarı modunda $9'lık bir yeniden gönderimin ne zaman ve neden gerçekleştiğini her zaman bilirsiniz. Block modunda ise hiç gerçekleşmez: yakalanan her cache süre sonu $9 tasarruf demektir ve günde bir yakalamada bu $270/ay saf israfın ortadan kalkmasıdır.
+
+> **API kullandıkça ödedeyseniz, bu daha sert çarpar.** Max Plan aboneleri $200'lük bir tampon içinde $9 kaybeder. Siz $9 gerçek para kaybedersiniz — sessizce, tekrar tekrar, her uzaklaştığınızda. Token Guardian'ın block modu her seferinde durdurur.
+
+---
+
 ## 💡 Cache Gerçekte Nasıl Çalışır (Ve Çoğu Kullanıcının Neden %40'tan Fazlasını Buna Harcadığı)
 
 Claude Code, her API çağrısında modele tüm konuşma geçmişini gönderir. "API çağrısı", "yazdığınız bir mesaj" anlamına gelmez. Tek bir prompt dahili araç çağrılarını tetikler — Grep, Read, Edit, Write — ve her biri ayrı bir API çağrısıdır. Tek bir prompt kolayca 10'dan fazla API çağrısına neden olabilir.
@@ -445,7 +455,7 @@ Ağır çalışma SubTask'lara devredilir. Main yalnızca tasarım/kararları y�
 | ----------- | -------------------------------------------- | --------------------------- | ---------------------------------- |
 | Sabah 3s    | Kodlama (Main: tasarım, SubTask: uygulama)   | Main 100K → 300K (ort 200K) | 900 çağrı × 200K × ＄0.50/M = ＄90 |
 | Öğle/top.   | 2 saat uzakta                                | —                           | —                                  |
-| Dönüş       | ⚡ Token Guardian engeller → /clear + /s-continue | —                        | ＄0 (LLM çağrısı yok)              |
+| Dönüş       | ⚡ Token Guardian (block modu) → /clear + /s-continue | —                        | ＄0 (LLM çağrısı yok)              |
 | Öğleden sonra 3s | Kodlama devam eder                      | Main 100K → 300K (ort 200K) | 900 çağrı × 200K × ＄0.50/M = ＄90 |
 |             | Toplam                                       |                             | ~＄180                              |
 
@@ -472,7 +482,7 @@ Ağır çalışma SubTask'lara devredilir. Main yalnızca tasarım/kararları y�
     │
 [1+ saat boşta]
     │
-    ├─ Token Guardian → Cache süresinin dolmasını algılar, yeniden göndermeden önce engeller
+    ├─ Token Guardian → Cache süresinin dolmasını algılar, uyarır (veya block modunda engeller)
     │
 [Oturum yeniden başlatma]
     │
@@ -526,7 +536,7 @@ Eklenti, oturum başlangıcında context ekler. İşte tam olarak ne kadar:
 | --------- | ---- | ------ | ------- |
 | Session Architect | SessionStart (bir kez) | ~1.100 | SubTask devir stratejisi + concise mode kuralları |
 | Git context (git-lite etkinse) | SessionStart (bir kez) | ~280 | CC'nin yerel ~2.200 tok git talimatlarının yerini alır |
-| Cache süre sonu uyarısı | Boşta > 59 dakikada (bir kez) | ~200 | Pahalı yeniden gönderimi engeller, kurtarma seçeneklerini gösterir |
+| Cache süre sonu uyarısı | Boşta > 59 dakikada (bir kez) | ~200 | Pahalı yeniden gönderimi işaretler, daha ucuz yolu gösterir |
 | Status line | Her API çağrısı | 0 | Terminal durum çubuğuna render edilir, konuşma context'ine değil |
 
 **Oturum başına net ek yük: ~1.400 token (bir kez, ilk çağrıdan sonra önbelleğe alınır).**
@@ -544,7 +554,7 @@ git-lite etkinse, eklenti oturum başına ~1.920 token **tasarruf eder** (2.200'
 ### Cache'i anlayın ve paranın nereye gittiğini görün
 
 - **1 prompt ≠ 1 API çağrısı.** Claude her Grep, Read veya Edit çağrısında tüm context yeniden gönderilir. Tek bir prompt kolayca 10'dan fazla API çağrısını tetikler. Gereksiz araç çağrılarını azaltmak ve maliyetleri düşürmek için net promptlar yazın.
-- **Cache zamanlayıcısı son API çağrısından sıfırlanır, son prompt'unuzdan değil.** Çalışmaya devam edin ve cache asla sona ermez. Tehlike uzaklaşmaktır. Token Guardian bir kez otomatik engeller, bu yüzden döndüğünüzde seçebilirsiniz: context sıfırla veya olduğu gibi devam et.
+- **Cache zamanlayıcısı son API çağrısından sıfırlanır, son prompt'unuzdan değil.** Çalışmaya devam edin ve cache asla sona ermez. Tehlike uzaklaşmaktır. Token Guardian bunun ne zaman gerçekleştiğini söyler ve `block` modunda prompt'u bir kez durdurur, böylece seçebilirsiniz: context'i sıfırla veya olduğu gibi devam et.
 - **Context boyutu = maliyet çarpanı.** 200K'da aynı API çağrısı, 800K'da 4 kat daha pahalıdır. Durum çubuğu [CTX] %35'i (🟡) geçtiğinde, bu SubTask'lara daha fazla devretme sinyalidir.
 
 ### Maliyetleri düşüren alışkanlıklar

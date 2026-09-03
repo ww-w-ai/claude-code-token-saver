@@ -2,7 +2,7 @@
 
 **O único plugin do Claude Code que realmente lê o código-fonte do CC para descobrir para onde vão seus tokens — e corrige isso automaticamente. Gaste menos, programe por mais tempo.**
 
-> Resultado medido: **redução de 45% nos custos** em uma carga de trabalho real de $326/dia → $180/dia. Prevenção de expiração de cache, delegação automática para SubTasks, restauração de contexto sem custo e um painel de análise completo — em uma única instalação, zero configuração.
+> Resultado medido: **redução de 45% nos custos** em uma carga de trabalho real de $326/dia → $180/dia. Delegação automática para SubTasks, restauração de contexto sem custo, um painel de análise completo e um guardião contra a expiração de cache — em uma única instalação, zero configuração.
 
 Funciona com **Max Plan ($200/mês)** e **API de pagamento por uso**. O mesmo plugin, os mesmos recursos. Mais eficaz para todos os usuários — especialmente quando cada token representa dinheiro real.
 
@@ -12,7 +12,6 @@ Funciona com **Max Plan ($200/mês)** e **API de pagamento por uso**. O mesmo pl
 
 | Recurso | O que acontece | Impacto |
 | ------- | ------------ | ------ |
-| 🛡️ Token Guardian | Detecta expiração de cache, bloqueia reenvios de $9 antes que aconteçam | Previne o pico de custo silencioso número 1 |
 | 🧠 Session Architect | Delega automaticamente trabalho pesado para SubTasks (cache 37,5% mais barato) | Contexto permanece pequeno, custos caem |
 | 🪶 Concise Mode | Reduz preenchimento nas respostas, mantém a substância | Menos tokens de saída por resposta |
 | 🔄 /s-continue | Substitui /compact — zero chamadas LLM, zero custo, zero perda de informação, e também restaura sessões do **Codex** | Restauração de contexto gratuita, nas duas ferramentas |
@@ -20,16 +19,17 @@ Funciona com **Max Plan ($200/mês)** e **API de pagamento por uso**. O mesmo pl
 | 📊 Status Line | Custo em tempo real, tamanho do contexto, limite de taxa — abaixo de 50ms | Ver problemas antes que custem dinheiro |
 | 📈 /usage-view | Painel HTML interativo com análise alimentada por IA | Análise forense completa de custos em um clique |
 | ✂️ /setup-git-lite | Remove 2.200 tokens ocultos que o CC injeta a cada sessão | ~$48/mês economizados apenas em instruções git |
+| 🛡️ Token Guardian | Avisa você no momento em que uma expiração de cache reenvia seu contexto, ou bloqueia isso no modo `block` | Fim dos sustos silenciosos de $9 |
 
 ---
 
 ## 😤 O Problema
 
-**Expiração de cache.** Você volta do almoço. O cache sumiu. A próxima mensagem reenvia 900K tokens ao preço cheio. $9 de uma vez.
-
 **Custos invisíveis.** Sem visibilidade em tempo real. Sem aviso de "seu contexto está em 800K". Sem alerta de "o cache expirou há 3 minutos". Você fica sabendo depois que o estrago está feito.
 
 **Inchaço do contexto.** O mesmo prompt com 200K vs 800K de contexto custa 4 vezes mais. Cada Read, Grep, Edit reenvia o contexto completo. Um prompt complexo facilmente dispara 15+ chamadas à API, cada uma multiplicada pelo tamanho do seu contexto.
+
+**Expiração de cache.** Você volta do almoço. O cache sumiu. A próxima mensagem reenvia 900K tokens ao preço cheio. $9 de uma vez.
 
 **Tudo manual.** Gerenciamento do contexto, timing da expiração do cache, delegação para SubTask, limpeza de sessões. Ninguém consegue acompanhar tudo isso enquanto realmente programa.
 
@@ -56,7 +56,7 @@ Para monitoramento ao vivo:
 /setup-statusline install
 ```
 
-Para remover 2.200 tokens ocultos das instruções git integradas do CC ([detalhes](#%EF%B8%8F-feature-5-setup-git-lite--trim-ccs-built-in-git-instructions)):
+Para remover 2.200 tokens ocultos das instruções git integradas do CC ([detalhes](#%EF%B8%8F-feature-4-setup-git-lite--trim-ccs-built-in-git-instructions)):
 
 ```
 /setup-git-lite install
@@ -64,36 +64,7 @@ Para remover 2.200 tokens ocultos das instruções git integradas do CC ([detalh
 
 ---
 
-## 🛡️ Recurso 1: Token Guardian
-
-**Detecta a expiração do cache e bloqueia automaticamente reenvios caros.**
-
-O TTL do cache de prompts do Claude Code é de 1 hora. Fique ausente por mais de uma hora e o cache expira. Sua próxima mensagem reenvia o contexto completo ao preço cheio. Com 900K tokens, isso são $9 de uma vez.
-
-O Token Guardian rastreia quando a última resposta foi recebida. Se mais de 3.590 segundos se passaram (TTL menos 10 segundos de margem), ele bloqueia o prompt e exibe um aviso.
-
-```
-🚨 Cache expired (68m 23s idle)
-
-The prompt cache has expired. Continuing will resend the full context.
-Cost may increase significantly.
-
-👉 /context — Check current context usage before deciding
-👉 /clear → /s-continue — Reset, then restore previous context (recommended, cheapest)
-👉 Re-send — Continue as-is (full re-cache cost incurred)
-```
-
-Basta reenviar o mesmo prompt após o aviso — ele passa. O aviso dispara apenas uma vez por período de inatividade, então nunca incomoda. As mensagens de aviso são exibidas em 23 idiomas com base na configuração regional do seu sistema operacional.
-
-**Agentes em segundo plano nunca são bloqueados.** Só o que um humano digita recebe o aviso. Os relatórios de conclusão de agentes e tarefas em segundo plano — que agora costumam chegar mais de uma hora depois de terem sido iniciados — passam direto, então o resultado de um agente de longa duração nunca fica retido nem se perde.
-
-**Resultado:** Cada expiração de cache interceptada = $9 economizados. Com uma interceptação por dia, são $270/mês de desperdício puro eliminado.
-
-> **Se você usa API de pagamento por uso, o impacto é maior.** Assinantes do Max Plan perdem $9 dentro de um limite de $200. Você perde $9 de dinheiro real — silenciosamente, repetidamente, toda vez que se afasta. O Token Guardian intercepta sempre.
-
----
-
-## 🧠 Recurso 2: Smart Session Architecture
+## 🧠 Recurso 1: Smart Session Architecture
 
 **Instale e os padrões de trabalho otimizados em custos entram em ação automaticamente.**
 
@@ -130,7 +101,7 @@ Instale uma vez, aplica-se em todos os lugares.
 
 ---
 
-## 🔄 Recurso 3: /s-continue — Restauração de Contexto
+## 🔄 Recurso 2: /s-continue — Restauração de Contexto
 
 **Substitui `/compact`. Zero chamadas LLM. Zero custo de tokens. Zero perda de informação.**
 
@@ -195,7 +166,7 @@ O plugin também se instala no Codex — veja **[README-CODEX.md](./README-CODEX
 
 ---
 
-## 📊 Recurso 4: Status Line ao Vivo
+## 📊 Recurso 3: Status Line ao Vivo
 
 **Monitoramento de tokens/custos em tempo real. Menos de 50ms de sobrecarga.**
 
@@ -304,7 +275,7 @@ Quando você atingir um limite de taxa, execute `/report-limit`. Seus dados de u
 
 ---
 
-## ✂️ Recurso 5: /setup-git-lite — Reduzir as Instruções Git Integradas do CC
+## ✂️ Recurso 4: /setup-git-lite — Reduzir as Instruções Git Integradas do CC
 
 **Lemos o código-fonte do Claude Code. Encontramos 2.200 tokens ocultos injetados a cada sessão pelos quais você está pagando silenciosamente.**
 
@@ -404,6 +375,45 @@ Quando as instruções git nativas do CC ainda estão ativas na sua máquina, o 
 
 ---
 
+## 🛡️ Recurso 5: Token Guardian
+
+**Avisa você no momento em que uma expiração de cache custa dinheiro. Pode bloquear o reenvio de $9 se você pedir.**
+
+O cache de prompts do Claude Code vive por 1 hora. Fique ausente por mais tempo que isso e ele expira. Sua próxima mensagem reenvia o contexto inteiro ao preço cheio. Com 900K tokens, isso são $9 de uma vez.
+
+O Token Guardian lembra quando a última resposta chegou. Se mais de 3.590 segundos se passaram (o TTL menos uma margem de 10 segundos), ele entra em ação. Por padrão ele **avisa**: o prompt passa, e o Claude abre a resposta com uma linha dizendo que o cache havia expirado, que esse turno foi cobrado como um reenvio completo, e que depois de uma pausa de uma hora ou mais o caminho mais barato é `/clear` → `/s-continue`.
+
+**Por que `warn` é o padrão.** Versões anteriores bloqueavam o prompt e mostravam o aviso abaixo. Isso funciona em um terminal. No Remote Control não funciona: a mensagem de bloqueio de um hook é renderizada localmente como uma mensagem de sistema que o cliente remoto nunca recebe, então o prompt simplesmente sumia sem explicação. A resposta do Claude *é* encaminhada, então o aviso agora viaja junto com ela. Mudamos o padrão para quem conduz suas sessões remotamente.
+
+Se você trabalha principalmente em um terminal local e quer de volta a parada total:
+
+```
+export CC_TOKEN_SAVER_CACHE_GUARD=block
+```
+
+No modo block, o prompt é recusado uma vez com a mensagem abaixo. Envie de novo e ele passa. `off` desativa a checagem por completo.
+
+```
+🚨 Cache expired (68m 23s idle)
+
+The prompt cache has expired. Continuing will resend the full context.
+Cost may increase significantly.
+
+👉 /context — Check current context usage before deciding
+👉 /clear → /s-continue — Reset, then restore previous context (recommended, cheapest)
+👉 Re-send — Continue as-is (full re-cache cost incurred)
+```
+
+A mensagem de bloqueio é exibida em 23 idiomas, escolhidos a partir da configuração regional do seu sistema operacional, e dispara uma vez por período de inatividade.
+
+**Agentes em segundo plano nunca são bloqueados.** Só os prompts que um humano digitou recebem a checagem. Relatórios de conclusão de agentes e tarefas em segundo plano, que hoje em dia costumam chegar mais de uma hora depois de terem sido iniciados, passam direto. O resultado de um agente de longa duração nunca fica retido nem se perde.
+
+**Resultado:** no modo warn você sempre sabe quando um reenvio de $9 aconteceu, e por quê. No modo block isso não acontece: cada expiração interceptada economiza $9, e com uma interceptação por dia são $270/mês de desperdício puro eliminado.
+
+> **Na API de pagamento por uso, o impacto é maior.** Um assinante do Max Plan perde $9 dentro de um limite de $200. Você perde $9 de dinheiro real, silenciosamente, toda vez que se afasta. O modo block impede isso sempre.
+
+---
+
 ## 💡 Como o Cache Realmente Funciona (e Por Que a Maioria dos Usuários Desperdiça 40%+)
 
 O Claude Code envia todo o histórico da conversa para o modelo em cada chamada à API. "Chamada à API" não significa "uma mensagem que você digitou". Um único prompt dispara chamadas de ferramentas internas — Grep, Read, Edit, Write — e cada uma é uma chamada à API separada. Um prompt pode facilmente causar 10+ chamadas à API.
@@ -446,7 +456,7 @@ O trabalho pesado é delegado para SubTasks. Main cuida apenas de design/decisõ
 | ----------- | -------------------------------------------- | --------------------------- | ---------------------------------- |
 | Manhã 3h  | Programando (Main: design, SubTask: implementação) | Main 100K → 300K (avg 200K) | 900 calls × 200K × ＄0,50/M = ＄90 |
 | Almoço/Reunião   | Ausente por 2 horas                             | —                           | —                                  |
-| Retorno      | ⚡ Token Guardian bloqueia → /clear + /s-continue | —                           | ＄0 (no LLM calls)                 |
+| Retorno      | ⚡ Token Guardian (modo block) → /clear + /s-continue | —                           | ＄0 (no LLM calls)                 |
 | Tarde 3h | Programação continua                             | Main 100K → 300K (avg 200K) | 900 calls × 200K × ＄0,50/M = ＄90 |
 |             | Total                                        |                             | ~＄180                              |
 
@@ -473,7 +483,7 @@ O trabalho pesado é delegado para SubTasks. Main cuida apenas de design/decisõ
     │
 [1+ hour idle]
     │
-    ├─ Token Guardian → Detects cache expiry, blocks before re-send
+    ├─ Token Guardian → Detects cache expiry, warns (or blocks in block mode)
     │
 [Session restart]
     │
@@ -527,7 +537,7 @@ O plugin injeta contexto no início da sessão. Veja exatamente quanto:
 | --------- | ---- | ------ | ------- |
 | Session Architect | SessionStart (uma vez) | ~1.100 | Estratégia de delegação SubTask + regras do Concise Mode |
 | Contexto do git (se git-lite habilitado) | SessionStart (uma vez) | ~280 | Substitui as ~2.200 tok de instruções git nativas do CC |
-| Aviso de expiração de cache | Ao ficar inativo > 59 min (uma vez) | ~200 | Bloqueia reenvio caro, mostra opções de recuperação |
+| Aviso de expiração de cache | Ao ficar inativo > 59 min (uma vez) | ~200 | Sinaliza o reenvio caro, mostra o caminho mais barato |
 | Status line | Cada chamada à API | 0 | Renderiza na barra de status do terminal, não no contexto da conversa |
 
 **Sobrecarga líquida por sessão: ~1.400 tokens (armazenados em cache após a primeira chamada).**
@@ -545,7 +555,7 @@ Se git-lite estiver habilitado, o plugin **economiza** ~1.920 tokens por sessão
 ### Entenda o cache e você verá para onde vai o dinheiro
 
 - **1 prompt ≠ 1 chamada à API.** Toda vez que Claude chama Grep, Read ou Edit, o contexto completo é reenviado. Um único prompt facilmente dispara 10+ chamadas à API. Escreva prompts claros para reduzir chamadas de ferramentas desnecessárias e cortar custos.
-- **O temporizador do cache reinicia a partir da última chamada à API, não do seu último prompt.** Continue trabalhando e o cache nunca expira. O perigo é se afastar. O Token Guardian bloqueia automaticamente uma vez, então ao retornar você pode escolher: redefinir o contexto ou continuar como está.
+- **O temporizador do cache reinicia a partir da última chamada à API, não do seu último prompt.** Continue trabalhando e o cache nunca expira. O perigo é se afastar. O Token Guardian te avisa quando isso aconteceu, e no modo `block` interrompe o prompt uma vez para que você escolha: redefinir o contexto ou continuar como está.
 - **Tamanho do contexto = multiplicador de custo.** A mesma chamada à API com 200K vs 800K custa 4 vezes mais. Quando a barra de status [CTX] ultrapassa 35% (🟡), esse é o sinal para delegar mais para SubTasks.
 
 ### Hábitos que reduzem custos

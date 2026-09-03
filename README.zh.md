@@ -2,7 +2,7 @@
 
 **唯一真正读取 CC 源代码、找出 token 流向并自动修复的 Claude Code 插件。花更少的钱，写更久的代码。**
 
-> 实测结果：在真实的 $326/天 工作负载下实现 **45% 成本削减** → $180/天。缓存过期预防、SubTask 自动委托、零成本上下文恢复，以及完整的分析仪表盘——一键安装，零配置。
+> 实测结果：在真实的 $326/天 工作负载下实现 **45% 成本削减** → $180/天。SubTask 自动委托、零成本上下文恢复、完整的分析仪表盘，以及缓存过期防护——一键安装，零配置。
 
 支持 **Max Plan（$200/月）** 和 **API 按量付费**。同一插件，同样功能。对所有用户都更强大——对每个 token 都是真金白银的用户尤其如此。
 
@@ -12,7 +12,6 @@
 
 | 功能 | 效果 | 影响 |
 | ------- | ------------ | ------ |
-| 🛡️ Token Guardian | 检测缓存过期，在 $9 重发前提前拦截 | 防止头号隐性成本飙升 |
 | 🧠 Session Architect | 自动将繁重工作委托给 SubTask（缓存便宜 37.5%） | 上下文保持精简，成本下降 |
 | 🪶 Concise Mode | 削减冗余填充，保留核心内容 | 每次响应的输出 token 减少 |
 | 🔄 /s-continue | 替代 /compact——零 LLM 调用，零成本，零信息损失，还能恢复 **Codex** 会话 | 两个工具的上下文都能免费恢复 |
@@ -20,16 +19,17 @@
 | 📊 Status Line | 实时成本、上下文大小、速率限制——延迟低于 50ms | 在问题产生费用之前发现它 |
 | 📈 /usage-view | 带 AI 分析的交互式 HTML 仪表盘 | 一键完成成本全面溯源 |
 | ✂️ /setup-git-lite | 移除 CC 每次会话注入的 2,200 个隐藏 token | 仅 git 指令每月节省约 $48 |
+| 🛡️ Token Guardian | 在缓存过期即将导致上下文重发的那一刻发出警告，或在 `block` 模式下直接拦截 | 再也不会被悄无声息的 $9 账单吓一跳 |
 
 ---
 
 ## 😤 问题所在
 
-**缓存过期。** 你去吃了个午饭，回来缓存已经没了。下一条消息以全价重发 90 万 token，一次 $9。
-
 **隐形成本。** 没有实时可见性。没有"你的上下文已达 80 万 token"的警告。没有"缓存 3 分钟前已过期"的提示。等你发现时，损失已经造成。
 
 **上下文膨胀。** 同样的提示，20 万 token 上下文和 80 万 token 上下文的成本相差 4 倍。每次 Read、Grep、Edit 都会重发整个上下文。一个复杂提示轻松触发 15 次以上 API 调用，每次都乘以你的上下文大小。
+
+**缓存过期。** 你去吃了个午饭，回来缓存已经没了。下一条消息以全价重发 90 万 token，一次 $9。
 
 **全靠手动。** 上下文管理、缓存过期时机、SubTask 委托、会话清理。没有人能在真正写代码的同时追踪这一切。
 
@@ -56,7 +56,7 @@ super-token-saver 自动处理这一切。**安装一次，搞定。**
 /setup-statusline install
 ```
 
-从 CC 内置 git 指令中移除 2,200 个隐藏 token（[详情](#%EF%B8%8F-feature-5-setup-git-lite--trim-ccs-built-in-git-instructions)）：
+从 CC 内置 git 指令中移除 2,200 个隐藏 token（[详情](#%EF%B8%8F-feature-4-setup-git-lite--trim-ccs-built-in-git-instructions)）：
 
 ```
 /setup-git-lite install
@@ -64,36 +64,7 @@ super-token-saver 自动处理这一切。**安装一次，搞定。**
 
 ---
 
-## 🛡️ 功能 1：Token Guardian
-
-**检测缓存过期，自动拦截昂贵的重发。**
-
-Claude Code 的提示缓存 TTL 为 1 小时。离开超过一小时，缓存过期。下一条消息以全价重发整个上下文。90 万 token，一次 $9。
-
-Token Guardian 追踪最后一次收到响应的时间。如果超过 3,590 秒（TTL 减去 10 秒缓冲），它会拦截提示并显示警告。
-
-```
-🚨 Cache expired (68m 23s idle)
-
-The prompt cache has expired. Continuing will resend the full context.
-Cost may increase significantly.
-
-👉 /context — Check current context usage before deciding
-👉 /clear → /s-continue — Reset, then restore previous context (recommended, cheapest)
-👉 Re-send — Continue as-is (full re-cache cost incurred)
-```
-
-警告后，重新发送同一提示即可继续。每次闲置期只触发一次警告，不会反复打扰。警告消息根据你的操作系统语言环境自动以 23 种语言显示。
-
-**后台代理永远不会被拦截。** 只有人工直接输入的提示才会触发警告。后台代理和任务的完成报告——如今动辄在启动一个多小时后才送达——会直接放行，因此长时间运行的代理结果永远不会被卡住或丢失。
-
-**结果：** 每次拦截缓存过期 = 节省 $9。每天拦截一次，每月消除 $270 的纯浪费。
-
-> **如果你是 API 按量付费用户，影响更大。** Max Plan 用户在 $200 的预算内损失 $9。你损失的是真实资金 $9——悄无声息地，反复地，每次离开都如此。Token Guardian 每次都能拦截。
-
----
-
-## 🧠 功能 2：智能会话架构
+## 🧠 功能 1：智能会话架构
 
 **安装即生效，成本优化的工作模式自动启动。**
 
@@ -130,7 +101,7 @@ SessionStart 钩子还会在**每个会话和每个模型**中注入响应风格
 
 ---
 
-## 🔄 功能 3：/s-continue——上下文恢复
+## 🔄 功能 2：/s-continue——上下文恢复
 
 **替代 `/compact`。零 LLM 调用。零 token 成本。零信息损失。**
 
@@ -191,7 +162,7 @@ Codex 把会话写到 `~/.codex/sessions/`，Claude Code 写到 `~/.claude/proje
 
 ---
 
-## 📊 功能 4：实时状态栏
+## 📊 功能 3：实时状态栏
 
 **实时 token/成本监控。延迟低于 50ms。**
 
@@ -300,7 +271,7 @@ Anthropic 没有公布 5 小时窗口的精确计算公式。让我们一起搞�
 
 ---
 
-## ✂️ 功能 5：/setup-git-lite——精简 CC 内置 Git 指令
+## ✂️ 功能 4：/setup-git-lite——精简 CC 内置 Git 指令
 
 **我们读了 Claude Code 的源代码。发现了每次会话注入的 2,200 个你在悄悄付费的隐藏 token。**
 
@@ -400,6 +371,45 @@ Anthropic 没有公布 5 小时窗口的精确计算公式。让我们一起搞�
 
 ---
 
+## 🛡️ 功能 5：Token Guardian
+
+**在缓存过期造成损失的那一刻就告诉你。如果你要求，它也可以直接拦截那笔 $9 的重发。**
+
+Claude Code 的提示缓存 TTL 为 1 小时。离开超过一小时，缓存就会过期。下一条消息会以全价重发整个上下文。90 万 token 的话，一次就是 $9。
+
+Token Guardian 会记住上一次收到回复的时间。如果间隔超过 3,590 秒（TTL 减去 10 秒缓冲），它就会介入。默认情况下它只会**警告**：提示照常放行，Claude 会在回复开头用一行话说明缓存已经过期、这一轮被按全价重发计费，并提示离开一小时以上后更省钱的做法是 `/clear` → `/s-continue`。
+
+**为什么默认是警告而不是拦截。** 早期版本会直接拦截提示，并显示下面这条警告。这在终端里没问题。但在 Remote Control（远程控制）下不行——钩子的拦截消息是在本地渲染为系统消息的，远程客户端根本收不到，提示就这样悄无声息地消失了，没有任何解释。而 Claude 的回复是会被转发的，所以现在警告改为搭载在回复里发送。我们把默认行为改成这样，是为了照顾那些远程操作会话的人。
+
+如果你主要在本地终端工作，想要恢复硬性拦截：
+
+```
+export CC_TOKEN_SAVER_CACHE_GUARD=block
+```
+
+在拦截模式（block mode）下，提示会先被拒绝一次，并显示下面这条消息。再次发送即可通过。`off` 则完全关闭这项检查。
+
+```
+🚨 Cache expired (68m 23s idle)
+
+The prompt cache has expired. Continuing will resend the full context.
+Cost may increase significantly.
+
+👉 /context — Check current context usage before deciding
+👉 /clear → /s-continue — Reset, then restore previous context (recommended, cheapest)
+👉 Re-send — Continue as-is (full re-cache cost incurred)
+```
+
+拦截消息会根据你的操作系统语言环境自动以 23 种语言显示，每次闲置期只触发一次。
+
+**后台代理永远不会被拦截。** 只有人工直接输入的提示才会触发这项检查。后台代理和任务的完成报告——如今动辄在启动一个多小时后才送达——会直接放行，因此长时间运行的代理结果永远不会被卡住或丢失。
+
+**结果：** 在警告模式下，你始终知道 $9 的重发何时发生、为什么发生。在拦截模式下，它根本不会发生：每拦截一次过期就省下 $9，每天拦截一次，一个月就能消除 $270 的纯浪费。
+
+> **如果你是 API 按量付费用户，影响更大。** Max Plan 用户损失的 $9 是在 $200 的预算缓冲之内；而你损失的是真金白银的 $9——悄无声息地，每次离开都如此。Token Guardian 的拦截模式能每次都挡下它。
+
+---
+
 ## 💡 缓存的实际运作原理（以及为什么大多数用户浪费了 40% 以上）
 
 Claude Code 在每次 API 调用时将整个对话历史发送给模型。"API 调用"不等于"你输入的一条消息"。一个提示会触发内部工具调用——Grep、Read、Edit、Write——每次都是单独的 API 调用。一个提示轻易就能触发 10 次以上 API 调用。
@@ -442,7 +452,7 @@ Claude Code 在每次 API 调用时将整个对话历史发送给模型。"API �
 | ----------- | -------------------------------------------- | --------------------------- | ---------------------------------- |
 | 上午 3 小时  | 写代码（Main：设计，SubTask：实现） | Main 100K → 300K (avg 200K) | 900 calls × 200K × ＄0.50/M = ＄90 |
 | 午饭/会议   | 离开 2 小时                             | —                           | —                                  |
-| 返回      | ⚡ Token Guardian 拦截 → /clear + /s-continue | —                           | ＄0 (no LLM calls)                 |
+| 返回      | ⚡ Token Guardian（拦截模式）→ /clear + /s-continue | —                           | ＄0 (no LLM calls)                 |
 | 下午 3 小时 | 继续写代码                             | Main 100K → 300K (avg 200K) | 900 calls × 200K × ＄0.50/M = ＄90 |
 |             | 合计                                        |                             | ~＄180                              |
 
@@ -469,7 +479,7 @@ Claude Code 在每次 API 调用时将整个对话历史发送给模型。"API �
     │
 [1+ hour idle]
     │
-    ├─ Token Guardian → Detects cache expiry, blocks before re-send
+    ├─ Token Guardian → Detects cache expiry, warns (or blocks in block mode)
     │
 [Session restart]
     │
@@ -523,7 +533,7 @@ super-token-saver 完全开源（Apache-2.0）。纯 JavaScript + Bash——无�
 | --------- | ---- | ------ | ------- |
 | Session Architect | SessionStart（一次） | ~1,100 | SubTask 委托策略 + Concise Mode 规则 |
 | Git 上下文（如果启用了 git-lite） | SessionStart（一次） | ~280 | 替换 CC 原生约 2,200 token 的 git 指令 |
-| 缓存过期警告 | 闲置超过 59 分钟（一次） | ~200 | 拦截昂贵的重发，显示恢复选项 |
+| 缓存过期警告 | 闲置超过 59 分钟（一次） | ~200 | 标记昂贵的重发，并显示更省钱的路径 |
 | Status line | 每次 API 调用 | 0 | 渲染到终端状态栏，不进入对话上下文 |
 
 **每个会话的净开销：约 1,400 token（第一次调用后缓存）。**
@@ -541,7 +551,7 @@ super-token-saver 完全开源（Apache-2.0）。纯 JavaScript + Bash——无�
 ### 理解缓存，就能看清钱的去向
 
 - **1 个提示 ≠ 1 次 API 调用。** 每次 Claude 调用 Grep、Read 或 Edit，整个上下文都会重发。一个提示轻易触发 10 次以上 API 调用。写清晰的提示，减少不必要的工具调用，降低成本。
-- **缓存计时器从最后一次 API 调用重置，而不是你最后一个提示。** 持续工作，缓存就不会过期。危险在于离开。Token Guardian 自动拦截一次，回来后你可以选择：重置上下文或继续。
+- **缓存计时器从最后一次 API 调用重置，而不是你最后一个提示。** 持续工作，缓存就不会过期。危险在于离开。Token Guardian 会告诉你缓存何时过期，并在 `block` 模式下拦截一次提示，让你选择：重置上下文，还是照常继续。
 - **上下文大小 = 成本乘数。** 同样的 API 调用，20 万 token 和 80 万 token 相差 4 倍。当状态栏 [CTX] 超过 35%（🟡），就是将更多工作委托给 SubTask 的信号。
 
 ### 降低成本的习惯

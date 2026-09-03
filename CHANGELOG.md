@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.0] - 2026-09-04
+
+### Changed: Token Guardian now warns by default instead of blocking
+
+`hooks/cache-expiry-check.sh` gains a mode switch, `CC_TOKEN_SAVER_CACHE_GUARD` = `warn` (default)
+| `block` | `off`. In `warn` the expired-cache prompt goes through and the hook attaches
+`additionalContext`, so Claude opens its reply by telling the user the cache had expired and this
+turn was billed as a full re-send. `block` is the previous behaviour, opt-in.
+
+Why: a hook `decision: block` is rendered as a local `system/informational` message, and Remote
+Control forwards only `user`, `assistant` and `system/local_command` messages
+(`bridge/bridgeMessaging.ts` `isEligibleBridgeMessage`). A remote user saw the prompt disappear
+with no explanation and could not tell whether it ran. Claude's reply is forwarded, so the warning
+now rides on that. No hook input or environment variable exposes "this session is remote", so the
+hook cannot pick the mode itself.
+
+READMEs (en, ko): Token Guardian moves from Feature 1 to Feature 5 and the other features are
+renumbered; the git-lite anchor in the install section follows. Both READMEs were also rewritten
+for readability, the Korean one throughout; Feature 1 (Session Architecture) and Concise Mode now
+describe what `hooks/session-architecture.md` actually injects (round-trip minimization; length
+matched to the job rather than a fixed sentence count). The other 21 locales carry the same restructure and the translated
+Feature 5. README-CODEX (en, ko, ja, zh-Hans) states the cross-tool handoff works in both directions.
+
 ## [3.3.0] - 2026-09-01
 
 ### Added: `/usage-view` reads Codex sessions, priced in purchased credits

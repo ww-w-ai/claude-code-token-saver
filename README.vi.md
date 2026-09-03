@@ -2,7 +2,7 @@
 
 **Plugin Claude Code duy nhất thực sự đọc mã nguồn của CC để tìm ra nơi token của bạn đang đi — và tự động khắc phục. Chi ít hơn, code lâu hơn.**
 
-> Kết quả đo thực tế: **giảm 45% chi phí** trên khối lượng công việc thực $326/ngày → $180/ngày. Ngăn cache hết hạn, tự động ủy thác SubTask, khôi phục ngữ cảnh không tốn chi phí, và bảng phân tích đầy đủ — chỉ cần một lần cài đặt, không cần cấu hình.
+> Kết quả đo thực tế: **giảm 45% chi phí** trên khối lượng công việc thực $326/ngày → $180/ngày. Tự động ủy thác SubTask, khôi phục ngữ cảnh không tốn chi phí, bảng phân tích đầy đủ, và bảo vệ khỏi cache hết hạn — chỉ cần một lần cài đặt, không cần cấu hình.
 
 Hoạt động với **Max Plan ($200/tháng)** và **API trả theo lượng dùng**. Cùng plugin, cùng tính năng. Mạnh mẽ hơn cho mọi người dùng — đặc biệt khi mỗi token đều là tiền thật.
 
@@ -12,7 +12,6 @@ Hoạt động với **Max Plan ($200/tháng)** và **API trả theo lượng d�
 
 | Tính năng | Điều xảy ra | Tác động |
 | ------- | ------------ | ------ |
-| 🛡️ Token Guardian | Phát hiện cache hết hạn, chặn re-send $9 trước khi xảy ra | Ngăn đột biến chi phí âm thầm số 1 |
 | 🧠 Session Architect | Tự động ủy thác công việc nặng cho SubTask (cache rẻ hơn 37,5%) | Ngữ cảnh nhỏ gọn, chi phí giảm |
 | 🪶 Concise Mode | Cắt bỏ phần đệm trong phản hồi, giữ lại nội dung cốt lõi | Ít output token hơn cho mỗi phản hồi |
 | 🔄 /s-continue | Thay thế /compact — không LLM call, không chi phí, không mất thông tin, và giờ khôi phục được cả phiên **Codex** | Khôi phục ngữ cảnh miễn phí trên cả hai công cụ |
@@ -20,16 +19,17 @@ Hoạt động với **Max Plan ($200/tháng)** và **API trả theo lượng d�
 | 📊 Status Line | Chi phí thời gian thực, kích thước ngữ cảnh, giới hạn tốc độ — dưới 50ms | Thấy vấn đề trước khi chúng tốn tiền |
 | 📈 /usage-view | Bảng điều khiển HTML tương tác với phân tích AI | Điều tra chi phí toàn diện chỉ một cú nhấp |
 | ✂️ /setup-git-lite | Loại bỏ 2.200 token ẩn CC đưa vào mỗi phiên | ~$48/tháng tiết kiệm chỉ từ hướng dẫn git |
+| 🛡️ Token Guardian | Báo cho bạn ngay khoảnh khắc cache hết hạn gửi lại ngữ cảnh, hoặc chặn nó ở chế độ `block` | Không còn bất ngờ $9 âm thầm |
 
 ---
 
 ## 😤 Vấn đề
 
-**Cache hết hạn.** Bạn đi ăn trưa về. Cache đã biến mất. Một prompt gửi lại 900K token với giá đầy đủ. $9 trong một lần duy nhất.
-
 **Chi phí vô hình.** Không có khả năng xem theo thời gian thực. Không có cảnh báo "ngữ cảnh của bạn đang ở 800K". Không có thông báo "cache đã hết hạn 3 phút trước". Bạn chỉ biết sau khi thiệt hại đã xảy ra.
 
 **Ngữ cảnh phình to.** Cùng một prompt với ngữ cảnh 200K so với 800K tốn kém gấp 4 lần. Mỗi Read, Grep, Edit đều gửi lại toàn bộ ngữ cảnh. Một prompt phức tạp kích hoạt 15+ API call, mỗi cái được nhân với kích thước ngữ cảnh của bạn.
+
+**Cache hết hạn.** Bạn đi ăn trưa về. Cache đã biến mất. Một prompt gửi lại 900K token với giá đầy đủ. $9 trong một lần duy nhất.
 
 **Tất cả đều thủ công.** Quản lý ngữ cảnh, thời điểm cache hết hạn, ủy thác SubTask, dọn dẹp phiên. Không ai có thể theo dõi tất cả điều này trong khi thực sự đang code.
 
@@ -56,7 +56,7 @@ Hoạt động tự động sau khi cài đặt. Không cần cấu hình. Yêu 
 /setup-statusline install
 ```
 
-Để cắt bỏ 2.200 token ẩn từ hướng dẫn git tích hợp của CC ([chi tiết](#%EF%B8%8F-feature-5-setup-git-lite--trim-ccs-built-in-git-instructions)):
+Để cắt bỏ 2.200 token ẩn từ hướng dẫn git tích hợp của CC ([chi tiết](#%EF%B8%8F-feature-4-setup-git-lite--trim-ccs-built-in-git-instructions)):
 
 ```
 /setup-git-lite install
@@ -64,36 +64,7 @@ Hoạt động tự động sau khi cài đặt. Không cần cấu hình. Yêu 
 
 ---
 
-## 🛡️ Tính năng 1: Token Guardian
-
-**Phát hiện cache hết hạn và tự động chặn việc gửi lại tốn kém.**
-
-TTL của prompt cache trong Claude Code là 1 giờ. Rời đi hơn một giờ và cache hết hạn. Tin nhắn tiếp theo của bạn gửi lại toàn bộ ngữ cảnh với giá đầy đủ. Với 900K token, đó là $9 trong một lần.
-
-Token Guardian theo dõi thời điểm nhận được phản hồi cuối cùng. Nếu đã qua hơn 3.590 giây (TTL trừ đi bộ đệm 10 giây), nó chặn prompt và hiển thị cảnh báo.
-
-```
-🚨 Cache expired (68m 23s idle)
-
-The prompt cache has expired. Continuing will resend the full context.
-Cost may increase significantly.
-
-👉 /context — Check current context usage before deciding
-👉 /clear → /s-continue — Reset, then restore previous context (recommended, cheapest)
-👉 Re-send — Continue as-is (full re-cache cost incurred)
-```
-
-Chỉ cần gửi lại cùng prompt sau cảnh báo -- nó sẽ đi qua. Cảnh báo chỉ hiển thị một lần mỗi khoảng thời gian nghỉ, vì vậy không bao giờ làm phiền bạn. Thông báo cảnh báo hiển thị bằng 23 ngôn ngữ dựa trên locale hệ điều hành của bạn.
-
-**Các background agent không bao giờ bị chặn.** Chỉ những gì con người tự gõ mới nhận cảnh báo. Báo cáo hoàn thành từ các background agent và task -- vốn giờ đây thường xuyên đến sau hơn một giờ kể từ khi khởi chạy -- được chuyển qua trực tiếp, nên kết quả của một agent chạy lâu sẽ không bao giờ bị giữ lại hay mất đi.
-
-**Kết quả:** Mỗi lần bắt được cache hết hạn = tiết kiệm $9. Một lần bắt mỗi ngày là $270/tháng lãng phí thuần túy được loại bỏ.
-
-> **Nếu bạn dùng API trả theo lượng, điều này ảnh hưởng nặng hơn.** Người dùng Max Plan mất $9 trong giới hạn $200. Bạn mất $9 tiền thật — âm thầm, lặp đi lặp lại, mỗi khi bạn rời đi. Token Guardian bắt được mỗi lần.
-
----
-
-## 🧠 Tính năng 2: Smart Session Architecture
+## 🧠 Tính năng 1: Smart Session Architecture
 
 **Cài đặt xong và các mẫu làm việc tối ưu chi phí được kích hoạt tự động.**
 
@@ -130,7 +101,7 @@ Cài một lần, áp dụng ở khắp nơi.
 
 ---
 
-## 🔄 Tính năng 3: /s-continue — Khôi phục ngữ cảnh
+## 🔄 Tính năng 2: /s-continue — Khôi phục ngữ cảnh
 
 **Thay thế `/compact`. Không LLM call. Không tốn token. Không mất thông tin.**
 
@@ -191,7 +162,7 @@ Plugin này cũng được cài đặt vào Codex — xem **[README-CODEX.md](./
 
 ---
 
-## 📊 Tính năng 4: Live Status Line
+## 📊 Tính năng 3: Live Status Line
 
 **Theo dõi token/chi phí theo thời gian thực. Overhead dưới 50ms.**
 
@@ -300,7 +271,7 @@ Khi bạn đạt giới hạn tốc độ, chạy `/report-limit`. Dữ liệu s
 
 ---
 
-## ✂️ Tính năng 5: /setup-git-lite — Cắt bỏ hướng dẫn git tích hợp của CC
+## ✂️ Tính năng 4: /setup-git-lite — Cắt bỏ hướng dẫn git tích hợp của CC
 
 **Chúng tôi đã đọc mã nguồn Claude Code. Chúng tôi tìm thấy 2.200 token ẩn được đưa vào mỗi phiên mà bạn đang âm thầm trả tiền.**
 
@@ -400,6 +371,45 @@ Khi hướng dẫn git gốc CC vẫn còn hoạt động trên máy của bạn
 
 ---
 
+## 🛡️ Tính năng 5: Token Guardian
+
+**Báo cho bạn ngay khoảnh khắc cache hết hạn khiến bạn tốn tiền. Có thể chặn khoản re-send $9 nếu bạn yêu cầu.**
+
+Prompt cache của Claude Code tồn tại trong 1 giờ. Rời đi lâu hơn thế là nó hết hạn. Tin nhắn tiếp theo của bạn gửi lại toàn bộ ngữ cảnh với giá đầy đủ. Với 900K token, đó là $9 trong một lần.
+
+Token Guardian nhớ thời điểm phản hồi cuối cùng đến. Nếu đã qua hơn 3.590 giây (TTL trừ đi bộ đệm 10 giây), nó can thiệp. Theo mặc định nó **cảnh báo (warn)**: prompt vẫn đi qua, và Claude mở đầu phản hồi bằng một dòng cho biết cache đã hết hạn, lượt này bị tính phí như một lần gửi lại toàn bộ, và nếu nghỉ từ một giờ trở lên thì cách rẻ hơn là `/clear` → `/s-continue`.
+
+**Tại sao warn là mặc định.** Các phiên bản trước chặn prompt và hiển thị cảnh báo bên dưới. Cách đó hoạt động tốt trong terminal. Nhưng dưới Remote Control thì không: thông báo chặn của một hook được hiển thị cục bộ như một tin nhắn hệ thống mà client từ xa không bao giờ nhận được, nên prompt cứ thế biến mất mà không có lời giải thích nào. Phản hồi của Claude *thì có* được chuyển tiếp, vì vậy giờ cảnh báo được gửi kèm theo đó thay thế. Chúng tôi đổi mặc định vì những người điều khiển phiên làm việc của họ từ xa.
+
+Nếu bạn chủ yếu làm việc trong terminal cục bộ và muốn quay lại chế độ chặn cứng:
+
+```
+export CC_TOKEN_SAVER_CACHE_GUARD=block
+```
+
+Ở chế độ block, prompt bị từ chối một lần với thông báo bên dưới. Gửi lại lần nữa thì nó đi qua. `off` tắt hoàn toàn việc kiểm tra.
+
+```
+🚨 Cache expired (68m 23s idle)
+
+The prompt cache has expired. Continuing will resend the full context.
+Cost may increase significantly.
+
+👉 /context — Check current context usage before deciding
+👉 /clear → /s-continue — Reset, then restore previous context (recommended, cheapest)
+👉 Re-send — Continue as-is (full re-cache cost incurred)
+```
+
+Thông báo chặn hiển thị bằng 23 ngôn ngữ, được chọn theo locale hệ điều hành của bạn, và chỉ xuất hiện một lần mỗi khoảng thời gian nghỉ.
+
+**Các background agent không bao giờ bị chặn.** Chỉ những gì con người tự gõ mới nhận cảnh báo. Báo cáo hoàn thành từ các background agent và task -- vốn giờ đây thường xuyên đến sau hơn một giờ kể từ khi khởi chạy -- được chuyển qua trực tiếp, nên kết quả của một agent chạy lâu sẽ không bao giờ bị giữ lại hay mất đi.
+
+**Kết quả:** ở chế độ warn, bạn luôn biết khi nào một khoản re-send $9 đã xảy ra, và vì sao. Ở chế độ block, điều đó không xảy ra: mỗi lần bắt được cache hết hạn = tiết kiệm $9, và một lần bắt mỗi ngày là $270/tháng lãng phí thuần túy được loại bỏ.
+
+> **Nếu bạn dùng API trả theo lượng, điều này ảnh hưởng nặng hơn.** Người dùng Max Plan mất $9 trong giới hạn $200. Bạn mất $9 tiền thật — âm thầm, mỗi khi bạn rời đi. Token Guardian ở chế độ block chặn nó mỗi lần.
+
+---
+
 ## 💡 Cách Cache thực sự hoạt động (và tại sao hầu hết người dùng lãng phí 40%+ vào đó)
 
 Claude Code gửi toàn bộ lịch sử cuộc trò chuyện đến model trên mỗi API call. "API call" không có nghĩa là "một tin nhắn bạn đã gõ." Một prompt đơn lẻ kích hoạt các tool call nội bộ — Grep, Read, Edit, Write — và mỗi cái là một API call riêng biệt. Một prompt dễ dàng gây ra 10+ API call.
@@ -442,7 +452,7 @@ Công việc nặng được ủy thác cho SubTask. Main chỉ xử lý thiết
 | ----------- | -------------------------------------------- | --------------------------- | ---------------------------------- |
 | Buổi sáng 3h  | Code (Main: thiết kế, SubTask: thực thi)  | Main 100K → 300K (TB 200K) | 900 call × 200K × ＄0.50/M = ＄90 |
 | Ăn trưa/họp   | Vắng mặt 2 giờ                           | —                           | —                                  |
-| Trở về      | ⚡ Token Guardian chặn → /clear + /s-continue | —                           | ＄0 (không LLM call)               |
+| Trở về      | ⚡ Token Guardian (chế độ block) → /clear + /s-continue | —                           | ＄0 (không LLM call)               |
 | Buổi chiều 3h | Code tiếp tục                             | Main 100K → 300K (TB 200K) | 900 call × 200K × ＄0.50/M = ＄90 |
 |             | Tổng cộng                                    |                             | ~＄180                              |
 
@@ -469,7 +479,7 @@ Công việc nặng được ủy thác cho SubTask. Main chỉ xử lý thiết
     │
 [Nghỉ hơn 1 giờ]
     │
-    ├─ Token Guardian → Phát hiện cache hết hạn, chặn trước khi gửi lại
+    ├─ Token Guardian → Phát hiện cache hết hạn, cảnh báo (hoặc chặn ở chế độ block)
     │
 [Khởi động lại phiên]
     │
@@ -523,7 +533,7 @@ Plugin đưa ngữ cảnh vào khi bắt đầu phiên. Đây là chính xác ba
 | --------- | ---- | ------ | ------- |
 | Session Architect | SessionStart (một lần) | ~1.100 | Chiến lược ủy thác SubTask + quy tắc concise mode |
 | Ngữ cảnh git (nếu git-lite được bật) | SessionStart (một lần) | ~280 | Thay thế hướng dẫn git gốc ~2.200 tok của CC |
-| Cảnh báo hết hạn cache | Khi nghỉ > 59 phút (một lần) | ~200 | Chặn re-send đắt tiền, hiển thị tùy chọn phục hồi |
+| Cảnh báo hết hạn cache | Khi nghỉ > 59 phút (một lần) | ~200 | Báo hiệu khoản re-send đắt tiền, chỉ ra lối đi rẻ hơn |
 | Status line | Mỗi API call | 0 | Render vào thanh trạng thái terminal, không phải ngữ cảnh cuộc trò chuyện |
 
 **Overhead ròng mỗi phiên: ~1.400 token (một lần, được cache sau call đầu tiên).**
@@ -541,7 +551,7 @@ Nếu git-lite được bật, plugin **tiết kiệm** ~1.920 token mỗi phiê
 ### Hiểu cache và bạn sẽ thấy tiền đi đâu
 
 - **1 prompt ≠ 1 API call.** Mỗi lần Claude gọi Grep, Read, hoặc Edit, toàn bộ ngữ cảnh được gửi lại. Một prompt đơn lẻ dễ dàng kích hoạt 10+ API call. Viết prompt rõ ràng để giảm tool call không cần thiết và cắt giảm chi phí.
-- **Bộ đếm thời gian cache reset từ API call cuối cùng, không phải prompt cuối cùng của bạn.** Tiếp tục làm việc và cache không bao giờ hết hạn. Nguy hiểm là rời đi. Token Guardian tự động chặn một lần, vì vậy khi bạn trở lại bạn có thể chọn: reset ngữ cảnh hoặc tiếp tục như cũ.
+- **Bộ đếm thời gian cache reset từ API call cuối cùng, không phải prompt cuối cùng của bạn.** Tiếp tục làm việc và cache không bao giờ hết hạn. Nguy hiểm là rời đi. Token Guardian báo cho bạn biết khi nào điều đó xảy ra, và ở chế độ `block` sẽ chặn prompt một lần để bạn chọn: reset ngữ cảnh hoặc tiếp tục như cũ.
 - **Kích thước ngữ cảnh = hệ số nhân chi phí.** Cùng API call ở 200K so với 800K tốn gấp 4 lần. Khi status line [CTX] vượt 35% (🟡), đó là tín hiệu để ủy thác nhiều hơn cho SubTask.
 
 ### Thói quen cắt giảm chi phí

@@ -2,14 +2,26 @@
 # cache-expiry-check.sh — Prompt cache expiry warning hook
 #
 # Registered as UserPromptSubmit hook (hooks.json). Runs before every user message.
-# Blocks the message if the 1-hour prompt cache has likely expired, giving the user
-# a chance to /clear → /s-continue instead of paying full re-cache cost.
+# Detects that the 1-hour prompt cache has likely expired and either warns or blocks,
+# so the user can /clear → /s-continue instead of paying full re-cache cost.
+#
+# Mode: CC_TOKEN_SAVER_CACHE_GUARD = warn (default) | block | off
+#   warn  — let the prompt through, but attach additionalContext so Claude opens its
+#           reply by telling the user the cache had expired and this turn re-sent the
+#           full context. Default because a hook "block" is rendered as a local
+#           system/informational message that Remote Control never forwards
+#           (bridge/bridgeMessaging.ts isEligibleBridgeMessage) — a remote user saw the
+#           prompt vanish with no explanation. Claude's reply IS forwarded.
+#   block — the original behaviour: refuse the prompt once with a localized warning;
+#           re-sending the same prompt goes through. Saves the $9 re-send, but only a
+#           local terminal sees why the prompt was refused.
+#   off   — never check.
 #
 # How it works:
 #   0. Machine-injected prompts (task notifications etc.) are exempt — see below
 #   1. Reads last assistant timestamp from transcript tail
-#   2. If elapsed ≥ 3590s (3600s TTL - 10s buffer): block with warning
-#   3. One-time gate: first block sets flag, re-sending the same message approves
+#   2. If elapsed ≥ 3590s (3600s TTL - 10s buffer): warn or block per mode
+#   3. block mode one-time gate: first block sets flag, re-sending the same message approves
 #   4. If elapsed < 3590s: approve silently
 #
 # Input:  JSON via stdin (CC UserPromptSubmitInput)
@@ -17,9 +29,11 @@
 #
 # Output: JSON to stdout
 #   { "decision": "approve" }  — allow message through
-#   { "decision": "block", "reason": "..." }  — block with localized warning
+#   { "decision": "approve", "hookSpecificOutput": { "hookEventName": "UserPromptSubmit",
+#     "additionalContext": "..." } }  — warn mode: allow, Claude announces the expiry
+#   { "decision": "block", "reason": "..." }  — block mode: refuse with localized warning
 #
-# Gate flag: $TMPDIR/claude-cache-warn-{SESSION_ID}
+# Gate flag (block mode): $TMPDIR/claude-cache-warn-{SESSION_ID}
 #   Created on first block, removed on second attempt (bypass)
 #
 # i18n: 23 languages detected from OS $LANG locale
@@ -150,15 +164,28 @@ ELAPSED=$(( NOW_EPOCH - LAST_EPOCH ))
 MINS=$(( ELAPSED / 60 ))
 SECS=$(( ELAPSED % 60 ))
 
-# 3590s+ → cache expired, block (3600s TTL - 10s buffer)
-if [ "$ELAPSED" -ge 3590 ]; then
-  MSG=$(get_expired_msg "$MINS" "$SECS")
-  touch "$WARN_FLAG"
-  # Escape for JSON
-  MSG_JSON=$(echo "$MSG" | sed 's/"/\\"/g')
-  echo "{\"decision\":\"block\",\"reason\":\"${MSG_JSON}\"}"
-
 # Under 3590s → cache still alive
-else
+if [ "$ELAPSED" -lt 3590 ]; then
   echo '{"decision":"approve"}'
+  exit 0
 fi
+
+# 3590s+ → cache expired (3600s TTL - 10s buffer). Mode decides what happens.
+MODE="${CC_TOKEN_SAVER_CACHE_GUARD:-warn}"
+case "$MODE" in
+  block)
+    MSG=$(get_expired_msg "$MINS" "$SECS")
+    touch "$WARN_FLAG"
+    # Escape for JSON
+    MSG_JSON=$(echo "$MSG" | sed 's/"/\\"/g')
+    echo "{\"decision\":\"block\",\"reason\":\"${MSG_JSON}\"}"
+    ;;
+  off)
+    echo '{"decision":"approve"}'
+    ;;
+  *)
+    # warn (default). Model-facing, so English; Claude answers in the user's language.
+    CTX="[super-token-saver] The prompt cache expired: the last reply was ${MINS}m ${SECS}s ago and the cache TTL is 1 hour. This turn therefore re-sent the full context at full price. Open your reply with ONE short line, in the user's language, saying the cache had expired and this turn was billed as a full re-send, and that after a break of an hour or more the cheaper path is /clear then /s-continue. Then answer the prompt normally. Do not repeat this notice in later turns."
+    echo "{\"decision\":\"approve\",\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":\"${CTX}\"}}"
+    ;;
+esac
