@@ -566,6 +566,8 @@ Tout ce qui précède s'applique, plus ces priorités spécifiques à l'API :
 ## 📚 Documentation
 
 - [Guide du cache de prompts](guides/prompt-cache-guide.md) — Pourquoi la plupart de vos coûts sont liés au cache, comment la mise en cache fonctionne entre les fournisseurs (Anthropic, OpenAI, Gemini) et comment la gérer ([한국어](guides/prompt-cache-guide-ko.md) · [日本語](guides/prompt-cache-guide-ja.md) · [中文](guides/prompt-cache-guide-zh.md) · [Español](guides/prompt-cache-guide-es.md) · [Français](guides/prompt-cache-guide-fr.md) · [Deutsch](guides/prompt-cache-guide-de.md) · [+16 langues](guides/))
+- [Analyse des coûts Fable 5.1 vs Opus 5](guides/fable-5-1-vs-opus-5-cost-analysis.md) — 24–38 % moins cher qu'Opus 5 à qualité égale, sur 2 802 sessions
+- [Analyse des coûts Fable 5.1 vs Opus 5 (한국어)](guides/fable-5-1-vs-opus-5-cost-analysis.ko.md)
 - [Analyse des coûts Opus 4.7 vs 4.6](guides/opus-4-7-vs-4-6-cost-analysis.md) — Comparaison des coûts côte à côte sur 8 563 appels API
 - [Analyse des coûts Opus 4.7 vs 4.6 (한국어)](guides/opus-4-7-vs-4-6-cost-analysis.ko.md)
 

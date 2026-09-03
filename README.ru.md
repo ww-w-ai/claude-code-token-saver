@@ -568,6 +568,8 @@ super-token-saver полностью с открытым исходным код
 ## 📚 Документация
 
 - [Руководство по кэшу запросов](guides/prompt-cache-guide.md) — Почему большинство ваших затрат приходится на кэш, как работает кэширование у провайдеров (Anthropic, OpenAI, Gemini) и как им управлять ([한국어](guides/prompt-cache-guide-ko.md) · [日本語](guides/prompt-cache-guide-ja.md) · [中文](guides/prompt-cache-guide-zh.md) · [Español](guides/prompt-cache-guide-es.md) · [Français](guides/prompt-cache-guide-fr.md) · [Deutsch](guides/prompt-cache-guide-de.md) · [+16 languages](guides/))
+- [Анализ затрат Fable 5.1 vs Opus 5](guides/fable-5-1-vs-opus-5-cost-analysis.md) — На 24–38% дешевле Opus 5 при равном качестве, по 2 802 сессиям
+- [Анализ затрат Fable 5.1 vs Opus 5 (한국어)](guides/fable-5-1-vs-opus-5-cost-analysis.ko.md)
 - [Анализ затрат Opus 4.7 vs 4.6](guides/opus-4-7-vs-4-6-cost-analysis.md) — Сравнение затрат по 8 563 вызовам API
 - [Анализ затрат Opus 4.7 vs 4.6 (한국어)](guides/opus-4-7-vs-4-6-cost-analysis.ko.md)
 

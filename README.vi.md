@@ -565,6 +565,8 @@ Tất cả những điều trên đều áp dụng, cộng thêm những ưu ti�
 ## 📚 Tài liệu
 
 - [Hướng dẫn Prompt Cache](guides/prompt-cache-guide.md) — Tại sao hầu hết chi phí của bạn là cache, cách hoạt động của caching trên các nhà cung cấp (Anthropic, OpenAI, Gemini), và cách quản lý nó ([한국어](guides/prompt-cache-guide-ko.md) · [日本語](guides/prompt-cache-guide-ja.md) · [中文](guides/prompt-cache-guide-zh.md) · [Español](guides/prompt-cache-guide-es.md) · [Français](guides/prompt-cache-guide-fr.md) · [Deutsch](guides/prompt-cache-guide-de.md) · [+16 languages](guides/))
+- [Phân tích chi phí Fable 5.1 vs Opus 5](guides/fable-5-1-vs-opus-5-cost-analysis.md) — Rẻ hơn Opus 5 24–38% ở cùng chất lượng, qua 2.802 phiên
+- [Phân tích chi phí Fable 5.1 vs Opus 5 (한국어)](guides/fable-5-1-vs-opus-5-cost-analysis.ko.md)
 - [Phân tích chi phí Opus 4.7 vs 4.6](guides/opus-4-7-vs-4-6-cost-analysis.md) — So sánh chi phí song song qua 8.563 API call
 - [Phân tích chi phí Opus 4.7 vs 4.6 (한국어)](guides/opus-4-7-vs-4-6-cost-analysis.ko.md)
 
