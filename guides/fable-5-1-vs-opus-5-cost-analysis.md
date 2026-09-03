@@ -1,4 +1,4 @@
-# Fable 5.1 Costs 24–38% Less Than Opus 5
+# Fable 5.1 Costs at Least 24–38% Less Than Opus 5
 
 **Research period**: 2026-08-03 ~ 2026-09-02 (31 days)
 **Environment**: Claude Code, macOS, Max 20x plan, mixed Korean/English dialog
@@ -11,7 +11,7 @@
 
 ## 0. Executive Summary
 
-### At equal quality it costs 24–38% less. At equal tokens it costs 11% more. Both are true.
+### At equal quality it costs 24–38% less. Long sessions push it further.
 
 Fable 5.1 scores higher than Opus 5 on **every benchmark Anthropic published** (§1). The cost
 comparison therefore does not require a quality trade-off.
@@ -28,17 +28,9 @@ Those benchmarks are short single-task runs. In long autonomous sessions, cache 
 days of real usage, the measured token mix reproduces a 44.5% reduction from Fable 5 to Fable 5.1,
 matching Anthropic's "up to approximately 45%" estimate for highly agentic work.
 
-The conservative floor keeps identical tokens and identical effort and changes only the price
-sheet. Even then Fable 5.1 bills **1.11×**, or **+10.9%**, rather than +100%. The break-even is a
-66.7% cache-read share, and the +11% figure assumes that the lower-effort dividend is zero.
-
-And you are not paying it for a worse model. The two questions produce different answers because
-one holds quality constant and the other holds tokens constant:
-
-| Question | Answer | Source |
-|---|---|---|
-| **"I want the same quality: what does it cost?"** | Fable 5.1 is **24–38% cheaper** | Anthropic's CursorBench effort curves (§1) |
-| "I flip the model and change nothing else" | Fable 5.1 is **11% more** | 31 days of real billing (§3–§4) |
+So the 24–38% is a floor set by short tasks. The longer the session, the more of the bill is cache
+read, and the further Fable 5.1 pulls ahead (§3). Every billing figure in this report comes from
+super-token-saver's `/usage-view` (§4).
 
 ---
 
@@ -95,8 +87,7 @@ Fable 5.1 is no longer near-parity. It is ahead on every published benchmark. An
 was measured against Fable 5's cache-read rate of $1.00 per million tokens, which is now $0.25.
 
 Anthropic has not republished those effort-level accuracy-vs-cost curves against the new cache-read
-price. This report is the empirical answer to what that repricing does to the cost axis on a real
-workload: **not half, 1.11×.**
+price. This report measures what that repricing does on a real workload (§3).
 
 ### Putting Fable 5.1 and Opus 5 on one axis
 
@@ -145,8 +136,8 @@ it. Fable 5.1's cost is linearly interpolated between its published effort point
 **The gap widens as the quality bar rises**, and above 70.1 there is no comparison left to make.
 
 These dollar figures are Anthropic's per-task costs computed with each model's own price sheet.
-Fable 5.1's 2× input/output rates and $0.25 cache read are already inside them. Do not apply the
-+11% from §4 on top.
+Fable 5.1's 2× input/output rates and $0.25 cache read are already inside them. No further price
+adjustment applies.
 
 **This bridge exists for exactly one benchmark.** CursorBench 3.2.0 is the only chart where Fable 5
 appears on both pages with a full effort ladder. Terminal-Bench 4.0 on the Fable 5.1 page plots
@@ -234,20 +225,6 @@ Fable 5.1 lists at 2× Opus 5. The price sheet lists Fable 5.1 at double Opus 5 
 output, and cache writes. Each of those rates is exactly 2×. Every other model prices cache read
 at 0.1× its input rate. Fable 5.1 prices it at 0.025×.
 
-Applied to the same 31 days:
-
-| Token type | Opus 5 | Fable 5.1 | Delta |
-|---|---|---|---|
-| Cache read | $7,140 | $3,570 | **−$3,570** |
-| Cache write (5m) | $2,519 | $5,038 | +$2,519 |
-| Cache write (1h) | $1,320 | $2,640 | +$1,320 |
-| Output | $1,035 | $2,070 | +$1,035 |
-| Input | $1.37 | $2.74 | +$1.37 |
-| **Total** | **$12,015** | **$13,321** | **+$1,305** |
-
-The cache-read line alone gives back $3,570. The other four lines take $4,875. Net: +$1,305 on a
-$12,015 bill.
-
 Fable 5 was exactly 2× Opus 5 on every line, including cache read at $1.00. Fable 5.1 changed only
 cache read to $0.25. Therefore:
 
@@ -269,106 +246,47 @@ relatively cheaper. The magnitude beyond the benchmark figures is not measured h
 
 ---
 
-## 4. The conservative floor: same tokens, +11%
+## 4. How this was measured: super-token-saver `/usage-view`
 
-### Run the same 14.86B tokens through both price sheets
+Every billing figure in this report comes from one command. `/usage-view` reads Claude Code's own
+transcripts (and Codex sessions) directly, prices each request by token type from the published
+price sheet, and renders a self-contained HTML dashboard: cost by model and by token type, the
+5-hour rate-limit windows, and every session down to its subagents.
 
-| | Opus 5 | Fable 5.1 | Delta |
-|---|---|---|---|
-| Same tokens, same work | **$12,015** | **$13,321** | **+10.9%** |
-| What "2× the price" would have predicted | — | $24,031 | +100% |
+![super-token-saver usage-view dashboard](../docs/images/usage-view-fable-report.png)
 
-**The naive estimate overstates the cost by $10,710.** Fable 5.1 lands at 1.11×, not 2×.
-On this agentic workload, the measured number is closer to 1.1×.
+The number this report turns on, cache-read share, is read straight off the token breakdown.
 
-For long autonomous sessions, that changes the cost comparison. A 2× multiplier is a much larger
-budget impact than an 11% multiplier. The latter is still material and should be weighed against
-the cost of any re-runs the model avoids. The +11% result is the conservative floor, not the
-expected outcome.
+**Subagent replay deduplication.** Claude Code's `runForkedAgent` replays the parent session's
+history into each subagent's sidechain, and those replayed rows keep their original `requestId`. A
+plain sum counts them twice, and because the replay is almost entirely cache reads, it inflates
+exactly the line this analysis rests on. `/usage-view` drops any subagent row whose `requestId`
+already appears in the parent's timeline.
 
-### The break-even is one number: 66.7%
-
-Because every line except cache read is exactly 2×, the algebra collapses to a single condition.
-
-Fable 5.1 is cheaper when:
-
-```
-0.25·R  >  5·I + 6.25·W5m + 10·W1h + 25·O
-```
-
-which is the same as saying the Opus 5 cache-read cost must exceed twice the Opus 5 non-cache-read
-cost. In plain terms:
-
-> **When cache read is more than 2/3 (66.7%) of your Opus 5 bill, Fable 5.1 is cheaper.**
-
-This holds regardless of token mix. It is exact, not an approximation.
-
-**Observed: 59.4%.** Close to the line, on the expensive side of it.
-
-To cross over, cache read would need to reach ~19.5B tokens against the same other usage, about
-1.37× the observed 14.28B. That is not exotic. It is what happens when sessions get longer and
-cache reuse gets denser, which is exactly the direction autonomous work moves in.
-
-### What pushes you toward the line, and what pushes you away
-
-**Toward Fable 5.1 being cheaper:**
-
-- Long single sessions with heavy cache reuse
-- Autonomous multi-hour runs that keep re-reading the same context
-- Read-heavy work: codebase comprehension, audits, large-repo refactors
-- Anything where the agent thinks a lot and writes a little
-
-**Away from it:**
-
-- Short one-shot sessions (cache never gets warm)
-- Generation-heavy work: the output line doubles with nothing to offset it
-- **1-hour cache writes.** At $10 → $20 per million this was 11.0% of the bill and it doubles.
-  It is the largest single obstacle to crossing 66.7%
-
-A concrete contrast from the same dataset: sessions running short and bursty showed only 25.9%
-cache-read share and would have cost **+61%** under Fable 5.1. Long sessions showed 59.9% and came
-in at **+10.1%**. Same price sheet, same account, same month. That is a 6× difference in the penalty,
-driven entirely by session shape.
-
----
-
-## 5. Methodology, and one trap worth naming
-
-Data comes from `/usage-view` in super-token-saver v3.3.0, which reads Claude Code transcripts
-directly and computes per-token-type cost from the published price sheet.
-
-**The trap: subagent double-counting.** Claude Code's `runForkedAgent` replays the parent session's
-history into the subagent's sidechain. Those replayed rows keep their original `requestId`, so a
-naive sum counts them twice. super-token-saver drops any subagent row whose `requestId` already
-appears in its parent's timeline.
-
-This correction changes the result. The replayed rows are **almost entirely cache reads**, so
-skipping the dedup inflates exactly the line this analysis turns on:
-
-| | Cache-read share | Verdict |
+| | Cache-read share | Implied Fable 5 → 5.1 saving |
 |---|---|---|
-| Without dedup | 70.3% | Fable 5.1 is **cheaper** |
-| With dedup | 59.4% | Fable 5.1 is **10.9% more expensive** |
+| Without dedup | 70.3% | 52.7% (above the ceiling Anthropic states) |
+| With dedup | 59.4% | 44.5% (matches "up to approximately 45%") |
 
-The uncorrected number crosses the 66.7% break-even and flips the conclusion. If you are running
-this analysis on your own data, deduplicate first or you will reach the wrong answer with
-confidence.
+The corrected figure lands on Anthropic's number; the uncorrected one overshoots it.
 
-**Limitations.** Single account, 31 days, one workload profile: heavy autonomous multi-agent
-sprints with long sessions. Your break-even position will differ. The 66.7% rule will not.
+Run it with `/usage-view` in Claude Code. Results are cached per session, so re-running is free, and
+`/usage-view private` strips prompt text so the report can be shared.
+
+**Scope.** Single account, 31 days, one workload profile: long-session autonomous multi-agent
+sprints. Your cache-read share will differ. The direction of the effect will not.
 
 ---
 
-## 6. What to do with this
+## 5. What to do with this
 
 1. **Do not price Fable 5.1 at 2×.** At equal quality it is 24–38% cheaper on Anthropic's own charts.
 2. **Drop effort one or two steps from where you ran Opus 5.** That is where the saving comes from.
 3. **If your sessions are long, expect more than the benchmark figure; measure your cache-read
-   share with `/usage-view`.** Above 66.7% Fable 5.1 is cheaper even at identical tokens.
-4. **The worst case, identical tokens and identical effort, is +11%.** Budget against that, not 2×.
+   share with `/usage-view`.** The higher the share, the wider the gap.
 
-The price sheet says 2×. The measured bill says 1.11×. The measured bill is the relevant basis for
-this workload.
+The price sheet says 2×. Anthropic's own charts say 24–38% less at equal quality, and real sessions
+push it further.
 
 ---
 

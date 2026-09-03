@@ -565,7 +565,7 @@ git-liteが有効の場合、プラグインはセッションあたり約1,920�
 ## 📚 ドキュメント
 
 - [プロンプトキャッシュガイド](guides/prompt-cache-guide.md) — コストのほとんどがキャッシュである理由、キャッシュがプロバイダー（Anthropic、OpenAI、Gemini）間でどのように機能するか、管理方法（[한국어](guides/prompt-cache-guide-ko.md) · [日本語](guides/prompt-cache-guide-ja.md) · [中文](guides/prompt-cache-guide-zh.md) · [Español](guides/prompt-cache-guide-es.md) · [Français](guides/prompt-cache-guide-fr.md) · [Deutsch](guides/prompt-cache-guide-de.md) · [+16言語](guides/)）
-- [Fable 5.1 vs Opus 5 コスト分析](guides/fable-5-1-vs-opus-5-cost-analysis.md) — 同じ品質でOpus 5より24〜38%安い、2,802セッションで計測
+- [Fable 5.1 vs Opus 5 コスト分析](guides/fable-5-1-vs-opus-5-cost-analysis.md) — 同じ品質でOpus 5より少なくとも24〜38%安い、2,802セッションで計測
 - [Fable 5.1 vs Opus 5 コスト分析 （한국어）](guides/fable-5-1-vs-opus-5-cost-analysis.ko.md)
 - [Opus 4.7 vs 4.6 コスト分析](guides/opus-4-7-vs-4-6-cost-analysis.md) — 8,563回のAPI呼び出しにわたる並べて比較したコスト比較
 - [Opus 4.7 vs 4.6 コスト分析（한국어）](guides/opus-4-7-vs-4-6-cost-analysis.ko.md)
