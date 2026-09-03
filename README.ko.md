@@ -565,7 +565,7 @@ git-lite가 활성화된 경우, 플러그인은 세션당 ~1,920 토큰을 **�
 ## 📚 문서
 
 - [Prompt Cache Guide](guides/prompt-cache-guide.md) — 비용의 대부분이 캐시인 이유, 프로바이더별 캐싱 작동 방식(Anthropic, OpenAI, Gemini), 관리 방법 ([한국어](guides/prompt-cache-guide-ko.md) · [日本語](guides/prompt-cache-guide-ja.md) · [中文](guides/prompt-cache-guide-zh.md) · [Español](guides/prompt-cache-guide-es.md) · [Français](guides/prompt-cache-guide-fr.md) · [Deutsch](guides/prompt-cache-guide-de.md) · [+16 languages](guides/))
-- [Fable 5.1 vs Opus 5 Cost Analysis](guides/fable-5-1-vs-opus-5-cost-analysis.md) — 같은 품질 기준 Opus 5보다 최소 24~38% 저렴, 2,802세션 실측
+- [Fable 5.1 vs Opus 5 Cost Analysis](guides/fable-5-1-vs-opus-5-cost-analysis.md) — 같은 품질 기준 Opus 5보다 최소 24~38% 저렴, 2,782세션 실측
 - [Fable 5.1 vs Opus 5 Cost Analysis (한국어)](guides/fable-5-1-vs-opus-5-cost-analysis.ko.md)
 - [Opus 4.7 vs 4.6 Cost Analysis](guides/opus-4-7-vs-4-6-cost-analysis.md) — 8,563회 API 호출 기준 비용 비교
 - [Opus 4.7 vs 4.6 Cost Analysis (한국어)](guides/opus-4-7-vs-4-6-cost-analysis.ko.md)

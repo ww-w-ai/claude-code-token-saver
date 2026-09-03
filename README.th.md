@@ -565,7 +565,7 @@ super-token-saver เป็น open-source ทั้งหมด (Apache-2.0) Ja
 ## 📚 เอกสาร
 
 - [คู่มือ Prompt Cache](guides/prompt-cache-guide.md) — ทำไมต้นทุนส่วนใหญ่ของคุณเป็นแคช การ cache ทำงานอย่างไรในผู้ให้บริการต่างๆ (Anthropic, OpenAI, Gemini) และวิธีจัดการ ([한국어](guides/prompt-cache-guide-ko.md) · [日本語](guides/prompt-cache-guide-ja.md) · [中文](guides/prompt-cache-guide-zh.md) · [Español](guides/prompt-cache-guide-es.md) · [Français](guides/prompt-cache-guide-fr.md) · [Deutsch](guides/prompt-cache-guide-de.md) · [+16 languages](guides/))
-- [การวิเคราะห์ต้นทุน Fable 5.1 vs Opus 5](guides/fable-5-1-vs-opus-5-cost-analysis.md) — ถูกกว่า Opus 5 อย่างน้อย 24–38% ที่คุณภาพเท่ากัน จาก 2,802 เซสชัน
+- [การวิเคราะห์ต้นทุน Fable 5.1 vs Opus 5](guides/fable-5-1-vs-opus-5-cost-analysis.md) — ถูกกว่า Opus 5 อย่างน้อย 24–38% ที่คุณภาพเท่ากัน จาก 2,782 เซสชัน
 - [การวิเคราะห์ต้นทุน Fable 5.1 vs Opus 5 (한국어)](guides/fable-5-1-vs-opus-5-cost-analysis.ko.md)
 - [การวิเคราะห์ต้นทุน Opus 4.7 vs 4.6](guides/opus-4-7-vs-4-6-cost-analysis.md) — การเปรียบเทียบต้นทุนแบบเคียงข้างกันใน 8,563 API calls
 - [การวิเคราะห์ต้นทุน Opus 4.7 vs 4.6 (한국어)](guides/opus-4-7-vs-4-6-cost-analysis.ko.md)

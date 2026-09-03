@@ -2,7 +2,7 @@
 
 **Research period**: 2026-08-03 ~ 2026-09-02 (31 days)
 **Environment**: Claude Code, macOS, Max 20x plan, mixed Korean/English dialog
-**Sample size**: 2,802 sessions (1,331 main + 1,451 subagents), 14.86B tokens, $7,646 billed
+**Sample size**: 2,782 sessions (1,331 main + 1,451 subagents), 14.86B tokens, $7,646 billed
 **Method**: `/usage-view` (super-token-saver v3.3.0), subagent-replay deduplication applied
 
 > 한국어: [fable-5-1-vs-opus-5-cost-analysis.ko.md](./fable-5-1-vs-opus-5-cost-analysis.ko.md)
@@ -13,14 +13,14 @@
 
 ### At equal quality it costs 24–38% less. Long sessions push it further.
 
-Fable 5.1 scores higher than Opus 5 on **every benchmark Anthropic published** (§1). The cost
+Fable 5.1 scores higher than Opus 5 on **every benchmark Anthropic published for both models** (§1). The cost
 comparison therefore does not require a quality trade-off.
 
 Because Fable 5.1 reaches a given score at a **lower effort setting**, it burns fewer tokens getting
 there. Lower effort also means less thinking per turn.
 
 At equal score, Anthropic's CursorBench effort curves put Fable 5.1 at **24–38% cheaper** than
-Opus 5. These are final per-task dollar figures computed with each model's own price sheet, so
+Opus 5 (values read off the charts, ±5% on cost). These are final per-task dollar figures computed with each model's own price sheet, so
 Fable 5.1's higher input and output rates are already included.
 
 Those benchmarks are short single-task runs. In long autonomous sessions, cache read becomes the
@@ -51,16 +51,17 @@ Anthropic's published benchmark table puts Fable 5.1 ahead of Opus 5 on **every 
 
 *Terminal-Bench-Science 0.1 carries ±3.5–4.5 pt standard error per model. Source: [anthropic.com/claude-fable-and-mythos-5-1](https://www.anthropic.com/claude-fable-and-mythos-5-1)*
 
-On the effort axis, which decides long-running cost because Claude Code defaults Fable 5.1 to
-High:
+A higher score is not yet a lower cost. What decides cost on long-running work is the effort
+setting, and Anthropic says this about it (Claude Code defaults Fable 5.1 to High):
 
 > "when set to Low or Medium effort, Fable 5.1 achieves results similar to or better than Fable 5's
 > at a much lower cost. (Note that Fable 5.1 defaults to High effort in Claude Code, and to Medium
 > in Claude Cowork and on Claude.ai.)"
 
-The stated effort comparison is against **Fable 5, not Opus 5**. Anthropic
-publishes accuracy-vs-cost curves by effort level (low / med / high / xhigh / max) for Fable 5.1
-against Fable 5 only. Per-effort Fable 5.1 vs Opus 5 figures are not published.
+But that effort comparison is against **Fable 5, not Opus 5**. On this page Anthropic publishes
+accuracy-vs-cost curves by effort level (low / med / high / xhigh / max) for Fable 5.1 against
+Fable 5 (and Mythos) only, never Opus 5; per-effort Fable 5.1 vs Opus 5 figures are not published. So one more document was
+needed to make the comparison.
 
 ### The argument Opus 5 launched on
 
@@ -103,22 +104,22 @@ Overlaid (values read off the published charts, ±0.2 pt score / ±5% cost):
 | med | $3.2 / 64.2 | $3.5 / **68.1** | $6.9 / 65.1 |
 | high | $4.0 / 66.7 | $4.8 / **69.4** | $8.7 / 66.5 |
 | **xhigh** | $7.3 / 69.3 | **$7.2 / 72.7** | $11.8 / 68.4 |
-| max | $8.5 / 70.1 | $9.5 / **73.4** | $17.5 / 70.5 |
+| max | $8.5 / 70.0 | $9.5 / **73.4** | $17.5 / 70.5 |
 
 Fable 5.1 is above Opus 5 at every effort level, and the cost gap is small enough that it inverts
 when you compare at equal score rather than equal effort:
 
-- **At xhigh the cost is the same and the score is not.** $7.2 vs $7.3, a $0.10 difference, for
-  **+3.4 pts**. There is no price argument at this point on the ladder.
-- **Opus 5 at high (66.7) is matched by Fable 5.1 at low (66.2), for about 27% less.**
-- **Opus 5's ceiling is 70.1 at max ($8.5).** Fable 5.1 passes it between high and xhigh, at around
-  $5.3, roughly **38% cheaper than Opus 5's best**.
+- **At xhigh the cost is about the same and the score is not.** $7.2 vs $7.3 is inside the chart's
+  reading error, and the score gap is **+3.4 pts**. There is no price argument at this point on the ladder.
+- **Fable 5.1 at low (66.2) comes within 0.5 pt of Opus 5 at high (66.7), for about 27% less.**
+- **Opus 5's ceiling is 70.0 at max ($8.5).** Fable 5.1 passes it between high and xhigh, at around
+  $5.2, roughly **38% cheaper than Opus 5's best**.
 - **73.4 is out of reach for Opus 5 at any effort setting.**
 
 Note how far the curve moved between Fable 5 and Fable 5.1: low $4.5 → $2.9 (−36%), max $17.5 →
-$9.5 (−46%). The new cache-read price is already baked into these charts, and that −46% is the same
-number Anthropic quotes as "up to approximately 45%" for highly agentic work. It is also the same number
-this report's billing data produces independently (§3).
+$9.5 (−46%). That shift bundles two things: the new cache-read price, which is already in these
+charts, and a different model doing a different amount of work. Anthropic's "up to approximately
+45%" is the repricing alone, and §3 reproduces that part from billing data.
 
 #### Priced at equal score
 
@@ -130,10 +131,10 @@ it. Fable 5.1's cost is linearly interpolated between its published effort point
 |---|---|---|---|
 | 66.7 | $4.00 (high) | ~$3.06 | **−24%** |
 | 69.3 | $7.30 (xhigh) | ~$4.70 | **−36%** |
-| 70.1 *(Opus 5's ceiling)* | $8.50 (max) | ~$5.31 | **−38%** |
-| above 70.1 | unreachable | $5.31 → $9.50 | — |
+| 70.0 *(Opus 5's ceiling)* | $8.50 (max) | ~$5.24 | **−38%** |
+| above 70.0 | unreachable | $5.24 → $9.50 | — |
 
-**The gap widens as the quality bar rises**, and above 70.1 there is no comparison left to make.
+**The gap widens as the quality bar rises**, and above 70.0 there is no comparison left to make.
 
 These dollar figures are Anthropic's per-task costs computed with each model's own price sheet.
 Fable 5.1's 2× input/output rates and $0.25 cache read are already inside them. No further price
@@ -222,8 +223,8 @@ And that one line is the only line Fable 5.1 makes cheaper.
 *USD per million tokens. Source: [platform.claude.com/docs/en/about-claude/pricing](https://platform.claude.com/docs/en/about-claude/pricing)*
 
 Fable 5.1 lists at 2× Opus 5. The price sheet lists Fable 5.1 at double Opus 5 across input,
-output, and cache writes. Each of those rates is exactly 2×. Every other model prices cache read
-at 0.1× its input rate. Fable 5.1 prices it at 0.025×.
+output, and cache writes. Each of those rates is exactly 2×. Every other model except Mythos 5.1
+prices cache read at 0.1× its input rate; Fable 5.1 and Mythos 5.1 price it at 0.025×.
 
 Fable 5 was exactly 2× Opus 5 on every line, including cache read at $1.00. Fable 5.1 changed only
 cache read to $0.25. Therefore:
@@ -265,7 +266,7 @@ already appears in the parent's timeline.
 
 | | Cache-read share | Implied Fable 5 → 5.1 saving |
 |---|---|---|
-| Without dedup | 70.3% | 52.7% (above the ceiling Anthropic states) |
+| Without dedup | 65.7% | 49.3% (above the ceiling Anthropic states) |
 | With dedup | 59.4% | 44.5% (matches "up to approximately 45%") |
 
 The corrected figure lands on Anthropic's number; the uncorrected one overshoots it.

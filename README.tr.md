@@ -568,7 +568,7 @@ Yukarıdakilerin hepsi geçerlidir, artı bu API'ye özgü öncelikler:
 ## 📚 Belgeler
 
 - [Prompt Cache Kılavuzu](guides/prompt-cache-guide.md) — Maliyetinizin büyük bölümünün neden cache olduğu, sağlayıcılar genelinde caching'in nasıl çalıştığı (Anthropic, OpenAI, Gemini) ve nasıl yönetileceği ([한국어](guides/prompt-cache-guide-ko.md) · [日本語](guides/prompt-cache-guide-ja.md) · [中文](guides/prompt-cache-guide-zh.md) · [Español](guides/prompt-cache-guide-es.md) · [Français](guides/prompt-cache-guide-fr.md) · [Deutsch](guides/prompt-cache-guide-de.md) · [+16 languages](guides/))
-- [Fable 5.1 - Opus 5 Maliyet Analizi](guides/fable-5-1-vs-opus-5-cost-analysis.md) — Aynı kalitede Opus 5'ten en az %24–38 daha ucuz, 2.802 oturum üzerinden
+- [Fable 5.1 - Opus 5 Maliyet Analizi](guides/fable-5-1-vs-opus-5-cost-analysis.md) — Aynı kalitede Opus 5'ten en az %24–38 daha ucuz, 2.782 oturum üzerinden
 - [Fable 5.1 - Opus 5 Maliyet Analizi (한국어)](guides/fable-5-1-vs-opus-5-cost-analysis.ko.md)
 - [Opus 4.7 - 4.6 Maliyet Analizi](guides/opus-4-7-vs-4-6-cost-analysis.md) — 8.563 API çağrısı genelinde yan yana maliyet karşılaştırması
 - [Opus 4.7 - 4.6 Maliyet Analizi (한국어)](guides/opus-4-7-vs-4-6-cost-analysis.ko.md)

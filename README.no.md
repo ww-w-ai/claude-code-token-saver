@@ -574,7 +574,7 @@ Alt ovennevnte gjelder, pluss disse API-spesifikke prioriteringene:
 ## 📚 Dokumentasjon
 
 - [Guide for promptcache](guides/prompt-cache-guide.md) — Hvorfor det meste av kostnaden din er cache, hvordan caching fungerer på tvers av leverandører (Anthropic, OpenAI, Gemini) og hvordan du håndterer det ([한국어](guides/prompt-cache-guide-ko.md) · [日本語](guides/prompt-cache-guide-ja.md) · [中文](guides/prompt-cache-guide-zh.md) · [Español](guides/prompt-cache-guide-es.md) · [Français](guides/prompt-cache-guide-fr.md) · [Deutsch](guides/prompt-cache-guide-de.md) · [+16 languages](guides/))
-- [Kostnadsanalyse Fable 5.1 vs Opus 5](guides/fable-5-1-vs-opus-5-cost-analysis.md) — Minst 24–38 % billigere enn Opus 5 ved lik kvalitet, over 2 802 økter
+- [Kostnadsanalyse Fable 5.1 vs Opus 5](guides/fable-5-1-vs-opus-5-cost-analysis.md) — Minst 24–38 % billigere enn Opus 5 ved lik kvalitet, over 2 782 økter
 - [Kostnadsanalyse Fable 5.1 vs Opus 5 (한국어)](guides/fable-5-1-vs-opus-5-cost-analysis.ko.md)
 - [Kostnadsanalyse Opus 4.7 vs 4.6](guides/opus-4-7-vs-4-6-cost-analysis.md) — Side-ved-side kostnadssammenligning over 8 563 API-anrop
 - [Kostnadsanalyse Opus 4.7 vs 4.6 (한국어)](guides/opus-4-7-vs-4-6-cost-analysis.ko.md)
